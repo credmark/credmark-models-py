@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+model:
+  name: run-test
+  version: 1.0
+  display_name: Runner test model
+  description: Test model runs another model specified with 'model' in input.
+  class: models.run_test.model_run_test.RunnerTestModel

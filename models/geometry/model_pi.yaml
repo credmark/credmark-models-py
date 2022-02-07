@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+model:
+  name: pi
+  version: 1.1
+  display_name: PI
+  description: PI
+  class: models.geometry.model_pi.PIModel

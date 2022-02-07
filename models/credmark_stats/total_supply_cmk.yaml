@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+model:
+  name: total_supply_cmk
+  version: 1.0
+  display_name: CMK Total Supply
+  description: This is the Total Supply of CMK.
+  class: models.credmark_stats.total_supply_cmk.TotalSupplyCMK
