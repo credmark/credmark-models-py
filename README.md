@@ -15,12 +15,18 @@ source venv/bin/activate
 
 ### Install Dependencies
 
-IMPORTANT: The Credmark SDK does not exist yet so for now, in the parent folder to this one run `git clone credmark-model-engine` (or ensure the credmark-model-engine folder exists there.)
-
-Then run:
+IMPORTANT: The Credmark SDK is not a published package yet so for now, in some folder (for example, one level up) run:
 
 ```
-pip install -r requirements.txt
+ git clone credmark-model-sdk-py
+ cd credmark-model-sdk-py
+ python setup.py sdist
+```
+
+Then in the credmark-models-py repo run:
+
+```
+pip install ../credmark-model-sdk-py/dist/*.gz
 ```
 
 For development, you can also run:
@@ -31,23 +37,23 @@ pip install -r requirements-dev.txt
 
 ## Run a Model
 
-- `run_model.py` python script that runs a model.
+- `credmark-dev` script is a tool for developers.
 
-The script takes args and reads the input JSON from stdin.
-
-The `--model_path` can be a folder to search for models. It must be relative to the current directory. It defaults to "." so normally you won't need to change it.
+When running a model, you use args and can specify the input JSON as an arg (--input or -i) or it will read the input JSON from stdin.
 
 An example run of a model:
 
 ```
-echo '{}' | ./run_model.py --chain_id=1 --block_number=1 --model_name=pi --model_path=credmark/models --provider=https://mainnet.infura.io/v3/12345
+credmark-dev --model_name=pi --input '{}'
 ```
 
-Another example where we pass input:
+Another example where we pass input to stdin:
 
 ```
-echo '{"model":"pi"}' | ./run_model.py --chain_id=1 --block_number=1 --model_name=run-test --model_path=credmark/models
+echo '{"model":"pi"}' | credmark-dev --chain_id=1 --block_number=1 --model_name=run-test
 ```
+
+The `--model_path` can be used to limit the search for models. It must be a folder relative to the current directory. It defaults to "models" so normally you won't need to change it.
 
 ## Develop a Model
 
@@ -97,7 +103,7 @@ A model can optionally implement a `init(self)` method which will be called when
 Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
 
 ```
-from credmark import Model
+from credmark.model import Model
 
 class FooModel(Model):
    def run(self, data):
@@ -124,8 +130,6 @@ Instance attributes:
 Methods:
 
 - `run_model(name: str, input: Union[dict, None] = None, block_number: Union[int, None] = None, version: Union[str, None] = None)` - A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict (or raises an error if the called model was unavailable or had an error.)
-
-See `credmark/types/model/context.py` for more details.
 
 ### Error handling
 

@@ -1,4 +1,4 @@
-from credmark import Model
+from credmark.model import Model
 
 
 class PIModel2(Model):
