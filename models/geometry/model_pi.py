@@ -4,5 +4,5 @@ import math
 
 class PIModel(Model):
 
-    def run(self, data):
+    def run(self, _input):
         return {'value': math.pi}

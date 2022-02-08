@@ -3,5 +3,5 @@ from credmark import Model
 
 class PIModel(Model):
 
-    def run(self, data):
+    def run(self, _input):
         return {'value': 3.1415}

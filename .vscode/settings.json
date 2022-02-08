@@ -2,5 +2,8 @@
   "editor.formatOnSave": true,
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.diagnosticMode": "workspace"
+  "python.analysis.diagnosticMode": "workspace",
+  "python.formatting.autopep8Args": ["--max-line-length", "100"],
+  "python.linting.pylintEnabled": true,
+  "python.linting.lintOnSave": true,
 }

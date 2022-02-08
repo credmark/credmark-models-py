@@ -16,7 +16,7 @@ class CirculatingCMK(Model):
         "0x654958393B7E54f1e2e51f736a14b9d26D00Eb1e"
     ]
 
-    def run(self, data):
+    def run(self, _input) -> dict:
         supply = self.context.run_model("total_supply_cmk")
         cmkContract = self.context.web3.eth.contract(
             address="0x68CFb82Eacb9f198d508B514d898a403c449533E",
@@ -34,9 +34,9 @@ class CirculatingCMK(Model):
 
 Stuff that's annoying:
 
-1: block_identifier needs to be explicitly set in pyweb3. IN. EVERY. CALL. It's nonsense. 
-    We need to either 
-    a: fork web3 and make a change to line 929 in web3/contract.py 
+1: block_identifier needs to be explicitly set in pyweb3. IN. EVERY. CALL. It's nonsense.
+    We need to either
+    a: fork web3 and make a change to line 929 in web3/contract.py
     b: wrap web3 up and manage it.
 
 2: That abi is nuts. Lookups for neily please
