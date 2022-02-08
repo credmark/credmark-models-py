@@ -1,7 +1,0 @@
-credmark_model_manifest: v1
-model:
-  name: circulating_supply_cmk
-  version: 1.0
-  display_name: CMK Circulating Supply
-  description: This is the Circulating Supply of CMK.
-  class: models.credmark.cmk.circulating_supply_cmk.CirculatingCMK

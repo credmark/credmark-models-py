@@ -1,7 +1,0 @@
-credmark_model_manifest: v1
-model:
-  name: launch_date_cmk
-  version: 1.0
-  display_name: CMK Launch Date
-  description: This is the Launch Date of CMK.
-  class: models.credmark.cmk.launch_date_cmk.LaunchDateCmk

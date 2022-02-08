@@ -1,7 +1,7 @@
-from credmark import Model
+from credmark.model import Model
 
 """
-TODO: Need to get ABI's programmatically
+TODO: Need to get ABI's programmatically, I want to be able to do something like: self.context.contract(protocol:Union[str, None], product:Union[str,None], address:Union[str, None], abi:Union[str,None])
 """
 
 staked_credmark_address = "0x8588d3A5FA9f63fA150815a88FC97183104Fb6Dc"
@@ -30,7 +30,7 @@ class xCmkTotalSupply(Model):
         return staked_credmark.functions.totalSupply().call()
 
 
-class xCmkStartTime(Model):
+class xCmkDeploymentTime(Model):
 
     def run(self, input):
 

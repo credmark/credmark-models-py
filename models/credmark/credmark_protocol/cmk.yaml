@@ -1,0 +1,12 @@
+credmark_model_manifest: v1
+models:
+- name: cmk_total_supply
+  version: 1.0
+  display_name: CMK Total Supply
+  description: This is the Total Supply of CMK.
+  class: models.credmark.credmark_protocol.cmk.TotalSupplyCMK
+- name: cmk_circulating_supply
+  version: 1.0
+  display_name: CMK Circulating Supply
+  description: This is the Circulating Supply of CMK.
+  class: models.credmark.credmark_protocol.cmk.CirculatingCMK
