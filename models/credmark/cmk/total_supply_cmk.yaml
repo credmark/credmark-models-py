@@ -4,4 +4,4 @@ model:
   version: 1.0
   display_name: CMK Total Supply
   description: This is the Total Supply of CMK.
-  class: models.credmark_stats.total_supply_cmk.TotalSupplyCMK
+  class: models.credmark.cmk.total_supply_cmk.TotalSupplyCMK

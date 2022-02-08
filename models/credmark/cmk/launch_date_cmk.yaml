@@ -4,4 +4,4 @@ model:
   version: 1.0
   display_name: CMK Launch Date
   description: This is the Launch Date of CMK.
-  class: models.credmark_stats.launch_date_cmk.LaunchDateCmk
+  class: models.credmark.cmk.launch_date_cmk.LaunchDateCmk

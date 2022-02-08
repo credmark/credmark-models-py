@@ -4,4 +4,4 @@ model:
   version: 1.0
   display_name: CMK Circulating Supply
   description: This is the Circulating Supply of CMK.
-  class: models.credmark_stats.circulating_supply_cmk.CirculatingCMK
+  class: models.credmark.cmk.circulating_supply_cmk.CirculatingCMK
