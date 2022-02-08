@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+models:
+- name: var
+  version: 1.0
+  display_name: Value at Risk
+  description: Value at Risk
+  class: models.credmark.algorithmic.var.Var

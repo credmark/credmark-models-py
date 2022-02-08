@@ -1,9 +1,9 @@
-from credmark import Model
+from credmark.model import Model
+
 
 class Var(Model):
     def run(self, data):
         """
-
             Var takes in a portfolio object,
             a list of prices per token into the past,
             a price window,
@@ -14,4 +14,4 @@ class Var(Model):
             it returns the one that hits the input percentage.
 
         """
-        result = {'value': 'not implemented'}
+        result = {'value': 'not yet implemented'}
