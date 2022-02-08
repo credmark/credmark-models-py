@@ -1,7 +1,0 @@
-credmark_model_manifest: v1
-model:
-  name: geometry.circles.circumference
-  version: 1.0
-  display_name: Circle Circumference
-  description: Compute the circumference of a circle given its radius
-  class: models.geometry.circles.circles.CircleCircumference

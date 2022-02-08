@@ -154,9 +154,10 @@ Methods:
 
 ### Error handling
 
-The top level `run_model.py` will catch any exceptions and output error JSON to stdout and exit with an error code.
+The top level will catch any exceptions and output error JSON to stdout and exit with an error code.
 
-Models can raise an exception to terminate a run. Models that do
-an API request to run another model will terminate if the requested model has an error.
+Models can raise a `credmark.model.errors.ModelRunError` (or other Exception) to terminate a run.
+
+Models that run another model will terminate if the requested model has an error.
 
 Models should never write to stdout. They may use a logger to write to stderr.
