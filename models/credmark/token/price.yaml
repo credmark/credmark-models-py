@@ -1,0 +1,13 @@
+credmark_model_manifest: v1
+models:
+- name: uniswap_router_price_usd
+  version: 1.0
+  display_name: The Price of a Token on Uniswap in USD
+  description: The Trading Price with respect to USD on Uniswap's Frontend
+  class: models.credmark.token.price.UniswapRouterPriceUsd
+
+- name: uniswap_router_price_pair
+  version: 1.0
+  display_name: The Price of a Token on Uniswap with respect to another Token
+  description: The Trading Price with respect to another Token on Uniswap's Frontend
+  class: models.credmark.token.price.UniswapRouterPricePair
