@@ -82,6 +82,12 @@ echo {"model":"pi"} | credmark-dev run --chain_id=1 --block_number=1 run-test
 
 A model is a python code file which implements the model and a `yaml` file which describes some metadata. See an example in the `models/pi` folder.
 
+Standards:
+
+- Model slugs can contain letters (upper and lowercase), numbers, and hyphen. In general, use a hypen between words. They must be unique in a case-insensitive manner.
+
+- Input variables and Output data fields should use camel-cased names.
+
 ### Model Yaml
 
 First create a folder in the `models` folder that will hold all of your models, for example `models/my_models`.
