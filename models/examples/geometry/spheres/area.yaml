@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+model:
+  name: geometry.spheres.area
+  version: 1.0
+  display_name: Sphere Surface Area
+  description: Compute the surface area of a sphere given its radius
+  class: models.examples.geometry.spheres.area.SphereArea

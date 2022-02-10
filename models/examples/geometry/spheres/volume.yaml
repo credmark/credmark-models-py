@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+model:
+  name: geometry.spheres.volume
+  version: 1.0
+  display_name: Sphere Volume
+  description: Compute the volume of a sphere given its radius
+  class: models.examples.geometry.spheres.volume.SphereVolume

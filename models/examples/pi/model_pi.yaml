@@ -1,0 +1,12 @@
+credmark_model_manifest: v1
+models:
+  - name: pi
+    version: 1.0
+    display_name: PI
+    description: PI
+    class: models.examples.pi.model_pi.PIModel
+  - name: pi
+    version: 2.0
+    display_name: PI
+    description: PI
+    class: models.examples.pi.model_pi_2.PIModel2
