@@ -6,12 +6,12 @@ class RunnerTestModel(Model):
     in the input. For example: {"model":"pi"}
     """
 
-    def run(self, data):
+    def run(self, input):
 
-        model = data.get('model')
+        model = input.get('model')
 
         if model:
-            res = self.context.run_model(model, None)
+            res = self.context.run_model(model, input.get('input'))
         else:
             res = 'No model specified'
 
