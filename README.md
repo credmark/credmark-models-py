@@ -54,27 +54,29 @@ CREDMARK_WEB3_PROVIDERS={"1":"https://eth-mainnet.alchemyapi.io/v2/ABC123","137"
 
 - `credmark-dev` script is a tool for developers.
 
-When running a model, you use args and can specify the input JSON as an arg (--input or -i) or it will read the input JSON from stdin.
-
-An example run of a model:
-
-```
-credmark-dev run pi --input '{}'
-```
-
-Another example where we pass input to stdin:
-
-```
-echo '{"model":"pi"}' | credmark-dev run --chain_id=1 --block_number=1 run-test
-```
-
-List models:
++ List models:
 
 ```
 credmark-dev list-models
 ```
 
 The `--model_path` can be used to limit the search for models. It must be a folder relative to the current directory. It defaults to "models" so normally you won't need to change it.
+
++ Run model:
+
+When running a model, you use args and can specify the input JSON as an arg (--input or -i) or it will read the input JSON from stdin.
+
+An example run of a model:
+
+```
+credmark-dev run pi --input "{}"
+```
+
+Another example where we pass input to stdin:
+
+```
+echo {"model":"pi"} | credmark-dev run --chain_id=1 --block_number=1 run-test
+```
 
 ## Develop a Model
 

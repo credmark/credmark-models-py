@@ -1,0 +1,7 @@
+credmark_model_manifest: v1
+models:
+- name: Foo
+  version: 1.0
+  display_name: FooModel
+  description: FooModel
+  class: models.credmark.test.FooModel.FooModel
