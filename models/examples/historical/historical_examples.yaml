@@ -1,6 +1,6 @@
 credmarkModelManifest: v1
 models:
-  - slug: historical_pi
+  - slug: historical-pi
     version: 1.0
     displayName: Historical Pi
     description: The value of Pi at different points in History

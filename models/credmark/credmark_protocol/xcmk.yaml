@@ -1,11 +1,11 @@
 credmarkModelManifest: v1
 models:
-  - slug: xcmk_total_supply
+  - slug: xcmk-total-supply
     version: 1.0
     displayName: xCMK Total Supply
     description: the Total supply of the xCMK contract
     class: models.credmark.credmark_protocol.xcmk.xCmkTotalSupply
-  - slug: xcmk_cmk_staked
+  - slug: xcmk-cmk-staked
     version: 1.0
     displayName: The amount of CMK that's been staked
     description: The amount of cmk staked in the staking contract

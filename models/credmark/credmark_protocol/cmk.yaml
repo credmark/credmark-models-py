@@ -1,11 +1,11 @@
 credmarkModelManifest: v1
 models:
-  - slug: cmk_total_supply
+  - slug: cmk-total-supply
     version: 1.0
     displayName: CMK Total Supply
     description: This is the Total Supply of CMK.
     class: models.credmark.credmark_protocol.cmk.TotalSupplyCMK
-  - slug: cmk_circulating_supply
+  - slug: cmk-circulating-supply
     version: 1.0
     displayName: CMK Circulating Supply
     description: This is the Circulating Supply of CMK.
