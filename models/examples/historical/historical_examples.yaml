@@ -1,7 +1,7 @@
-credmark_model_manifest: v1
+credmarkModelManifest: v1
 models:
-- name: historical_pi
-  version: 1.0
-  display_name: Historical Pi
-  description: The value of Pi at different points in History
-  class: models.examples.historical.historical_examples.HistoricalPi
+  - slug: historical_pi
+    version: 1.0
+    displayName: Historical Pi
+    description: The value of Pi at different points in History
+    class: models.examples.historical.historical_examples.HistoricalPi
