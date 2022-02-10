@@ -3,6 +3,11 @@ from credmark.model import Model
 
 class HistoricalPi(Model):
 
+    """
+    This example runs the pi model over blocks 14000000 - block 14100000 using
+    the series.blockStartEndInterval model. 
+    """
+
     def run(self, input) -> dict:
 
         res = self.context.run_model('series.blockStartEndInterval', {
