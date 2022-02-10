@@ -13,43 +13,43 @@ The two forms of composability are:
 
 ## Sharing classes across models
 
-Our *circle* models, *CircleCircumference* and *CircleArea* derive from a common class, *Circle*, which is itself a model.
+Our _circle_ models, _CircleCircumference_ and _CircleArea_ derive from a common class, _Circle_, which is itself a model.
 
-Note that any class in the model engine can be accessed starting from the engines's root, which is automatically added to sys.path. Our *Circle* class can therefore be imported using:
+Note that any class in the model engine can be accessed starting from the engines's root, which is automatically added to sys.path. Our _Circle_ class can therefore be imported using:
 
 ```
 from models.geometry.circle import Circle
 ```
 
-The superclass *Circle*:
+The superclass _Circle_:
 
-* retrieves a required input variable,
-* logs an error, if it's missing, and
-* returns the model's result.
+- retrieves a required input variable,
+- logs an error, if it's missing, and
+- returns the model's result.
 
 Subclasses only perform the computation, making them easy to implement and read.
 
 ## Sharing models (by calling models from models)
 
-Our *sphere* models, *SphereArea* and *SphereVolume* take a different approch. They don't share a superclass, although they could of course. Instead, they demonstrate how a model can use another model's output.
+Our _sphere_ models, _SphereArea_ and _SphereVolume_ take a different approch. They don't share a superclass, although they could of course. Instead, they demonstrate how a model can use another model's output.
 
-In the parent directory (geometry), we've implemented a *pi* model that simply returns the constant math.pi. That model is invoked as follows:
+In the parent directory (geometry), we've implemented a _pi_ model that simply returns the constant math.pi. That model is invoked as follows:
 
 ```
 pi = self.context.run_model('pi')['value']
 ```
 
-This uses the object's context to have the engine run the *pi* model. The *pi* model, like every model, returns a dictionary of values that include:
+This uses the object's context to have the engine run the _pi_ model. The _pi_ model, like every model, returns a dictionary of values that include:
 
-* the model's name,
-* its output, and
-* a list of model dependencies, including itself.
+- the model's name,
+- its output, and
+- a list of model dependencies, including itself.
 
-The output's key is "result" which, by convention, is a dictionary with includes the key confusingly called "value". In this case, "value"'s value is math.pi. We use this value when computing the area and volumes of our spheres.
+The output's key is "output" which, by convention, is a dictionary with includes the key confusingly called "value". In this case, "value"'s value is math.pi. We use this value when computing the area and volumes of our spheres.
 
 ## Model name clashes.
 
-We can run the *pi* model as follows:
+We can run the _pi_ model as follows:
 
 ```
 echo {} | ./run_model.py --chain_id=1 --block_number=1 --model_name=pi --model_path=models/geometry --provider=https://mainnet.infura.io/v3/12345
@@ -57,7 +57,7 @@ echo {} | ./run_model.py --chain_id=1 --block_number=1 --model_name=pi --model_p
 
 Note that we've set model_path to "models/geometry". Normally we can invoke any model simply using the model_path to "models". The engine traverses the hierarchy until it finds a model with a matching name, in this case, "pi".
 
-This is the output we expect when running the model *pi* using the command above:
+This is the output we expect when running the model _pi_ using the command above:
 
 ```
 {"name": "pi", "version": "1.1", "result": {"value": 3.141592653589793}, "dependencies": {"pi": "1.1"}}
@@ -81,11 +81,11 @@ returns
 {"name": "pi", "version": "2.0", "result": {"value": 3.1415, "v2": true}, "dependencies": {"pi": ["1.0", "2.0"]}}
 ```
 
-It's clear from this output that we did not run our version of *pi* (1.1). Instead we ran version 2.0 found in "models/pi". Version 2.0 depends on 1.0, as shown in the output above.
+It's clear from this output that we did not run our version of _pi_ (1.1). Instead we ran version 2.0 found in "models/pi". Version 2.0 depends on 1.0, as shown in the output above.
 
 By default the engine always runs the latest version. This can be overriden if you want to run a particular version.
 
-By explicitly telling the engine to look for models under "models/geometry", we avoided any ambiguity and ensured that our version of the *pi* model was run.
+By explicitly telling the engine to look for models under "models/geometry", we avoided any ambiguity and ensured that our version of the _pi_ model was run.
 
 ## Models and Manifests
 

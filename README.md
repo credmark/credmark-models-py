@@ -54,7 +54,7 @@ CREDMARK_WEB3_PROVIDERS={"1":"https://eth-mainnet.alchemyapi.io/v2/ABC123","137"
 
 - `credmark-dev` script is a tool for developers.
 
-+ List models:
+* List models:
 
 ```
 credmark-dev list-models
@@ -62,7 +62,7 @@ credmark-dev list-models
 
 The `--model_path` can be used to limit the search for models. It must be a folder relative to the current directory. It defaults to "models" so normally you won't need to change it.
 
-+ Run model:
+- Run model:
 
 When running a model, you use args and can specify the input JSON as an arg (--input or -i) or it will read the input JSON from stdin.
 
@@ -89,30 +89,30 @@ First create a folder in the `models` folder that will hold all of your models, 
 To make a new model `foo`, inside your models folder create a yaml file `model_foo.yaml` (it can have any name with a `.yaml` extension) with the following:
 
 ```yaml
-credmark_model_manifest: v1
+credmarkModelManifest: v1
 model:
-name: foo
-version: 1.0
-display_name: My Foo Model
-description: The foo model produces the best data.
-class: models.my_models.model_foo.FooModel
+  slug: foo
+  version: 1.0
+  displayName: My Foo Model
+  description: The foo model produces the best data.
+  class: models.my_models.model_foo.FooModel
 ```
 
 Multiple models can be listed in the same manifest using the attribute `models` instead of `model`:
 
 ```yaml
-credmark_model_manifest: v1
+credmarkModelManifest: v1
 models:
-- name: foo
-version: 1.0
-display_name: My Foo Model
-description: The foo model produces the best data.
-class: models.my_models.model_foo.FooModel
-- name: goo
-version: 1.3
-display_name: My Goo Model
-description: The goo model produces the best data.
-class: models.my_models.model_goo.GooModel
+  - slug: foo
+    version: 1.0
+    displayName: My Foo Model
+    description: The foo model produces the best data.
+    class: models.my_models.model_foo.FooModel
+  - slug: goo
+    version: 1.3
+    displayName: My Goo Model
+    description: The goo model produces the best data.
+    class: models.my_models.model_goo.GooModel
 ```
 
 ## Model Python

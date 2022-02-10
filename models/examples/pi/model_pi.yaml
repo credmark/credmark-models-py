@@ -1,12 +1,12 @@
-credmark_model_manifest: v1
+credmarkModelManifest: v1
 models:
-  - name: pi
+  - slug: pi
     version: 1.0
-    display_name: PI
+    displayName: PI
     description: PI
     class: models.examples.pi.model_pi.PIModel
-  - name: pi
+  - slug: pi
     version: 2.0
-    display_name: PI
+    displayName: PI
     description: PI
     class: models.examples.pi.model_pi_2.PIModel2
