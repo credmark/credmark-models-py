@@ -1,1 +1,4 @@
-../credmark-model-engine/requirements-dev.txt
+autopep8==1.6.0
+pycodestyle==2.8.0
+toml==0.10.2
+pylint==2.12.2
