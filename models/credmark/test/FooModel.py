@@ -1,5 +1,7 @@
-from credmark.model import Model
+from credmark.model import Model, manifest_v1
+
 
 class FooModel(Model):
-   def run(self, data):
-      return {'value': 42}
+    def run(self, input) -> dict:
+        print(self.slug, self.version, self.display_name, self.description)
+        return {'value': 42}

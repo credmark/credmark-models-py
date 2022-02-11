@@ -33,7 +33,7 @@ class CirculatingCMK(Model):
 
     def run(self, _input) -> dict:
 
-        supply = self.context.run_model("total_supply_cmk")
+        supply = self.context.run_model("cmk_total_supply")
         cmk_contract = self.context.web3.eth.contract(
             address=self.context.web3.toChecksumAddress(cmk_address),
             abi=cmk_abi)
