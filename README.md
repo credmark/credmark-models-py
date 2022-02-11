@@ -15,18 +15,12 @@ source venv/bin/activate
 
 ### Install Dependencies
 
-IMPORTANT: The Credmark SDK is not a published package yet so for now, in some folder (for example, one level up) run:
+You will need to set a `GITHUB_TOKEN` with a github personal access token.
+
+Then run:
 
 ```
- git clone git@github.com:credmark/credmark-model-sdk-py.git
- cd credmark-model-sdk-py
- python setup.py sdist
-```
-
-Then in the credmark-models-py repo run:
-
-```
-pip install ../credmark-model-sdk-py/dist/*.gz
+pip install -r requirements.txt
 ```
 
 For development, you can also run:
