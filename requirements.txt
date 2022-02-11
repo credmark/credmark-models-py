@@ -1,0 +1,1 @@
+git+https://${GITHUB_TOKEN}@github.com/credmark/credmark-model-sdk-py.git@main
