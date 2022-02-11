@@ -1,4 +1,5 @@
 credmarkModelManifest: v1
+
 models:
   - slug: uniswap-router-price-usd
     version: 1.0
@@ -11,3 +12,15 @@ models:
     displayName: The Price of a Token on Uniswap with respect to another Token
     description: The Trading Price with respect to another Token on Uniswap's Frontend
     class: models.credmark.token.price.UniswapRouterPricePair
+
+  - slug: uniswap-exchange
+    version: 1.0
+    displayName: dd
+    description: dd
+    class: models.credmark.token.price.UniswapExchange
+
+  - slug: uniswap-tokens
+    version: 1.0
+    displayName: dd
+    description: dd
+    class: models.credmark.token.price.UniswapTokens
