@@ -1,6 +1,10 @@
-from credmark.model import Model
+from credmark.model import Model, manifest_v1
 
 
+@manifest_v1(slug='historical-pi',
+             version='1.0',
+             display_name='Historical Pi',
+             description='The value of Pi at different points in History')
 class HistoricalPi(Model):
 
     """
@@ -19,6 +23,9 @@ class HistoricalPi(Model):
         return res
 
 
+@manifest_v1(slug='historical-staked-xcmk',
+             version='1.0',
+             display_name='Historical Staked xCMK')
 class HistoricalXCmkStaked(Model):
 
     """

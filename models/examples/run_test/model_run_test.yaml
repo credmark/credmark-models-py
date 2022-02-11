@@ -1,7 +1,0 @@
-credmarkModelManifest: v1
-model:
-  slug: run-test
-  version: 1.0
-  displayName: Runner test model
-  description: Test model runs another model specified with 'model' in input.
-  class: models.examples.run_test.model_run_test.RunnerTestModel

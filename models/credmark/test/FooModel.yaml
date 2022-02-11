@@ -1,7 +1,0 @@
-credmarkModelManifest: v1
-models:
-  - slug: Foo
-    version: 1.0
-    displayName: FooModel
-    description: FooModel
-    class: models.credmark.test.FooModel.FooModel

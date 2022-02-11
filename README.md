@@ -125,17 +125,17 @@ models:
 
 Then create a python file `model_foo.py` (again it can have any name, just update the `class` property in the yaml file.)
 
-A model is a python class that inherits from the base Model class and implements a `run(self, data)` method, which takes input data and returns a result dict with aribitrary properties and values, potentially nested with other JSON-compatible data structures.
+A model is a python class that inherits from the base Model class and implements a `run(self, input)` method, which takes input data and returns a result dict with aribitrary properties and values, potentially nested with other JSON-compatible data structures.
 
 A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the context is available.
 
 Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
 
 ```
-from credmark.model import Model
+from credmark.model import Model, manifest_v1
 
 class FooModel(Model):
-   def run(self, data):
+   def run(self, input) -> dict:
       return {'value': 42}
 ```
 

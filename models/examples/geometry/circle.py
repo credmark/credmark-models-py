@@ -1,4 +1,4 @@
-from credmark.model import Model
+from credmark.model import Model, manifest_v1
 from credmark.model.errors import ModelRunError
 
 
@@ -12,7 +12,7 @@ class Circle(Model):
     def get_result(self, radius):
         pass
 
-    def run(self, input):
+    def run(self, input) -> dict:
 
         try:
             result = {'value': self.get_result(input['radius'])}

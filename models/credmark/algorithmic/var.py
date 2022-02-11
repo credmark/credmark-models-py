@@ -1,8 +1,12 @@
-from credmark.model import Model
+from credmark.model import Model, manifest_v1
 
 
+@manifest_v1(slug='var',
+             version='1.0',
+             display_name='Value at Risk',
+             description='Value at Risk')
 class Var(Model):
-    def run(self, data):
+    def run(self, input) -> dict:
         """
             Var takes in a portfolio object,
             a list of prices per token into the past,
