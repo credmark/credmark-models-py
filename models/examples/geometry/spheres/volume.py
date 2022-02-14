@@ -1,12 +1,12 @@
-from credmark.model import Model, manifest_v1
-from credmark.model.errors import ModelRunError
+import credmark.model
+from credmark.model import ModelRunError
 
 
-@manifest_v1(slug='geometry-spheres-volume',
-             version='1.0',
-             display_name='Sphere Volume',
-             description='Compute the volume of a sphere given its radius')
-class SphereVolume(Model):
+@credmark.model(slug='geometry-spheres-volume',
+                version='1.0',
+                display_name='Sphere Volume',
+                description='Compute the volume of a sphere given its radius')
+class SphereVolume:
 
     def run(self, input) -> dict:
 

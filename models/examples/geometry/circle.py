@@ -1,8 +1,8 @@
-from credmark.model import Model, manifest_v1
-from credmark.model.errors import ModelRunError
+import credmark.model
+from credmark.model import ModelRunError
 
 
-class Circle(Model):
+class Circle:
     """
     This is the base class for all circle models. It's assumed that
     radius is the only needed input for all circle-related

@@ -164,7 +164,7 @@ Methods:
 
 The top level will catch any exceptions and output error JSON to stdout and exit with an error code.
 
-Models can raise a `credmark.model.errors.ModelRunError` (or other Exception) to terminate a run.
+Models can raise a `credmark.model.ModelRunError` (or other Exception) to terminate a run.
 
 Models that run another model will terminate if the requested model has an error.
 

@@ -1,11 +1,11 @@
-from credmark.model import Model, manifest_v1
+import credmark.model
 
 
-@manifest_v1(slug='var',
-             version='1.0',
-             display_name='Value at Risk',
-             description='Value at Risk')
-class Var(Model):
+@credmark.model(slug='var',
+                version='1.0',
+                display_name='Value at Risk',
+                description='Value at Risk')
+class Var:
     def run(self, input) -> dict:
         """
             Var takes in a portfolio object,
