@@ -130,8 +130,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
 .idea/
 
-# test
-*.ps1
+# model manifest
+models.yaml

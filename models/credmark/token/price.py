@@ -6,8 +6,7 @@ import json
                  version='1.0',
                  display_name='The Price of a Token on Uniswap in USD',
                  description='The Trading Price with respect to USD on Uniswap\'s Frontend)')
-class UniswapRouterPricePair:
-    context: credmark.model.ModelContext
+class UniswapRouterPricePair(credmark.model.Model):
 
     def run(self, input) -> dict:
         # https://etherscan.io/address/0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6#code
@@ -44,8 +43,7 @@ class UniswapRouterPricePair:
                  version='1.0',
                  display_name='The Price of a Token on Uniswap with respect to another Token',
                  description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
-class UniswapRouterPriceUsd:
-    context: credmark.model.ModelContext
+class UniswapRouterPriceUsd(credmark.model.Model):
 
     def run(self, input) -> dict:
         """
@@ -64,8 +62,7 @@ uniswap_factory_abi = json.loads('[{"inputs":[{"internalType":"address","name":"
                  version='1.0',
                  display_name='uniswap tokens',
                  description='uniswap tokens')
-class UniswapTokens:
-    context: credmark.model.ModelContext
+class UniswapTokens(credmark.model.Model):
 
     def run(self, input) -> dict:
         uniswap_factory_contract = self.context.web3.eth.contract(
@@ -87,8 +84,7 @@ uniswap_dai_v1_abi = '[{"name": "TokenPurchase", "inputs": [{"type": "address", 
                  version='1.0',
                  display_name='uniswap-exchange',
                  description='uniswap-exchange')
-class UniswapExchange:
-    context: credmark.model.ModelContext
+class UniswapExchange(credmark.model.Model):
 
     def run(self, input) -> dict:
         exchange_contract = self.context.web3.eth.contract(

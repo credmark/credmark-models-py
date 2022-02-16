@@ -6,8 +6,7 @@ from credmark.model import ModelRunError
                 version='1.0',
                 display_name='Sphere Volume',
                 description='Compute the volume of a sphere given its radius')
-class SphereVolume:
-    context: credmark.model.ModelContext
+class SphereVolume(credmark.model.Model):
 
     def run(self, input) -> dict:
 

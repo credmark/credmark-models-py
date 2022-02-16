@@ -5,8 +5,7 @@ import credmark.model
                 version='1.0',
                 display_name='Value at Risk',
                 description='Value at Risk')
-class Var:
-    context: credmark.model.ModelContext
+class Var(credmark.model.Model):
 
     def run(self, input) -> dict:
         """

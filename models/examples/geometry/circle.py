@@ -2,7 +2,7 @@ import credmark.model
 from credmark.model import ModelRunError
 
 
-class Circle:
+class Circle(credmark.model.Model):
     """
     This is the base class for all circle models. It's assumed that
     radius is the only needed input for all circle-related

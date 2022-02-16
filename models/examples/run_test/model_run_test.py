@@ -5,11 +5,10 @@ import credmark.model
                 version='1.0',
                 display_name='Runner test model',
                 description='Test model runs another model specified with \'model\' in input.')
-class RunnerTestModel:
+class RunnerTestModel(credmark.model.Model):
     """A test model that runs another model that's specified
     in the input. For example: {"model":"pi"}
     """
-    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 

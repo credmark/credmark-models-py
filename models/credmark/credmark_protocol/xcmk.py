@@ -15,8 +15,7 @@ credmark_abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructor
                 display_name='xCMK Total Supply',
                 description='the Total supply of the xCMK contract'
                 )
-class xCmkCmkStaked:
-    context: credmark.model.ModelContext
+class xCmkCmkStaked(credmark.model.Model):
 
     def run(self, input) -> dict:
 
@@ -30,8 +29,7 @@ class xCmkCmkStaked:
                 version='1.0',
                 display_name='The amount of CMK that\'s been staked',
                 description='The amount of cmk staked in the staking contract')
-class xCmkTotalSupply:
-    context: credmark.model.ModelContext
+class xCmkTotalSupply(credmark.model.Model):
 
     def run(self, input) -> dict:
 
@@ -45,10 +43,9 @@ class xCmkTotalSupply:
                 version='1.0',
                 display_name='xCMK deployment time',
                 description='xCMK deployment time')
-class xCmkDeploymentTime:
-    context: credmark.model.ModelContext
+class xCmkDeploymentTime(credmark.model.Model):
 
     def run(self, input) -> dict:
 
         # res = self.context.ledger.get_transactions(["min(block_time)"], get minimum block with to=staked_credmark)
-        return "december"
+        return { 'value': "december" }

@@ -5,15 +5,12 @@ import credmark.model
                 version='1.0',
                 display_name='Historical Pi',
                 description='The value of Pi at different points in History')
-class HistoricalPi:
+class HistoricalPi(credmark.model.Model):
 
     """
     This example runs the pi model over blocks 14000000 - block 14100000 using
     the series.blockStartEndInterval model. 
     """
-
-    context: credmark.model.ModelContext
-
     def run(self, input) -> dict:
 
         res = self.context.run_model('series.blockStartEndInterval', {
@@ -28,7 +25,7 @@ class HistoricalPi:
 @credmark.model(slug='historical-staked-xcmk',
                 version='1.0',
                 display_name='Historical Staked xCMK')
-class HistoricalXCmkStaked:
+class HistoricalXCmkStaked(credmark.model.Model):
 
     """
     This example runs the pi model over blocks 14000000 - block 14100000 using

@@ -23,8 +23,7 @@ cmk_abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"
                 version='1.0',
                 display_name='CMK Total Supply',
                 description='This is the Total Supply of CMK')
-class TotalSupplyCMK:
-    context: credmark.model.ModelContext
+class TotalSupplyCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
         cmk_contract = self.context.web3.eth.contract(
@@ -38,8 +37,7 @@ class TotalSupplyCMK:
                 version='1.0',
                 display_name='CMK Circulating Supply',
                 description='This is the Circulating Supply of CMK.')
-class CirculatingCMK:
-    context: credmark.model.ModelContext
+class CirculatingCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
 
