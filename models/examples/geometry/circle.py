@@ -1,8 +1,8 @@
-from credmark.model import Model
-from credmark.model.errors import ModelRunError
+import credmark.model
+from credmark.model import ModelRunError
 
 
-class Circle(Model):
+class Circle(credmark.model.Model):
     """
     This is the base class for all circle models. It's assumed that
     radius is the only needed input for all circle-related
@@ -12,7 +12,7 @@ class Circle(Model):
     def get_result(self, radius):
         pass
 
-    def run(self, input):
+    def run(self, input) -> dict:
 
         try:
             result = {'value': self.get_result(input['radius'])}

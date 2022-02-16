@@ -1,7 +1,0 @@
-credmarkModelManifest: v1
-model:
-  slug: geometry-circles-area
-  version: 1.0
-  displayName: Circle Area
-  description: Compute the area of a circle given its radius
-  class: models.examples.geometry.circles.circles.CircleArea

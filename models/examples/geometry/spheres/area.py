@@ -1,10 +1,14 @@
-from credmark.model import Model
-from credmark.model.errors import ModelRunError
+import credmark.model
+from credmark.model import ModelRunError
 
 
-class SphereArea(Model):
+@credmark.model(slug='geometry-spheres-area',
+                version='1.0',
+                display_name='Sphere Surface Area',
+                description='Compute the surface area of a sphere given its radius')
+class SphereArea(credmark.model.Model):
 
-    def run(self, input):
+    def run(self, input) -> dict:
 
         try:
             r = input['radius']

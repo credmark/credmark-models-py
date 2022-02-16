@@ -1,8 +1,13 @@
-from credmark.model import Model
+import credmark.model
 
 
-class Var(Model):
-    def run(self, data):
+@credmark.model(slug='var',
+                version='1.0',
+                display_name='Value at Risk',
+                description='Value at Risk')
+class Var(credmark.model.Model):
+
+    def run(self, input) -> dict:
         """
             Var takes in a portfolio object,
             a list of prices per token into the past,
@@ -15,3 +20,5 @@ class Var(Model):
 
         """
         result = {'value': 'not yet implemented'}
+
+        return result
