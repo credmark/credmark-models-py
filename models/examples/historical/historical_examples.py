@@ -12,6 +12,8 @@ class HistoricalPi:
     the series.blockStartEndInterval model. 
     """
 
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
 
         res = self.context.run_model('series.blockStartEndInterval', {

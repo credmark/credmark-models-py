@@ -7,6 +7,7 @@ from credmark.model import ModelRunError
                 display_name='Sphere Surface Area',
                 description='Compute the surface area of a sphere given its radius')
 class SphereArea:
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 

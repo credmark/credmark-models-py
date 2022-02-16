@@ -16,6 +16,7 @@ credmark_abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructor
                 description='the Total supply of the xCMK contract'
                 )
 class xCmkCmkStaked:
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 
@@ -30,6 +31,7 @@ class xCmkCmkStaked:
                 display_name='The amount of CMK that\'s been staked',
                 description='The amount of cmk staked in the staking contract')
 class xCmkTotalSupply:
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 
@@ -44,6 +46,7 @@ class xCmkTotalSupply:
                 display_name='xCMK deployment time',
                 description='xCMK deployment time')
 class xCmkDeploymentTime:
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 

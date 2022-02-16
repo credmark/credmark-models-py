@@ -6,6 +6,7 @@ import credmark.model
                 display_name='PI',
                 description='PI')
 class PIModel2:
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
         ret = self.context.run_model('pi', input, version='1.0')

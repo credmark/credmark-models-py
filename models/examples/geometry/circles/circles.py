@@ -10,6 +10,8 @@ from ..circle import Circle
                 display_name='Circle Area',
                 description='Compute the area of a circle given its radius')
 class CircleArea(Circle, list):
+    context: credmark.model.ModelContext
+
     def get_result(self, radius):
         return math.pi * pow(radius, 2)
 
@@ -19,6 +21,7 @@ class CircleArea(Circle, list):
                 display_name='Circle Circumference',
                 description='Compute the circumference of a circle given its radius')
 class CircleCircumference(Circle):
+    context: credmark.model.ModelContext
 
     def get_result(self, radius):
         return 2 * math.pi * radius

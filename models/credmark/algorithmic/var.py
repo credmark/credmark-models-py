@@ -6,6 +6,8 @@ import credmark.model
                 display_name='Value at Risk',
                 description='Value at Risk')
 class Var:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         """
             Var takes in a portfolio object,
@@ -19,3 +21,5 @@ class Var:
 
         """
         result = {'value': 'not yet implemented'}
+
+        return result

@@ -6,6 +6,8 @@ import credmark.model
                 display_name='FooModel',
                 description='FooModel')
 class FooModel:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         print(self._manifest['model'])
         return {'value': 42}

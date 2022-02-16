@@ -11,6 +11,8 @@ uniswap_quoter_abi = '[{"inputs": [{"internalType": "bytes", "name": "path", "ty
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)')
 class UniswapRouterPricePair:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap. block_number should be taken care of
@@ -42,6 +44,8 @@ class UniswapRouterPricePair:
                 display_name='The Price of a Token on Uniswap with respect to another Token',
                 description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
 class UniswapRouterPriceUsd:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap, default to USDC/USDT/DAI and throw out outliers.
@@ -60,6 +64,8 @@ uniswap_factory_abi = json.loads('[{"inputs":[{"internalType":"address","name":"
                 display_name='uniswap tokens',
                 description='uniswap tokens')
 class UniswapTokens:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         uniswap_factory_contract = self.context.web3.eth.contract(
             address=uniswap_factory_address,
@@ -81,6 +87,8 @@ uniswap_dai_v1_abi = '[{"name": "TokenPurchase", "inputs": [{"type": "address", 
                 display_name='uniswap-exchange',
                 description='uniswap-exchange')
 class UniswapExchange:
+    context: credmark.model.ModelContext
+
     def run(self, input) -> dict:
         exchange_contract = self.context.web3.eth.contract(
             address=uniswap_dai_v1_address,

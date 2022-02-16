@@ -9,6 +9,7 @@ class RunnerTestModel:
     """A test model that runs another model that's specified
     in the input. For example: {"model":"pi"}
     """
+    context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
 
