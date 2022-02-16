@@ -113,6 +113,8 @@ Function run-model {
 
 # $models = "var","cmk-circulating-supply","xcmk-total-supply","xcmk-cmk-staked","xcmk-deployment-time","Foo","uniswap-router-price-usd","uniswap-router-price-pair","uniswap-tokens","uniswap-exchange","geometry-circles-area","geometry-circles-circumference","geometry-spheres-area","geometry-spheres-volume","historical-pi","historical-staked-xcmk","pi","run-test"
 
+(& $credmark_dev1 $credmark_dev2 clean)
+
 if ([string]::IsNullOrEmpty($models)) {	
 	$models = (& $credmark_dev1 $credmark_dev2 list-models | grep '^ - ' | awk '{x = $2; print substr(x, 0, length(x) - 1)}')
 	write-host "models=$models"
