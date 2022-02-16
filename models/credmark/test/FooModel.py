@@ -9,5 +9,5 @@ class FooModel:
     context: credmark.model.ModelContext
 
     def run(self, input) -> dict:
-        print(self._manifest['model'])
+        print(self._manifest)
         return {'value': 42}
