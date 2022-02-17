@@ -2,7 +2,7 @@ import credmark.model
 from credmark.model import ModelRunError
 
 
-@credmark.model(slug='geometry-spheres-area',
+@credmark.model.it(slug='geometry-spheres-area',
                 version='1.0',
                 display_name='Sphere Surface Area',
                 description='Compute the surface area of a sphere given its radius')

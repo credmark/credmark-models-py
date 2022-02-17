@@ -1,10 +1,10 @@
 import credmark.model
 
 
-@credmark.model(slug='pi',
-                version='2.0',
-                display_name='PI',
-                description='PI')
+@credmark.model.it(slug='pi',
+                   version='2.0',
+                   display_name='PI',
+                   description='PI')
 class PIModel2(credmark.model.Model):
 
     def run(self, input) -> dict:

@@ -2,7 +2,7 @@ import credmark.model
 from credmark.model import ModelRunError
 
 
-@credmark.model(slug='geometry-spheres-volume',
+@credmark.model.it(slug='geometry-spheres-volume',
                 version='1.0',
                 display_name='Sphere Volume',
                 description='Compute the volume of a sphere given its radius')

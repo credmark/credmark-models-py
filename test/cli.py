@@ -3,10 +3,10 @@ sys.path.insert(0, '..\credmark-model-sdk-py')
 
 import credmark.model
 
-@credmark.model(slug='Foo',
-                version='1.0',
-                display_name='FooModel',
-                description='FooModel')
+@credmark.model.it(slug='Foo',
+                   version='1.0',
+                   display_name='FooModel',
+                   description='FooModel')
 class FooModel:
     context: credmark.model.ModelContext
 
