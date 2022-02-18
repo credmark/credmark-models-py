@@ -134,3 +134,4 @@ dmypy.json
 
 # model manifest
 models.yaml
+workspace.code-workspace
