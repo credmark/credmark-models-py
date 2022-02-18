@@ -25,7 +25,7 @@ class LoadContractByName(credmark.model.Model):
                    version='1.0',
                    display_name='Contract Loading',
                    description='Load the ABI of a Contract with its Name')
-class LoadContractByName(credmark.model.Model):
+class LoadContractByAddress(credmark.model.Model):
 
     """
     This Example Loads a Contract by it's name and returns all the addresses in our database
