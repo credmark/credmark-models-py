@@ -14,11 +14,11 @@ class LoadContractByName(credmark.model.Model):
 
     def run(self, input) -> dict:
 
-        contracts = self.context.contract_helper.get_contracts(name="mutantmfers")
+        contracts = self.context.contracts.load(name="mutantmfers")
         supplies = []
         for c in contracts:
             supplies.append(c.functions.totalSupply().call())
-        return supplies
+        return {"supplies": supplies}
 
 
 @credmark.model.it(slug='load-contract-address',
@@ -33,7 +33,7 @@ class LoadContractByAddress(credmark.model.Model):
 
     def run(self, input) -> dict:
 
-        contracts = self.context.contract_helper.get_contracts(
+        contracts = self.context.contracts.load(
             address="0x68CFb82Eacb9f198d508B514d898a403c449533E")
         supplies = []
         for c in contracts:
@@ -48,6 +48,6 @@ class LoadContractByAddress(credmark.model.Model):
 class StateOfCredmark(credmark.model.Model):
 
     def run(self, input) -> dict:
-        contracts = self.context.contract_helper.get_contracts(name="mutantmfers")
+        contracts = self.context.contracts.load(name="mutantmfers")
         for c in contracts:
-            return c.abi
+            return {"abi": c.abi}
