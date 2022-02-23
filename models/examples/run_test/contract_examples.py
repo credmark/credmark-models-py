@@ -18,7 +18,7 @@ class LoadContractByName(credmark.model.Model):
         supplies = []
         for c in contracts:
             supplies.append(c.functions.totalSupply().call())
-        return {"supplies": supplies}
+        return {'result': supplies}
 
 
 @credmark.model.it(slug='load-contract-address',
@@ -38,7 +38,7 @@ class LoadContractByAddress(credmark.model.Model):
         supplies = []
         for c in contracts:
             supplies.append(c.functions.totalSupply().call())
-        return supplies
+        return {'result': supplies}
 
 
 @credmark.model.it(slug="state-of-credmark",
@@ -50,4 +50,4 @@ class StateOfCredmark(credmark.model.Model):
     def run(self, input) -> dict:
         contracts = self.context.contracts.load(name="mutantmfers")
         for c in contracts:
-            return {"abi": c.abi}
+            return {'result': c.abi}

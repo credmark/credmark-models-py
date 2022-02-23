@@ -22,7 +22,8 @@ class xCmkCmkStaked(credmark.model.Model):
         credmark = self.context.web3.eth.contract(
             address=self.context.web3.toChecksumAddress(credmark_address),
             abi=credmark_abi)
-        return credmark.functions.balanceOf(staked_credmark_address).call()
+        result = credmark.functions.balanceOf(staked_credmark_address).call()
+        return {'result': result}
 
 
 @credmark.model.it(slug='xcmk-cmk-staked',
@@ -36,7 +37,8 @@ class xCmkTotalSupply(credmark.model.Model):
         staked_credmark = self.context.web3.eth.contract(
             address=self.context.web3.toChecksumAddress(staked_credmark_address),
             abi=staked_credmark_abi)
-        return staked_credmark.functions.totalSupply().call()
+        result = staked_credmark.functions.totalSupply().call()
+        return {'result': result}
 
 
 @credmark.model.it(slug='xcmk-deployment-time',
@@ -48,4 +50,5 @@ class xCmkDeploymentTime(credmark.model.Model):
     def run(self, input) -> dict:
 
         # res = self.context.ledger.get_transactions(["min(block_time)"], get minimum block with to=staked_credmark)
+
         return {'value': "december"}

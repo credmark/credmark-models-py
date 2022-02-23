@@ -30,7 +30,7 @@ class TotalSupplyCMK(credmark.model.Model):
             address=self.context.web3.toChecksumAddress(cmk_address),
             abi=cmk_abi)
         total_supply = cmk_contract.functions.totalSupply().call()
-        return total_supply
+        return {'total_supply': total_supply}
 
 
 @credmark.model.it(slug='cmk-circulating-supply',
@@ -41,14 +41,17 @@ class CirculatingCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
 
-        supply = self.context.run_model("cmk-total-supply")
+        supply = self.context.run_model("cmk-total-supply")['total_supply']
         cmk_contract = self.context.web3.eth.contract(
             address=self.context.web3.toChecksumAddress(cmk_address),
             abi=cmk_abi)
 
         for addr in lockedAddresses:
-            supply = supply - \
-                cmk_contract.functions.balanceOf(
-                    addr).call()
+            try:
+                supply = supply - \
+                    cmk_contract.functions.balanceOf(
+                        addr).call()
+            except:
+                breakpoint()
 
-        return supply
+        return {'result': supply}
