@@ -90,7 +90,8 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
     def run(self, input) -> dict:
         pool_infos = []
         for pool in self.context.run_model("curve-fi-pools"):
-            pool_info = self.context.run_model("curve-fi-pool-info", {"poolAddress": pool})
+            pool_info = self.context.run_model(
+                "curve-fi-pool-info", {"poolAddress": pool})['result']
             pool_infos.append(pool_info)
         return {"pools": pool_infos}
 
@@ -109,4 +110,4 @@ class CurveFinancePools(credmark.model.Model):
         pool_addresses = []
         for i in range(0, total_pools):
             pool_addresses.append(registry.functions.pool_list(i).call())
-        return pool_addresses
+        return {'result': pool_addresses}
