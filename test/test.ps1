@@ -9,7 +9,7 @@ Param([string]$sel = 'test', [string[]]$models = @())
 
 if ($sel -eq 'test') {
 	$credmark_dev1 = (Get-Command python).Path
-	$credmark_dev2 = ".\test\cli.py"
+	$credmark_dev2 = ".\test\test.py"
 }
 else {
 	if ($sel -eq 'prod') {
@@ -124,12 +124,17 @@ foreach ($m in $models) {
 	if ("geometry-spheres-area" -eq $m -or "geometry-spheres-volume" -eq $m -or "geometry-circles-area" -eq $m -or "geometry-circles-circumference" -eq $m) {
 		test-target test-model -expected 0 -params run, $m, "-i {""radius"":3}"
 	}
- else {
-		if ("historical-pi" -eq $m -or "historical-staked-xcmk" -eq $m) {
-			test-target test-model -expected 1 -params run, $m, "-i {}"
+	else {
+		if ("curve-fi-pool-info" -eq $m) {
+			test-target test-model -expected 0 -params run, $m, "-i {""poolAddress"":""0x06364f10B501e868329afBc005b3492902d6C763""}"
 		}
 		else {
-			test-target test-model -expected 0 -params run, $m, "-i {}"
+			if ("historical-pi" -eq $m -or "historical-staked-xcmk" -eq $m -or "run-test-2" -eq $m -or "state-of-credmark" -eq $m -or "load-contract-name" -eq $m -or "load-contract-address" -eq $m) {
+				test-target test-model -expected 1 -params run, $m, "-i {}"
+			}
+			else {
+				test-target test-model -expected 0 -params run, $m, "-i {}"
+			}
 		}
 	}
 }
