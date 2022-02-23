@@ -22,7 +22,8 @@ cmk_abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"
 @credmark.model.it(slug='cmk-total-supply',
                    version='1.0',
                    display_name='CMK Total Supply',
-                   description='This is the Total Supply of CMK')
+                   description='This is the Total Supply of CMK',
+                   developer='Credmark')
 class TotalSupplyCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
@@ -36,7 +37,8 @@ class TotalSupplyCMK(credmark.model.Model):
 @credmark.model.it(slug='cmk-circulating-supply',
                    version='1.0',
                    display_name='CMK Circulating Supply',
-                   description='This is the Circulating Supply of CMK.')
+                   description='This is the Circulating Supply of CMK.',
+                   developer='Credmark')
 class CirculatingCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
