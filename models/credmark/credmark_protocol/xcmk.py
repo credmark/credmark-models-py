@@ -55,7 +55,7 @@ class xCmkDeploymentTime(credmark.model.Model):  # pylint: disable=invalid-name
     def run(self, input) -> dict:
 
         # , get minimum block with to=staked_credmark)
-        res = self.context.ledger.get_transactions(["block_timestamp"], "")
+        res = self.context.ledger.get_transactions(["block_timestamp"])
 
         # return {'value': "december"}
 
