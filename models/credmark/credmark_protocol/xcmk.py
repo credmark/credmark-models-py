@@ -45,7 +45,7 @@ class xCmkTotalSupply(credmark.model.Model):  # pylint: disable=invalid-name
 @credmark.model.it(slug='xcmk-deployment-time',
                    version='1.0',
                    display_name='xCMK deployment time',
-                   description='xCMK deployment time'
+                   description='xCMK deployment time',
                    developer='abc')
 class xCmkDeploymentTime(credmark.model.Model):  # pylint: disable=invalid-name
     """
