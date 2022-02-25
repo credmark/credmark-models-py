@@ -41,7 +41,7 @@ Environment variables:
 For example, a `.env` file can contain the following:
 
 ```
-CREDMARK_WEB3_PROVIDERS={"1":"https://eth-mainnet.alchemyapi.io/v2/ABC123","137":"https://polygon-mainnet.g.alchemy.com/v2/ABC123"}
+CREDMARK_WEB3_PROVIDERS='{1:"https://eth-mainnet.alchemyapi.io/v2/ABC123","137":"https://polygon-mainnet.g.alchemy.com/v2/ABC123"}'
 ```
 
 ## Run a Model

@@ -1,5 +1,6 @@
 from os import device_encoding
 import credmark.model
+from credmark.types.data.address import Address
 
 """
 TODO: Need to get ABI's programmatically, I want to be able to do something like: self.context.contract(protocol:Union[str, None], product:Union[str,None], address:Union[str, None], abi:Union[str,None])
@@ -21,7 +22,7 @@ class xCmkCmkStaked(credmark.model.Model):  # pylint: disable=invalid-name
     def run(self, input) -> dict:
 
         credmark = self.context.web3.eth.contract(
-            address=self.context.web3.toChecksumAddress(CREDMARK_ADDRESS),
+            address=Address(CREDMARK_ADDRESS),
             abi=CREDMARK_ABI)
         result = credmark.functions.balanceOf(STAKED_CREDMARK_ADDRESS).call()
         return {'result': result}
@@ -36,7 +37,7 @@ class xCmkTotalSupply(credmark.model.Model):  # pylint: disable=invalid-name
     def run(self, input) -> dict:
 
         staked_credmark = self.context.web3.eth.contract(
-            address=self.context.web3.toChecksumAddress(STAKED_CREDMARK_ADDRESS),
+            address=Address(STAKED_CREDMARK_ADDRESS),
             abi=STAKED_CREDMARK_ABI)
         result = staked_credmark.functions.totalSupply().call()
         return {'result': result}

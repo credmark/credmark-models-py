@@ -1,4 +1,5 @@
 import credmark.model
+from credmark.types.data.address import Address
 
 min_erc20_abi = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
 
@@ -23,11 +24,11 @@ class BalanceOf(credmark.model.Model):
         results = {}
         for token_address in [cmk_address, ether_address, conves_fxs_address, usdc_address, usdt_address, dai_address]:
             contract = self.context.web3.eth.contract(
-                address=self.context.web3.toChecksumAddress(token_address),
+                address=Address(token_address),
                 abi=min_erc20_abi)
 
             balance = contract.functions.balanceOf(
-                self.context.web3.toChecksumAddress(wallet_address)).call()
+                Address(wallet_address)).call()
 
             decimals = contract.functions.decimals().call()
 

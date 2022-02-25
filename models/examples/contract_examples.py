@@ -1,5 +1,6 @@
 import credmark.model
 from credmark.types.dto import DTO, DTOField
+from credmark.types.data.address import Address
 
 
 class ContractName(DTO):
@@ -39,7 +40,7 @@ class LoadContractByAddress(credmark.model.Model):
     def run(self, input) -> dict:
 
         contracts = self.context.contracts.load(
-            address="0x68CFb82Eacb9f198d508B514d898a403c449533E")
+            address=Address("0x68CFb82Eacb9f198d508B514d898a403c449533E"))
         supplies = []
         for c in contracts:
             supplies.append(c.functions.totalSupply().call())
