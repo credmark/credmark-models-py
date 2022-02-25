@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types.data.address import Address
+from credmark.types.data import Address
 
 lockedAddresses = [
     "0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9",

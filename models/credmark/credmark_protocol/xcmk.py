@@ -1,6 +1,6 @@
 from os import device_encoding
 import credmark.model
-from credmark.types.data.address import Address
+from credmark.types.data import Address
 
 """
 TODO: Need to get ABI's programmatically, I want to be able to do something like: self.context.contract(protocol:Union[str, None], product:Union[str,None], address:Union[str, None], abi:Union[str,None])
