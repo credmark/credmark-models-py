@@ -131,13 +131,60 @@ For the DTOs (Data Transfer Objects) we use the python module `pydantic` to defi
 The DTO used in the example above, for both the input and output, looks like this:
 
 ```py
-from credmark.types.dto import DTO, DTOField
+from credmark.types import DTO, DTOField
 
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 ```
 
 The `credmark-model-sdk` defines many common data objects as DTOs.
+
+- Example 1: Use AddressStr for input/ouput
+
+```py
+from credmark.types.data import AddressStr
+
+class PoolAddress(DTO):
+    poolAddress: AddressStr = DTOField(..., description='Address of Pool')
+```
+
+- Example 2: Use Address (str-like) to auto-convert to checksum address.
+
+```py
+from credmark.types.data import Address
+
+Address(wallet_adress)
+```
+
+- Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
+
+```py
+from credmark.types.financial import Portfolio
+
+"""
+# Portfolio is defined as below
+class Portfolio(DTO):
+    positions: List[Position] = DTOField([], description='List of positions')
+"""
+
+@credmark.model.describe(slug='type-test-1',
+                         version='1.0',
+                         display_name='Test Model',
+                         description='SDK Test Model',
+                         input=Portfolio,
+                         output=PortfolioSummary)
+class TestModel(credmark.model.Model):
+
+    def run(self, input: Portfolio) -> PortfolioSummary:
+        return PortfolioSummary(num_tokens=len(input.positions))
+
+```
+
+
+from credmark.types.financial import Portfolio
+
+
+
 We strongly encourage you to create DTOs and/or make use of the common objects, either as your top-level DTO or as subobjects or in lists etc. as needed.
 
 A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.

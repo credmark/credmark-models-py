@@ -11,7 +11,7 @@ class RunnerTestModel(credmark.model.Model):
     in the input. For example: {"model":"pi"}
     """
 
-    def run(self, input) -> dict:
+    def run(self, input: dict) -> dict:
 
         model = input.get('model')
 

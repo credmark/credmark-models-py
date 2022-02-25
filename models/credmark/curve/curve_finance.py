@@ -61,11 +61,11 @@ class CurveFinancePoolInfo(credmark.model.Model):
                 try:
                     und = pool_contract.functions.underlying_coins(i).call()
                     underlying.append(und)
-                except:
+                except Exception:
                     pass
                 balances.append(bal)
                 tokens.append(tok)
-            except:
+            except Exception:
                 break
 
         virtual_price = pool_contract.functions.get_virtual_price().call()

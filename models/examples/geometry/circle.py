@@ -12,7 +12,7 @@ class Circle(credmark.model.Model):
     def get_result(self, radius):
         pass
 
-    def run(self, input) -> dict:
+    def run(self, input: dict) -> dict:
 
         try:
             result = {'value': self.get_result(input['radius'])}

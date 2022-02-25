@@ -1,6 +1,6 @@
 import credmark.model
 import json
-from credmark.types.data.address import Address
+from credmark.types.data import Address
 
 
 @credmark.model.describe(slug='uniswap-router-price-usd',

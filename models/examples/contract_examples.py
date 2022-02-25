@@ -1,6 +1,6 @@
 import credmark.model
-from credmark.types.dto import DTO, DTOField
-from credmark.types.data.address import Address
+from credmark.types import DTO, DTOField
+from credmark.types.data import Address
 
 
 class ContractName(DTO):

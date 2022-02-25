@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types.data.address import Address
+from credmark.types.data import Address
 
 min_erc20_abi = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
 

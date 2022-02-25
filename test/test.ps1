@@ -102,7 +102,7 @@ test-target "show-models"
 Function test-model {
 	Param($par1, $par2, $par3)
 	# write-host "[test-model] $credmark_dev1 $credmark_dev2 $par1 $par2 $par3`n"
-	$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14000000" $par3
+	$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14000000" "--api_url" "http://localhost:7000/v1/models/run" $par3
 	$rs = $?
 	if ([string]::IsNullOrEmpty($output)) {
 		$output = '__null__'
@@ -130,15 +130,13 @@ foreach ($m in $models) {
 		}
 		else {
 			if ("example-contract-name" -eq $m) {
-				test-target test-model -expected 0 -params run, $m, "-i {""contractName"":""CMK""}"
+				test-target test-model -expected 0 -params run, $m, "-i {""contractName"":""AToken""}"
 			}
 			else {
 				if ("historical-pi" -eq $m -or
 					"historical-staked-xcmk" -eq $m -or
 					"run-test-2" -eq $m -or
 					"state-of-credmark" -eq $m -or
-					"load-contract-name" -eq $m -or
-					"load-contract-address" -eq $m -or
 					"xcmk-deployment-time" -eq $m -or
 					"xcmk-deployment-time" -eq $m -or
 					"type-test-2" -eq $m) {
