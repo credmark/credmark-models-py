@@ -2,7 +2,7 @@
 # from credmark.types.data.block_number import BlockNumber
 
 
-# @credmark.model.it(slug='blocktime',
+# @credmark.model.describe(slug='blocktime',
 #                    version='1.0',
 #                    display_name='Blocktime',
 #                    description='The Time of the block of the execution context')
@@ -24,7 +24,7 @@
 #         }
 
 
-# @credmark.model.it(slug='blockrange',
+# @credmark.model.describe(slug='blockrange',
 #                    version='1.0',
 #                    display_name='Blockrange',
 #                    description='The Time of the block of the execution context')
@@ -43,7 +43,7 @@
 #         })
 
 
-# @credmark.model.it(slug='sample-a-blocknumber',
+# @credmark.model.describe(slug='sample-a-blocknumber',
 #                    version='1.0',
 #                    display_name='Blocktime',
 #                    description='The Time of the block of the execution context')

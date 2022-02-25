@@ -1,10 +1,10 @@
 import credmark.model
 
 
-@credmark.model.it(slug='var',
-                   version='1.0',
-                   display_name='Value at Risk',
-                   description='Value at Risk')
+@credmark.model.describe(slug='var',
+                         version='1.0',
+                         display_name='Value at Risk',
+                         description='Value at Risk')
 class Var(credmark.model.Model):
 
     def run(self, input) -> dict:

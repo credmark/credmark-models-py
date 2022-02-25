@@ -88,14 +88,14 @@ First create a folder in the `models` folder that will hold all of your models, 
 
 Then create a python file `model_foo.py` (again it can have any name as long as it ends in .py)
 
-A model is a python class that inherits from the base Model class `credmark.model.Model` and decorated with the `@credmark.model.it` decorator. The decorator lets you define the metadata for your model.
+A model is a python class that inherits from the base Model class `credmark.model.Model` and decorated with the `@credmark.model.describe` decorator. The decorator lets you define the metadata for your model.
 
 It looks something like this:
 
 ```py
 import credmark.model
 
-@credmark.model.it(slug='echo',
+@credmark.model.describe(slug='echo',
                    version='1.0',
                    display_name='Echo',
                    description="A test model to echo the message property sent in input.",

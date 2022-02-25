@@ -35,11 +35,11 @@ class PoolAddress(DTO):
     poolAddress: HexAddress = DTOField(..., description='Address of Pool')
 
 
-@credmark.model.it(slug="curve-fi-pool-info",
-                   version="1.0",
-                   display_name="Curve Finance Pool Liqudity",
-                   description="The amount of Liquidity for Each Token in a Curve Pool",
-                   input=PoolAddress)
+@credmark.model.describe(slug="curve-fi-pool-info",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool",
+                         input=PoolAddress)
 class CurveFinancePoolInfo(credmark.model.Model):
 
     def run(self, input: PoolAddress) -> dict:
@@ -79,20 +79,20 @@ class CurveFinancePoolInfo(credmark.model.Model):
         }
 
 
-@credmark.model.it(slug="curve-fi-pool-yield",
-                   version="1.0",
-                   display_name="Curve Finance Pool Liqudity",
-                   description="The amount of Liquidity for Each Token in a Curve Pool")
+@credmark.model.describe(slug="curve-fi-pool-yield",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinancePoolYield(credmark.model.Model):
 
     def run(self, input) -> dict:
         return super().run(input)
 
 
-@credmark.model.it(slug="curve-fi-all-pool-info",
-                   version="1.0",
-                   display_name="Curve Finance Pool Liqudity",
-                   description="The amount of Liquidity for Each Token in a Curve Pool")
+@credmark.model.describe(slug="curve-fi-all-pool-info",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> dict:
@@ -104,10 +104,10 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
         return {"pools": pool_infos}
 
 
-@credmark.model.it(slug="curve-fi-pools",
-                   version="1.0",
-                   display_name="Curve Finance Pool Liqudity",
-                   description="The amount of Liquidity for Each Token in a Curve Pool")
+@credmark.model.describe(slug="curve-fi-pools",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> dict:

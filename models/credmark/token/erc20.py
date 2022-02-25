@@ -3,10 +3,10 @@ import credmark.model
 min_erc20_abi = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
 
 
-@credmark.model.it(slug='erc20-balanceOf',
-                   version='1.0',
-                   display_name='ERC20 balanceOf',
-                   description='Get the balance of an ERC20 Token from a wallet address')
+@credmark.model.describe(slug='erc20-balanceOf',
+                         version='1.0',
+                         display_name='ERC20 balanceOf',
+                         description='Get the balance of an ERC20 Token from a wallet address')
 class BalanceOf(credmark.model.Model):
 
     def run(self, input) -> dict:

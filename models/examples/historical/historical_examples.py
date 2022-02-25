@@ -1,10 +1,10 @@
 import credmark.model
 
 
-@credmark.model.it(slug='historical-pi',
-                   version='1.0',
-                   display_name='Historical Pi',
-                   description='The value of Pi at different points in History')
+@credmark.model.describe(slug='historical-pi',
+                         version='1.0',
+                         display_name='Historical Pi',
+                         description='The value of Pi at different points in History')
 class HistoricalPi(credmark.model.Model):
 
     """
@@ -23,9 +23,9 @@ class HistoricalPi(credmark.model.Model):
         return res
 
 
-@credmark.model.it(slug='historical-staked-xcmk',
-                   version='1.0',
-                   display_name='Historical Staked xCMK')
+@credmark.model.describe(slug='historical-staked-xcmk',
+                         version='1.0',
+                         display_name='Historical Staked xCMK')
 class HistoricalXCmkStaked(credmark.model.Model):
 
     """

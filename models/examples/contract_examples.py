@@ -1,18 +1,24 @@
-
 import credmark.model
+from credmark.types.data.contract import Contract
+from credmark.types.dto import DTO, DTOField
 
 
-@credmark.model.it(slug='load-contract-name',
-                   version='1.0',
-                   display_name='Contract Loading By Name',
-                   description='Load the ABI of a Contract with its Name')
+class ContractName(DTO):
+    contractName: str = DTOField(..., description='The name of the Contract you want to load.')
+
+
+@credmark.model.describe(slug='example-contract-name',
+                         version='1.0',
+                         display_name='Runner test model',
+                         description='Test model runs another model specified with \'model\' in input.',
+                         developer='Credmark')
 class LoadContractByName(credmark.model.Model):
 
     """
     This Example Loads a Contract by it's name and returns all the addresses in our database
     """
 
-    def run(self, input) -> dict:
+    def run(self, input: ContractName) -> Contract:
 
         contracts = self.context.utils.load(name="mutantmfers")
         supplies = []
@@ -21,10 +27,10 @@ class LoadContractByName(credmark.model.Model):
         return {'result': supplies}
 
 
-@credmark.model.it(slug='load-contract-address',
-                   version='1.0',
-                   display_name='Contract Loading',
-                   description='Load the ABI of a Contract with its Name')
+@credmark.model.describe(slug='load-contract-address',
+                         version='1.0',
+                         display_name='Contract Loading',
+                         description='Load the ABI of a Contract with its Name')
 class LoadContractByAddress(credmark.model.Model):
 
     """
@@ -41,10 +47,10 @@ class LoadContractByAddress(credmark.model.Model):
         return {'result': supplies}
 
 
-@credmark.model.it(slug="state-of-credmark",
-                   version='1.0',
-                   display_name='Contract Loading',
-                   description='Load the ABI of a Contract with its Name')
+@credmark.model.describe(slug="state-of-credmark",
+                         version='1.0',
+                         display_name='Contract Loading',
+                         description='Load the ABI of a Contract with its Name')
 class StateOfCredmark(credmark.model.Model):
 
     def run(self, input) -> dict:

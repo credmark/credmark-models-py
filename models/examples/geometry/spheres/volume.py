@@ -2,10 +2,10 @@ import credmark.model
 from credmark.model import ModelRunError
 
 
-@credmark.model.it(slug='geometry-spheres-volume',
-                version='1.0',
-                display_name='Sphere Volume',
-                description='Compute the volume of a sphere given its radius')
+@credmark.model.describe(slug='geometry-spheres-volume',
+                         version='1.0',
+                         display_name='Sphere Volume',
+                         description='Compute the volume of a sphere given its radius')
 class SphereVolume(credmark.model.Model):
 
     def run(self, input) -> dict:

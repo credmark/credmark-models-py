@@ -6,12 +6,12 @@ class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 
 
-@credmark.model.it(slug='echo',
-                   version='1.0',
-                   display_name='Echo',
-                   description="A test model to echo the message property sent in input.",
-                   input=EchoDto,
-                   output=EchoDto)
+@credmark.model.describe(slug='echo',
+                         version='1.0',
+                         display_name='Echo',
+                         description="A test model to echo the message property sent in input.",
+                         input=EchoDto,
+                         output=EchoDto)
 class EchoModel(credmark.model.Model):
     """
     This test simply echos back the input.
