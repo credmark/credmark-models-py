@@ -129,7 +129,15 @@ foreach ($m in $models) {
 			test-target test-model -expected 0 -params run, $m, "-i {""poolAddress"":""0x06364f10B501e868329afBc005b3492902d6C763""}"
 		}
 		else {
-			if ("historical-pi" -eq $m -or "historical-staked-xcmk" -eq $m -or "run-test-2" -eq $m -or "state-of-credmark" -eq $m -or "load-contract-name" -eq $m -or "load-contract-address" -eq $m -or "xcmk-deployment-time" -eq $m) {
+			if ("historical-pi" -eq $m -or
+				"historical-staked-xcmk" -eq $m -or
+				"run-test-2" -eq $m -or
+				"state-of-credmark" -eq $m -or
+				"load-contract-name" -eq $m -or
+				"load-contract-address" -eq $m -or
+				"xcmk-deployment-time" -eq $m -or
+				"xcmk-deployment-time" -eq $m -or
+				"type-test-2" -eq $m) {
 				test-target test-model -expected 1 -params run, $m, "-i {}"
 			}
 			else {

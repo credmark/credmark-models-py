@@ -4,7 +4,7 @@ from credmark.types.financial.portfolio import Portfolio
 
 
 class PortfolioSummary(DTO):
-    num_tokens: int = DTOField(0, description='Number of different tokens')
+    num_tokens: int = DTOField(..., description='Number of different tokens')
 
 
 @credmark.model.it(slug='type-test-1',
