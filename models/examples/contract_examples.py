@@ -1,18 +1,20 @@
+from typing import List
 import credmark.model
 from credmark.types import DTO, DTOField
-from credmark.types.data import Address
+from credmark.types.data import Address, Contract
 
 
 class ContractName(DTO):
     contractName: str = DTOField(..., description='The name of the Contract you want to load.')
 
 
-@credmark.model.describe(slug='example-contract-name',
+@credmark.model.describe(slug='example-load-contract-by-name',
                          version='1.0',
-                         display_name='Runner test model',
-                         description='Test model runs another model specified with \'model\' in input.',
+                         display_name='(Example) Load Contract by Name',
+                         description='Load a Contract By Name and Return it',
                          developer='Credmark',
-                         input=ContractName)
+                         input=ContractName,
+                         output=Contract)
 class LoadContractByName(credmark.model.Model):
 
     """
