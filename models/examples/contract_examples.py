@@ -43,7 +43,5 @@ class LoadContractByAddress(credmark.model.Model):
     """
 
     def run(self, input: Address) -> dict:
-        print(input)
         contract = self.context.contracts.load_address(address=input.address)
-
         return contract.info
