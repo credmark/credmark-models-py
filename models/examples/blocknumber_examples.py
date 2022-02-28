@@ -19,8 +19,8 @@ class BlockTimeExample(credmark.model.Model):
         return {
             "blockNumber": block,
             "blockTime": block.timestamp,
-            "blockDateTime": block.datestring,
+            "blockDatestring": block.datestring,
             "tenThousandBlocksAgo": ten_thousand_blocks_ago,
             "tenThousandBlocksAgoTimestamp": ten_thousand_blocks_ago.timestamp,
-            "tenThousandBlocksAgoDateTime": ten_thousand_blocks_ago.datestring
+            "tenThousandBlocksAgoDatestring": ten_thousand_blocks_ago.datestring
         }

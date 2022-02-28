@@ -1,11 +1,15 @@
 from typing import List
 import credmark.model
 from credmark.types import DTO, DTOField
-from credmark.types.data import Address, Contract
+from credmark.types.data import Address, ContractDTO
 
 
 class ContractName(DTO):
     contractName: str = DTOField(..., description='The name of the Contract you want to load.')
+
+
+class ContractList(DTO):
+    contracts: List[ContractDTO] = DTOField(..., description='The list of loaded contracts.')
 
 
 @credmark.model.describe(slug='example-load-contract-by-name',
@@ -14,7 +18,7 @@ class ContractName(DTO):
                          description='Load a Contract By Name and Return it',
                          developer='Credmark',
                          input=ContractName,
-                         output=Contract)
+                         output=ContractList)
 class LoadContractByName(credmark.model.Model):
 
     """
@@ -22,28 +26,24 @@ class LoadContractByName(credmark.model.Model):
     """
 
     def run(self, input: ContractName):
-        contracts = self.context.contracts.load(name=input.contractName)
-        supplies = []
-        for c in contracts:
-            supplies.append(c.functions.totalSupply().call())
-        return {'result': supplies}
+        contracts = self.context.contracts.load_description(name=input.contractName)
+        return ContractList(contracts=[c.info for c in contracts])
 
 
-@credmark.model.describe(slug='load-contract-address',
+@credmark.model.describe(slug='example-load-contract-by-address',
                          version='1.0',
                          display_name='Contract Loading',
-                         description='Load the ABI of a Contract with its Name')
+                         description='Load the ABI of a Contract with its Name',
+                         input=Address,
+                         output=ContractDTO)
 class LoadContractByAddress(credmark.model.Model):
 
     """
     This Example Loads a Contract by it's name and returns all the addresses in our database
     """
 
-    def run(self, input) -> dict:
+    def run(self, input: Address) -> dict:
+        print(input)
+        contract = self.context.contracts.load_address(address=input.address)
 
-        contracts = self.context.contracts.load(
-            address=Address("0x68CFb82Eacb9f198d508B514d898a403c449533E"))
-        supplies = []
-        for c in contracts:
-            supplies.append(c.functions.totalSupply().call())
-        return {'result': supplies}
+        return contract.info
