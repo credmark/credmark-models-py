@@ -1,6 +1,6 @@
 import credmark.model
 from credmark.types import Address, AddressDTO
-from credmark.types.dto import DTO, DTOField
+from credmark.types.dto import DTO, DTOField, PrivateAttr
 
 MIN_ERC20_ABI = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
 
@@ -15,6 +15,7 @@ class TokenAmountDto(DTO):
     amount: str = DTOField(None, description="The amount of a Token")
     scaledAmount: float = DTOField(
         None, description="The Amount of a Token, scaled by decimal Amount")
+    _hello: str = PrivateAttr()
 
 
 class BalanceOfInputDTO(DTO):
