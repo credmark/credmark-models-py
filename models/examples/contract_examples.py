@@ -27,7 +27,7 @@ class LoadContractByName(credmark.model.Model):
 
     def run(self, input: ContractName):
         contracts = self.context.contracts.load_description(name=input.contractName)
-        return ContractList(contracts=[c.info for c in contracts])
+        return ContractList(contracts=contracts)
 
 
 @credmark.model.describe(slug='example-load-contract-by-address',
