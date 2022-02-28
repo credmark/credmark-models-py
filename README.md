@@ -15,8 +15,6 @@ source venv/bin/activate
 
 ### Install Dependencies
 
-You will need to set a `GITHUB_TOKEN` with a github personal access token.
-
 Then run:
 
 ```
