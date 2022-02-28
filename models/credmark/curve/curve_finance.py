@@ -114,7 +114,7 @@ class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> dict:
         registry = self.context.web3.eth.contract(
-            address=Address(curve_registry_address),
+            address=self.context.web3.toChecksumAddress(curve_registry_address),
             abi=curve_registry_abi)
 
         total_pools = registry.functions.pool_count().call()
