@@ -1,6 +1,6 @@
 import credmark.model
 from credmark.types import Address, AddressDTO
-from credmark.types.dto import DTO, DTOField, PrivateAttr
+from credmark.types.dto import DTO, DTOField
 
 
 class ERC20LookupDTO(DTO):
@@ -13,7 +13,6 @@ class TokenAmountDto(DTO):
     amount: str = DTOField(None, description="The amount of a Token")
     scaledAmount: float = DTOField(
         None, description="The Amount of a Token, scaled by decimal Amount")
-    _hello: str = PrivateAttr()
 
 
 class BalanceOfInputDTO(DTO):
