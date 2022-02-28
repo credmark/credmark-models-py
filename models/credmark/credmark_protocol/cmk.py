@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types.data import Address
+from credmark.types import Address
 
 lockedAddresses = [
     "0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9",
@@ -29,7 +29,7 @@ class TotalSupplyCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
         cmk_contract = self.context.web3.eth.contract(
-            address=Address(cmk_address),
+            address=Address(cmk_address).checksum,
             abi=cmk_abi)
         total_supply = cmk_contract.functions.totalSupply().call()
         return {'total_supply': total_supply}
@@ -46,15 +46,12 @@ class CirculatingCMK(credmark.model.Model):
 
         supply = self.context.run_model("cmk-total-supply")['total_supply']
         cmk_contract = self.context.web3.eth.contract(
-            address=Address(cmk_address),
+            address=Address(cmk_address).checksum,
             abi=cmk_abi)
 
         for addr in lockedAddresses:
-            try:
-                supply = supply - \
-                    cmk_contract.functions.balanceOf(
-                        addr).call()
-            except:
-                breakpoint()
+            supply = supply - \
+                cmk_contract.functions.balanceOf(
+                    addr).call()
 
         return {'result': supply}

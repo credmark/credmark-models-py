@@ -5,7 +5,7 @@
 # python.exe test\cli.py run --input '{\"radius\":3}' var
 # python.exe test\cli.py run -i "{}" uniswap-router-price-usd
 
-Param([string]$sel = 'test', [string[]]$models = @())
+Param([string]$sel = 'test', [string]$testfrom = "", [string[]]$models = @())
 
 if ($sel -eq 'test') {
 	$credmark_dev1 = (Get-Command python).Path
@@ -102,7 +102,7 @@ test-target "show-models"
 Function test-model {
 	Param($par1, $par2, $par3)
 	# write-host "[test-model] $credmark_dev1 $credmark_dev2 $par1 $par2 $par3`n"
-	$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14000000" "--api_url" "http://localhost:7000/v1/models/run" $par3
+	$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14234904" "--api_url" "http://localhost:8700/v1/models/run" $par3
 	$rs = $?
 	if ([string]::IsNullOrEmpty($output)) {
 		$output = '__null__'
@@ -120,30 +120,65 @@ if ([string]::IsNullOrEmpty($models)) {
 	write-host "models=$models"
 }
 
+write-host testfrom=$testfrom
+
 foreach ($m in $models) {
+	if ($testfrom -ne "") {
+		if ($testfrom -ne $m) {
+			continue
+		}
+		else {
+			$testfrom = ""
+		}
+	}
 	if ("geometry-spheres-area" -eq $m -or "geometry-spheres-volume" -eq $m -or "geometry-circles-area" -eq $m -or "geometry-circles-circumference" -eq $m) {
 		test-target test-model -expected 0 -params run, $m, "-i {""radius"":3}"
 	}
 	else {
 		if ("curve-fi-pool-info" -eq $m) {
-			test-target test-model -expected 0 -params run, $m, "-i {""poolAddress"":""0x06364f10B501e868329afBc005b3492902d6C763""}"
+			test-target test-model -expected 0 -params run, $m, "-i {""address"":""0x06364f10B501e868329afBc005b3492902d6C763""}"
 		}
 		else {
 			if ("example-contract-name" -eq $m) {
 				test-target test-model -expected 0 -params run, $m, "-i {""contractName"":""AToken""}"
 			}
 			else {
-				if ("historical-pi" -eq $m -or
-					"historical-staked-xcmk" -eq $m -or
-					"run-test-2" -eq $m -or
-					"state-of-credmark" -eq $m -or
-					"xcmk-deployment-time" -eq $m -or
-					"xcmk-deployment-time" -eq $m -or
-					"type-test-2" -eq $m) {
-					test-target test-model -expected 1 -params run, $m, "-i {}"
+				if ("example-address" -eq $m) {
+					test-target test-model -expected 0 -params run, $m, "-i {""address"":""0xd905e2eaebe188fc92179b6350807d8bd91db0D8""}"
 				}
 				else {
-					test-target test-model -expected 0 -params run, $m, "-i {}"
+					if ("example-address-transforms" -eq $m) {
+						test-target test-model -expected 0 -params run, $m, "-i {""address"":""0xd905e2eaebe188fc92179b6350807d8bd91db0D8""}"
+					}
+					else {
+						if ("example-load-contract-by-name" -eq $m) {
+							test-target test-model -expected 0 -params run, $m, "-i {""contractName"":""mutantmfers""}"
+						}
+						else {
+							if ("example-load-contract-by-address" -eq $m) {
+								test-target test-model -expected 0 -params run, $m, "-i {""address"":""0xa8f8dd56e2352e726b51738889ef6ee938cca7b6""}"
+							}
+							else {
+								if ("example-30-day-series" -eq $m) {
+									test-target test-model -expected 1 -params run, $m, "-i {""slug"":""example-echo"", ""input"":{""message"":""hello world""}}"
+								}
+								else {
+									if ("historical-pi" -eq $m -or
+										"historical-staked-xcmk" -eq $m -or
+										"run-test-2" -eq $m -or
+										"state-of-credmark" -eq $m -or
+										"xcmk-deployment-time" -eq $m -or
+										"xcmk-deployment-time" -eq $m -or
+										"type-test-2" -eq $m) {
+										test-target test-model -expected 1 -params run, $m, "-i {}"
+									}
+									else {
+										test-target test-model -expected 0 -params run, $m, "-i {}"
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}

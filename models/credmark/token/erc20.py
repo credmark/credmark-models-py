@@ -1,7 +1,7 @@
 import credmark.model
-from credmark.types.data import Address
+from credmark.types import Address
 
-min_erc20_abi = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
+MIN_ERC20_ABI = '[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]'
 
 
 @credmark.model.describe(slug='erc20-balanceOf',
@@ -12,7 +12,6 @@ class BalanceOf(credmark.model.Model):
 
     def run(self, input) -> dict:
         wallet_address = '0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50'
-        wallet_address = '0x109B3C39d675A2FF16354E116d080B94d238a7c9'
 
         cmk_address = '0x68cfb82eacb9f198d508b514d898a403c449533e'
         ether_address = '0xc0829421c1d260bd3cb3e0f06cfe2d52db2ce315'
@@ -24,8 +23,8 @@ class BalanceOf(credmark.model.Model):
         results = {}
         for token_address in [cmk_address, ether_address, conves_fxs_address, usdc_address, usdt_address, dai_address]:
             contract = self.context.web3.eth.contract(
-                address=Address(token_address),
-                abi=min_erc20_abi)
+                address=Address(token_address).checksum,
+                abi=MIN_ERC20_ABI)
 
             balance = contract.functions.balanceOf(
                 Address(wallet_address)).call()

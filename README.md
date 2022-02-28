@@ -129,7 +129,7 @@ For the DTOs (Data Transfer Objects) we use the python module `pydantic` to defi
 The DTO used in the example above, for both the input and output, looks like this:
 
 ```py
-from credmark.types import DTO, DTOField
+from credmark.types.dto import DTO, DTOField
 
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
@@ -140,7 +140,7 @@ The `credmark-model-sdk` defines many common data objects as DTOs.
 - Example 1: Use AddressStr for input/ouput
 
 ```py
-from credmark.types.data import AddressStr
+from credmark.types import AddressStr
 
 class PoolAddress(DTO):
     poolAddress: AddressStr = DTOField(..., description='Address of Pool')
@@ -149,7 +149,7 @@ class PoolAddress(DTO):
 - Example 2: Use Address (str-like) to auto-convert to checksum address.
 
 ```py
-from credmark.types.data import Address
+from credmark.types import Address
 
 Address(wallet_adress)
 ```
@@ -157,7 +157,7 @@ Address(wallet_adress)
 - Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
 
 ```py
-from credmark.types.financial import Portfolio
+from credmark.types import Portfolio
 
 """
 # Portfolio is defined as below
@@ -179,7 +179,7 @@ class TestModel(credmark.model.Model):
 ```
 
 
-from credmark.types.financial import Portfolio
+from credmark.types import Portfolio
 
 
 
