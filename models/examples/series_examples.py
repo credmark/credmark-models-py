@@ -30,3 +30,14 @@ class Example30DaySeries(credmark.model.Model):
                                      "interval": 86400,
                                      "modelInput": input.input})
         return res
+
+
+@credmark.model.describe(slug='example-historical-util', version="1.0")
+class ExampleHistoricalUtil(credmark.model.Model):
+
+    """
+    This model returns the library example for every day for the past 30 days
+    """
+
+    def run(self, input):
+        return self.context.historical.run_model_historical('example-libraries', '30 days')
