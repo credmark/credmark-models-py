@@ -10,7 +10,7 @@ class ExampleHistorical(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical('example-libraries', '5 hours', interval='45 minutes')
+        return self.context.historical.run_model_historical('example-libraries', window='5 hours', interval='45 minutes')
 
 
 @credmark.model.describe(slug='example-historical-snap', version="1.0")
