@@ -17,8 +17,12 @@ else {
 		$credmark_dev2 = ""
 	}
  else {
-		write-error "sel = test or prod to pick the runtime"
-		exit
+		if ($sel -eq 'echo') {
+		}
+		else {
+			write-error "sel = test or prod to pick the runtime"
+			exit
+		}
 	}
 }
 
@@ -30,14 +34,14 @@ Function test-target {
 	if ([string]::IsNullOrEmpty($params)) {
 		Write-Output "[test-this] Test $target with __no_param__ for $expected"
 	}
- else {
+	else {
 		Write-Output "[test-this] Test $target with $params for $expected"
 	}
 
 	if ($params.Length -eq 0) {
 		$output, $rs, $exit_code = (. $target )
 	}
- else {
+	else {
 		if ($params.Length -eq 1) {
 			$output, $rs, $exit_code = (. $target $params[0])
 		}
@@ -65,7 +69,7 @@ Function test-target {
 		write-error "[test-this] Stopped with $target."
 		exit
 	}
- else {
+	else {
 		if ( -not $rs ) {
 			write-host "[test-this] Good with $target, expected to fail."
 		}
@@ -76,7 +80,14 @@ Function test-target {
 }
 
 Function show-models {
-	$output = & $credmark_dev1 $credmark_dev2 list-models
+	if ($sel -eq 'echo') {
+		$output = & "credmark-dev" list-models
+
+	}
+ else {
+		$output = & $credmark_dev1 $credmark_dev2 list-models
+	}
+
 	$rs = $?
 	if ([string]::IsNullOrEmpty($output)) {
 		$output = '__null__'
@@ -102,21 +113,34 @@ test-target "show-models"
 Function test-model {
 	Param($par1, $par2, $par3)
 	# write-host "[test-model] $credmark_dev1 $credmark_dev2 $par1 $par2 $par3`n"
-	$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14234904" "--api_url" "http://localhost:8700/v1/models/run" $par3
-	$rs = $?
-	if ([string]::IsNullOrEmpty($output)) {
-		$output = '__null__'
+	if ($sel -eq 'echo') {
+		$output = & "Write-Error" "$par1 $par2 -b 14234904 --api_url=http://localhost:8700/v1/models/run $par3"
+		return '__null__', 0, 0
 	}
-	return $output, $rs, $LastExitCode
+ else {
+		$output = & $credmark_dev1 $credmark_dev2 $par1 $par2 "-b 14234904" "--api_url" "http://localhost:8700/v1/models/run" $par3
+		$rs = $?
+		if ([string]::IsNullOrEmpty($output)) {
+			$output = '__null__'
+		}
+		return $output, $rs, $LastExitCode
+	}
+
 }
 # test: test-model -model_param "var"
 
 # $models = "var","cmk-circulating-supply","xcmk-total-supply","xcmk-cmk-staked","xcmk-deployment-time","Foo","uniswap-router-price-usd","uniswap-router-price-pair","uniswap-tokens","uniswap-exchange","geometry-circles-area","geometry-circles-circumference","geometry-spheres-area","geometry-spheres-volume","historical-pi","historical-staked-xcmk","pi","run-test"
 
-(& $credmark_dev1 $credmark_dev2 clean)
-
 if ([string]::IsNullOrEmpty($models)) {
-	$models = (& $credmark_dev1 $credmark_dev2 list-models | grep '^ - ' | awk '{x = $2; print substr(x, 0, length(x) - 1)}')
+	if ($sel -eq 'echo') {
+		$models = (& "credmark-dev" list-models | grep '^ - ' | awk '{x = $2; print substr(x, 0, length(x) - 1)}')
+	}
+ else {
+		(& $credmark_dev1 $credmark_dev2 clean)
+		$models = (& $credmark_dev1 $credmark_dev2 list-models | grep '^ - ' | awk '{x = $2; print substr(x, 0, length(x) - 1)}')
+	}
+
+
 	write-host "models=$models"
 }
 
@@ -160,7 +184,12 @@ foreach ($m in $models) {
 							}
 							else {
 								if ("example-30-day-series" -eq $m) {
-									test-target test-model -expected 1 -params run, $m, "-i {""slug"":""example-echo"", ""input"":{""message"":""hello world""}}"
+									if ($sel -eq 'echo') {
+										test-target test-model -expected 0 -params run, $m, "-i {""slug"":""example-echo"", ""input"":{""message"":""hello world""}}"
+									}
+									else {
+										test-target test-model -expected 1 -params run, $m, "-i {""slug"":""example-echo"", ""input"":{""message"":""hello world""}}"
+									}
 								}
 								else {
 									if ("historical-pi" -eq $m -or
@@ -170,7 +199,13 @@ foreach ($m in $models) {
 										"xcmk-deployment-time" -eq $m -or
 										"xcmk-deployment-time" -eq $m -or
 										"type-test-2" -eq $m) {
-										test-target test-model -expected 1 -params run, $m, "-i {}"
+										if ($sel -eq 'echo') {
+											test-target test-model -expected 0 -params run, $m, "-i {}"
+										}
+										else {
+											test-target test-model -expected 1 -params run, $m, "-i {}"
+										}
+
 									}
 									else {
 										test-target test-model -expected 0 -params run, $m, "-i {}"
