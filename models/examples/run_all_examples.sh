@@ -23,6 +23,9 @@ echo "Load Contract By Name Example:"
 echo ""
 credmark-dev run example-load-contract-by-name --input '{"contractName": "mutantmfers"}' --api_url=http://localhost:8700/v1/models/run -b 14234904
 echo ""
-echo "Run 30 day Series Example:"
+echo "Run Historical Example:"
 echo ""
-credmark-dev run example-30-day-series --input '{"slug":"example-echo", "input":{"message":"hello world"}}' --api_url=http://localhost:8700/v1/models/run -b 14234904
+credmark-dev run example-historical --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+credmark-dev run example-historical-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+credmark-dev run example-historical-block --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+credmark-dev run example-historical-block-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
