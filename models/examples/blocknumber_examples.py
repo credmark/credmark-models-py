@@ -1,5 +1,6 @@
 import credmark.model
 from credmark.types import BlockNumber
+from credmark.types.data.block_number import BlockNumberOutOfRangeException
 
 
 @credmark.model.describe(slug='example-blocktime',
@@ -14,6 +15,12 @@ class BlockTimeExample(credmark.model.Model):
 
     def run(self, input) -> dict:
         block = self.context.block_number
+
+        try:
+            block = block + 1
+        except BlockNumberOutOfRangeException:
+            print("I can't look into the future, so don't try.")
+
         ten_thousand_blocks_ago = self.context.block_number - 10000
 
         return {
