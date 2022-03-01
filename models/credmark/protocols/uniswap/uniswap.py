@@ -1,15 +1,29 @@
 import credmark.model
 from credmark.types import Address
-from ....tmp_abi_lookup import uniswap_quoter_abi, uniswap_quoter_address, uniswap_factory_abi, UNISWAP_FACTORY_ADDRESS, UNISWAP_DAI_V1_ABI, UNISWAP_DAI_V1_ADDRESS
+from credmark.types.dto import DTO
+from ....tmp_abi_lookup import (uniswap_quoter_abi,
+                                uniswap_quoter_address,
+                                uniswap_factory_abi,
+                                UNISWAP_FACTORY_ADDRESS,
+                                UNISWAP_DAI_V1_ABI,
+                                UNISWAP_DAI_V1_ADDRESS,
+                                MIN_ERC20_ABI,
+                                UNISWAP_V3_SWAP_ROUTER_ABI,
+                                UNISWAP_V3_SWAP_ROUTER_ADDRESS)
 
 
-@credmark.model.describe(slug='uniswap-router-price-usd',
+class UniswapQuoterPriceUsd(DTO):
+    tokenAddress: Address
+
+
+@credmark.model.describe(slug='uniswap-quoter-price-usd',
                          version='1.0',
                          display_name='The Price of a Token on Uniswap in USD',
-                         description='The Trading Price with respect to USD on Uniswap\'s Frontend)')
+                         description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
+                         input=UniswapQuoterPriceUsd)
 class UniswapRouterPricePair(credmark.model.Model):
 
-    def run(self, input) -> dict:
+    def run(self, input: UniswapQuoterPriceUsd) -> dict:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
@@ -19,26 +33,27 @@ class UniswapRouterPricePair(credmark.model.Model):
             address=Address(uniswap_quoter_address).checksum,
             abi=uniswap_quoter_abi)
 
-        weth9 = uniswap_quoter.functions.WETH9().call()
-        dai = '0x6B175474E89094C44Da98b954EedeAC495271d0F'
+        decimals = self.context.web3.eth.contract(
+            address=Address(input.tokenAddress).checksum,
+            abi=MIN_ERC20_ABI).functions.decimals().call()
 
-        tokenIn = weth9
-        tokenOut = dai
-        fee = 3000
+        tokenIn = '0x6B175474E89094C44Da98b954EedeAC495271d0F'
+        tokenOut = input.tokenAddress
+        fee = 10000
         sqrtPriceLimitX96 = 0
-        daiAmount = 1 * 10 ** 18
+        tokenAmount = 1 * 10 ** decimals
 
         quote = uniswap_quoter.functions.quoteExactOutputSingle(tokenIn,
                                                                 tokenOut,
                                                                 fee,
-                                                                daiAmount,
+                                                                tokenAmount,
                                                                 sqrtPriceLimitX96).call()
 
         result = {'value': quote / 10 ** 18}
         return result
 
 
-@credmark.model.describe(slug='uniswap-router-price-pair',
+@credmark.model.describe(slug='uniswap-router-price-usd',
                          version='1.0',
                          display_name='The Price of a Token on Uniswap with respect to another Token',
                          description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
@@ -48,10 +63,11 @@ class UniswapRouterPriceUsd(credmark.model.Model):
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap, default to USDC/USDT/DAI and throw out outliers.
         """
+        uniswap_router = self.context.web3.eth.contract(
+            address=Address(UNISWAP_V3_SWAP_ROUTER_ADDRESS).checksum,
+            abi=UNISWAP_V3_SWAP_ROUTER_ADDRESS)
 
-        result = {'value': 'not yet implemented'}
-
-        return result
+        return {}
 
 
 @credmark.model.describe(slug='uniswap-tokens',
