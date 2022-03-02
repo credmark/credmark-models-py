@@ -19,9 +19,7 @@ class PoolAddress(DTO):
 class CurveFinancePoolInfo(credmark.model.Model):
 
     def run(self, input: PoolAddress) -> dict:
-
         pool_address = input.address
-
         pool_contract = self.context.web3.eth.contract(
             address=pool_address.checksum,
             abi=SWAP_ABI
@@ -59,19 +57,20 @@ class CurveFinancePoolInfo(credmark.model.Model):
             "tokens": tokens,
             "balances": balances,
             "underlying": underlying,
-            "A": a
+            "A": a,
         }
 
 
-@ credmark.model.describe(slug="curve-fi-all-pool-info",
-                          version="1.0",
-                          display_name="Curve Finance Pool Liqudity",
-                          description="The amount of Liquidity for Each Token in a Curve Pool")
+@credmark.model.describe(slug="curve-fi-all-pool-info",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> dict:
         pool_infos = []
-        for pool in self.context.run_model("curve-fi-pools")['result']:
+        for pool in self.context.run_model("curve-fi-pools")['result'][:3]:
+
             pool_info = self.context.run_model(
                 "curve-fi-pool-info", {"address": pool})
             pool_infos.append(pool_info)
