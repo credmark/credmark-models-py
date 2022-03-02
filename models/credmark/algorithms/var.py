@@ -1,10 +1,25 @@
+from typing import List
 import credmark.model
+from credmark.types import DTO, Portfolio, Price, Address
+
+
+class PriceList(DTO):
+    price: Price
+    token: Address
+
+
+class VarInputDTO(DTO):
+    portfolio: Portfolio
+    prices: List[PriceList]
+    window: int
+    percentage: float
 
 
 @credmark.model.describe(slug='var',
                          version='1.0',
                          display_name='Value at Risk',
-                         description='Value at Risk')
+                         description='Value at Risk',
+                         input=VarInputDTO)
 class Var(credmark.model.Model):
 
     def run(self, input) -> dict:

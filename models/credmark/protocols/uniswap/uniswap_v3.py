@@ -6,10 +6,6 @@ from ....tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V3_FACTORY_ABI,
                                 WETH9_ADDRESS, USDC_ADDRESS, MIN_ERC20_ABI)
 
 
-class UniswapV3PoolScan(DTO):
-    tokenAddress: Address
-
-
 class UniswapV3PoolInfo(DTO):
     address: Address
     sqrtPriceX96: str
@@ -29,10 +25,10 @@ class UniswapV3PoolInfo(DTO):
                          version='1.0',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
-                         input=UniswapV3PoolScan)
+                         input=AddressDTO)
 class UniswapV3GetPoolsForToken(credmark.model.Model):
 
-    def run(self, input: UniswapV3PoolScan) -> dict:
+    def run(self, input: AddressDTO) -> dict:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
@@ -48,12 +44,11 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
             abi=UNISWAP_V3_FACTORY_ABI)
 
         pools = []
-        owner = uniswap_factory.functions.owner().call()
 
         for fee in fees:
             for primary_token in primary_tokens:
                 pool = uniswap_factory.functions.getPool(
-                    input.tokenAddress, primary_token, fee).call()
+                    input.address, primary_token, fee).call()
                 if pool != "0x0000000000000000000000000000000000000000":
                     pools.append(pool)
 
@@ -103,7 +98,7 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: AddressDTO) -> dict:
         pools = self.context.run_model(
-            'uniswap-v3-get-pools', {"tokenAddress": input.address.checksum})
+            'uniswap-v3-get-pools', {"address": input.address.checksum})
         infos = [self.context.run_model('uniswap-v3-get-pool-info',
                                         {"address": p}) for p in pools['result']]
         prices = []
