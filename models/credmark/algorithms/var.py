@@ -1,6 +1,7 @@
 from typing import List
 import credmark.model
-from credmark.types import DTO, Portfolio, Price, Address
+from credmark.types.dto import DTO
+from credmark.types import Portfolio, Price, Address
 
 
 class PriceList(DTO):
