@@ -10,7 +10,21 @@ class ExampleHistorical(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical('example-libraries', window='5 hours', interval='45 minutes')
+
+        res = self.context.historical.run_model_historical(
+            'example-libraries', window='5 hours', interval='45 minutes')
+
+        """
+            You can get historical elements by blocknumber,
+            You can get historical elements by time,
+            or you can iterate through them by index.
+        """
+
+        res.get(timestamp=1646007299 + (45 * 60)).dict()
+        res.get(block_number=14291219).dict()
+        print(res[3].dict())
+
+        return res
 
 
 @credmark.model.describe(slug='example-historical-snap', version="1.0")
