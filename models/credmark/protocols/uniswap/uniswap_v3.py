@@ -1,9 +1,9 @@
 import credmark.model
 from credmark.types import Address, AddressDTO
 from credmark.types.dto import DTO
-from ....tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V3_FACTORY_ABI,
-                                UNISWAP_V3_FACTORY_ADDRESS, UNISWAP_V3_POOL_ABI, USDT_ADDRESS,
-                                WETH9_ADDRESS, USDC_ADDRESS, MIN_ERC20_ABI)
+from models.tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V3_FACTORY_ABI,
+                                   UNISWAP_V3_FACTORY_ADDRESS, UNISWAP_V3_POOL_ABI, USDT_ADDRESS,
+                                   WETH9_ADDRESS, USDC_ADDRESS, MIN_ERC20_ABI)
 
 
 class UniswapV3PoolInfo(DTO):
