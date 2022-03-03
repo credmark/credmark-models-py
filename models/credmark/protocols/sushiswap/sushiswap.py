@@ -3,42 +3,33 @@ from credmark.types import Address, AddressDTO
 from credmark.types.dto import DTO, DTOField
 from ....tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
+
 @credmark.model.describe(slug="sushiswap-all-pools",
                          version="1.0",
                          display_name="Sushiswap all pairs",
-                         description="Returns the addresses of all pairs on Suhsiswap protocol",
-                         input=None)
+                         description="Returns the addresses of all pairs on Suhsiswap protocol")
 class SushiswapAllPairs(credmark.model.Model):
     def run(self, input) -> dict:
-        output = {}
-        print(" DEBUG ", input)
+
         contract = self.context.web3.eth.contract(
-                                address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
-                                abi=SUSHISWAP_FACTORY_ABI
+            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            abi=SUSHISWAP_FACTORY_ABI
         )
 
         allPairsLength = contract.functions.allPairsLength().call()
-        print("Total pairs on uniswap: " + str(allPairsLength))
-        
+
         SUSHISWAP_PAIRS_ADDRESSES = []
 
         error_count = 0
-
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
-                SUSHISWAP_PAIRS_ADDRESSES.append(pair_address)
+                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address))
 
             except Exception as err:
-                print('Error at index: ' + str(i))
-                print(err)
                 error_count += 1
 
-
-        print('Error Count: ' + str(error_count))
-        print(SUSHISWAP_PAIRS_ADDRESSES)
-
-
+        return {"result": SUSHISWAP_PAIRS_ADDRESSES}
 
 
 @credmark.model.describe(slug="sushiswap-get-pool",
@@ -47,12 +38,12 @@ class SushiswapAllPairs(credmark.model.Model):
                          description="Returns the addresses of the pool of both tokens on Suhsiswap protocol",
                          input=dict)
 class SushiswapGetPair(credmark.model.Model):
-    def run(self, input : dict):
+    def run(self, input: dict):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-                                address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
-                                abi=SUSHISWAP_FACTORY_ABI
+            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            abi=SUSHISWAP_FACTORY_ABI
         )
         token0 = self.context.web3.toChecksumAddress(input['token0'])
         token1 = self.context.web3.toChecksumAddress(input['token1'])
@@ -73,30 +64,33 @@ class SushiswapGetPairDetails(credmark.model.Model):
         except expected_exc:
             return default
 
-    def run(self, input:AddressDTO):
+    def run(self, input: AddressDTO):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-                                address=input.address,
-                                abi=SUSHISWAP_PAIRS_ABI
+            address=input.address,
+            abi=SUSHISWAP_PAIRS_ABI
         )
         token0 = contract.functions.token0().call()
         token1 = contract.functions.token1().call()
         getReserves = contract.functions.getReserves().call()
 
-        token0_instance = self.context.web3.eth.contract(address=token0, abi=ERC_20_TOKEN_CONTRACT_ABI)
+        token0_instance = self.context.web3.eth.contract(
+            address=token0, abi=ERC_20_TOKEN_CONTRACT_ABI)
         _token0_name = self.try_or(lambda: token0_instance.functions.name().call())
         _token0_symbol = self.try_or(lambda: token0_instance.functions.symbol().call())
         _token0_decimals = token0_instance.functions.decimals().call()
 
-        token1_instance = self.context.web3.eth.contract(address=token1, abi=ERC_20_TOKEN_CONTRACT_ABI)
+        token1_instance = self.context.web3.eth.contract(
+            address=token1, abi=ERC_20_TOKEN_CONTRACT_ABI)
         _token1_name = self.try_or(lambda: token1_instance.functions.name().call())
         _token1_symbol = self.try_or(lambda: token1_instance.functions.symbol().call())
         _token1_decimals = token1_instance.functions.decimals().call()
 
-        token0_reserve = getReserves[0]/pow(10,_token0_decimals)
-        token1_reserve = getReserves[1]/pow(10,_token1_decimals)
+        token0_reserve = getReserves[0]/pow(10, _token0_decimals)
+        token1_reserve = getReserves[1]/pow(10, _token1_decimals)
 
-        output = {'pairAddress': input.address, 'token0': token0, 'token0_name': _token0_name, 'token0_symbol': _token0_symbol, 'token0_reserve': token0_reserve, 'token1': token1, 'token1_name': _token1_name, 'token1_symbol': _token1_symbol, 'token1_reserve': token1_reserve}
+        output = {'pairAddress': input.address, 'token0': token0, 'token0_name': _token0_name, 'token0_symbol': _token0_symbol,
+                  'token0_reserve': token0_reserve, 'token1': token1, 'token1_name': _token1_name, 'token1_symbol': _token1_symbol, 'token1_reserve': token1_reserve}
 
         print(output)
