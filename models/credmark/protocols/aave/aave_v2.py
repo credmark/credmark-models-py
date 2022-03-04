@@ -2,7 +2,7 @@ import credmark.model
 from credmark.types import Address, AddressDTO
 from credmark.types.dto import DTO, DTOField
 from credmark.types import Position
-from ....tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
+from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
 @credmark.model.describe(slug="aave-lending-pool-assets",

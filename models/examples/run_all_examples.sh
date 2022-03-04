@@ -23,9 +23,20 @@ echo "Load Contract By Name Example:"
 echo ""
 credmark-dev run example-load-contract-by-name --input '{"contractName": "mutantmfers"}' --api_url=http://localhost:8700/v1/models/run -b 14234904
 echo ""
-echo "Run Historical Example:"
+echo "Run Historical Examples:"
 echo ""
 credmark-dev run example-historical --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-block --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-block-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+echo ""
+echo "Run Ledger Examples:"
+echo ""
+credmark-dev run example-ledger-logs --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-token-transactions --input '{"address":"0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-transaction --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-receipts --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-traces --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-blocks --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-tokens --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-contracts --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599 

@@ -1,7 +1,7 @@
 import credmark.model
 from credmark.types import Address, AddressDTO
 from credmark.types.dto import DTO, DTOField
-from ....tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
+from models.tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
 @credmark.model.describe(slug="sushiswap-all-pools",
