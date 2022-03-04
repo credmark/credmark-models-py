@@ -139,3 +139,4 @@ workspace.code-workspace
 
 # test
 /test/*
+/dask-worker-space
