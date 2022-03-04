@@ -138,5 +138,5 @@ models.yaml
 workspace.code-workspace
 
 # test
-/test/*
+/test/*.ps1
 /dask-worker-space

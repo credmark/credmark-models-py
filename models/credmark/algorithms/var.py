@@ -9,7 +9,7 @@ class PriceList(DTO):
     token: Address
 
 
-class VarInputDTO(DTO):
+class VarInput(DTO):
     portfolio: Portfolio
     prices: List[PriceList]
     window: int
@@ -20,7 +20,7 @@ class VarInputDTO(DTO):
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',
-                         input=VarInputDTO)
+                         input=VarInput)
 class Var(credmark.model.Model):
 
     def run(self, input) -> dict:

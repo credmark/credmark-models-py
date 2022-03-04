@@ -1,23 +1,6 @@
-import types
-import importlib
-import models
 import sys
-from web3 import HTTPProvider, Web3
-from typing import (
-    Dict,
-    Tuple,
-    Any,
-    List,
-    Callable,
-    TypedDict,
-    Optional,
-)
 from typing import Any, Dict, List
-import inspect
-import uuid
-import webbrowser
 import time
-from web3 import Web3
 import credmark.model
 
 from credmark.types import Address
@@ -140,13 +123,6 @@ def get_pool_info(http_provider, block_number, contract_address, contract_abi, c
     }
 
 
-def reload_models(mod):
-    mod = importlib.reload(mod)
-    for k, v in mod.__dict__.items():
-        if isinstance(v, types.ModuleType):
-            setattr(mod, k, importlib.import_module(v.__name__))
-
-
 def get_all_pool_info(http_provider, block_number, pools, contract_abi, contract_abi2):
     client = get_client()
     params = ([http_provider] * len(pools),
@@ -182,19 +158,9 @@ def change_sys():
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> dict:
-        import dask.distributed as dask_dist
 
         pools = self.context.run_model("curve-fi-pools")['result']
 
-        import zipfile
-
-        with zipfile.PyZipFile("models_pkg.zip", mode="w") as zip_pkg:
-            zip_pkg.writepy("models")
-
-        client = dask_dist.Client(address='tcp://localhost:8786', set_as_default=False,)
-        client.upload_file('models_pkg.zip')
-
-        import models.credmark.protocols.curve.curve_finance_p
         client.submit(lambda x: models.credmark.protocols.curve.curve_finance_p.imp_test(), 1)
         client.submit(lambda x: change_sys(), 1).result()
         # client.submit(lambda x: imp_test(), 1).result()
