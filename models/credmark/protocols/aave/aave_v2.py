@@ -5,35 +5,98 @@ from credmark.types import Position
 from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
-@credmark.model.describe(slug="aave-lending-pool-assets",
+@credmark.model.describe(slug="aave-lending-pool-liabilities",
                          version="1.0",
-                         display_name="Aave V2 Lending Pool Assets",
-                         description="Aave V2 assets for the main lending pool",
+                         display_name="Aave V2 Lending Pool liabilities",
+                         description="Aave V2 liabilities for the main lending pool",
                          input=None)
-class AaveV2GetAssets(credmark.model.Model):
-    def run(self, input: AddressDTO) -> dict:
+class AaveV2GetLiability(credmark.model.Model):
+    def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
             address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
-        totalSupply = 0
+
+        asset_output = {}
         for asset in aave_assets:
-            asset_output = []
+
+            res = self.context.run_model(
+                'aave-token-liability', {"address": asset})
+
+            token = res['result']['token']
+            totalLiquidity = res['result']['totalLiquidity']
+
+            asset_output[token] = totalLiquidity
+
+        output = {'result': asset_output}
+        return output
+
+
+@credmark.model.describe(slug="aave-token-liability",
+                         version="1.0",
+                         display_name="Aave V2 token liability",
+                         description="Aave V2 token liability at a given block number",
+                         input=AddressDTO)
+class AaveV2GetTokenLiability(credmark.model.Model):
+    output = {}
+
+    def run(self, input: AddressDTO) -> dict:
+        contract = self.context.web3.eth.contract(
+            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
+
+        getReservesData = contract.functions.getReserveData(input.address).call()
+
+        aTokenContract = self.context.web3.eth.contract(
+            address=getReservesData[7],
+            abi=ERC_20_TOKEN_CONTRACT_ABI)
+        totalLiquidity = aTokenContract.functions.totalSupply().call()
+        decimals = aTokenContract.functions.decimals().call()
+        totalLiquidity = float(totalLiquidity)/pow(10, decimals)
+
+        symbol = str(aTokenContract.functions.symbol().call())[1:]
+
+        output = {'result': {'token': symbol, 'totalLiquidity': totalLiquidity}}
+
+        return output
+
+
+@credmark.model.describe(slug="aave-lending-pool-assets",
+                         version="1.0",
+                         display_name="Aave V2 Lending Pool Assets",
+                         description="Aave V2 assets for the main lending pool",
+                         input=None)
+class AaveV2GetAssets(credmark.model.Model):
+    def run(self, input) -> dict:
+        output = {}
+        contract = self.context.web3.eth.contract(
+            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
+        aave_assets = contract.functions.getReservesList().call()
+
+        asset_output = {}
+        for asset in aave_assets:
+
             getReservesData = contract.functions.getReserveData(asset).call()
             atoken_asset = getReservesData[7]
-            print("Asset : ", asset, atoken_asset)
-            symbol, totalSupply = self.context.run_model(
-                'aave-token-asset', {"address": atoken_asset})
-            output[symbol] = totalSupply
-        print(output)
 
-    def try_or(self, func, default=None, expected_exc=(Exception,)):
-        try:
-            return func()
-        except expected_exc:
-            return default
+            res = self.context.run_model(
+                'aave-token-asset', {"address": asset})
+
+            token = res['result']['token']
+            totalStableDebt = res['result']['totalStableDebt']
+            totalVariableDebt = res['result']['totalVariableDebt']
+            totalDebt = res['result']['totalDebt']
+
+            asset_output[token] = {'totalStableDebt': totalStableDebt,
+                                   'totalVariableDebt': totalVariableDebt, 'totalDebt': totalDebt}
+
+        output = {'result': asset_output}
+        return output
 
 
 @credmark.model.describe(slug="aave-token-asset",
@@ -44,7 +107,8 @@ class AaveV2GetAssets(credmark.model.Model):
 class AaveV2GetTokenAsset(credmark.model.Model):
     output = {}
 
-    def run(self, input: AddressDTO) -> Position:
+    def run(self, input: AddressDTO) -> dict:
+
         contract = self.context.web3.eth.contract(
             address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
@@ -52,11 +116,23 @@ class AaveV2GetTokenAsset(credmark.model.Model):
 
         getReservesData = contract.functions.getReserveData(input.address).call()
 
-        tokenContract = self.context.web3.eth.contract(
-            address=getReservesData[7], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        totalSupply = tokenContract.functions.totalSupply().call()
-        decimals = tokenContract.functions.decimals().call()
-        totalSupply = float(totalSupply)/pow(10, decimals)
-        symbol = tokenContract.functions.symbol().call()
+        stableTokenContract = self.context.web3.eth.contract(
+            address=getReservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        totalStableDebt = stableTokenContract.functions.totalSupply().call()
+        decimals = stableTokenContract.functions.decimals().call()
+        totalStableDebt = float(totalStableDebt)/pow(10, decimals)
 
-        return Position(amount=totalSupply, token=symbol)
+        variableTokenContract = self.context.web3.eth.contract(
+            address=getReservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        totalVariableDebt = variableTokenContract.functions.totalSupply().call()
+        decimals = variableTokenContract.functions.decimals().call()
+        totalVariableDebt = float(totalVariableDebt)/pow(10, decimals)
+
+        totalDebt = totalStableDebt + totalVariableDebt
+
+        symbol = str(stableTokenContract.functions.symbol().call())[10:]
+
+        output = {'result': {'token': symbol, 'totalStableDebt': totalStableDebt,
+                             'totalVariableDebt': totalVariableDebt, 'totalDebt': totalDebt}}
+
+        return output
