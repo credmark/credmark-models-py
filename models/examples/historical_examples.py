@@ -46,7 +46,7 @@ class ExampleHistoricalBlockSnap(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical_blocks('example-libraries', window=500, interval=100, snap_block=100)
+        return self.context.historical.run_model_historical_blocks('example-echo', model_input={"message": "hello world"}, window=500, interval=100, snap_block=100)
 
 
 @credmark.model.describe(slug='example-historical-block', version="1.0")
