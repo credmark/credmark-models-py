@@ -1,4 +1,5 @@
 import credmark.model
+from datetime import datetime
 
 from credmark.types import Address
 from credmark.types.dto import DTO, DTOField
@@ -68,12 +69,14 @@ class CurveFinancePoolInfo(credmark.model.Model):
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> dict:
+        start_time = datetime.now()
         pool_infos = []
-        for pool in self.context.run_model("curve-fi-pools")['result'][:3]:
+        for pool in self.context.run_model("curve-fi-pools")['result']:
 
             pool_info = self.context.run_model(
                 "curve-fi-pool-info", {"address": pool})
             pool_infos.append(pool_info)
+        print(datetime.now() - start_time)
         return {"pools": pool_infos}
 
 

@@ -1,5 +1,6 @@
 import sys
 import credmark.model
+from datetime import datetime
 
 from credmark.types import Address
 from credmark.types.dto import DTO, DTOField
@@ -19,17 +20,17 @@ class PoolAddress(DTO):
                          input=PoolAddress)
 class CurveFinancePoolInfo(credmark.model.Model):
     def run(self, input: PoolAddress) -> dict:
-        pool_address = input.address.checksum
+        pool_address = input.address
 
         tokens = []
         underlying = []
         balances = []
         try:
-            pool_contract = self.context.dask_client.get_contract(
+            pool_contract = self.context.dask_utils.get_contract(
                 pool_address, SWAP_ABI)
             pool_contract.functions.coins(0).call()
         except Exception:
-            pool_contract = self.context.dask_client.get_contract(
+            pool_contract = self.context.dask_utils.get_contract(
                 pool_address, SWAP_ABI)
 
         for i in range(0, 8):
@@ -74,38 +75,38 @@ def test_models():
 # python test\test.py run curve-fi-all-pool-info-p -b 14234904 --api_url=http://localhost:8700/v1/models/run -i '{"address":"0x06364f10B501e868329afBc005b3492902d6C763"}' --dask='tcp://localhost:8786'
 
 
+def do_multiple_address(model, pools):
+    client = model.context.dask_utils.get_client()
+    fs = client.map(model.run, [PoolAddress(address=Address(addr))
+                    for addr in pools['result']])
+    res = client.gather(fs)
+    return res
+
+
 @credmark.model.describe(slug="curve-fi-all-pool-info-p",
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
     def run(self, input) -> dict:
-        pools = self.context.run_model("curve-fi-pools")['result']
-        t1 = Task('pool-info', lambda x, pools: CurveFinancePoolInfo(x).run(pools),
-                  ([self.context, pools], []))
+        start_time = datetime.now()
 
-        cc = CurveFinancePoolInfo(self.context)
-        breakpoint()
+        curve_pools = CurveFinancePools(self.context)
+        curve_pool_info = CurveFinancePoolInfo(self.context)
 
-        t1 = Task('pool-info', lambda p, cc=cc: (load_models(), cc.run(p))[1], ([pools], []))
-        t1 = Task('pool-info', lambda p, cc=cc: (load_models(), cc.run(p))[1], ([pools], []))
+        t0 = Task('pools', curve_pools.run, ([{}], []))
+        t1 = Task('pool-info', do_multiple_address, ([curve_pool_info], [t0]))
+        p = Pipe(t0, t1)
+        result = self.context.run_pipe(p, ['pool-info'])
 
-        t1 = Task('pool-info', lambda x, pools: (load_models(),
-                  models.credmark.protocols.curve.curve_finance_p.CurveFinancePoolInfo(x).run(pools))[1], ([self.context, pools], []))
-
-        self.context.dask_client.get_client().submit(lambda x: sys.path, 1)
-        self.context.dask_client.get_client().submit(lambda x: load_models(), 1).result()
-        self.context.dask_client.get_client().submit(lambda x: test_models(), 1).result()
-        breakpoint()
-        pool_infos = self.context.run_pipe(Pipe(t1), ['pool-info'])
-        breakpoint()
-        return {"pools": pool_infos}
+        print(datetime.now() - start_time)
+        return {'result': result['pool-info']}
 
 
-@ credmark.model.describe(slug="curve-fi-pools-p",
-                          version="1.0",
-                          display_name="Curve Finance Pool Liqudity",
-                          description="The amount of Liquidity for Each Token in a Curve Pool")
+@credmark.model.describe(slug="curve-fi-pools-p",
+                         version="1.0",
+                         display_name="Curve Finance Pool Liqudity",
+                         description="The amount of Liquidity for Each Token in a Curve Pool")
 class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> dict:
