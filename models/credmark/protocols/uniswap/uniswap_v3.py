@@ -122,12 +122,16 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
         return {"price": price}
 
 
-@ credmark.model.describe(slug='uniswap-v3-get-30-day-price',
+class HistoricalPriceDTO(DTO):
+    token: AddressDTO
+    window: str
+
+
+@ credmark.model.describe(slug='uniswap-v3-get-historical-price',
                           version='1.0',
-                          display_name='Uniswap v3 Token Pools',
-                          description='The Uniswap v3 pools that support a token contract',
-                          input=AddressDTO)
+                          input=HistoricalPriceDTO)
 class UniswapV3GetAveragePrice30Day(credmark.model.Model):
 
     def run(self, input) -> dict:
-        return self.context.historical.run_model_historical('uniswap-v3-get-average-price', window='30 days', model_input=input)
+
+        return self.context.historical.run_model_historical('uniswap-v3-get-average-price', window=input.window, model_input=input.token)
