@@ -1,7 +1,7 @@
 from typing import List
 import credmark.model
 from credmark.types.dto import DTO, DTOField
-from credmark.types import AddressDTO, ContractDTO
+from credmark.types import AddressDTO, Contract
 
 
 class ContractName(DTO):
@@ -9,7 +9,7 @@ class ContractName(DTO):
 
 
 class ContractList(DTO):
-    contracts: List[ContractDTO] = DTOField(..., description='The list of loaded contracts.')
+    contracts: List[Contract] = DTOField(..., description='The list of loaded contracts.')
 
 
 @credmark.model.describe(slug='example-load-contract-by-name',
@@ -35,13 +35,13 @@ class LoadContractByName(credmark.model.Model):
                          display_name='Contract Loading',
                          description='Load the ABI of a Contract with its Name',
                          input=AddressDTO,
-                         output=ContractDTO)
+                         output=Contract)
 class LoadContractByAddress(credmark.model.Model):
 
     """
     This Example Loads a Contract by it's name and returns all the addresses in our database
     """
 
-    def run(self, input: AddressDTO) -> ContractDTO:
+    def run(self, input: AddressDTO) -> Contract:
         contract = self.context.contracts.load_address(address=input.address.checksum)
         return contract
