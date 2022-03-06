@@ -2,7 +2,15 @@
 
 The Credmark Models Repository
 
-## Install
+## Quickstart
+
+### Prerequisites
+- Python 3.9+ or Miniconda 4.10+ installed
+- Personal web3 provider url (Alchemy or other) if you need to use your own web3 provider instance to run any model
+- Visual studio 2019+ installed for Windows users
+
+### Clone Repository 
+Clone [credmark-models-py](https://github.com/credmark/credmark-models-py) repository
 
 ### Virtual Env
 
@@ -40,7 +48,7 @@ If you are using web3 in your models, you can set environment variables for the 
 
 Set a variable for each Chain Id you wish to use:
 
-``CREDMARK_WEB3_PROVIDER_CHAIN_ID_{N}` [OPTIONAL] Set {N} with a chain id, for example `CREDMARK_WEB3_PROVIDER_CHAIN_ID_1` and set the value as the URL of the HTTP provider.
+`CREDMARK_WEB3_PROVIDER_CHAIN_ID_{N}` [OPTIONAL] Set {N} with a chain id, for example `CREDMARK_WEB3_PROVIDER_CHAIN_ID_1` and set the value as the URL of the HTTP provider.
 
 For example, a `.env` file can contain the following:
 
@@ -97,7 +105,25 @@ Standards:
 
 - Input variables and Output data fields should use camel-cased names.
 
-### Model Code
+## Submit a Model
+
+Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
+
+## Model Library 
+
+See a list of the [existing models](https://github.com/credmark/credmark-models-py/tree/main/models/credmark) in the repository.
+
+## API Gateway
+
+The Credmark SDK provides access to the model runner and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
+
+
+
+# Example Models
+
+Follow these basic examples.
+
+## Model Code
 
 First create a folder in the `models` folder that will hold all of your models, for example `models/my_models`.
 
@@ -194,7 +220,7 @@ A model instance has access to the following instance variables:
 - `self.context` - A context which holds state and provides functionality
 - `self.logger` - Python logger instance for logging to stderr(optional) A model should never write/print to stdout.
 
-### Model Context
+## Model Context
 
 The model context provides access to context variables, web3, and other models.
 
@@ -209,7 +235,7 @@ Methods:
 
 - `run_model(name: str, input: Union[dict, None] = None, return_type: Union[Type[dict], Type[DTO], None], block_number: Union[int, None] = None, version: Union[str, None] = None)` - A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an error if the called model was unavailable or had an error.)
 
-### Error handling
+## Error handling
 
 The top level will catch any exceptions and output error JSON to stdout and exit with an error code.
 
