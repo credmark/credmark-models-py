@@ -1,7 +1,8 @@
+from multiprocessing import pool
 from typing import List
 import credmark.model
 
-from credmark.types import AddressDTO, Address
+from credmark.types import Wallet, Address, Contract, Contracts, Token
 from credmark.model.ledger.tables import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
@@ -15,11 +16,10 @@ from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CU
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=AddressDTO)
+                         input=Contract)
 class CurveFinancePoolInfo(credmark.model.Model):
 
-    def run(self, input: AddressDTO) -> dict:
-        print(input.address)
+    def run(self, input: Contract) -> dict:
         pool_address = input.address
         pool_contract = self.context.web3.eth.contract(
             address=pool_address.checksum,
@@ -102,32 +102,27 @@ class CurveFinancePools(credmark.model.Model):
         pool_addresses = []
         for i in range(0, total_pools):
             pool_addresses.append(registry.functions.pool_list(i).call())
-        return {'result': pool_addresses}
+        return Contracts(contracts=[Contract(address=p) for p in pool_addresses])
 
 
 @credmark.model.describe(slug='curve-fi-yield-base',
                          version='1.0',
-                         input=AddressDTO)
+                         input=Contract)
 class CurveFinanceYieldBase(credmark.model.Model):
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Contract) -> dict:
         return {}
 
 
 @credmark.model.describe(slug='curve-fi-all-gauge-addresses',
                          version='1.0',
-                         input=AddressDTO)
+                         input=Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Contract) -> dict:
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
         return addrs
-
-
-class CurveFinanceGaugeRewardsCRVInputDTO(DTO):
-    gaugeAddress: str
-    userAddresses: List[AddressDTO]
 
 
 @credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
@@ -157,18 +152,18 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=AddressDTO)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Token) -> dict:
         """
         presuming that crv has a constant value of $3
         """
 
         lp_token_address = self.context.web3.eth.contract(
-            address=Address(input.address).checksum, abi=CURVE_GAUGE_V1_ABI).functions.lp_token().call()
+            address=input.address.checksum, abi=CURVE_GAUGE_V1_ABI).functions.lp_token().call()
 
         pool_info = self.context.run_model(
-            'curve-fi-pool-info', AddressDTO(address=lp_token_address))
+            'curve-fi-pool-info', Token(address=lp_token_address))
         addrs = self.context.run_model('curve-fi-all-gauge-addresses', input)
 
         res = self.context.historical.run_model_historical('curve-fi-get-gauge-stake-and-claimable-rewards',
@@ -233,7 +228,7 @@ class CurveFinanceAllYield(credmark.model.Model):
         for gauge in gauges:
             print(gauge)
             yields = self.context.run_model(
-                'curve-fi-avg-gauge-yield', AddressDTO(address=gauge))
+                'curve-fi-avg-gauge-yield', Contract(address=gauge))
             print(yields)
             res.append(yields)
 

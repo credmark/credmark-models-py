@@ -40,3 +40,13 @@ credmark-dev run example-ledger-traces --input '{}'  --api_url=http://localhost:
 credmark-dev run example-ledger-blocks --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
 credmark-dev run example-ledger-tokens --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
 credmark-dev run example-ledger-contracts --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599 
+echo ""
+echo "Run Iteration Examples:"
+echo ""
+credmark-dev run example-iteration --input '{"symbol":"CMK"}' --api_url=http://localhost:8700/v1/models/run -b 14282599
+
+echo ""
+echo "Run Token Examples:"
+echo ""
+
+credmark-dev run example-token-loading --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 

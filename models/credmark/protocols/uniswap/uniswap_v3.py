@@ -103,17 +103,15 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
         prices = []
         for info in infos:
             tick_price = 1.0001 ** info.tick * (10 ** (info.token0.decimals - info.token1.decimals))
-            print(tick_price)
             if input.address == info.token1.address:
                 tick_price = 1/tick_price
 
             if input.address != WETH9_ADDRESS:
-                print(info.token1.address, info.token0.address, WETH9_ADDRESS)
                 if info.token1.address == WETH9_ADDRESS or info.token0.address == WETH9_ADDRESS:
                     tick_price = tick_price * \
                         self.context.run_model('uniswap-v3-get-average-price',
-                                               {"address": WETH9_ADDRESS})['price']
+                                               {"address": WETH9_ADDRESS}, return_type=Price).price_usd
 
             prices.append(tick_price)
         price = sum(prices) / len(prices)
-        return Price(value_usd=price, token=input)
+        return Price(price_usd=price, token=input)

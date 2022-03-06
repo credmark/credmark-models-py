@@ -10,6 +10,8 @@ class ExampleTokenLoading(credmark.model.Model):
         res['loadedFromAddress'] = self.context.run_model(
             'example-token-input', {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"})
         res['loadedFromSymbol'] = self.context.run_model('example-token-input', {"symbol": "CMK"})
+
+        res['loadedFromSymbolPrice'] = Token(symbol='CMK').price_usd
         return res
 
 
