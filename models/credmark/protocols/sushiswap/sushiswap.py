@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types import Address, AddressDTO
+from credmark.types import Address, Contract
 from credmark.types.dto import DTO, DTOField
 from models.tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
@@ -56,7 +56,7 @@ class SushiswapGetPair(credmark.model.Model):
                          version="1.0",
                          display_name="Sushiswap get details for a pool",
                          description="Returns the token details of the pool",
-                         input=AddressDTO)
+                         input=Contract)
 class SushiswapGetPairDetails(credmark.model.Model):
     def try_or(self, func, default=None, expected_exc=(Exception,)):
         try:
@@ -64,7 +64,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
         except expected_exc:
             return default
 
-    def run(self, input: AddressDTO):
+    def run(self, input: Contract):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
