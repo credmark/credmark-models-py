@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types import Address, Token, Wallet
+from credmark.types import Address, Token, Account
 from credmark.types import Position
 from credmark.types.dto import DTO, DTOField
 
@@ -11,7 +11,7 @@ class ERC20LookupDTO(DTO):
 
 class BalanceOfInput(DTO):
     token: Token
-    wallet: Wallet
+    account: Account
 
 
 @credmark.model.describe(slug='erc20-totalSupply',
@@ -36,5 +36,5 @@ class TotalSupply(credmark.model.Model):
 class BalanceOf(credmark.model.Model):
 
     def run(self, input: BalanceOfInput) -> Position:
-        balanceOf = input.token.instance.functions.balanceOf(input.wallet.address.checksum).call()
+        balanceOf = input.token.instance.functions.balanceOf(input.account.address.checksum).call()
         return Position(**{"token": input.token, "amount": balanceOf})

@@ -1,6 +1,6 @@
 import credmark.model
 from credmark.types.dto import DTO, DTOField
-from credmark.types.financial.portfolio import Portfolio
+from credmark.types import Portfolio
 
 
 class PortfolioSummary(DTO):

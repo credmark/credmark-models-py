@@ -1,6 +1,6 @@
 from tokenize import Token
 import credmark.model
-from credmark.types import Wallet
+from credmark.types import Account
 from credmark.model.ledger.tables import (
     BlockTable,
     TransactionTable,
@@ -54,14 +54,14 @@ class ExampleLedgerReceipts(credmark.model.Model):
                                                 where=f'{ReceiptTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
-@credmark.model.describe(slug='example-ledger-token-transfers', version="1.0", input=Wallet)
+@credmark.model.describe(slug='example-ledger-token-transfers', version="1.0", input=Account)
 class ExampleLedgerTokenTransfers(credmark.model.Model):
 
     """
     This model returns all ERC20 Token Transfers performed by an address
     """
 
-    def run(self, input: Wallet):
+    def run(self, input: Account):
         return self.context.ledger.get_erc20_transfers(columns=[c for c in TokenTransferTable.columns()],
                                                        where=f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.address.lower()}\' or \
                                                        {TokenTransferTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'',

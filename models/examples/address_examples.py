@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types import Address, Wallet
+from credmark.types import Address, Account
 from credmark.types.dto import DTO
 
 
@@ -8,10 +8,10 @@ from credmark.types.dto import DTO
                          display_name='(Example) Address',
                          description='Input an address and output the same address',
                          developer='Credmark',
-                         input=Wallet,
-                         output=Wallet)
+                         input=Account,
+                         output=Account)
 class AddressExample(credmark.model.Model):
-    def run(self, input: Wallet) -> Wallet:
+    def run(self, input: Account) -> Account:
         """
             This model demonstrates how to take in an address as an input, 
             and output an address as an output. 
@@ -33,10 +33,10 @@ class AddressTransformsExampleOutput(DTO):
                          display_name='(Example) Address Transforms',
                          description='Input an address and output transformations we can make to that address',
                          developer='Credmark',
-                         input=Wallet,
+                         input=Account,
                          output=AddressTransformsExampleOutput)
 class AddressTransformsExample(credmark.model.Model):
-    def run(self, input: Wallet) -> AddressTransformsExampleOutput:
+    def run(self, input: Account) -> AddressTransformsExampleOutput:
         """
             This model demonstrates how to take in an address as an input, and output an address as an output.
         """
