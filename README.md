@@ -112,7 +112,7 @@ A model is essentially a python code file which implements the model class by su
 ```py
 import credmark.model
 
-@credmark.model.describe(slug='echo',
+@credmark.model.describe(slug='contrib.echo',
                    version='1.0',
                    display_name='Echo',
                    description="A test model to echo the message property sent in input.",
@@ -172,7 +172,7 @@ class PortfolioSummary(DTO):
     num_tokens: int = DTOField(..., description='Number of different tokens')
 """
 
-@credmark.model.describe(slug='type-test-1',
+@credmark.model.describe(slug='contrib.type-test-1',
                          version='1.0',
                          display_name='Test Model',
                          description='A Test Model',
@@ -200,7 +200,7 @@ Please find more detailed examples [here](https://github.com/credmark/credmark-m
 
 **Constraints**
 
-- Model slugs can contain letters (upper and lowercase), numbers, and hyphens. In general, use a hyphen between words. They must be unique in a case-insensitive manner.
+- Model slugs MUST start with `"contrib."` and the rest of the string can contain letters (upper and lowercase), numbers, and hyphens. In general, use a hyphen between words. Slugs must be unique in a case-insensitive manner across all models running within Credmark.
 - Input variables and Output data fields should use camel-cased names.
 
 ## Submit a Model
