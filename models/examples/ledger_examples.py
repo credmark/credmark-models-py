@@ -1,7 +1,7 @@
 from tokenize import Token
 import credmark.model
 from credmark.types import Account
-from credmark.model.ledger.tables import (
+from credmark.types.models.ledger import (
     BlockTable,
     TransactionTable,
     ReceiptTable,
@@ -10,8 +10,6 @@ from credmark.model.ledger.tables import (
     ContractTable,
     LogTable,
     TraceTable
-
-
 )
 
 

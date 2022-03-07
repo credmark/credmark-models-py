@@ -4,7 +4,7 @@ import credmark.model
 from datetime import datetime
 
 from credmark.types import Account, Address, Contract, Contracts, Token
-from credmark.model.ledger.tables import (TransactionTable)
+from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
 from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
