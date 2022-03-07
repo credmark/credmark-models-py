@@ -1,6 +1,7 @@
 from multiprocessing import pool
 from typing import List
 import credmark.model
+from datetime import datetime
 
 from credmark.types import Wallet, Address, Contract, Contracts, Token
 from credmark.model.ledger.tables import (TransactionTable)
@@ -78,12 +79,14 @@ class CurveFinancePoolInfo(credmark.model.Model):
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> dict:
+        start_time = datetime.now()
         pool_infos = []
         for pool in self.context.run_model("curve-fi-pools")['result']:
 
             pool_info = self.context.run_model(
                 "curve-fi-pool-info", {"address": pool})
             pool_infos.append(pool_info)
+        print(datetime.now() - start_time)
         return {"pools": pool_infos}
 
 

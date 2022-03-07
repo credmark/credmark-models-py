@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.zip
 
 # C extensions
 *.so
@@ -137,5 +138,5 @@ models.yaml
 workspace.code-workspace
 
 # test
-/test/*
+/test/*.ps1
 /dask-worker-space
