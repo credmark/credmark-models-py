@@ -7,14 +7,14 @@ from credmark.types import Address
 from credmark.types.dto import DTO, DTOField
 from ....tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
-from credmark.model import Task, ModelTask, Pipe
+from credmark.model import Task, ModelTask, Pipe, get_worker, get_client
 
 
 class PoolAddress(DTO):
     address: Address = DTOField(..., description='Address of Pool')
 
 
-@credmark.model.describe(slug="curve-fi-pool-info-p",
+@credmark.model.describe(slug="curve-fi-pool-info-p2",
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
