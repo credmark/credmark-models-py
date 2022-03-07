@@ -104,8 +104,8 @@ A model is essentially a python code file which implements the model class by su
 
 **Steps**
 
-1. Create a folder in the [models folder](https://github.com/credmark/credmark-models-py/tree/main/models) that will hold all of your models, for example `models/my_models`. You can add models directly there or create subfolders as desired.
-2. Create a python file, for example `model_foo.py` (again it can have any name as long as it ends in .py)
+1. Create a folder in the [models/contrib folder](https://github.com/credmark/credmark-models-py/tree/main/models) that will hold all of your models, for example `models/contrib/my_models`. You can add models directly there or create subfolders as desired. Do not work in another contributer's folder.
+2. Create a python file, for example `model_foo.py` (again it can have any name as long as it ends in .py) in the folder you created in step 1.
 3. Ensure your model class inherits from the base Model class `credmark.model.Model`. Also, use decorator `@credmark.model.describe` to define the metadata for your model.
    Example:
 
