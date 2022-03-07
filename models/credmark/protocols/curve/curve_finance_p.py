@@ -7,7 +7,7 @@ from credmark.types import Address
 from credmark.types.dto import DTO, DTOField
 from ....tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
-from credmark.model import Task, ModelTask, Pipe
+# from credmark.model import Task, ModelTask, Pipe
 
 
 class PoolAddress(DTO):

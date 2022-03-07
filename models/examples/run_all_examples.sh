@@ -25,7 +25,7 @@ credmark-dev run example-load-contract-by-name --input '{"contractName": "mutant
 echo ""
 echo "Run Historical Examples:"
 echo ""
-credmark-dev run example-historical --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+credmark-dev run example-historical --input '{"model_slug":"erc20-totalSupply","model_input":{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-block --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
 credmark-dev run example-historical-block-snap --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292598
