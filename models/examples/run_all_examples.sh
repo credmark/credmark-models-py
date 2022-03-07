@@ -32,11 +32,21 @@ credmark-dev run example-historical-block-snap --input '{}' --api_url=http://loc
 echo ""
 echo "Run Ledger Examples:"
 echo ""
-credmark-dev run example-ledger-logs --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-logs --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
 credmark-dev run example-ledger-token-transactions --input '{"address":"0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-transaction  --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-receipts  --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-traces  --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-blocks  --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-tokens --api_url=http://localhost:8700/v1/models/run -b 14292599 
-credmark-dev run example-ledger-contracts  --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-transaction --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-receipts --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-traces --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-blocks --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-tokens --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 
+credmark-dev run example-ledger-contracts --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599 
+echo ""
+echo "Run Iteration Examples:"
+echo ""
+credmark-dev run example-iteration --input '{"symbol":"CMK"}' --api_url=http://localhost:8700/v1/models/run -b 14282599
+
+echo ""
+echo "Run Token Examples:"
+echo ""
+
+credmark-dev run example-token-loading --input '{}' --api_url=http://localhost:8700/v1/models/run -b 14292599 

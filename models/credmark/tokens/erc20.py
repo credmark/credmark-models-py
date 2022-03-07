@@ -1,5 +1,6 @@
 import credmark.model
-from credmark.types import Address, AddressDTO
+from credmark.types import Address, Token, Wallet
+from credmark.types import Position
 from credmark.types.dto import DTO, DTOField
 
 
@@ -8,45 +9,33 @@ class ERC20LookupDTO(DTO):
     symbol: str = DTOField(None, description='Token Symbol')
 
 
-class TokenAmountDto(DTO):
-    address: Address = DTOField(None, description='Token Address')
-    amount: str = DTOField(None, description="The amount of a Token")
-    scaledAmount: float = DTOField(
-        None, description="The Amount of a Token, scaled by decimal Amount")
-
-
-class BalanceOfInputDTO(DTO):
-    token: Address
-    address: Address
+class BalanceOfInput(DTO):
+    token: Token
+    wallet: Wallet
 
 
 @credmark.model.describe(slug='erc20-totalSupply',
                          version='1.0',
                          display_name='ERC20 Total Supply',
                          description='Get the Total Supply of an ERC20',
-                         input=AddressDTO,
-                         output=TokenAmountDto
+                         input=Token,
+                         output=Position
                          )
 class TotalSupply(credmark.model.Model):
 
-    def run(self, input: AddressDTO) -> TokenAmountDto:
+    def run(self, input: Token) -> Position:
         contract = self.context.contracts.load_address(input.address.checksum)
         totalSupply = contract.functions.totalSupply().call()
-        decimals = contract.functions.decimals().call()
-        scaledAmount = totalSupply / (10**decimals)
-        return TokenAmountDto(**{"address": input.address, "amount": totalSupply, "scaledAmount": scaledAmount})
+        return Position(**{"token": input, "amount": totalSupply})
 
 
 @credmark.model.describe(slug='erc20-balanceOf',
                          version='1.0',
                          display_name='ERC20 balanceOf',
                          description='Get the balance of an ERC20 Token from a wallet address',
-                         input=BalanceOfInputDTO)
+                         input=BalanceOfInput)
 class BalanceOf(credmark.model.Model):
 
-    def run(self, input: BalanceOfInputDTO) -> TokenAmountDto:
-        contract = self.context.contracts.load_address(input.token)
-        balanceOf = contract.functions.balanceOf(input.address.checksum).call()
-        decimals = contract.functions.decimals().call()
-        scaledAmount = balanceOf / (10**decimals)
-        return TokenAmountDto(**{"address": input.address, "amount": balanceOf, "scaledAmount": scaledAmount})
+    def run(self, input: BalanceOfInput) -> Position:
+        balanceOf = input.token.instance.functions.balanceOf(input.wallet.address.checksum).call()
+        return Position(**{"token": input.token, "amount": balanceOf})
