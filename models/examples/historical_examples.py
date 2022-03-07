@@ -4,7 +4,7 @@ from credmark.types.dto import DTO, DTOField
 
 class RunModelHistorical(DTO):
     model_slug: str
-    model_input: DTO
+    model_input: dict
 
 
 @credmark.model.describe(slug='example-historical', version="1.0", input=RunModelHistorical)
@@ -15,12 +15,11 @@ class ExampleHistorical(credmark.model.Model):
     """
 
     def run(self, input: RunModelHistorical) -> dict:
-        breakpoint()
         model_slug = input.model_slug
         model_input = input.model_input
 
         res = self.context.historical.run_model_historical(
-            model_slug, window='5 hours', interval='45 minutes', model_version='', model_input=model_input)
+            model_slug, window='5 hours', interval='45 minutes', model_version='1.0', model_input=model_input)
 
         """
             You can get historical elements by blocknumber,
