@@ -46,11 +46,7 @@ Some configuration is done with environment variables. They can be set in your s
 
 **Environment variables**
 
-The `CREDMARK_WEB3_PROVIDERS` is a JSON object where the keys are chain ids (as strings) and the values are URLs to HTTP providers.
-
-Thus, set a variable for each Chain Id you wish to use:
-
-`CREDMARK_WEB3_PROVIDER_CHAIN_ID_{N}` [OPTIONAL].
+The `CREDMARK_WEB3_PROVIDER_CHAIN_ID_{N}` is a JSON object where the keys are chain ids (as strings) and the values are URLs to HTTP providers.
 
 Set {N} with a chain id, for example `CREDMARK_WEB3_PROVIDER_CHAIN_ID_1` and set the value as the URL of the HTTP provider.
 
@@ -74,7 +70,7 @@ This variable is used to run models which require web3. It can be ignored for th
 
 ## Run a Model
 
-To see a liost of all models available, use the command:
+To see a list of all models available, use the command:
 
 ```
 credmark-dev list
@@ -82,12 +78,12 @@ credmark-dev list
 
 You can then pick a model name (slug) and run the model by using the command:
 ```
-Credmark-dev run <Specify Slug> -b <Specify block number>  -i <Specify Input>
+credmark-dev run <Specify Slug> -b <Specify block number>  -i <Specify Input>
 ```
 
 so for example
 ```
-Credmark-dev run cmk-circulating-supply -b 14000000  -i “{}”
+credmark-dev run cmk-circulating-supply -b 14000000  -i “{}”
 ```
 
 Tip: you can run the command 
@@ -102,7 +98,7 @@ to see the input data format required for each model. It will also show the outp
 A model is essentially a python code file which implements the model class by subclassing from a base class. See some examples [here](https://github.com/credmark/credmark-models-py/tree/main/models/examples).
 
 **Steps**
-1. Create a folder inside the [models](https://github.com/credmark/credmark-models-py/tree/main/models) folder, for example `models/my_model`.
+1. Create a folder in the [models folder](https://github.com/credmark/credmark-models-py/tree/main/models) that will hold all of your models, for example `models/my_models`. You can add models directly there or create subfolders as desired.
 2. Create a python file, for example `model_foo.py` (again it can have any name as long as it ends in .py)
 3. Ensure your model class inherits from the base Model class `credmark.model.Model`. Also, use decorator `@credmark.model.describe` to define the metadata for your model. 
 Example:
@@ -120,7 +116,80 @@ class EchoModel(credmark.model.Model):
     def run(self, input: EchoDto) -> EchoDto:
         return input
 ```
+The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO, with various properties and values, potentially nested with other JSON-compatible data structures.
+
+For the DTOs (Data Transfer Objects) we use the python module `pydantic` to define and validate the data. We have aliased `pydantic`'s `BaseModel` as DTO and `Field` as `DTOField` to avoid confusion with Credmark models but all the functionality of `pydantic` is available.
+
+The DTO used in the example above, for both the input and output, looks like this:
+
+```py
+from credmark.types.dto import DTO, DTOField
+
+class EchoDto(DTO):
+    message: str = DTOField('Hello', description='A message')
+```
+
+The `credmark-model-framework` defines many common data objects as DTOs.
+
+- Example 1: Use AddressStr for input/ouput
+
+```py
+from credmark.types import AddressStr
+
+class PoolAddress(DTO):
+    poolAddress: AddressStr = DTOField(..., description='Address of Pool')
+```
+
+- Example 2: Use Address (str-like) to auto-convert to checksum address.
+
+```py
+from credmark.types import Address
+
+Address(wallet_adress)
+```
+
+- Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
+
+```py
+from credmark.types import Portfolio
+
+"""
+# Portfolio is defined as below
+class Portfolio(DTO):
+    positions: List[Position] = DTOField([], description='List of positions')
+"""
+
+@credmark.model.describe(slug='type-test-1',
+                         version='1.0',
+                         display_name='Test Model',
+                         description='SDK Test Model',
+                         input=Portfolio,
+                         output=PortfolioSummary)
+class TestModel(credmark.model.Model):
+
+    def run(self, input: Portfolio) -> PortfolioSummary:
+        return PortfolioSummary(num_tokens=len(input.positions))
+
+```
+
+We strongly encourage you to create DTOs and/or make use of the common objects, either as your top-level DTO or as subobjects or in lists etc. as needed.
+
+A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
+
+Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may or may not be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
+
+A model instance has access to the following instance variables:
+
+- `self.context` - A context which holds state and provides functionality
+- `self.logger` - Python logger instance for logging to stderr(optional) A model should never write/print to stdout.
+
 Please find more detailed examples [here](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py).
+
+**Methods**
+
+`run_model(name: str, input: Union[dict, None] = None, return_type: Union[Type[dict], Type[DTO], None], block_number: Union[int, None] = None, version: Union[str, None] = None)` 
+
+A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an error if the called model was unavailable or had an error.)
 
 **Constraints**
 - Model slugs can contain letters (upper and lowercase), numbers, and hyphens. In general, use a hyphen between words. They must be unique in a case-insensitive manner.
@@ -152,7 +221,7 @@ Each model  runs with a particular context, including the name of the blockchain
 The `ModelContext()` Class sets up the context for the model to run and can be accessed from a model as `self.context`. 
 The base code can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/context.py). It provides an interface for models to run other models, call contracts, get ledger data, use a web3 instance etc.
 
-It also enforces deterministic behavior for Models. The key utilities in  Model-Context are
+It also enforces deterministic behavior for Models. The key utilities in  `ModelContext` are
 - web3
 - contract
 - ledger
