@@ -9,6 +9,10 @@ function test-exit-code {
     }
 }
 
+python test\test.py run erc20-totalSupply --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+
+python test\test.py run example-historical --input '{"model_slug":"erc20-totalSupply","model_input":{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}}' --api_url=http://localhost:8700/v1/models/run -b 14292598
+
 echo ""
 echo "Run Historical Examples:"
 echo ""
@@ -42,7 +46,6 @@ test-exit-code $LASTEXITCODE 0
 python test\test.py run example-ledger-contracts --input '{}'  --api_url=http://localhost:8700/v1/models/run -b 14292599
 test-exit-code $LASTEXITCODE 0
 
-
 echo ""
 echo "Load Contract By Name Example:"
 echo ""
@@ -62,7 +65,7 @@ python test\test.py run example-token-loading --input '{}' --api_url=http://loca
 test-exit-code $LASTEXITCODE 0
 
 python test\test.py run example-token-input --input '{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}' --api_url=http://localhost:8700/v1/models/run -b 14292599
-
+test-exit-code $LASTEXITCODE 0
 
 echo ""
 echo "ECHO Example:"

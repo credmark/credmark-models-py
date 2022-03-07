@@ -2,17 +2,25 @@ import credmark.model
 from credmark.types.dto import DTO, DTOField
 
 
-@credmark.model.describe(slug='example-historical', version="1.0")
+class RunModelHistorical(DTO):
+    model_slug: str
+    model_input: DTO
+
+
+@credmark.model.describe(slug='example-historical', version="1.0", input=RunModelHistorical)
 class ExampleHistorical(credmark.model.Model):
 
     """
     This model returns the library example for every day for the past 30 days
     """
 
-    def run(self, input):
+    def run(self, input: RunModelHistorical) -> dict:
+        breakpoint()
+        model_slug = input.model_slug
+        model_input = input.model_input
 
         res = self.context.historical.run_model_historical(
-            'example-libraries', window='5 hours', interval='45 minutes', model_version='')
+            model_slug, window='5 hours', interval='45 minutes', model_version='', model_input=model_input)
 
         """
             You can get historical elements by blocknumber,

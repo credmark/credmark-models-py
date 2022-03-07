@@ -13,7 +13,6 @@ class ExampleTokenLoading(credmark.model.Model):
     def run(self, input) -> Dict[str, Union[Token, float]]:
         res = {}
 
-        breakpoint()
         res['loadedFromAddress'] = self.context.run_model(
             'example-token-input',
             Token(address='0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'))

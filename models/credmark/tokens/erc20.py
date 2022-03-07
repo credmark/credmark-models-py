@@ -24,8 +24,7 @@ class BalanceOfInput(DTO):
 class TotalSupply(credmark.model.Model):
 
     def run(self, input: Token) -> Position:
-        contract = self.context.contracts.load_address(input.address.checksum)
-        totalSupply = contract.functions.totalSupply().call()
+        totalSupply = input.functions.totalSupply().call()
         return Position(**{"token": input, "amount": totalSupply})
 
 
