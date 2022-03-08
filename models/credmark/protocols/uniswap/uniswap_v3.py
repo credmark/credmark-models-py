@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types import Price, Token, Address, Contract
+from credmark.types import Price, Token, Address, Contract, NULL_ADDRESS
 from credmark.types.dto import DTO
 from models.tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V3_FACTORY_ABI,
                                    UNISWAP_V3_FACTORY_ADDRESS, UNISWAP_V3_POOL_ABI, USDT_ADDRESS,

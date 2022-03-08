@@ -24,7 +24,7 @@ COMPOUND_ASSETS = {"REP": "0x1985365e9f78359a9B6AD760e32412f4a445E862",
                    "COMP": "0xc00e94Cb662C3520282E6f5717214004A7f26888"}
 
 
-@credmark.model.describe(slug="compound-test",
+@credmark.model.describe(slug="compound.test",
                          version="1.0",
                          display_name="Compound Lending Pool Assets",
                          description="Compound assets for the main lending pool",
