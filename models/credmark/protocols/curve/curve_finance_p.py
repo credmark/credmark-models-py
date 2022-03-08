@@ -135,8 +135,8 @@ def get_all_pool_info(http_provider, block_number, pools, contract_abi, contract
     return res
 
 # python test\test.py run -b 14000000 -i '{}' --dask='tcp://localhost:8786' curve-fi-all-pool-info-p
-# credmark-dev run curve-fi-all-pool-info -b 14234904 --api_url=http://localhost:8700/v1/models/run -i '{"address":"0x06364f10B501e868329afBc005b3492902d6C763"}'
-# python test\test.py run curve-fi-all-pool-info-p -b 14234904 --api_url=http://localhost:8700/v1/models/run -i '{"address":"0x06364f10B501e868329afBc005b3492902d6C763"}' --dask='tcp://localhost:8786'
+# credmark-dev run curve-fi-all-pool-info -b 14234904 --api_url=http://localhost:8700/v1/model/run -i '{"address":"0x06364f10B501e868329afBc005b3492902d6C763"}'
+# python test\test.py run curve-fi-all-pool-info-p -b 14234904 --api_url=http://localhost:8700/v1/model/run -i '{"address":"0x06364f10B501e868329afBc005b3492902d6C763"}' --dask='tcp://localhost:8786'
 # Pipe(t1).run(client, ['pool-info'])
 # Pipe(t1).run_plain(client, ['pool-info'])
 
