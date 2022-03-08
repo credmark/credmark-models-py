@@ -13,7 +13,7 @@ from credmark.types.models.ledger import (
 )
 
 
-@credmark.model.describe(slug='example-ledger-blocks', version="1.0")
+@credmark.model.describe(slug='example.ledger-blocks', version="1.0")
 class ExampleLedgerBlock(credmark.model.Model):
 
     """
@@ -27,7 +27,7 @@ class ExampleLedgerBlock(credmark.model.Model):
                                               order_by=BlockTable.Columns.NUMBER + " desc")
 
 
-@credmark.model.describe(slug='example-ledger-transactions', version="1.0")
+@credmark.model.describe(slug='example.ledger-transactions', version="1.0")
 class ExampleLedgerTransactions(credmark.model.Model):
 
     """
@@ -40,7 +40,7 @@ class ExampleLedgerTransactions(credmark.model.Model):
                                                     order_by=TransactionTable.Columns.GAS)
 
 
-@credmark.model.describe(slug='example-ledger-receipts', version="1.0")
+@credmark.model.describe(slug='example.ledger-receipts', version="1.0")
 class ExampleLedgerReceipts(credmark.model.Model):
 
     """
@@ -52,7 +52,7 @@ class ExampleLedgerReceipts(credmark.model.Model):
                                                 where=f'{ReceiptTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
-@credmark.model.describe(slug='example-ledger-token-transfers', version="1.0", input=Account)
+@credmark.model.describe(slug='example.ledger-token-transfers', version="1.0", input=Account)
 class ExampleLedgerTokenTransfers(credmark.model.Model):
 
     """
@@ -66,7 +66,7 @@ class ExampleLedgerTokenTransfers(credmark.model.Model):
                                                        order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc')
 
 
-@credmark.model.describe(slug='example-ledger-tokens', version="1.0")
+@credmark.model.describe(slug='example.ledger-tokens', version="1.0")
 class ExampleLedgerTokens(credmark.model.Model):
 
     """
@@ -81,7 +81,7 @@ class ExampleLedgerTokens(credmark.model.Model):
                                                     order_by=TokenTable.Columns.BLOCK_NUMBER)
 
 
-@credmark.model.describe(slug='example-ledger-logs', version="1.0")
+@credmark.model.describe(slug='example.ledger-logs', version="1.0")
 class ExampleLedgerLogs(credmark.model.Model):
 
     """
@@ -94,7 +94,7 @@ class ExampleLedgerLogs(credmark.model.Model):
                                             where=f'{LogTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
-@credmark.model.describe(slug='example-ledger-contracts', version="1.0")
+@credmark.model.describe(slug='example.ledger-contracts', version="1.0")
 class ExampleLedgerContracts(credmark.model.Model):
 
     """
@@ -107,7 +107,7 @@ class ExampleLedgerContracts(credmark.model.Model):
         return self.context.ledger.get_contracts(columns=[c for c in ContractTable.columns()], limit="100", order_by=ContractTable.Columns.BLOCK_NUMBER)
 
 
-@credmark.model.describe(slug='example-ledger-traces', version="1.0")
+@credmark.model.describe(slug='example.ledger-traces', version="1.0")
 class ExampleLedgerTraces(credmark.model.Model):
 
     """

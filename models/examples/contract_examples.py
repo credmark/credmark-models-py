@@ -12,7 +12,7 @@ class ContractList(DTO):
     contracts: List[Contract] = DTOField(..., description='The list of loaded contracts.')
 
 
-@credmark.model.describe(slug='example-load-contract-by-name',
+@credmark.model.describe(slug='example.load-contract-by-name',
                          version='1.0',
                          display_name='(Example) Load Contract by Name',
                          description='Load a Contract By Name and Return it',
@@ -30,7 +30,7 @@ class LoadContractByName(credmark.model.Model):
         return ContractList(contracts=contracts)
 
 
-@credmark.model.describe(slug='example-load-contract-by-address',
+@credmark.model.describe(slug='example.load-contract-by-address',
                          version='1.0',
                          display_name='Contract Loading',
                          description='Load the ABI of a Contract with its Name',

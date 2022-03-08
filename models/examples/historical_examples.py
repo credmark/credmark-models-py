@@ -7,7 +7,7 @@ class RunModelHistorical(DTO):
     model_input: dict
 
 
-@credmark.model.describe(slug='example-historical', version="1.0", input=RunModelHistorical)
+@credmark.model.describe(slug='example.historical', version="1.0", input=RunModelHistorical)
 class ExampleHistorical(credmark.model.Model):
 
     """
@@ -34,7 +34,7 @@ class ExampleHistorical(credmark.model.Model):
         return res
 
 
-@credmark.model.describe(slug='example-historical-snap', version="1.0")
+@credmark.model.describe(slug='example.historical-snap', version="1.0")
 class ExampleHistoricalSnap(credmark.model.Model):
 
     """
@@ -42,10 +42,10 @@ class ExampleHistoricalSnap(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical('example-libraries', '5 days', snap_clock=None)
+        return self.context.historical.run_model_historical('example.libraries', '5 days', snap_clock=None)
 
 
-@credmark.model.describe(slug='example-historical-block-snap', version="1.0")
+@credmark.model.describe(slug='example.historical-block-snap', version="1.0")
 class ExampleHistoricalBlockSnap(credmark.model.Model):
 
     """
@@ -53,10 +53,10 @@ class ExampleHistoricalBlockSnap(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical_blocks('example-echo', model_input={"message": "hello world"}, window=500, interval=100, snap_block=100)
+        return self.context.historical.run_model_historical_blocks('example.echo', model_input={"message": "hello world"}, window=500, interval=100, snap_block=100)
 
 
-@credmark.model.describe(slug='example-historical-block', version="1.0")
+@credmark.model.describe(slug='example.historical-block', version="1.0")
 class ExampleHistoricalBlock(credmark.model.Model):
 
     """
@@ -64,4 +64,4 @@ class ExampleHistoricalBlock(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical_blocks('example-libraries', window=500, interval=100, snap_block=None)
+        return self.context.historical.run_model_historical_blocks('example.libraries', window=500, interval=100, snap_block=None)
