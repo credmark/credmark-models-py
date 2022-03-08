@@ -148,10 +148,13 @@ class AaveV2GetTokenAsset(credmark.model.Model):
                          output=BlockSeries)
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
 <<<<<<< HEAD
+<<<<<<< HEAD
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
             'aave-token-asset', model_input=input, window='5 days', interval='1 day')
 =======
+=======
+>>>>>>> 0a4a14b (simplified Aave Historical)
     def run(self, input: Token) -> dict:
         output = {}
         historical_data = self.context.historical.run_model_historical(
@@ -159,4 +162,12 @@ class AaveV2GetTokenAssetHistorical(credmark.model.Model):
 
         output['historical_data'] = historical_data
         return output
+<<<<<<< HEAD
 >>>>>>> 55d8937 (add model version)
+=======
+=======
+    def run(self, input: Token) -> BlockSeries:
+        return self.context.historical.run_model_historical(
+            'aave-token-asset', model_input=input, window='5 days', interval='1 day')
+>>>>>>> f8b9205 (simplified Aave Historical)
+>>>>>>> 0a4a14b (simplified Aave Historical)
