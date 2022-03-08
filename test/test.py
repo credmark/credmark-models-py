@@ -1,6 +1,6 @@
 if __name__ == '__main__':
     import sys
-    sys.path.insert(0, r'..\credmark-model-sdk-py')
+    sys.path.insert(0, r'..\credmark-model-framework-py')
 
     import credmark.model
 
