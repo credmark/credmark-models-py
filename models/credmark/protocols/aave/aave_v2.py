@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types import Address, Contract, Token
+from credmark.types import Address, Contract, Token, BlockSeries
 from credmark.types.dto import DTO, DTOField
 from credmark.types import Position
 from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
@@ -144,6 +144,7 @@ class AaveV2GetTokenAsset(credmark.model.Model):
                          description="Aave V2 token liquidity at a given block number",
                          input=Token)
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
+<<<<<<< HEAD
     def run(self, input: Token) -> dict:
         output = {}
         historical_data = self.context.historical.run_model_historical(
@@ -151,3 +152,8 @@ class AaveV2GetTokenAssetHistorical(credmark.model.Model):
 
         output['historical_data'] = historical_data
         return output
+=======
+    def run(self, input: Token) -> BlockSeries:
+        return self.context.historical.run_model_historical(
+            'aave-token-asset', model_input=input, window='5 days', interval='1 day')
+>>>>>>> f8b9205 (simplified Aave Historical)
