@@ -47,7 +47,6 @@ class ExampleHistoricalSnap(credmark.model.Model):
     """
 
     def run(self, input):
-<<<<<<< HEAD
         blocks = self.context.historical.run_model_historical(
             'example.libraries', '5 days', snap_clock=None,
             model_return_type=LibrariesDto)
@@ -55,10 +54,6 @@ class ExampleHistoricalSnap(credmark.model.Model):
             # block.output is type LibrariesDto
             assert block.output.libraries
         return blocks
-=======
-        return self.context.historical.run_model_historical('example.libraries', '5 days', snap_clock=None)
->>>>>>> cad979d (changed to `examples.`)
-
 
 
 @credmark.model.describe(slug='example.historical-block-snap', version="1.0")
@@ -69,15 +64,11 @@ class ExampleHistoricalBlockSnap(credmark.model.Model):
     """
 
     def run(self, input):
-<<<<<<< HEAD
         return self.context.historical.run_model_historical_blocks(
             'example.echo',
             model_input={
                 "message": "hello world"},
             window=500, interval=100, snap_block=100)
-=======
-        return self.context.historical.run_model_historical_blocks('example.echo', model_input={"message": "hello world"}, window=500, interval=100, snap_block=100)
->>>>>>> cad979d (changed to `examples.`)
 
 
 @credmark.model.describe(slug='example.historical-block', version="1.0")
