@@ -1,5 +1,6 @@
 import credmark.model
-from credmark.types import AddressDTO
+from credmark.types import Address, Account
+from credmark.types.dto import DTO
 
 
 @credmark.model.describe(slug='example-address',
@@ -7,26 +8,40 @@ from credmark.types import AddressDTO
                          display_name='(Example) Address',
                          description='Input an address and output the same address',
                          developer='Credmark',
-                         input=AddressDTO,
-                         output=AddressDTO)
+                         input=Account,
+                         output=Account)
 class AddressExample(credmark.model.Model):
-    def run(self, input: AddressDTO) -> AddressDTO:
+    def run(self, input: Account) -> Account:
         """
-            This model demonstrates how to take in an address as an input, and output an address as an output.
+            This model demonstrates how to take in an address as an input, 
+            and output an address as an output. 
+
+            We use the wallet class in order to format them with any wallet
         """
         result = input
         return result
 
 
+class AddressTransformsExampleOutput(DTO):
+    inputAddress: Address
+    checksumAddress: str
+    lowerAddress: str
+
+
 @credmark.model.describe(slug='example-address-transforms',
                          version='1.0',
                          display_name='(Example) Address Transforms',
-                         description='Input an address and output the same address',
+                         description='Input an address and output transformations we can make to that address',
                          developer='Credmark',
-                         input=AddressDTO)
+                         input=Account,
+                         output=AddressTransformsExampleOutput)
 class AddressTransformsExample(credmark.model.Model):
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Account) -> AddressTransformsExampleOutput:
         """
             This model demonstrates how to take in an address as an input, and output an address as an output.
         """
-        return {"inputAddress": input.address, "checksumAddress": input.address.checksum, "lowerAddress": input.address.lower()}
+        return AddressTransformsExampleOutput(
+            inputAddress=input.address,
+            checksumAddress=input.address.checksum,
+            lowerAddress=input.address.lower()
+        )
