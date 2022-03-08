@@ -47,13 +47,19 @@ class ExampleHistoricalSnap(credmark.model.Model):
     """
 
     def run(self, input):
-        blocks = self.context.historical.run_model_historical(
-            'example.libraries', '5 days', snap_clock=None,
-            model_return_type=LibrariesDto)
-        for block in blocks:
-            # block.output is type LibrariesDto
-            assert block.output.libraries
-        return blocks
+
+
+<< << << < HEAD
+  blocks = self.context.historical.run_model_historical(
+       'example.libraries', '5 days', snap_clock=None,
+        model_return_type=LibrariesDto)
+   for block in blocks:
+          # block.output is type LibrariesDto
+        assert block.output.libraries
+    return blocks
+== == ===
+  return self.context.historical.run_model_historical('example.libraries', '5 days', snap_clock=None)
+>>>>>> > cad979d(changed to `examples.`)
 
 
 @credmark.model.describe(slug='example.historical-block-snap', version="1.0")
