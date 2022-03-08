@@ -5,9 +5,35 @@ from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SW
 import credmark.model
 from datetime import datetime
 
-from credmark.types import Account, Address, Contract, Contracts, Token, Tokens, BlockSeries
-from credmark.types.models.ledger import (TransactionTable)
-from credmark.types.dto import DTO, DTOField
+from credmark.types.models.ledger import (
+    TransactionTable
+)
+
+from credmark.types.dto import (
+    DTO,
+)
+
+from credmark.types import (
+    Address,
+    Contract,
+    Contracts,
+    Token,
+    Tokens,
+    BlockSeries
+)
+
+from typing import (
+    List
+)
+
+from models.tmp_abi_lookup import (
+    CURVE_GAUGE_V1_ABI,
+    CURVE_SWAP_ABI_1,
+    CURVE_SWAP_ABI_2,
+    CURVE_REGISTRY_ADDRESS,
+    CURVE_REGISTRY_ABI,
+    # CURVE_GAUGUE_CONTROLLER_ABI
+)
 
 
 @credmark.model.describe(slug='curve-fi-pool-historical-reserve',
@@ -138,9 +164,9 @@ class CurveFinancePools(credmark.model.Model):
                 for i in range(0, total_pools)])
 
 
-@ credmark.model.describe(slug='curve-fi-historical-lp-dist',
-                          version='1.0',
-                          input=Contract)
+@credmark.model.describe(slug='curve-fi-historical-lp-dist',
+                         version='1.0',
+                         input=Contract)
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
@@ -155,9 +181,9 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
         return {}
 
 
-@ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                          version='1.0',
-                          input=Contract)
+@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
+                         version='1.0',
+                         input=Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
@@ -167,7 +193,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return addrs
 
 
-@ credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
@@ -194,7 +220,7 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@ credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
@@ -253,7 +279,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@ credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
+@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []

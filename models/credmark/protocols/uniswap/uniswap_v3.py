@@ -136,9 +136,9 @@ class HistoricalPriceDTO(DTO):
     window: str
 
 
-@ credmark.model.describe(slug='uniswap-v3-get-historical-price',
-                          version='1.0',
-                          input=HistoricalPriceDTO)
+@credmark.model.describe(slug='uniswap-v3-get-historical-price',
+                         version='1.0',
+                         input=HistoricalPriceDTO)
 class UniswapV3GetAveragePrice30Day(credmark.model.Model):
 
     def run(self, input: HistoricalPriceDTO) -> BlockSeries:
