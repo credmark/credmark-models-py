@@ -142,12 +142,12 @@ class AaveV2GetTokenAsset(credmark.model.Model):
                          version="1.0",
                          display_name="Aave V2 token liquidity",
                          description="Aave V2 token liquidity at a given block number",
-                         input=AddressDTO)
+                         input=Token)
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Token) -> dict:
         output = {}
         historical_data = self.context.historical.run_model_historical(
-            'aave-token-asset', model_input={'address': input.token}, window='5 days', interval='1 hour')
+            'aave-token-asset', model_input={'address': input.address}, window='5 days', interval='1 hour')
 
         output['historical_data'] = historical_data
         return output
