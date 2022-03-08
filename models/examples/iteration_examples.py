@@ -2,7 +2,7 @@ import credmark.model
 from credmark.types import Account, Accounts
 
 
-@credmark.model.describe(slug='example-iteration',
+@credmark.model.describe(slug='example.iteration',
                          version='1.0',
                          display_name='Echo',
                          description="A test model to echo the message property sent in input.",

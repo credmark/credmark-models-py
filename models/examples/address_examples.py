@@ -3,7 +3,7 @@ from credmark.types import Address, Account
 from credmark.types.dto import DTO
 
 
-@credmark.model.describe(slug='example-address',
+@credmark.model.describe(slug='example.address',
                          version='1.0',
                          display_name='(Example) Address',
                          description='Input an address and output the same address',
@@ -28,7 +28,7 @@ class AddressTransformsExampleOutput(DTO):
     lowerAddress: str
 
 
-@credmark.model.describe(slug='example-address-transforms',
+@credmark.model.describe(slug='example.address-transforms',
                          version='1.0',
                          display_name='(Example) Address Transforms',
                          description='Input an address and output transformations we can make to that address',
