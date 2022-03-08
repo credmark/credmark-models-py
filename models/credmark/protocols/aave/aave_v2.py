@@ -1,8 +1,8 @@
 import credmark.model
-from credmark.types import Address, AddressDTO
+from credmark.types import Address, Contract, Token
 from credmark.types.dto import DTO, DTOField
 from credmark.types import Position
-from ....tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
+from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
 @credmark.model.describe(slug="aave-lending-pool-liabilities",
@@ -38,11 +38,11 @@ class AaveV2GetLiability(credmark.model.Model):
                          version="1.0",
                          display_name="Aave V2 token liability",
                          description="Aave V2 token liability at a given block number",
-                         input=AddressDTO)
+                         input=Contract)
 class AaveV2GetTokenLiability(credmark.model.Model):
     output = {}
 
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Contract) -> dict:
         contract = self.context.web3.eth.contract(
             address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
@@ -103,11 +103,11 @@ class AaveV2GetAssets(credmark.model.Model):
                          version="1.0",
                          display_name="Aave V2 token liquidity",
                          description="Aave V2 token liquidity at a given block number",
-                         input=AddressDTO)
+                         input=Token)
 class AaveV2GetTokenAsset(credmark.model.Model):
     output = {}
 
-    def run(self, input: AddressDTO) -> dict:
+    def run(self, input: Token) -> dict:
 
         contract = self.context.web3.eth.contract(
             address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address

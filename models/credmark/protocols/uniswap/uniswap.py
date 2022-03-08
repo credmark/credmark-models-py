@@ -1,15 +1,15 @@
 import credmark.model
 from credmark.types import Address
 from credmark.types.dto import DTO
-from ....tmp_abi_lookup import (uniswap_quoter_abi,
-                                uniswap_quoter_address,
-                                uniswap_factory_abi,
-                                UNISWAP_FACTORY_ADDRESS,
-                                UNISWAP_DAI_V1_ABI,
-                                UNISWAP_DAI_V1_ADDRESS,
-                                MIN_ERC20_ABI,
-                                UNISWAP_V3_SWAP_ROUTER_ABI,
-                                UNISWAP_V3_SWAP_ROUTER_ADDRESS)
+from models.tmp_abi_lookup import (uniswap_quoter_abi,
+                                   uniswap_quoter_address,
+                                   uniswap_factory_abi,
+                                   UNISWAP_FACTORY_ADDRESS,
+                                   UNISWAP_DAI_V1_ABI,
+                                   UNISWAP_DAI_V1_ADDRESS,
+                                   MIN_ERC20_ABI,
+                                   UNISWAP_V3_SWAP_ROUTER_ABI,
+                                   UNISWAP_V3_SWAP_ROUTER_ADDRESS)
 
 
 class UniswapQuoterPriceUsd(DTO):
