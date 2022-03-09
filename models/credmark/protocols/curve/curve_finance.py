@@ -133,7 +133,7 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
         gauge = self.context.web3.eth.contract(
-            address=input['gaugeAddress'], abi=CURVE_GAUGE_V1_ABI)
+            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
         yields = []
         for addr in input['userAddresses']:
             claimable_tokens = gauge.functions.claimable_tokens(
@@ -214,7 +214,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@credmark.model.describe(slug='curve-fi-all-yeild', version='1.0')
+@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
