@@ -29,4 +29,8 @@ class TestModel2(credmark.model.Model):
 
     def run(self, input: Portfolio) -> PortfolioSummary:
         # return PortfolioSummary(num_tokens=len(input.positions))
-        return {'xx': 'ss'}  # error
+
+        # This will raise an error because we're not returning
+        # the type PortfolioSummary that we set as "output"
+        # in the describe() decorator above.
+        return {'xx': 'ss'}  # type: ignore
