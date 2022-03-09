@@ -5,7 +5,7 @@ import credmark.model
 
 from credmark.types import Address
 from credmark.types.dto import DTO, DTOField
-from ....tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+from ....tmp_abi_lookup import CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
 # from credmark.model import Task, ModelTask, Pipe
 
@@ -89,7 +89,7 @@ def get_pool_info(http_provider, block_number, contract_address, contract_abi, c
     tokens = []
     underlying = []
     balances = []
-    init_web3_contract(http_provider, block_number, contract_address, SWAP_ABI, 0)
+    init_web3_contract(http_provider, block_number, contract_address, CURVE_SWAP_ABI_1, 0)
     try:
         pool_contract = get_contract(http_provider, block_number, contract_address, contract_abi)
         pool_contract.functions.coins(0).call()
@@ -169,7 +169,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             0, sys.path[0] + '\\models_pkg.zip'), sys.path, reload_models(models), models.__path__), 1).result()
 
         t1 = Task('pool-info', get_all_pool_info, input=(
-            [self.context.dask_client.web3_http_provider, self.context.dask_client.block_number, pools, SWAP_ABI, SWAP_AB2], []))
+            [self.context.dask_client.web3_http_provider, self.context.dask_client.block_number, pools, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2], []))
         breakpoint()
 
         client.submit({'out': reload_models(models)}, ['out'])

@@ -7,7 +7,7 @@ from credmark.types import Account, Address, Contract, Contracts, Token, Tokens
 from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
-from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
+from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
 # Demo use of
@@ -42,7 +42,7 @@ class CurveFinancePoolInfo(credmark.model.Model):
         try:
             input.functions.coins(0).call()
         except Exception:
-            input = Contract(address=input.address, abi=SWAP_AB2)
+            input = Contract(address=input.address, abi=CURVE_SWAP_ABI_2)
         for i in range(0, 8):
             try:
                 tok = input.functions.coins(i).call()
@@ -87,7 +87,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
         pool_infos = [
             self.context.run_model(
                 "curve-fi-pool-info",
-                Contract(address=pool.address, abi=SWAP_ABI),
+                Contract(address=pool.address, abi=CURVE_SWAP_ABI_1),
                 return_type=CurveFiPoolInfo)
             for pool in
             self.context.run_model(
