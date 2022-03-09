@@ -14,7 +14,8 @@ class AaveV2GetLiability(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -44,7 +45,8 @@ class AaveV2GetTokenLiability(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -73,7 +75,8 @@ class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -110,7 +113,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
 
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
