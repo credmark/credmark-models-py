@@ -1,4 +1,8 @@
 
+from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
+from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 from typing import List
 import credmark.model
 from datetime import datetime
@@ -7,8 +11,9 @@ from credmark.types import Account, Address, Contract, Contracts, Token, Tokens,
 from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
-from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
-from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+<< << << < HEAD
+== == == =
+>>>>>> > fc7274f(More Explicit ABI Names)
 
 
 @credmark.model.describe(slug='curve-fi-pool-historical-reserve',
@@ -61,10 +66,8 @@ class CurveFinancePoolInfo(credmark.model.Model):
         balances = []
         try:
             input.functions.coins(0).call()
-        except Exception as err:
-            raise
-
-        input = Contract(address=input.address.checksum, abi=CURVE_SWAP_ABI_2)
+        except Exception as _err:
+            input = Contract(address=input.address, abi=CURVE_SWAP_ABI_2)
         for i in range(0, 8):
             try:
                 tok = input.functions.coins(i).call()
