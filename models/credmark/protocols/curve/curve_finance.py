@@ -3,7 +3,7 @@ from typing import List
 import credmark.model
 from datetime import datetime
 
-from credmark.types import Account, Address, Contract, Contracts, Token
+from credmark.types import Account, Address, Contract, Contracts, Token, Tokens
 from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
@@ -13,107 +13,106 @@ from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CU
 # Demo use of
 
 
+class CurveFiPoolInfo(Contract):
+    virtualPrice: int
+    tokens: Tokens
+    balances: List[int]
+    underlying_tokens: Tokens
+    A: int
+    name: str
+
+
+class CurveFiPoolInfos(DTO):
+    pool_infos: List[CurveFiPoolInfo]
+
+
 @credmark.model.describe(slug="curve-fi-pool-info",
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=Contract)
+                         input=Contract,
+                         output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(credmark.model.Model):
 
-    def run(self, input: Contract) -> dict:
-        pool_address = input.address
-        pool_contract = self.context.web3.eth.contract(
-            address=pool_address.checksum,
-            abi=SWAP_ABI
-        )
-        tokens = []
-        underlying = []
+    def run(self, input: Contract) -> CurveFiPoolInfo:
+
+        tokens = Tokens()
+        underlying_tokens = Tokens()
         balances = []
         try:
-            pool_contract.functions.coins(0).call()
+            input.functions.coins(0).call()
         except Exception:
-            pool_contract = self.context.web3.eth.contract(
-                address=input.address.checksum,
-                abi=SWAP_AB2
-            )
+            input = Contract(address=input.address, abi=SWAP_AB2)
         for i in range(0, 8):
             try:
-                tok = pool_contract.functions.coins(i).call()
-                bal = pool_contract.functions.balances(i).call()
+                tok = input.functions.coins(i).call()
+                bal = input.functions.balances(i).call()
                 try:
-                    und = pool_contract.functions.underlying_coins(i).call()
-                    underlying.append(und)
+                    und = input.functions.underlying_coins(i).call()
+                    underlying_tokens.append(Token(address=und))
                 except Exception:
                     pass
                 balances.append(bal)
-                tokens.append(tok)
+                tokens.append(Token(address=tok))
             except Exception:
                 break
 
         try:
-            a = pool_contract.functions.A().call()
-            virtual_price = pool_contract.functions.get_virtual_price().call()
-
+            a = input.functions.A().call()
+            virtual_price = input.functions.get_virtual_price().call()
         except:
             virtual_price = (10**18)
             a = 0
         try:
-            name = pool_contract.functions.name().call()
+            input.name = input.functions.name().call()
         except:
-            name = tokens
-        return {
-            "swap_contract_address": pool_address,
-            "virtualPrice": virtual_price,
-            "tokens": tokens,
-            "balances": balances,
-            "underlying": underlying,
-            "A": a,
-            "name": name
-        }
+            input.name = "swappool"
+        return CurveFiPoolInfo(**(input.dict()),
+                               virtualPrice=virtual_price,
+                               tokens=tokens,
+                               balances=balances,
+                               underlying_tokens=underlying_tokens,
+                               A=a)
 
 
 @credmark.model.describe(slug="curve-fi-all-pool-info",
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool")
+                         description="The amount of Liquidity for Each Token in a Curve Pool",
+                         input=None,
+                         output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
-    def run(self, input) -> dict:
-        start_time = datetime.now()
-        pool_infos = []
-        for pool in self.context.run_model("curve-fi-pools")['result']:
-
-            pool_info = self.context.run_model(
-                "curve-fi-pool-info", {"address": pool})
-            pool_infos.append(pool_info)
-        print(datetime.now() - start_time)
-        return {"pools": pool_infos}
+    def run(self, input) -> CurveFiPoolInfos:
+        pool_infos = [
+            self.context.run_model(
+                "curve-fi-pool-info",
+                Contract(address=pool.address, abi=SWAP_ABI),
+                return_type=CurveFiPoolInfo)
+            for pool in
+            self.context.run_model(
+                "curve-fi-pools",
+                return_type=Contracts)]
+        return CurveFiPoolInfos(pool_infos=pool_infos)
 
 
 @credmark.model.describe(slug="curve-fi-pools",
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool")
+                         description="The amount of Liquidity for Each Token in a Curve Pool",
+                         input=None,
+                         output=Contracts)
 class CurveFinancePools(credmark.model.Model):
 
-    def run(self, input) -> dict:
+    def run(self, input) -> Contracts:
         registry = self.context.web3.eth.contract(
             address=Address(CURVE_REGISTRY_ADDRESS).checksum,
             abi=CURVE_REGISTRY_ABI)
-
         total_pools = registry.functions.pool_count().call()
-        pool_addresses = []
-        for i in range(0, total_pools):
-            pool_addresses.append(registry.functions.pool_list(i).call())
-        return Contracts(contracts=[Contract(address=p) for p in pool_addresses])
-
-
-@credmark.model.describe(slug='curve-fi-yield-base',
-                         version='1.0',
-                         input=Contract)
-class CurveFinanceYieldBase(credmark.model.Model):
-    def run(self, input: Contract) -> dict:
-        return {}
+        return Contracts(
+            contracts=[
+                Contract(address=registry.functions.pool_list(i).call())
+                for i in range(0, total_pools)])
 
 
 @credmark.model.describe(slug='curve-fi-all-gauge-addresses',
