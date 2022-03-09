@@ -14,7 +14,8 @@ class AaveV2GetLiability(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -44,7 +45,8 @@ class AaveV2GetTokenLiability(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -73,7 +75,8 @@ class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -110,7 +113,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
 
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -145,6 +149,10 @@ class AaveV2GetTokenAsset(credmark.model.Model):
                          input=Token,
                          output=BlockSeries)
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
-    def run(self, input: Token) -> BlockSeries:
-        return self.context.historical.run_model_historical(
-            'aave-token-asset', model_input=input, window='5 days', interval='1 day', model_version=1.0)
+    def run(self, input: Token) -> dict:
+        output = {}
+        historical_data = self.context.historical.run_model_historical(
+            'aave-token-asset', model_input=input, window='5 days', interval='1 day', model_version='1.0')
+
+        output['historical_data'] = historical_data
+        return output
