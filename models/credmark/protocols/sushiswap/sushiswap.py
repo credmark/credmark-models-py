@@ -68,11 +68,11 @@ class SushiswapGetPair(credmark.model.Model):
         print(pool)
 
 
-@credmark.model.describe(slug="sushiswap-get-pool-info",
-                         version="1.0",
-                         display_name="Sushiswap get details for a pool",
-                         description="Returns the token details of the pool",
-                         input=Contract)
+@ credmark.model.describe(slug="sushiswap-get-pool-info",
+                          version="1.0",
+                          display_name="Sushiswap get details for a pool",
+                          description="Returns the token details of the pool",
+                          input=Contract)
 class SushiswapGetPairDetails(credmark.model.Model):
     def try_or(self, func, default=None, expected_exc=(Exception,)):
         try:
