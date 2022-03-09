@@ -154,8 +154,7 @@ class PoolAddress(DTO):
 from credmark.types import Address
 
 def run(self, input):
-   address = Address(wallet_adress)
-   address.checksum
+   address = Address(wallet_adress).checksum
 ```
 
 - Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
@@ -261,6 +260,21 @@ price = context.run_model('price', token, return_type=credmark.types.Price)
 
 context.web3 will return a configured web3 instance with the default block set to the block number of context.
 The web3 providers are determined from the environment variables as described in the configuration section above. Currently users will need to use their own alchemy account (or other web3 provider) to access web3 functionality.
+
+### Address
+
+`Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
+
+✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum
+❌:"0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
+
+Example:
+
+        contract = self.context.web3.eth.contract(
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
 
 ### Contract
 
