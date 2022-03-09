@@ -39,8 +39,12 @@ class SushiswapAllPairs(credmark.model.Model):
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
+<<<<<<< HEAD
                 sushiswap_pairs_addresses.append(Address(pair_address).checksum)
 
+=======
+                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address))
+>>>>>>> 8eca074 (add model version)
             except Exception as _err:
                 error_count += 1
 
@@ -52,14 +56,26 @@ class SushiSwapInput(DTO):
     token1: Token
 
 
+class SushiSwapPoolInput(DTO):
+    token0: Token
+    token1: Token
+
+
 @credmark.model.describe(slug="sushiswap-get-pool",
                          version="1.0",
                          display_name="Sushiswap get pool for a pair of tokens",
                          description="Returns the addresses of the pool of both tokens on Suhsiswap protocol",
+<<<<<<< HEAD
                          input=SushiSwapInput)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: SushiSwapInput):
 
+=======
+                         input=SushiSwapPoolInput)
+class SushiswapGetPair(credmark.model.Model):
+    def run(self, input: SushiSwapPoolInput):
+        output = {}
+>>>>>>> 8eca074 (add model version)
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
             address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,

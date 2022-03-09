@@ -20,6 +20,7 @@ from models.tmp_abi_lookup import (
     # CURVE_GAUGUE_CONTROLLER_ABI
 )
 
+
 class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
@@ -40,9 +41,9 @@ class CurveFiPoolInfos(DTO):
                          input=Contract)
 class CurveFinanceReserveRatio(credmark.model.Model):
 
-    def run(self, input: Contract) -> dict:
+    def run(self, input: Contract) -> BlockSeries:
         pool_address = input.address
-        pool_contract = self.context.web3.eth.contract(
+        _pool_contract = self.context.web3.eth.contract(
             address=pool_address.checksum,
             abi=CURVE_SWAP_ABI_1
         )
@@ -96,6 +97,7 @@ class CurveFinancePoolInfo(credmark.model.Model):
             input.name = input.functions.name().call()
         except Exception as _err:
             input.name = "swappool"
+
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
                                tokens=tokens,
@@ -122,69 +124,76 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             self.context.run_model(
                 "curve-fi-pools",
                 input=None,
+<< << << < HEAD
                 return_type=Contracts)
         ]
-        return CurveFiPoolInfos(pool_infos=pool_infos)
 
 
-@credmark.model.describe(slug="curve-fi-pools",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
-                         output=Contracts)
+== == == =
+                return_type = Contracts)]
+>> >>>> > 8eca074(add model version)
+        return CurveFiPoolInfos(pool_infos= pool_infos)
+
+
+@ credmark.model.describe(slug = "curve-fi-pools",
+                         version = "1.0",
+                         display_name = "Curve Finance Pool Liqudity",
+                         description = "The amount of Liquidity for Each Token in a Curve Pool",
+                         input = None,
+                         output= Contracts)
 class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> Contracts:
-        registry = self.context.web3.eth.contract(
-            address=Address(CURVE_REGISTRY_ADDRESS).checksum,
-            abi=CURVE_REGISTRY_ABI)
-        total_pools = registry.functions.pool_count().call()
+        registry=self.context.web3.eth.contract(
+            address = Address(CURVE_REGISTRY_ADDRESS).checksum,
+            abi= CURVE_REGISTRY_ABI)
+        total_pools=registry.functions.pool_count().call()
         return Contracts(
-            contracts=[
+            contracts= [
                 Contract(address=registry.functions.pool_list(i).call())
                 for i in range(0, total_pools)])
 
 
-@credmark.model.describe(slug='curve-fi-historical-lp-dist',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug = 'curve-fi-historical-lp-dist',
+                         version = '1.0',
+                         input= Contract)
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+        addrs=self.context.ledger.get_transactions(
+            columns = [TransactionTable.Columns.FROM_ADDRESS],
+            where= f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+        # TODO: gauageAddress is not in input.
+        gauge=self.context.web3.eth.contract(
+            address= Address(input['gaugeAddress']).checksum, abi = CURVE_GAUGE_V1_ABI)
 
 
-@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug = 'curve-fi-all-gauge-addresses',
+                         version = '1.0',
+                         input= Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+        addrs=self.context.ledger.get_transactions(
+            columns = [TransactionTable.Columns.FROM_ADDRESS],
+            where= f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
         return addrs
 
 
-@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@ credmark.model.describe(slug = 'curve-fi-get-gauge-stake-and-claimable-rewards', version = '1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
-        yields = []
+        gauge=self.context.web3.eth.contract(
+            address= Address(input['gaugeAddress']).checksum, abi = CURVE_GAUGE_V1_ABI)
+        yields=[]
         for addr in input['userAddresses']:
-            claimable_tokens = gauge.functions.claimable_tokens(
+            claimable_tokens=gauge.functions.claimable_tokens(
                 self.context.web3.toChecksumAddress(addr['address'])).call()
-            balanceOf = gauge.functions.balanceOf(
+            balanceOf=gauge.functions.balanceOf(
                 self.context.web3.toChecksumAddress(addr['address'])).call()
-            working_balances = gauge.functions.working_balances(
+            working_balances=gauge.functions.working_balances(
                 self.context.web3.toChecksumAddress(addr['address'])).call()
 
             yields.append({
