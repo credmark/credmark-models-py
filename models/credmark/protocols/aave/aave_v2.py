@@ -1,7 +1,5 @@
 import credmark.model
 from credmark.types import Address, Contract, Token, BlockSeries
-from credmark.types.dto import DTO, DTOField
-from credmark.types import Position
 from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
@@ -85,10 +83,10 @@ class AaveV2GetAssets(credmark.model.Model):
         for asset in aave_assets:
 
             getReservesData = contract.functions.getReserveData(asset).call()
-            atoken_asset = getReservesData[7]
+            _atoken_asset = getReservesData[7]
 
             res = self.context.run_model(
-                'aave-token-asset', {"address": asset})
+                'aave-token-asset', input={"address": asset})
 
             token = res['result']['token']
             totalStableDebt = res['result']['totalStableDebt']

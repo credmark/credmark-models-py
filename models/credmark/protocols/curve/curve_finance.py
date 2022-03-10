@@ -1,9 +1,7 @@
 
-from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
-from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
-from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
-from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 from typing import List
+
+from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 import credmark.model
 from datetime import datetime
 
@@ -11,9 +9,6 @@ from credmark.types import Account, Address, Contract, Contracts, Token, Tokens,
 from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
-<< << << < HEAD
-== == == =
->>>>>> > fc7274f(More Explicit ABI Names)
 
 
 @credmark.model.describe(slug='curve-fi-pool-historical-reserve',
@@ -85,13 +80,13 @@ class CurveFinancePoolInfo(credmark.model.Model):
         try:
             a = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
-        except:
+        except Exception as _err:
             virtual_price = (10**18)
             a = 0
 
         try:
             input.name = input.functions.name().call()
-        except:
+        except Exception as _err:
             input.name = "swappool"
 
         return CurveFiPoolInfo(**(input.dict()),
@@ -120,68 +115,75 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             self.context.run_model(
                 "curve-fi-pools",
                 input=None,
+<< << << < HEAD
                 return_type=Contracts)]
-        return CurveFiPoolInfos(pool_infos=pool_infos)
 
 
-@credmark.model.describe(slug="curve-fi-pools",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
-                         output=Contracts)
+== == == =
+                return_type = Contracts)
+        ]
+>> >>>> > fc3b821(code clean)
+        return CurveFiPoolInfos(pool_infos= pool_infos)
+
+
+@ credmark.model.describe(slug = "curve-fi-pools",
+                         version = "1.0",
+                         display_name = "Curve Finance Pool Liqudity",
+                         description = "The amount of Liquidity for Each Token in a Curve Pool",
+                         input = None,
+                         output= Contracts)
 class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> Contracts:
-        registry = self.context.web3.eth.contract(
-            address=Address(CURVE_REGISTRY_ADDRESS).checksum,
-            abi=CURVE_REGISTRY_ABI)
-        total_pools = registry.functions.pool_count().call()
+        registry=self.context.web3.eth.contract(
+            address = Address(CURVE_REGISTRY_ADDRESS).checksum,
+            abi= CURVE_REGISTRY_ABI)
+        total_pools=registry.functions.pool_count().call()
         return Contracts(
-            contracts=[
+            contracts= [
                 Contract(address=registry.functions.pool_list(i).call())
                 for i in range(0, total_pools)])
 
 
-@credmark.model.describe(slug='curve-fi-historical-lp-dist',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug = 'curve-fi-historical-lp-dist',
+                         version = '1.0',
+                         input= Contract)
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+        addrs=self.context.ledger.get_transactions(
+            columns = [TransactionTable.Columns.FROM_ADDRESS],
+            where= f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+        gauge=self.context.web3.eth.contract(
+            address= Address(input['gaugeAddress']).checksum, abi = CURVE_GAUGE_V1_ABI)
 
 
-@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug = 'curve-fi-all-gauge-addresses',
+                         version = '1.0',
+                         input= Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+        addrs=self.context.ledger.get_transactions(
+            columns = [TransactionTable.Columns.FROM_ADDRESS],
+            where= f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
         return addrs
 
 
-@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@ credmark.model.describe(slug = 'curve-fi-get-gauge-stake-and-claimable-rewards', version = '1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
-        yields = []
+        gauge=self.context.web3.eth.contract(
+            address= Address(input['gaugeAddress']).checksum, abi = CURVE_GAUGE_V1_ABI)
+        yields=[]
         for addr in input['userAddresses']:
-            claimable_tokens = gauge.functions.claimable_tokens(
+            claimable_tokens=gauge.functions.claimable_tokens(
                 Address(addr['address']).checksum).call()
-            balanceOf = gauge.functions.balanceOf(
+            balanceOf=gauge.functions.balanceOf(
                 Address(addr['address']).checksum).call()
-            working_balances = gauge.functions.working_balances(
+            working_balances=gauge.functions.working_balances(
                 Address(addr['address']).checksum).call()
 
             yields.append({

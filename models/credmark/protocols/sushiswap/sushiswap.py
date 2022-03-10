@@ -1,8 +1,18 @@
 from tokenize import Token
 import credmark.model
-from credmark.types import Address, Contract, Token
-from credmark.types.dto import DTO, DTOField
-from models.tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
+from credmark.types.dto import (
+    DTO
+)
+from credmark.types import (
+    Address,
+    Contract,
+    Token,
+)
+from models.tmp_abi_lookup import (
+    SUSHISWAP_FACTORY_ABI,
+    SUSHISWAP_PAIRS_ABI,
+    ERC_20_TOKEN_CONTRACT_ABI,
+)
 
 
 @credmark.model.describe(slug="sushiswap-all-pools",
@@ -19,18 +29,18 @@ class SushiswapAllPairs(credmark.model.Model):
 
         allPairsLength = contract.functions.allPairsLength().call()
 
-        SUSHISWAP_PAIRS_ADDRESSES = []
+        sushiswap_pairs_addresses = []
 
         error_count = 0
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
-                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address).checksum)
+                sushiswap_pairs_addresses.append(Address(pair_address).checksum)
 
-            except Exception as err:
+            except Exception as _err:
                 error_count += 1
 
-        return {"result": SUSHISWAP_PAIRS_ADDRESSES}
+        return {"result": sushiswap_pairs_addresses}
 
 
 class SushiSwapPool(DTO):

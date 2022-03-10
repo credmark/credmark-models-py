@@ -44,13 +44,14 @@ class CompoundGetAssets(credmark.model.Model):
 
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x3FDA67f7583380E67ef93072294a7fAc882FD7E7",  # lending pool address for Compound
+            # lending pool address for Compound
+            address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
             abi=COMPOUND_ABI
         )
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(Address(input.address)).call()
         tokencontract = self.context.web3.eth.contract(
-            address=input.address, abi=ERC_20_TOKEN_CONTRACT_ABI)
+            address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
         symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
         decimals = tokencontract.functions.decimals().call()
         totalSupply = comp_asset[3]/pow(10, decimals)
