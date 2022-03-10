@@ -1,1 +1,1 @@
-git+https://${GITHUB_TOKEN}@github.com/credmark/credmark-model-framework-py.git@main
+git+https://github.com/credmark/credmark-model-framework-py.git@main
