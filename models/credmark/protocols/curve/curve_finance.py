@@ -1,4 +1,4 @@
-from multiprocessing import pool
+
 from typing import List
 import credmark.model
 from datetime import datetime
@@ -8,7 +8,7 @@ from credmark.types.models.ledger import (TransactionTable)
 from credmark.types.dto import DTO, DTOField
 from pandas import interval_range
 from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
-from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
 # Demo use of
 
