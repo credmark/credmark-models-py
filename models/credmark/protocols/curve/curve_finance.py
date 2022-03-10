@@ -7,7 +7,11 @@ from models.tmp_abi_lookup import (
     CURVE_SWAP_ABI_2,
     CURVE_REGISTRY_ADDRESS,
     CURVE_REGISTRY_ABI,
-    CURVE_GAUGUE_CONTROLLER_ABI
+    # CURVE_GAUGUE_CONTROLLER_ABI
+)
+from credmark.types.dto import (
+    DTO,
+    DTOField
 )
 
 import credmark.model
