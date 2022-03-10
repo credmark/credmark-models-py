@@ -13,7 +13,7 @@ class SushiswapAllPairs(credmark.model.Model):
     def run(self, input) -> dict:
 
         contract = self.context.web3.eth.contract(
-            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,
             abi=SUSHISWAP_FACTORY_ABI
         )
 
@@ -25,7 +25,7 @@ class SushiswapAllPairs(credmark.model.Model):
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
-                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address))
+                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address).checksum)
 
             except Exception as err:
                 error_count += 1

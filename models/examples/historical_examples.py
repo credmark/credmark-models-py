@@ -61,6 +61,7 @@ class ExampleHistoricalSnap(credmark.model.Model):
 >>>>>>> cad979d (changed to `examples.`)
 
 
+
 @credmark.model.describe(slug='example.historical-block-snap', version="1.0")
 class ExampleHistoricalBlockSnap(credmark.model.Model):
 
