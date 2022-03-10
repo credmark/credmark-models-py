@@ -1,5 +1,6 @@
+from tokenize import Token
 import credmark.model
-from credmark.types import Address, Contract
+from credmark.types import Address, Contract, Token
 from credmark.types.dto import DTO, DTOField
 from models.tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
@@ -32,21 +33,26 @@ class SushiswapAllPairs(credmark.model.Model):
         return {"result": SUSHISWAP_PAIRS_ADDRESSES}
 
 
+class SushiSwapPool(DTO):
+    token0: Token
+    token1: Token
+
+
 @credmark.model.describe(slug="sushiswap-get-pool",
                          version="1.0",
                          display_name="Sushiswap get pool for a pair of tokens",
                          description="Returns the addresses of the pool of both tokens on Suhsiswap protocol",
-                         input=dict)
+                         input=SushiSwapPool)
 class SushiswapGetPair(credmark.model.Model):
-    def run(self, input: dict):
+    def run(self, input: SushiSwapPool):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,
             abi=SUSHISWAP_FACTORY_ABI
         )
-        token0 = self.context.web3.toChecksumAddress(input['token0'])
-        token1 = self.context.web3.toChecksumAddress(input['token1'])
+        token0 = input.token0.address.checksum
+        token1 = input.token1.address.checksum
 
         pool = contract.functions.getPair(token0, token1).call()
         print(pool)
@@ -68,7 +74,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-            address=input.address,
+            address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
         )
         token0 = contract.functions.token0().call()
