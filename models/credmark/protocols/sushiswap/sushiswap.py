@@ -67,6 +67,8 @@ class SushiswapGetPair(credmark.model.Model):
         pool = contract.functions.getPair(token0, token1).call()
         print(pool)
 
+        return output
+
 
 @ credmark.model.describe(slug="sushiswap-get-pool-info",
                           version="1.0",
