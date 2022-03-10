@@ -22,7 +22,7 @@ class VarInput(DTO):
         validate_assignment = True
         schema_extra = {
             'examples': cross_examples([{'portfolio': Portfolio.Config.schema_extra['examples']}],
-                                       [{'prices': [PriceList.Config.schema_extra['examples']]}]
+                                       [{'prices': [PriceList.Config.schema_extra['examples']]}])
         }
 
 
@@ -50,14 +50,15 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
+
 << << << < HEAD
-        var=[]
+    var = []
 == == == =
-        var=[]
+    var = []
 >> >>>> > 8eca074(add model version)
-        for conf in input.confidence:
-            var.append((conf, 100))
+   for conf in input.confidence:
+        var.append((conf, 100))
 
-        result=VarOutput(var=var)
+    result = VarOutput(var=var)
 
-        return result
+    return result
