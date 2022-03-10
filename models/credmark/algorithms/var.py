@@ -3,7 +3,7 @@ from typing import (
     Tuple,
 )
 import credmark.model
-from credmark.types.dto import DTO, confloat, conint
+from credmark.types.dto import DTO, DTOField, cross_examples
 from credmark.types import Portfolio, Price, Address
 
 
@@ -15,13 +15,14 @@ class PriceList(DTO):
 class VarInput(DTO):
     portfolio: Portfolio
     prices: List[PriceList]
-    window: conint(ge=1)
-    confidence: List[confloat(gt=0.0, lt=1.0)]  # accepts multiple values
+    window: int = DTOField(..., ge=1)
+    confidence: List[float] = DTOField(..., gt=0.0, lt=1.0)  # accepts multiple values
 
     class Config:
         validate_assignment = True
         schema_extra = {
-            'examples': [{'portfolio': Portfolio.Config.schema_extra['examples']}, ]
+            'examples': cross_examples([{'portfolio': Portfolio.Config.schema_extra['examples']}],
+                                       [{'prices': [PriceList.Config.schema_extra['examples']]}]
         }
 
 
@@ -29,12 +30,12 @@ class VarOutput(DTO):
     var: List[Tuple[float, float]]
 
 
-@credmark.model.describe(slug='var',
-                         version='1.0',
-                         display_name='Value at Risk',
-                         description='Value at Risk',
-                         input=VarInput,
-                         output=VarOutput)
+@ credmark.model.describe(slug='var',
+                          version='1.0',
+                          display_name='Value at Risk',
+                          description='Value at Risk',
+                          input=VarInput,
+                          output=VarOutput)
 class Var(credmark.model.Model):
 
     def run(self, input: VarInput) -> VarOutput:
@@ -49,10 +50,10 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
-        var = []
+        var=[]
         for conf in input.confidence:
             var.append((conf, 100))
 
-        result = VarOutput(var=var)
+        result=VarOutput(var=var)
 
         return result
