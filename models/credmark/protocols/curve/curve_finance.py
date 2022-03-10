@@ -10,7 +10,18 @@ from pandas import interval_range
 from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
-# Demo use of
+
+class CurveFiPoolInfo(Contract):
+    virtualPrice: int
+    tokens: Tokens
+    balances: List[int]
+    underlying_tokens: Tokens
+    A: int
+    name: str
+
+
+class CurveFiPoolInfos(DTO):
+    pool_infos: List[CurveFiPoolInfo]
 
 
 class CurveFiPoolInfo(Contract):
