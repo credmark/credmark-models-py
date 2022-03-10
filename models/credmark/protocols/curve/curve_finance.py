@@ -10,21 +10,32 @@ from pandas import interval_range
 from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
 
-# Demo use of
+
+class CurveFiPoolInfo(Contract):
+    virtualPrice: int
+    tokens: Tokens
+    balances: List[int]
+    underlying_tokens: Tokens
+    A: int
+    name: str
+
+
+class CurveFiPoolInfos(DTO):
+    pool_infos: List[CurveFiPoolInfo]
 
 
 @credmark.model.describe(slug='curve-fi-pool-historical-reserve',
-                        version='1.0',
-                        display_name='Curve Finance Pool Reserve Ratios',
-                        description="the historical reserve ratios for a curve pool",
-                        input=Contract)
+                         version='1.0',
+                         display_name='Curve Finance Pool Reserve Ratios',
+                         description="the historical reserve ratios for a curve pool",
+                         input=Contract)
 class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
         pool_address = input.address
         pool_contract = self.context.web3.eth.contract(
             address=pool_address.checksum,
-            abi=SWAP_ABI
+            abi=CURVE_SWAP_ABI_1
         )
         res = self.context.historical.run_model_historical('curve-fi-pool-info',
                                                            window='60 days',
@@ -124,17 +135,16 @@ class CurveFinancePools(credmark.model.Model):
                 for i in range(0, total_pools)])
 
 
-
 @credmark.model.describe(slug='curve-fi-historical-lp-dist',
-                        version='1.0',
-                        input=Contract)
+                         version='1.0',
+                         input=Contract)
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        
+
         gauge = self.context.web3.eth.contract(
             address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
 
