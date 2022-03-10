@@ -1,3 +1,8 @@
+from typing import (
+    List,
+    Union,
+)
+
 import credmark.model
 from credmark.types.dto import (
     DTO
@@ -54,6 +59,7 @@ class SushiSwapInput(DTO):
                          input=SushiSwapInput)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: SushiSwapInput):
+
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
             address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,
