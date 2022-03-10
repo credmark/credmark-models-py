@@ -20,6 +20,9 @@ class VarInput(DTO):
 
     class Config:
         validate_assignment = True
+        schema_extra = {
+            'examples': [{'portfolio': Portfolio.Config.schema_extra['examples']}, ]
+        }
 
 
 class VarOutput(DTO):

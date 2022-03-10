@@ -1,6 +1,6 @@
 import credmark.model
 from credmark.types import Address, Contract
-from credmark.types.dto import DTO, DTOField
+from credmark.types.dto import DTO
 from models.tmp_abi_lookup import SUSHISWAP_FACTORY_ABI, SUSHISWAP_PAIRS_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
@@ -12,7 +12,7 @@ class SushiswapAllPairs(credmark.model.Model):
     def run(self, input) -> dict:
 
         contract = self.context.web3.eth.contract(
-            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,
             abi=SUSHISWAP_FACTORY_ABI
         )
 
@@ -24,7 +24,7 @@ class SushiswapAllPairs(credmark.model.Model):
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
-                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address))
+                SUSHISWAP_PAIRS_ADDRESSES.append(Address(pair_address).checksum)
 
             except Exception as err:
                 error_count += 1
@@ -39,10 +39,9 @@ class SushiswapAllPairs(credmark.model.Model):
                          input=dict)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: dict):
-        output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-            address="0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+            address=Address("0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac").checksum,
             abi=SUSHISWAP_FACTORY_ABI
         )
         token0 = self.context.web3.toChecksumAddress(input['token0'])
@@ -68,7 +67,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
         output = {}
         print('DEBUG', input)
         contract = self.context.web3.eth.contract(
-            address=input.address,
+            address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
         )
         token0 = contract.functions.token0().call()
