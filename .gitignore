@@ -134,7 +134,7 @@ dmypy.json
 .idea/
 
 # model manifest
-models.yaml
+models.json
 workspace.code-workspace
 
 # test
