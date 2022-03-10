@@ -49,8 +49,6 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
-        self.context.dask_client
-
         var = []
         for conf in input.confidence:
             var.append((conf, 100))

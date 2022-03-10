@@ -1,14 +1,24 @@
-from multiprocessing import pool
-from typing import List
-import credmark.model
-from datetime import datetime
+from typing import (
+    List
+)
 
-from credmark.types import Account, Address, Contract, Contracts, Token, Tokens
-from credmark.types.models.ledger import (TransactionTable)
-from credmark.types.dto import DTO, DTOField
-from pandas import interval_range
-from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
-from models.tmp_abi_lookup import SWAP_ABI, SWAP_AB2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+import credmark.model
+
+from credmark.types import Address, Contract, Contracts, Token, Tokens
+from credmark.types.models.ledger import (
+    TransactionTable
+)
+from credmark.types.dto import (
+    DTO,
+)
+from models.tmp_abi_lookup import (
+    CURVE_GAUGE_V1_ABI,
+    CURVE_SWAP_ABI_1,
+    CURVE_SWAP_ABI_2,
+    CURVE_REGISTRY_ADDRESS,
+    CURVE_REGISTRY_ABI,
+    # CURVE_GAUGUE_CONTROLLER_ABI
+)
 
 # Demo use of
 
@@ -60,12 +70,12 @@ class CurveFinancePoolInfo(credmark.model.Model):
         try:
             a = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
-        except:
+        except Exception as _err:
             virtual_price = (10**18)
             a = 0
         try:
             input.name = input.functions.name().call()
-        except:
+        except Exception as _err:
             input.name = "swappool"
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
@@ -92,7 +102,9 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             for pool in
             self.context.run_model(
                 "curve-fi-pools",
-                return_type=Contracts)]
+                input=None,
+                return_type=Contracts)
+        ]
         return CurveFiPoolInfos(pool_infos=pool_infos)
 
 

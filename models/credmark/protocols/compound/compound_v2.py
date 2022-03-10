@@ -1,9 +1,10 @@
-from ....tmp_abi_lookup import COMPOUND_ABI, ERC_20_TOKEN_CONTRACT_ABI
 import credmark.model
 from credmark.types import Address, Token
-from credmark.types.dto import DTO, DTOField
-from credmark.types import Position
-from ....tmp_abi_lookup import ERC_20_TOKEN_CONTRACT_ABI, COMPOUND_CTOKEN_CONTRACT_ABI
+from models.tmp_abi_lookup import (
+    ERC_20_TOKEN_CONTRACT_ABI,
+    COMPOUND_CTOKEN_CONTRACT_ABI,
+    COMPOUND_ABI,
+)
 
 COMPOUND_ASSETS = {'REP': '0x158079ee67fce2f58472a96584a73c7ab9ac95c1',
                    'SAI': '0xf5dce57282a584d2746faf1593d3121fcac444dc',
@@ -35,7 +36,7 @@ class CompoundV2GetTokenLiability(credmark.model.Model):
     def run(self, input: Token) -> dict:
         output = {}
         tokenContract = self.context.web3.eth.contract(
-            address=input.address,
+            address=input.address.checksum,
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
         symbol = tokenContract.functions.symbol().call()
@@ -65,7 +66,7 @@ class CompoundV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
         output = {}
         tokenContract = self.context.web3.eth.contract(
-            address=input.address,
+            address=input.address.checksum,
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
         symbol = tokenContract.functions.symbol().call()
@@ -121,13 +122,14 @@ class CompoundGetAssets(credmark.model.Model):
 
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x3FDA67f7583380E67ef93072294a7fAc882FD7E7",  # lending pool address for Compound
+            # lending pool address for Compound
+            address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
             abi=COMPOUND_ABI
         )
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(Address(input.address)).call()
         tokencontract = self.context.web3.eth.contract(
-            address=input.address, abi=ERC_20_TOKEN_CONTRACT_ABI)
+            address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
         symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
         decimals = tokencontract.functions.decimals().call()
         totalSupply = comp_asset[3]/pow(10, decimals)
