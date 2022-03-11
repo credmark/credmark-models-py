@@ -50,24 +50,10 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
+        var = []
+        for conf in input.confidence:
+            var.append((conf, 100))
 
-<< << << < HEAD
+        result = VarOutput(var=var)
 
-<< << << < HEAD
- var = []
-== == == =
- var = []
->> >>>> > 8eca074(add model version)
- for conf in input.confidence:
-      var.append((conf, 100))
-== == == =
-  var = []
-   for conf in input.confidence:
-        var.append((conf, 100))
-
-    result = VarOutput(var=var)
->>>>>> > 39d571b(Use more DTO and examples)
-
- result = VarOutput(var=var)
-
-  return result
+        return result
