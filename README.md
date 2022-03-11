@@ -205,7 +205,7 @@ Please find more detailed examples [here](https://github.com/credmark/credmark-m
 
 ## Submit a Model
 
-If you are a contributor external to credmark, you should create your folder [here](https://github.com/credmark/credmark-models-py/tree/main/models/contrib)
+If you are a contributor external to credmark, you should create your folder in [credmark-models-py/models/contrib].
 
 You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
 
@@ -309,7 +309,7 @@ Example code for the block-number class can be found [here](https://github.com/c
 
 ### Historical Utility 
 
-The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range  and interval. 
+The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval. 
 
 Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second. 
 
@@ -335,7 +335,7 @@ We have created and grouped together different classes to manage input and outpu
 
 ### models
 1. ledger.py : DTOs and data used by the ledger models
-2. series: DTOs for the series models
+2. series.py: DTOs for the series models
 
 ### data
 **1. Address:** this class is a subclass of string and holds ablockchain address.
