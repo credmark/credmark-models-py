@@ -1,18 +1,21 @@
-from tokenize import Token
-import credmark.model
-from credmark.types.dto import (
-    DTO
+from models.tmp_abi_lookup import (
+    SUSHISWAP_FACTORY_ABI,
+    SUSHISWAP_PAIRS_ABI,
+    ERC_20_TOKEN_CONTRACT_ABI,
 )
 from credmark.types import (
     Address,
     Contract,
     Token,
 )
-from models.tmp_abi_lookup import (
-    SUSHISWAP_FACTORY_ABI,
-    SUSHISWAP_PAIRS_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
+from credmark.types.dto import (
+    DTO
 )
+import credmark.model
+from tokenize import Token
+<< << << < HEAD
+== == == =
+>>>>>> > d406151(fix with the use of DTO)
 
 
 @credmark.model.describe(slug="sushiswap-all-pools",

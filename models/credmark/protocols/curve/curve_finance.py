@@ -144,13 +144,15 @@ class CurveFinancePools(credmark.model.Model):
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
+        _addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
-        # TODO: gauageAddress is not in input.
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+        gauageAddress = Address('')
+        _gauge = self.context.web3.eth.contract(
+            address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+
+        return {}
 
 
 @ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
