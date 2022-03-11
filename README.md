@@ -141,11 +141,18 @@ The `credmark-model-framework` defines many common data objects as DTOs and fiel
 
 - Example 1: Use Address in input/ouput DTOs
 
+The input data, e.g. `{"poolAddress":"0x..."}`, is converted to `Address` type. The property `.checksum` to get its checksum address.
+
 ```py
 from credmark.types import Address
 
 class PoolAddress(DTO):
     poolAddress: Address = DTOField(..., description='Address of Pool')
+
+@credmark.model.describe(...
+                         input=PoolAddress)
+def run(self, input: PoolAddress):
+    address = input.poolAddress.checksum
 ```
 
 - Example 2: Use Address to auto-convert to checksum address.
@@ -154,8 +161,8 @@ class PoolAddress(DTO):
 from credmark.types import Address
 
 def run(self, input):
-   address = Address(wallet_adress)
-   address.checksum
+    address = Address(wallet_adress)
+    address.checksum
 ```
 
 - Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
@@ -261,6 +268,22 @@ price = context.run_model('price', token, return_type=credmark.types.Price)
 
 context.web3 will return a configured web3 instance with the default block set to the block number of context.
 The web3 providers are determined from the environment variables as described in the configuration section above. Currently users will need to use their own alchemy account (or other web3 provider) to access web3 functionality.
+
+### Address
+
+`Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
+
+✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
+❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
+❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
+
+Example:
+
+        contract = self.context.web3.eth.contract(
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
 
 ### Contract
 

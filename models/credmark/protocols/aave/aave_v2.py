@@ -1,7 +1,5 @@
 import credmark.model
 from credmark.types import Address, Contract, Token, BlockSeries
-from credmark.types.dto import DTO, DTOField
-from credmark.types import Position
 from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
 
 
@@ -14,7 +12,8 @@ class AaveV2GetLiability(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -44,7 +43,8 @@ class AaveV2GetTokenLiability(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -73,7 +73,8 @@ class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> dict:
         output = {}
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
@@ -82,10 +83,10 @@ class AaveV2GetAssets(credmark.model.Model):
         for asset in aave_assets:
 
             getReservesData = contract.functions.getReserveData(asset).call()
-            atoken_asset = getReservesData[7]
+            _atoken_asset = getReservesData[7]
 
             res = self.context.run_model(
-                'aave-token-asset', {"address": asset})
+                'aave-token-asset', input={"address": asset})
 
             token = res['result']['token']
             totalStableDebt = res['result']['totalStableDebt']
@@ -110,7 +111,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
 
         contract = self.context.web3.eth.contract(
-            address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",  # lending pool address
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
