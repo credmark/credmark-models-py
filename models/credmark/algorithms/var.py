@@ -1,10 +1,15 @@
 from typing import (
     List,
     Tuple,
+    Union,
 )
 import credmark.model
 from credmark.types.dto import DTO, DTOField
-from credmark.types import Portfolio, Price, Address
+from credmark.types import (
+    Portfolio,
+    Price,
+    Address,
+)
 
 
 class PriceList(DTO):
