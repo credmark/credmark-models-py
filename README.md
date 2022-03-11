@@ -205,6 +205,10 @@ Please find more detailed examples [here](https://github.com/credmark/credmark-m
 
 ## Submit a Model
 
+If you are a contributor external to credmark, you should create your folder in [credmark-models-py/models/contrib].
+
+You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
+
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
 # Credmark Model Framework Core Components
@@ -233,6 +237,7 @@ It also enforces deterministic behavior for Models. The key utilities in `ModelC
 - contract
 - ledger
 - block number
+- historical utility 
 
 ### Methods
 
@@ -282,7 +287,7 @@ Tip: the contract object returned from contract class can be used to fetch any s
 
 ### Ledger
 
-Credmark allows access to in-house blockchain ledger data via ledger interface so that any model can fetch/use ledger data if required. This is done via `Ledger` class which currently supports below functions:
+Credmark allows access to in-house blockchain ledger data via ledger interface (`context.ledger`), so that any model can fetch/use ledger data if required. This is done via `Ledger` class which currently supports below functions:
 
 - get_transactions
 - get_traces
@@ -302,6 +307,14 @@ As a subclass of int, the `block_number` class allows the provided block numbers
 
 Example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py).
 
+### Historical Utility 
+
+The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval. 
+
+Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second. 
+
+See [historical_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/historical_examples.py) on how to use this class.
+
 ## Data Transfer Object (DTO)
 
 Input and output data for models are json-serializable objects of arbitrary depth and complexity. Objects can have 0 or more keys whose values can be null, number, string, array, or another object.
@@ -313,6 +326,47 @@ DTOs are classes with typed properties which will serialize and deserialize to a
 To create a DTO, simply subclass the DTO base class and use DTOFields to annotate your properties. Under the hood, the Credmark Model Framework uses the pydantic python module (DTO is simply an alias for pydantic BaseModel and DTOField an alias for Field) so almost anything that works with pydantic will work for your DTO.
 
 Please see the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/models/) for more information.
+
+## Additional Useful Modules 
+
+We also have some built-in reusable type classes available under [Credmark.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/types). 
+
+We have created and grouped together different classes to manage input and output types to be used by models. These types include some standard blockchain and financial data structures as well as some standard input and output objects for Credmark models.
+
+### models
+1. ledger.py : DTOs and data used by the ledger models
+2. series.py: DTOs for the series models
+
+### data
+**1. Address:** this class is a subclass of string and holds ablockchain address.
+
+The address can be provided in lower case, upper case or checksum hex format. This class will normalize the address into lower case. Note that It can be used as a normal string but it also has a "checksum" property which returns a web3 ChecksumAddress. 
+
+See [address_examples.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py) on how to use this class.
+
+**2. Account(s):** Account simply holds an address. Accounts is a list of account instances which allows iteration through each account. 
+
+See [iteration_example](https://github.com/credmark/credmark-models-py/blob/main/models/examples/iteration_examples.py) on how to use this class.
+
+**3. Contract:** a contract is a subclass  of Account which has a name, deployed transaction hash, abi, protocol name etc.. 
+
+Object instantiation of this class will load all information available for the contract (against contract address provided as input) in our database and you can access whatever information you want from the object. 
+
+See [contact_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/contract_examples.py) on how to use this class.
+
+**4. Token:** Token is a specific kind of contract; hence the Token class inherits from Contract class. 
+
+This class allows you to load token information with an address or symbol as well as get its price in USD Currently this class supports data load for erc20 token but we will support erc721 as well soon.  
+
+See [token_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/token_examples.py) on how to use this class. Token_data.py lists all erc20 tokens currently supported.
+
+**5. Price and TokenPairPrice:** these classes can be used to hold a price or a price of a token against a reference token (such as CMK-BTC, CMK-ETH etc.)
+
+**6. Position:** this class holds a Token and an amount It can calculate its value based on the token price in USD. You can also access the scaled amount property if you need the scaled amount of the erc20 token. 
+
+Token_data.py lists all erc20 tokens currently supported.
+
+**7. Portfolio:** This class holds a list of positions. So, it can be used to calculate all positions within a wallet.
 
 ## Model Library
 
