@@ -3,7 +3,7 @@ from typing import (
     Tuple,
 )
 import credmark.model
-from credmark.types.dto import DTO, DTOField, cross_examples
+from credmark.types.dto import DTO, DTOField
 from credmark.types import Portfolio, Price, Address
 
 
@@ -20,10 +20,6 @@ class VarInput(DTO):
 
     class Config:
         validate_assignment = True
-        schema_extra = {
-            'examples': cross_examples([{'portfolio': Portfolio.Config.schema_extra['examples']}],
-                                       [{'prices': [PriceList.Config.schema_extra['examples']]}])
-        }
 
 
 class VarOutput(DTO):
