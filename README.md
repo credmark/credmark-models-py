@@ -124,7 +124,25 @@ class EchoModel(credmark.model.Model):
         return input
 ```
 
-The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO, with various properties and values, potentially nested with other JSON-compatible data structures.
+The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO (see later section DTO), with various properties and values, potentially nested with other JSON-compatible data structures.
+
+A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
+
+Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may or may not be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
+
+A model instance has access to the following instance variables:
+
+- `self.context` - A context which holds state and provides functionality. Details on the [Model Context](#model-context) are below.
+- `self.logger` - Python logger instance for logging to stderr(optional) A model should never write/print to stdout.
+
+Please find more detailed examples [here](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py).
+
+**Constraints**
+
+- Model slugs MUST start with `"contrib."` and the rest of the string can contain letters (upper and lowercase), numbers, and hyphens. In general, use a hyphen between words. Slugs must be unique in a case-insensitive manner across all models running within Credmark.
+- Input variables and Output data fields should use camel-cased names.
+
+**DTO**
 
 For the DTOs (Data Transfer Objects) we use the python module `pydantic` to define and validate the data. We have aliased `pydantic`'s `BaseModel` as DTO and `Field` as `DTOField` to avoid confusion with Credmark models but all the functionality of `pydantic` is available.
 
@@ -194,21 +212,40 @@ class TestModel(credmark.model.Model):
 
 We strongly encourage you to create DTOs and/or make use of the common objects, either as your top-level DTO or as sub-objects and in lists etc. as needed.
 
-A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
+You may use `credmark-dev describe {model_slug}` to show the input/output schema and examples for specific model(s). For example
 
-Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may or may not be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
+```
+credmark-dev describe aave-token-asset-historical
 
-A model instance has access to the following instance variables:
+(...omit the output header)
 
-- `self.context` - A context which holds state and provides functionality. Details on the [Model Context](#model-context) are below.
-- `self.logger` - Python logger instance for logging to stderr(optional) A model should never write/print to stdout.
+Loaded models:
 
-Please find more detailed examples [here](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py).
-
-**Constraints**
-
-- Model slugs MUST start with `"contrib."` and the rest of the string can contain letters (upper and lowercase), numbers, and hyphens. In general, use a hyphen between words. Slugs must be unique in a case-insensitive manner across all models running within Credmark.
-- Input variables and Output data fields should use camel-cased names.
+ - slug: aave-token-asset-historical
+ - version: 1.0
+ - tags: None
+ - display_name: Aave V2 token liquidity
+ - description: Aave V2 token liquidity at a given block number
+ - developer:
+ - input schema:
+   Token(object)
+     └─address(string)
+ - input example:
+   #01: {'symbol': 'USDC'}
+   #02: {'symbol': 'USDC', 'decimals': 6}
+   #03: {'address': '0x1F98431c8aD98523631AE4a59f267346ea31F984'}
+   #04: {'address': '0x1F98431c8aD98523631AE4a59f267346ea31F984', 'abi': '(Optional) contract abi JSON string'}
+ - output schema:
+   BlockSeries(object)
+     └─series(List[BlockSeriesRow])
+         └─blockNumber(integer)
+         └─blockTimestamp(integer)
+         └─sampleTimestamp(integer)
+         └─output(object)
+ - output example:
+   #01: {'series': [{'blockNumber': 'integer', 'blockTimestamp': 'integer', 'sampleTimestamp': 'integer', 'output': 'object'}]}
+ - class: models.credmark.protocols.aave.aave_v2.AaveV2GetTokenAssetHistorical
+```
 
 ## Submit a Model
 
