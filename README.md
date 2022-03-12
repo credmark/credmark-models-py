@@ -218,6 +218,147 @@ You should create and keep your models under this folder. Note that we have appl
 
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
+
+# SDK Command Documentation 
+## Help command
+
+All the commands accept `-h` parameter for help, e.g.:
+
+```
+>credmark-dev -h
+
+usage: credmark-dev [-h] [--log_level LOG_LEVEL] [--model_path MODEL_PATH] [--manifest_file MANIFEST_FILE]
+                    {list,list-models,build,build-manifest,clean,remove-manifest,run,run-model} ...
+
+Credmark developer tool
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log_level LOG_LEVEL
+                        [OPTIONAL] Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  --model_path MODEL_PATH
+                        [OPTIONAL] Semicolon separated paths to the model folders (or parent) or model python file. Defaults to models folder.
+  --manifest_file MANIFEST_FILE
+                        [OPTIONAL] Name of the built manifest file. Defaults to models.yaml. (Not required during development.)
+
+Commands:
+  Supported commands
+
+  {list,list-models,build,build-manifest,clean,remove-manifest,run,run-model}
+                        
+additional help
+    list (list-models)  List models
+    build (build-manifest)
+                        Build model manifest
+    clean (remove-manifest)
+                        Clean model manifest
+    run (run-model)     Run a model
+```
+## `run`command
+Below -h command shows the details of options available for run commands.
+```
+>credmark-dev run -h
+
+usage: credmark-dev run [-h] [-b BLOCK_NUMBER] [-c CHAIN_ID] [-i INPUT] [-v MODEL_VERSION] [--provider_url_map PROVIDER_URL_MAP] [--api_url API_URL] model-slug
+
+positional arguments:
+  model-slug            Slug for the model to run.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b BLOCK_NUMBER, --block_number BLOCK_NUMBER
+                        Block number used for the context of the model run. If not specified, it is set to the latest block of the chain.
+  -c CHAIN_ID, --chain_id CHAIN_ID
+                        [OPTIONAL] The chain ID. Defaults to 1.
+  -i INPUT, --input INPUT
+                        [OPTIONAL] Input JSON or if value is "-" it will read input JSON from stdin.
+  -v MODEL_VERSION, --model_version MODEL_VERSION
+                        [OPTIONAL] Version of the model to run. Defaults to latest.
+  --provider_url_map PROVIDER_URL_MAP
+                        [OPTIONAL] JSON object of chain id to Web3 provider HTTP URL. Overrides settings in env vars.
+  --api_url API_URL     [OPTIONAL] Credmark API url. Defaults to the standard API gateway. You do not normally need to set this.
+  --api_url API_URL     [OPTIONAL] Credmark API url
+```
+
+To call any model we need to provide below parameters:
+
+- `-b` or `–block_number` : to define against which block number the model should run. If not provided it is set to latest block number available for the chain.
+- `-i` or `–input` : to provide input for a model in a predefined structure.(you can run command `credmark-dev list --manifests` to see the input format required for each model. See example below). If not provided it will default to “{}”.
+Model-slug: Name of the model (slug) to call the model.
+
+Note:  if chain ID is not mentioned explicitly in the parameter,  it defaults to 1. If the model is using web 3 instance then chain id (and blockchain) will be picked from the .env file we defined during setup (refer to “configure environment variable” section). If the model is using Credmark database then, by default, it will refer to the Ethereum blockchain.
+
+See the example below. Here, we are running the model “cmk-circulating-supply” at block_number 14000000.
+```
+>Credmark-dev run -b 14000000 cmk-circulating-supply -i "{}"
+
+2022-03-04 11:21:00,362 - credmark.model.engine.model_loader - INFO - Loading manifest from model_paths: ['models']
+{"slug": "cmk-circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk-total-supply": {"1.0": 1}, "cmk-circulating-supply": {"1.0": 1}}}
+```
+
+## `list`command
+Below `-h` command shows the details of options available for list commands.
+```
+>credmark-dev list -h
+
+usage: credmark-dev list [-h] [--manifests] [--json]
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --manifests
+  --json
+```
+Note: You can also run `list-models` command alternatively.
+
+Example below shows simple output (list of all models and their version) of list command:
+```
+>credmark-dev list -h
+
+2022-03-04 11:42:46,691 - credmark.model.engine.model_loader - INFO - Loading manifest from model_paths: ['models']
+
+Loaded models:
+
+ - var: ['1.0']
+ - cmk-total-supply: ['1.0']
+ - cmk-circulating-supply: ['1.0']
+ - xcmk-total-supply: ['1.0']
+ - xcmk-cmk-staked: ['1.0']
+ - xcmk-deployment-time: ['1.0']
+ - curve-fi-all-pool-info-p: ['1.0']
+ - curve-fi-pool-info: ['1.0']
+ - curve-fi-all-pool-info: ['1.0']
+ - curve-fi-pools: ['1.0']
+ - uniswap-quoter-price-usd: ['1.0']
+ - uniswap-router-price-usd: ['1.0']
+ - uniswap-tokens: ['1.0']
+ - uniswap-exchange: ['1.0']
+ - uniswap-v3-get-pools: ['1.0']
+ - uniswap-v3-get-pool-info: ['1.0']
+ - uniswap-v3-get-average-price: ['1.0']
+ - erc20-totalSupply: ['1.0']
+ - erc20-balanceOf: ['1.0']
+ - example-address: ['1.0']
+ - example-address-transforms: ['1.0']
+ - example-blocktime: ['1.0']
+ - example-load-contract-by-name: ['1.0']
+ - example-load-contract-by-address: ['1.0']
+ - type-test-1: ['1.0']
+ - type-test-2: ['1.0']
+ - example-echo: ['1.0']
+ - example-historical: ['1.0']
+ - example-historical-snap: ['1.0']
+ - example-historical-block-snap: ['1.0']
+ - example-historical-block: ['1.0']
+ - example-libraries: ['1.0']
+ - historical-pi: ['1.0']
+ - historical-staked-xcmk: ['1.0']
+ - run-test: ['1.0']
+```
+You can also get the list result in different formats using `--json` or `--manifest`.
+
+**Note:** the commands `build` and `clean` does not need to be used.
+
+
 # Credmark Model Framework Core Components
 
 In the following you will find the key components of every model.
