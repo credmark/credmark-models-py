@@ -1,4 +1,5 @@
-from tokenize import Token
+
+from trace import Trace
 import credmark.model
 from credmark.types import Account
 from credmark.types.models.ledger import (
@@ -13,7 +14,11 @@ from credmark.types.models.ledger import (
 )
 
 
-@credmark.model.describe(slug='example.ledger-blocks', version="1.0")
+@credmark.model.describe(
+    slug='example.ledger-blocks',
+    version="1.0",
+    input=None,
+    output=developer="Credmark")
 class ExampleLedgerBlock(credmark.model.Model):
 
     """
@@ -22,7 +27,7 @@ class ExampleLedgerBlock(credmark.model.Model):
 
     def run(self, input):
 
-        return self.context.ledger.get_blocks(columns=[c for c in BlockTable.columns()],
+        return self.context.ledger.get_blocks(columns=[BlockTable.Columns.DIFFICULTY],
                                               limit="10",
                                               order_by=BlockTable.Columns.NUMBER + " desc")
 
@@ -48,7 +53,9 @@ class ExampleLedgerReceipts(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.ledger.get_receipts(columns=[c for c in ReceiptTable.columns()],
+        return self.context.ledger.get_receipts(columns=[ReceiptTable.Columns.CONTRACT_ADDRESS,
+                                                         ReceiptTable.Columns.CUMULATIVE_GAS_USED,
+                                                         ReceiptTable.Columns.GAS_USED],
                                                 where=f'{ReceiptTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
@@ -90,7 +97,8 @@ class ExampleLedgerLogs(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.ledger.get_logs(columns=[c for c in LogTable.columns()],
+        return self.context.ledger.get_logs(columns=[LogTable.Columns.ADDRESS,
+                                                     LogTable.Columns.DATA],
                                             where=f'{LogTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
@@ -115,5 +123,7 @@ class ExampleLedgerTraces(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.ledger.get_traces(columns=[c for c in TraceTable.columns()],
+        return self.context.ledger.get_traces(columns=[TraceTable.Columns.BLOCK_NUMBER,
+                                                       TraceTable.Columns.ERROR,
+                                                       TraceTable.Columns.CALL_TYPE],
                                               where=f'{TraceTable.Columns.BLOCK_NUMBER}={self.context.block_number}')

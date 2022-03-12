@@ -7,7 +7,7 @@ from credmark.types import Account, Accounts, Address
                          display_name='Example Iteration',
                          description="A test model for iteration",
                          output=Accounts)
-class EchoModel(credmark.model.Model):
+class IterationExample(credmark.model.Model):
     """
     """
 
