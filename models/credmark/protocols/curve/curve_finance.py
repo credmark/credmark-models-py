@@ -26,28 +26,6 @@ from models.tmp_abi_lookup import (
 )
 
 
-@credmark.model.describe(slug='curve-fi-pool-historical-reserve',
-                         version='1.0',
-                         display_name='Curve Finance Pool Reserve Ratios',
-                         description="the historical reserve ratios for a curve pool",
-                         input=Contract)
-class CurveFinanceReserveRatio(credmark.model.Model):
-
-    def run(self, input: Contract) -> BlockSeries:
-        pool_address = input.address
-        _pool_contract = self.context.web3.eth.contract(
-            address=pool_address.checksum,
-            abi=CURVE_SWAP_ABI_1
-        )
-        res = self.context.historical.run_model_historical('curve-fi-pool-info',
-                                                           window='60 days',
-                                                           interval='7 days',
-                                                           model_input={
-                                                               "address": input.address,
-                                                           })
-        return res
-
-
 class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
@@ -61,12 +39,36 @@ class CurveFiPoolInfos(DTO):
     pool_infos: List[CurveFiPoolInfo]
 
 
-@credmark.model.describe(slug="curve-fi-pool-info",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
+@credmark.model.describe(slug='curve-fi-pool-historical-reserve',
+                         version='1.0',
+                         display_name='Curve Finance Pool Reserve Ratios',
+                         description="the historical reserve ratios for a curve pool",
                          input=Contract,
-                         output=CurveFiPoolInfo)
+                         output=BlockSeries[CurveFiPoolInfo])
+class CurveFinanceReserveRatio(credmark.model.Model):
+
+    def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
+        pool_address = input.address
+        _pool_contract = self.context.web3.eth.contract(
+            address=pool_address.checksum,
+            abi=CURVE_SWAP_ABI_1
+        )
+        res = self.context.historical.run_model_historical('curve-fi-pool-info',
+                                                           window='60 days',
+                                                           interval='7 days',
+                                                           model_input={
+                                                               "address": input.address,
+                                                           },
+                                                           model_return_type=CurveFiPoolInfo)
+        return res
+
+
+@ credmark.model.describe(slug="curve-fi-pool-info",
+                          version="1.0",
+                          display_name="Curve Finance Pool Liqudity",
+                          description="The amount of Liquidity for Each Token in a Curve Pool",
+                          input=Contract,
+                          output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(credmark.model.Model):
 
     def run(self, input: Contract) -> CurveFiPoolInfo:
@@ -111,12 +113,12 @@ class CurveFinancePoolInfo(credmark.model.Model):
                                A=a)
 
 
-@credmark.model.describe(slug="curve-fi-all-pool-info",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
-                         output=CurveFiPoolInfos)
+@ credmark.model.describe(slug="curve-fi-all-pool-info",
+                          version="1.0",
+                          display_name="Curve Finance Pool Liqudity",
+                          description="The amount of Liquidity for Each Token in a Curve Pool",
+                          input=None,
+                          output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> CurveFiPoolInfos:
