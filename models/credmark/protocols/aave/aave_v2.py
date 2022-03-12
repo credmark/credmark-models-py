@@ -145,7 +145,7 @@ class AaveV2GetTokenAsset(credmark.model.Model):
                          display_name="Aave V2 token liquidity",
                          description="Aave V2 token liquidity at a given block number",
                          input=Token,
-                         output=BlockSeries)
+                         output=BlockSeries)  # TODO add type
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
