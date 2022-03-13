@@ -1,5 +1,4 @@
 import credmark.model
-
 from credmark.types import (
     Address,
     Contract,

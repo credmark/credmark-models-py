@@ -3,7 +3,6 @@ from typing import List
 
 from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 import credmark.model
-from datetime import datetime
 
 from credmark.types.models.ledger import (
     TransactionTable
@@ -25,7 +24,6 @@ from credmark.types import (
 from typing import (
     List
 )
-
 from models.tmp_abi_lookup import (
     CURVE_GAUGE_V1_ABI,
     CURVE_SWAP_ABI_1,
@@ -181,9 +179,9 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
         return {}
 
 
-@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
+                          version='1.0',
+                          input=Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
@@ -193,7 +191,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return addrs
 
 
-@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@ credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
@@ -220,7 +218,7 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
+@ credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """

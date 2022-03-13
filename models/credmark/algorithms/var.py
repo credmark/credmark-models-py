@@ -30,12 +30,12 @@ class VarOutput(DTO):
     var: List[Tuple[float, float]]
 
 
-@credmark.model.describe(slug='var',
-                         version='1.0',
-                         display_name='Value at Risk',
-                         description='Value at Risk',
-                         input=VarInput,
-                         output=VarOutput)
+@ credmark.model.describe(slug='var',
+                          version='1.0',
+                          display_name='Value at Risk',
+                          description='Value at Risk',
+                          input=VarInput,
+                          output=VarOutput)
 class Var(credmark.model.Model):
 
     def run(self, input: VarInput) -> VarOutput:

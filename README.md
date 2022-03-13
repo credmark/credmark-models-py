@@ -253,6 +253,10 @@ If you are a contributor external to credmark, you should create your folder in 
 
 You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
 
+If you are a contributor external to credmark, you should create your folder in [credmark-models-py/models/contrib].
+
+You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
+
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
 # Credmark Model Framework Core Components
