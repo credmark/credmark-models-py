@@ -1,4 +1,4 @@
-from pydoc import describe
+
 import credmark.model
 from credmark.types import Address, Token, Account, Position
 from credmark.types.dto import DTO, DTOField
@@ -20,9 +20,7 @@ class TokenInfo(DTO):
 )
 class TokenInfoModel(credmark.model.Model):
     def run(self, input: Token) -> TokenInfo:
-
         input.load()
-
         total_supply = input.total_supply()
         return TokenInfo(
             token=input,

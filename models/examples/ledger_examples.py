@@ -18,7 +18,7 @@ from credmark.types.models.ledger import (
     slug='example.ledger-blocks',
     version="1.0",
     input=None,
-    output=developer="Credmark")
+    developer="Credmark")
 class ExampleLedgerBlock(credmark.model.Model):
 
     """
