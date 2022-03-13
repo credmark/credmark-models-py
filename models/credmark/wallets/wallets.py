@@ -13,8 +13,7 @@ from credmark.types.models.ledger import (
     display_name="Token Information",
     developer="Credmark",
     input=Account,
-    output=Portfolio
-)
+    output=Portfolio)
 class WalletInfoModel(credmark.model.Model):
     def run(self, input: Account) -> Portfolio:
         transfers = self.context.ledger.get_erc20_transfers(
