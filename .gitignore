@@ -140,3 +140,6 @@ workspace.code-workspace
 # test
 /test/*.ps1
 /dask-worker-space
+
+# vim
+.swp

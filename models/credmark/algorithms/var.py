@@ -1,6 +1,7 @@
 from typing import (
     List,
     Tuple,
+    Union,
 )
 import credmark.model
 from credmark.types.dto import DTO, DTOField
