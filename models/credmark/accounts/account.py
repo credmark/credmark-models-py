@@ -8,7 +8,7 @@ from credmark.types.models.ledger import (
 
 
 @credmark.model.describe(
-    slug="wallet.portfolio",
+    slug="account.portfolio",
     version="1.0",
     display_name="Token Information",
     developer="Credmark",
@@ -16,10 +16,9 @@ from credmark.types.models.ledger import (
     output=Portfolio)
 class WalletInfoModel(credmark.model.Model):
     def run(self, input: Account) -> Portfolio:
-        transfers = self.context.ledger.get_erc20_transfers(
+        token_addresses = self.context.ledger.get_erc20_transfers(
             columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
             where=f"{TokenTransferTable.Columns.FROM_ADDRESS}='{input.address}' or {TokenTransferTable.Columns.TO_ADDRESS}='{input.address}'")
-        token_addresses = []
 
         positions = [
             Position(
@@ -31,7 +30,10 @@ class WalletInfoModel(credmark.model.Model):
         for t in list(dict.fromkeys([t['token_address'] for t in token_addresses])):
             try:
                 token = Token(address=t)
-                positions.append(Position(token=token, amount=token.balance_of(input.address)))
+                balance = token.balance_of(input.address)
+                if balance > 0.0:
+                    positions.append(
+                        Position(token=token, amount=balance.scaled))
             except:
                 # currently skip NFTs
                 pass
