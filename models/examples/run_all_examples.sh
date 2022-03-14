@@ -11,7 +11,6 @@ credmark-dev run example.blocktime --input '{}' --api_url=http://localhost:8700/
 echo ""
 echo "Address Examples:"
 echo ""
-credmark-dev run example.address --input '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}' --api_url=http://localhost:8700/v1/model/run -b 14234904
 credmark-dev run example.address-transforms --input '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}' --api_url=http://localhost:8700/v1/model/run -b 14234904
 echo ""
 echo "Load Contract Examples:"

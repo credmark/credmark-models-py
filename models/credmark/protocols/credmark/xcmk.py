@@ -1,5 +1,8 @@
+from time import time
+from typing import Union
 import credmark.model
 from credmark.types import Address
+from credmark.types.dto import DTO
 
 # TODO: Need to get ABI's programmatically, I want to be able to do something like:
 # self.context.contract(protocol:Union[str, None], product:Union[str,None], address:Union[str, None], abi:Union[str,None])
@@ -42,21 +45,32 @@ class xCmkTotalSupply(credmark.model.Model):  # pylint: disable=invalid-name
         return {'result': result}
 
 
+class xCmkDeploymentTimeOutput(DTO):  # pylint: disable=invalid-name
+    timestamp: Union[int, None]
+
+
 @credmark.model.describe(slug='xcmk-deployment-time',
                          version='1.0',
                          display_name='xCMK deployment time',
                          description='xCMK deployment time',
-                         developer='abc')
+                         developer='Credmark',
+                         input=dict,
+                         output=xCmkDeploymentTimeOutput)
 class xCmkDeploymentTime(credmark.model.Model):  # pylint: disable=invalid-name
     """
     xCmkDeploymentTime
     """
 
-    def run(self, input) -> dict:
+    def run(self, input) -> xCmkDeploymentTimeOutput:
+        txn_cols = self.context.ledger.Transaction.Columns
 
-        # , get minimum block with to=staked_credmark)
-        res = self.context.ledger.get_transactions(["block_timestamp"])
+        # get minimum block with to=staked_credmark
+        result = self.context.ledger.get_transactions(
+            [txn_cols.BLOCK_TIMESTAMP],
+            where=f"{txn_cols.TO_ADDRESS} = '{Address(STAKED_CREDMARK_ADDRESS)}'",
+            order_by=f'{txn_cols.BLOCK_TIMESTAMP} ASC',
+            limit='1')
 
-        # return {'value': "december"}
-
-        return {'value': res}
+        rows = result.data
+        timestamp = rows[0].get(txn_cols.BLOCK_TIMESTAMP) if len(rows) else None
+        return xCmkDeploymentTimeOutput(timestamp=timestamp)

@@ -1,6 +1,5 @@
 import credmark.model
 from credmark.types.dto import DTO
-
 from models.examples.library_examples import LibrariesDto
 
 
@@ -55,6 +54,7 @@ class ExampleHistoricalSnap(credmark.model.Model):
             # block.output is type LibrariesDto
             assert block.output.libraries
         return blocks
+
 
 
 @credmark.model.describe(slug='example.historical-block-snap', version="1.0")

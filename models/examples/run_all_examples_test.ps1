@@ -9,9 +9,18 @@ function test-exit-code {
     }
 }
 
-python test\test.py run erc20-totalSupply --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' --api_url=http://localhost:8700/v1/model/run -b 14292598
+python test/test.py run sushiswap-get-pool --input '{token0:{symbol:USDC}, token1:{symbol:USDC}}' --api_url=http://localhost:8700/v1/model/run -b 14292598
+
+python test/test.py run aave-token-asset --input {"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"} --api_url=http://localhost:8700/v1/model/run -b 14292598
+
+python test/test.py run aave-token-asset --input {"symbol":"USDC"} --api_url=http://localhost:8700/v1/model/run -b 14292598
+
+python test/test.py run aave-token-asset-historical --input {"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"} --api_url=http://localhost:8700/v1/model/run -b 14292598
+
+python test/test.py run erc20-totalSupply --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' --api_url=http://localhost:8700/v1/model/run -b 14292598
 
 python test\test.py run example.historical --input '{"model_slug":"erc20-totalSupply","model_input":{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}}' --api_url=http://localhost:8700/v1/model/run -b 14292598
+
 
 echo ""
 echo "Run Historical Examples:"

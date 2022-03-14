@@ -3,8 +3,12 @@ from typing import (
     Tuple,
 )
 import credmark.model
-from credmark.types.dto import DTO, confloat, conint
-from credmark.types import Portfolio, Price, Address
+from credmark.types.dto import DTO, DTOField
+from credmark.types import (
+    Portfolio,
+    Price,
+    Address,
+)
 
 
 class PriceList(DTO):
@@ -15,8 +19,8 @@ class PriceList(DTO):
 class VarInput(DTO):
     portfolio: Portfolio
     prices: List[PriceList]
-    window: conint(ge=1)
-    confidence: List[confloat(gt=0.0, lt=1.0)]  # accepts multiple values
+    window: int = DTOField(..., ge=1)
+    confidence: List[float] = DTOField(..., gt=0.0, lt=1.0)  # accepts multiple values
 
     class Config:
         validate_assignment = True
@@ -26,12 +30,12 @@ class VarOutput(DTO):
     var: List[Tuple[float, float]]
 
 
-@credmark.model.describe(slug='var',
-                         version='1.0',
-                         display_name='Value at Risk',
-                         description='Value at Risk',
-                         input=VarInput,
-                         output=VarOutput)
+@ credmark.model.describe(slug='var',
+                          version='1.0',
+                          display_name='Value at Risk',
+                          description='Value at Risk',
+                          input=VarInput,
+                          output=VarOutput)
 class Var(credmark.model.Model):
 
     def run(self, input: VarInput) -> VarOutput:
@@ -45,8 +49,6 @@ class Var(credmark.model.Model):
             It then calculates the change in value over the window period for each timestamp,
             it returns the one that hits the input percentage.
         """
-
-        self.context.dask_client
 
         var = []
         for conf in input.confidence:

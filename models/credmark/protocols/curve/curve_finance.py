@@ -1,15 +1,38 @@
 
 from logging import info
 from typing import List
-import credmark.model
-from datetime import datetime
 
-from credmark.types import Account, Address, Contract, Contracts, Token, Tokens
-from credmark.types.models.ledger import (TransactionTable)
-from credmark.types.dto import DTO, DTOField
-from pandas import interval_range
-from ....tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
-from models.tmp_abi_lookup import CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI
+from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
+import credmark.model
+
+from credmark.types.models.ledger import (
+    TransactionTable
+)
+
+from credmark.types.dto import (
+    DTO,
+)
+
+from credmark.types import (
+    Address,
+    Contract,
+    Contracts,
+    Token,
+    Tokens,
+    BlockSeries
+)
+
+from typing import (
+    List
+)
+from models.tmp_abi_lookup import (
+    CURVE_GAUGE_V1_ABI,
+    CURVE_SWAP_ABI_1,
+    CURVE_SWAP_ABI_2,
+    CURVE_REGISTRY_ADDRESS,
+    CURVE_REGISTRY_ABI,
+    # CURVE_GAUGUE_CONTROLLER_ABI
+)
 
 
 class CurveFiPoolInfo(Contract):
@@ -29,12 +52,13 @@ class CurveFiPoolInfos(DTO):
                          version='1.0',
                          display_name='Curve Finance Pool Reserve Ratios',
                          description="the historical reserve ratios for a curve pool",
-                         input=Contract)
+                         input=Contract,
+                         output=BlockSeries[CurveFiPoolInfo])
 class CurveFinanceReserveRatio(credmark.model.Model):
 
-    def run(self, input: Contract) -> dict:
+    def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
         pool_address = input.address
-        pool_contract = self.context.web3.eth.contract(
+        _pool_contract = self.context.web3.eth.contract(
             address=pool_address.checksum,
             abi=CURVE_SWAP_ABI_1
         )
@@ -70,7 +94,7 @@ class CurveFinancePoolInfo(credmark.model.Model):
         balances = []
         try:
             input.functions.coins(0).call()
-        except Exception:
+        except Exception as _err:
             input = Contract(address=input.address, abi=CURVE_SWAP_ABI_2)
         for i in range(0, 8):
             try:
@@ -83,19 +107,21 @@ class CurveFinancePoolInfo(credmark.model.Model):
                     pass
                 balances.append(bal)
                 tokens.append(Token(address=tok))
-            except Exception:
+            except Exception as _err:
                 break
 
         try:
             a = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
-        except:
+        except Exception as _err:
             virtual_price = (10**18)
             a = 0
+
         try:
             input.name = input.functions.name().call()
-        except:
+        except Exception as _err:
             input.name = "swappool"
+
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
                                tokens=tokens,
@@ -116,11 +142,12 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
         pool_infos = [
             self.context.run_model(
                 "curve-fi-pool-info",
-                Contract(address=pool.address, abi=CURVE_SWAP_ABI_1),
+                Contract(address=pool.address.checksum, abi=CURVE_SWAP_ABI_1),
                 return_type=CurveFiPoolInfo)
             for pool in
             self.context.run_model(
                 "curve-fi-pools",
+                input=None,
                 return_type=Contracts)]
         for pi in pool_infos:
             info_i_want.append({
@@ -159,17 +186,20 @@ class CurveFinancePools(credmark.model.Model):
 class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
-        addrs = self.context.ledger.get_transactions(
+        _addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+        gauageAddress = Address('')
+        _gauge = self.context.web3.eth.contract(
+            address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+
+        return {}
 
 
-@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                         version='1.0',
-                         input=Contract)
+@ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
+                          version='1.0',
+                          input=Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
@@ -179,7 +209,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return addrs
 
 
-@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@ credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
@@ -188,11 +218,11 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
         yields = []
         for addr in input['userAddresses']:
             claimable_tokens = gauge.functions.claimable_tokens(
-                self.context.web3.toChecksumAddress(addr['address'])).call()
+                Address(addr['address']).checksum).call()
             balanceOf = gauge.functions.balanceOf(
-                self.context.web3.toChecksumAddress(addr['address'])).call()
+                Address(addr['address']).checksum).call()
             working_balances = gauge.functions.working_balances(
-                self.context.web3.toChecksumAddress(addr['address'])).call()
+                Address(addr['address']).checksum).call()
 
             yields.append({
                 "claimable_tokens": claimable_tokens,
@@ -206,7 +236,7 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
+@ credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
