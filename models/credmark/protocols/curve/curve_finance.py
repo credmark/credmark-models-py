@@ -58,7 +58,7 @@ class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
         pool_address = input.address
-        _pool_contract = self.context.web3.eth.contract(
+        _pool_contract = Contract(
             address=pool_address.checksum,
             abi=CURVE_SWAP_ABI_1
         )
@@ -76,7 +76,7 @@ class CurveFinanceReserveRatio(credmark.model.Model):
                 "balances":r.output['balances'],
                 "virtualPrice":r.output['virtualPrice']
             })
-        return res
+        return info_i_want
 
 
 @credmark.model.describe(slug="curve-fi-pool-info",
