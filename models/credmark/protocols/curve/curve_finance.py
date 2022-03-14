@@ -1,4 +1,5 @@
 
+from logging import info
 from typing import List
 import credmark.model
 from datetime import datetime
@@ -43,6 +44,14 @@ class CurveFinanceReserveRatio(credmark.model.Model):
                                                            model_input={
                                                                "address": input.address,
                                                            })
+        info_i_want = []
+        for r in res:
+            info_i_want.append({
+                "name":r.output['name'],
+                "blockNumber":r.blockNumber,
+                "balances":r.output['balances'],
+                "virtualPrice":r.output['virtualPrice']
+            })
         return res
 
 
@@ -99,11 +108,11 @@ class CurveFinancePoolInfo(credmark.model.Model):
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
-                         output=CurveFiPoolInfos)
+                         input=None)
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> CurveFiPoolInfos:
+        info_i_want = []
         pool_infos = [
             self.context.run_model(
                 "curve-fi-pool-info",
@@ -113,7 +122,16 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             self.context.run_model(
                 "curve-fi-pools",
                 return_type=Contracts)]
-        return CurveFiPoolInfos(pool_infos=pool_infos)
+        for pi in pool_infos:
+            info_i_want.append({
+                "address": pi.address,
+                "name": pi.name,
+                "virtual price": pi.virtualPrice,
+                "balances": pi.balances
+            })
+       
+
+        return info_i_want
 
 
 @credmark.model.describe(slug="curve-fi-pools",
