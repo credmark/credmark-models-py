@@ -7,7 +7,7 @@ class PortfolioSummary(DTO):
     num_tokens: int = DTOField(..., description='Number of different tokens')
 
 
-@credmark.model.describe(slug='type-test-1',
+@credmark.model.describe(slug='example.type-test-1',
                          version='1.0',
                          display_name='Test Model',
                          description='SDK Test Model',
@@ -19,7 +19,7 @@ class TestModel(credmark.model.Model):
         return PortfolioSummary(num_tokens=len(input.positions))
 
 
-@credmark.model.describe(slug='type-test-2',
+@credmark.model.describe(slug='example.type-test-2',
                          version='1.0',
                          display_name='Test Model',
                          description='SDK Test Model',
