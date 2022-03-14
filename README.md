@@ -259,6 +259,125 @@ You should create and keep your models under this folder. Note that we have appl
 
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
+# Model Library
+
+See a list of the [existing models](https://github.com/credmark/credmark-models-py/tree/main/models/credmark) in the repository.
+
+# API Gateway
+
+The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
+
+If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
+
+# SDK Command Documentation 
+## Help command
+
+All the commands accept `-h` parameter for help, e.g.:
+```
+>credmark-dev -h
+
+usage: credmark-dev [-h] [--log_level LOG_LEVEL] [--model_path MODEL_PATH] [--manifest_file MANIFEST_FILE]
+                    {list,list-models,models,deployed-models,describe,describe-models,man,run,run-model,build,build-manifest,clean,remove-manifest} ...
+
+Credmark developer tool
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log_level LOG_LEVEL
+                        Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  --model_path MODEL_PATH
+                        Semicolon separated paths to the model folders (or parent) or model python file. Defaults to models folder.
+  --manifest_file MANIFEST_FILE
+                        Name of the built manifest file. Defaults to models.json. [Not required during development]
+
+Commands:
+  Supported commands
+
+  {list,list-models,models,deployed-models,describe,describe-models,man,run,run-model,build,build-manifest,clean,remove-manifest}
+                        additional help
+    list (list-models)  List models in this repo
+    models (deployed-models)
+                        List models deployed on server
+    describe (describe-models, man)
+                        Show documentation for local and deployed models
+    run (run-model)     Run a model
+    build (build-manifest)
+                        Build model manifest [Not required during development]
+    clean (remove-manifest)
+                        Clean model manifest
+```
+## `run`command
+Below -h command shows the details of options available for run commands.
+```
+>credmark-dev run -h
+
+usage: credmark-dev run [-h] [-b BLOCK_NUMBER] [-c CHAIN_ID] [-i INPUT] [-v MODEL_VERSION] [--provider_url_map PROVIDER_URL_MAP] [--api_url API_URL] model-slug
+
+positional arguments:
+  model-slug            Slug for the model to run.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b BLOCK_NUMBER, --block_number BLOCK_NUMBER
+                        Block number used for the context of the model run. If not specified, it is set to the latest block of the chain.
+  -c CHAIN_ID, --chain_id CHAIN_ID
+                        [OPTIONAL] The chain ID. Defaults to 1.
+  -i INPUT, --input INPUT
+                        [OPTIONAL] Input JSON or if value is "-" it will read input JSON from stdin.
+  -v MODEL_VERSION, --model_version MODEL_VERSION
+                        [OPTIONAL] Version of the model to run. Defaults to latest.
+  --provider_url_map PROVIDER_URL_MAP
+                        [OPTIONAL] JSON object of chain id to Web3 provider HTTP URL. Overrides settings in env vars.
+  --api_url API_URL     [OPTIONAL] Credmark API url. Defaults to the standard API gateway. You do not normally need to set this.
+  --api_url API_URL     [OPTIONAL] Credmark API url
+```
+
+To call any model we can specify the output by providing below parameters (they're not necessarily required):
+
+- `-b` or `–block_number` : to define against which block number the model should run. If not specified, it uses the "latest" block from our ledger db.
+- `-i` or `–input` : to provide input for a model in a predefined structure.(you can run command `credmark-dev list --manifests` to see the input format required for each model. See example below). If not provided it will default to “{}”.
+Model-slug: Name of the model (slug) to call the model.
+
+Note:  if chain ID is not mentioned explicitly in the parameter,  it defaults to 1. If the model is using web 3 instance then chain id (and blockchain) will be picked from the .env file we defined during setup (refer to “configure environment variable” section). If the model is using Credmark database then, by default, it will refer to the Ethereum blockchain.
+
+See the example below. Here, we are running the model “cmk-circulating-supply” at block_number 14000000.
+```
+>Credmark-dev run -b 14000000 cmk-circulating-supply -i "{}"
+
+{"slug": "cmk-circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk-total-supply": {"1.0": 1}, "cmk-circulating-supply": {"1.0": 1}}}
+```
+
+## `list`command
+Below `-h` command shows the details of options available for list commands.
+```
+>credmark-dev list -h
+
+usage: credmark-dev list [-h] [--manifests] [--json]
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --manifests
+  --json
+```
+Note: You can also run `list-models` command alternatively.
+
+Example below shows simple output (list of all models and their version) of list command:
+```
+>credmark-dev list -h
+
+Loaded models:
+
+ - var: ['1.0']
+ - cmk-total-supply: ['1.0']
+ - cmk-circulating-supply: ['1.0']
+ - xcmk-total-supply: ['1.0']
+[...]
+```
+You can also get the list result in different formats using `--json` or `--manifest`.
+
+**Note:** the commands `build` and `clean` does not need to be used.
+
+
 # Credmark Model Framework Core Components
 
 In the following you will find the key components of every model.
@@ -315,7 +434,9 @@ The web3 providers are determined from the environment variables as described in
 `Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
 
 ✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
+
 ❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
+
 ❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
 
 Example:
@@ -431,14 +552,6 @@ See [token_example.py](https://github.com/credmark/credmark-models-py/blob/main/
 Token_data.py lists all erc20 tokens currently supported.
 
 **7. Portfolio:** This class holds a list of positions. So, it can be used to calculate all positions within a wallet.
-
-## Model Library
-
-See a list of the [existing models](https://github.com/credmark/credmark-models-py/tree/main/models/credmark) in the repository.
-
-## API Gateway
-
-The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
 
 # Error handling
 
