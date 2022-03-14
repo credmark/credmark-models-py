@@ -1,16 +1,14 @@
 
 import credmark.model
-from credmark.types import Address, Token, Account, Position, Portfolio
-from credmark.types.dto import DTO, DTOField
-from credmark.types.models.ledger import (
-    TokenTransferTable
-)
+from credmark.types import Token, Account, Position, Portfolio
+from credmark.types.models.ledger import TokenTransferTable
 
 
 @credmark.model.describe(
     slug="account.portfolio",
     version="1.0",
-    display_name="Token Information",
+    display_name="Account Portfolio",
+    description="All of the token holdings for an account",
     developer="Credmark",
     input=Account,
     output=Portfolio)
