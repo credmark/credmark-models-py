@@ -218,6 +218,15 @@ You should create and keep your models under this folder. Note that we have appl
 
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
+# Model Library
+
+See a list of the [existing models](https://github.com/credmark/credmark-models-py/tree/main/models/credmark) in the repository.
+
+# API Gateway
+
+The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
+
+If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
 
 # SDK Command Documentation 
 ## Help command
@@ -280,9 +289,9 @@ optional arguments:
   --api_url API_URL     [OPTIONAL] Credmark API url
 ```
 
-To call any model we need to provide below parameters:
+To call any model we can specify the output by providing below parameters (they're not necessarily required):
 
-- `-b` or `–block_number` : to define against which block number the model should run. If not provided it is set to latest block number available for the chain.
+- `-b` or `–block_number` : to define against which block number the model should run. If not specified, it uses the "latest" block from our ledger db.
 - `-i` or `–input` : to provide input for a model in a predefined structure.(you can run command `credmark-dev list --manifests` to see the input format required for each model. See example below). If not provided it will default to “{}”.
 Model-slug: Name of the model (slug) to call the model.
 
@@ -292,7 +301,6 @@ See the example below. Here, we are running the model “cmk-circulating-supply�
 ```
 >Credmark-dev run -b 14000000 cmk-circulating-supply -i "{}"
 
-2022-03-04 11:21:00,362 - credmark.model.engine.model_loader - INFO - Loading manifest from model_paths: ['models']
 {"slug": "cmk-circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk-total-supply": {"1.0": 1}, "cmk-circulating-supply": {"1.0": 1}}}
 ```
 
@@ -314,45 +322,13 @@ Example below shows simple output (list of all models and their version) of list
 ```
 >credmark-dev list -h
 
-2022-03-04 11:42:46,691 - credmark.model.engine.model_loader - INFO - Loading manifest from model_paths: ['models']
-
 Loaded models:
 
  - var: ['1.0']
  - cmk-total-supply: ['1.0']
  - cmk-circulating-supply: ['1.0']
  - xcmk-total-supply: ['1.0']
- - xcmk-cmk-staked: ['1.0']
- - xcmk-deployment-time: ['1.0']
- - curve-fi-all-pool-info-p: ['1.0']
- - curve-fi-pool-info: ['1.0']
- - curve-fi-all-pool-info: ['1.0']
- - curve-fi-pools: ['1.0']
- - uniswap-quoter-price-usd: ['1.0']
- - uniswap-router-price-usd: ['1.0']
- - uniswap-tokens: ['1.0']
- - uniswap-exchange: ['1.0']
- - uniswap-v3-get-pools: ['1.0']
- - uniswap-v3-get-pool-info: ['1.0']
- - uniswap-v3-get-average-price: ['1.0']
- - erc20-totalSupply: ['1.0']
- - erc20-balanceOf: ['1.0']
- - example-address: ['1.0']
- - example-address-transforms: ['1.0']
- - example-blocktime: ['1.0']
- - example-load-contract-by-name: ['1.0']
- - example-load-contract-by-address: ['1.0']
- - type-test-1: ['1.0']
- - type-test-2: ['1.0']
- - example-echo: ['1.0']
- - example-historical: ['1.0']
- - example-historical-snap: ['1.0']
- - example-historical-block-snap: ['1.0']
- - example-historical-block: ['1.0']
- - example-libraries: ['1.0']
- - historical-pi: ['1.0']
- - historical-staked-xcmk: ['1.0']
- - run-test: ['1.0']
+[...]
 ```
 You can also get the list result in different formats using `--json` or `--manifest`.
 
@@ -415,7 +391,9 @@ The web3 providers are determined from the environment variables as described in
 `Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
 
 ✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
+
 ❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
+
 ❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
 
 Example:
@@ -531,14 +509,6 @@ See [token_example.py](https://github.com/credmark/credmark-models-py/blob/main/
 Token_data.py lists all erc20 tokens currently supported.
 
 **7. Portfolio:** This class holds a list of positions. So, it can be used to calculate all positions within a wallet.
-
-## Model Library
-
-See a list of the [existing models](https://github.com/credmark/credmark-models-py/tree/main/models/credmark) in the repository.
-
-## API Gateway
-
-The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
 
 # Error handling
 
