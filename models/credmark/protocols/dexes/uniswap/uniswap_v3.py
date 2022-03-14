@@ -4,6 +4,7 @@ from credmark.types import (
     Token,
     Address,
     Contract,
+    Contracts,
     BlockSeries,
 )
 from credmark.types.dto import DTO
@@ -32,14 +33,15 @@ class UniswapV3PoolInfo(DTO):
     token1: Token
 
 
-@credmark.model.describe(slug='uniswap-v3-get-pools',
+@credmark.model.describe(slug='uniswap-v3.get-pools',
                          version='1.0',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
-                         input=Token)
+                         input=Token,
+                         output=Contracts)
 class UniswapV3GetPoolsForToken(credmark.model.Model):
 
-    def run(self, input: Token) -> dict:
+    def run(self, input: Token) -> Contracts:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
@@ -48,7 +50,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
         primary_tokens = [DAI_ADDRESS, WETH9_ADDRESS, USDC_ADDRESS, USDT_ADDRESS]
 
         if self.context.chain_id != 1:
-            return {}
+            return Contracts(contracts=[])
 
         uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
                                    abi=UNISWAP_V3_FACTORY_ABI).instance
@@ -60,12 +62,12 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
                 pool = uniswap_factory.functions.getPool(
                     input.address.checksum, primary_token, fee).call()
                 if pool != "0x0000000000000000000000000000000000000000":
-                    pools.append(pool)
+                    pools.append(Contract(address=pool))
 
-        return {"result": pools}
+        return Contracts(contracts=pools)
 
 
-@credmark.model.describe(slug='uniswap-v3-get-pool-info',
+@credmark.model.describe(slug='uniswap-v3.get-pool-info',
                          version='1.0',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
@@ -99,7 +101,7 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
         return UniswapV3PoolInfo(**res)
 
 
-@credmark.model.describe(slug='uniswap-v3-get-average-price',
+@credmark.model.describe(slug='uniswap-v3.get-average-price',
                          version='1.0',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
@@ -108,9 +110,9 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
         pools = self.context.run_model(
-            'uniswap-v3-get-pools', {"address": input.address.checksum})
-        infos = [self.context.run_model('uniswap-v3-get-pool-info',
-                                        {"address": p}, return_type=UniswapV3PoolInfo) for p in pools['result']]
+            'uniswap-v3.get-pools', {"address": input.address.checksum})
+        infos = [self.context.run_model('uniswap-v3.get-pool-info',
+                                        p, return_type=UniswapV3PoolInfo) for p in pools]
         prices = []
         for info in infos:
             # decimal only available for ERC20s
@@ -123,7 +125,7 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                 if input.address != WETH9_ADDRESS:
                     if info.token1.address == WETH9_ADDRESS or info.token0.address == WETH9_ADDRESS:
                         tick_price = tick_price * \
-                            self.context.run_model('uniswap-v3-get-average-price',
+                            self.context.run_model('uniswap-v3.get-average-price',
                                                    {"address": WETH9_ADDRESS}, return_type=Price).price
 
                 prices.append(tick_price)
@@ -136,7 +138,7 @@ class HistoricalPriceDTO(DTO):
     window: str
 
 
-@ credmark.model.describe(slug='uniswap-v3-get-historical-price',
+@ credmark.model.describe(slug='uniswap-v3.get-historical-price',
                           version='1.0',
                           input=HistoricalPriceDTO,
                           output=BlockSeries[Price])
@@ -144,4 +146,4 @@ class UniswapV3GetAveragePrice30Day(credmark.model.Model):
 
     def run(self, input: HistoricalPriceDTO) -> BlockSeries[Price]:
 
-        return self.context.historical.run_model_historical('uniswap-v3-get-average-price', window=input.window, model_input=input.token)
+        return self.context.historical.run_model_historical('uniswap-v3.get-average-price', window=input.window, model_input=input.token)
