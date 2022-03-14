@@ -42,12 +42,12 @@ class UniswapV3PoolInfo(DTO):
 class UniswapV3GetPoolsForToken(credmark.model.Model):
 
     def run(self, input: Token) -> Contracts:
-        """
-        We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
-        Block_number should be taken care of.
-        """
+
         fees = [500, 3000, 10000]
-        primary_tokens = [DAI_ADDRESS, WETH9_ADDRESS, USDC_ADDRESS, USDT_ADDRESS]
+        primary_tokens = [Token(symbol='DAI'),
+                          Token(symbol='WETH'),
+                          Token(symbol='USDC'),
+                          Token(symbol='USDT')]
 
         if self.context.chain_id != 1:
             return Contracts(contracts=[])
@@ -60,7 +60,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
         for fee in fees:
             for primary_token in primary_tokens:
                 pool = uniswap_factory.functions.getPool(
-                    input.address.checksum, primary_token, fee).call()
+                    input.address.checksum, primary_token.address.checksum, fee).call()
                 if pool != "0x0000000000000000000000000000000000000000":
                     pools.append(Contract(address=pool))
 
@@ -110,9 +110,13 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
         pools = self.context.run_model(
-            'uniswap-v3.get-pools', {"address": input.address.checksum})
-        infos = [self.context.run_model('uniswap-v3.get-pool-info',
-                                        p, return_type=UniswapV3PoolInfo) for p in pools]
+            'uniswap-v3.get-pools', input)
+        infos = [
+            self.context.run_model('uniswap-v3.get-pool-info',
+                                   p,
+                                   return_type=UniswapV3PoolInfo)
+            for p in pools
+        ]
         prices = []
         for info in infos:
             # decimal only available for ERC20s

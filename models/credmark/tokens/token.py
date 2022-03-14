@@ -70,18 +70,6 @@ class TokenSwapPools(credmark.model.Model):
         return response
 
 
-@credmark.model.describe(slug='token.overall-volume',
-                         version='1.0',
-                         display_name='Token Volume',
-                         description='The Current Credmark Supported trading volume algorithm',
-                         input=Token,
-                         output=dict)
-class TokenVolume(credmark.model.Model):
-    def run(self, input: Token) -> dict:
-        # TODO: Get Overall Volume
-        return {"result": 0}
-
-
 @credmark.model.describe(slug='token.swap-pool-volume',
                          version='1.0',
                          display_name='Token Volume',
@@ -91,6 +79,18 @@ class TokenVolume(credmark.model.Model):
 class TokenSwapPoolVolume(credmark.model.Model):
     def run(self, input: Token) -> dict:
         # TODO: Get All Credmark Supported swap Pools for a token
+        return {"result": 0}
+
+
+@credmark.model.describe(slug='token.overall-volume',
+                         version='1.0',
+                         display_name='Token Volume',
+                         description='The Current Credmark Supported trading volume algorithm',
+                         input=Token,
+                         output=dict)
+class TokenVolume(credmark.model.Model):
+    def run(self, input: Token) -> dict:
+        # TODO: Get Overall Volume
         return {"result": 0}
 
 
