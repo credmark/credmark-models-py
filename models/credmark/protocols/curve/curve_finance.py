@@ -57,11 +57,7 @@ class CurveFiPoolInfos(DTO):
 class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
-        pool_address = input.address
-        _pool_contract = Contract(
-            address=pool_address.checksum,
-            abi=CURVE_SWAP_ABI_1
-        )
+
         res = self.context.historical.run_model_historical('curve-fi-pool-info',
                                                            window='60 days',
                                                            interval='7 days',
@@ -118,16 +114,17 @@ class CurveFinancePoolInfo(credmark.model.Model):
             a = 0
 
         try:
-            input.name = input.functions.name().call()
+            name = input.functions.name().call()
         except Exception as _err:
-            input.name = "swappool"
+            name = "swappool"
 
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
                                tokens=tokens,
                                balances=balances,
                                underlying_tokens=underlying_tokens,
-                               A=a)
+                               A=a,
+                               name=name)
 
 
 @credmark.model.describe(slug="curve-fi-all-pool-info",
@@ -191,7 +188,7 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
         gauageAddress = Address('')
-        _gauge = self.context.web3.eth.contract(
+        _gauge = Contract(
             address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
 
         return {}
