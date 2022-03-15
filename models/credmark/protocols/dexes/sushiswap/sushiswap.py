@@ -51,7 +51,8 @@ class SushiSwapPool(DTO):
 @credmark.model.describe(slug="sushiswap-get-pool",
                          version="1.0",
                          display_name="Sushiswap get pool for a pair of tokens",
-                         description="Returns the addresses of the pool of both tokens on Suhsiswap protocol",
+                         description=("Returns the addresses of the pool of "
+                                      "both tokens on Suhsiswap protocol"),
                          input=SushiSwapPool)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: SushiSwapPool):
@@ -108,7 +109,14 @@ class SushiswapGetPairDetails(credmark.model.Model):
         token0_reserve = getReserves[0]/pow(10, _token0_decimals)
         token1_reserve = getReserves[1]/pow(10, _token1_decimals)
 
-        output = {'pairAddress': input.address, 'token0': token0, 'token0_name': _token0_name, 'token0_symbol': _token0_symbol,
-                  'token0_reserve': token0_reserve, 'token1': token1, 'token1_name': _token1_name, 'token1_symbol': _token1_symbol, 'token1_reserve': token1_reserve}
+        output = {'pairAddress': input.address,
+                  'token0': token0,
+                  'token0_name': _token0_name,
+                  'token0_symbol': _token0_symbol,
+                  'token0_reserve': token0_reserve,
+                  'token1': token1,
+                  'token1_name': _token1_name,
+                  'token1_symbol': _token1_symbol,
+                  'token1_reserve': token1_reserve}
 
         print(output)

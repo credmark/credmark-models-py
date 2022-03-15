@@ -20,7 +20,8 @@ class LibrariesDto(DTO):
 @credmark.model.describe(slug='example.libraries',
                          version='1.0',
                          display_name='Libraries',
-                         description="A list of the math/data science libraries that are included in the Credmark Framework.",
+                         description=("A list of the math/data science libraries that are "
+                                      "included in the Credmark Framework."),
                          output=LibrariesDto)
 class ExampleLibraries(credmark.model.Model):
     def run(self, input) -> LibrariesDto:

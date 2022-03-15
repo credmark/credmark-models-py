@@ -1,7 +1,7 @@
+from typing import (
+    List
+)
 
-from typing import List
-
-from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
 import credmark.model
 
 from credmark.types.models.ledger import (
@@ -21,9 +21,6 @@ from credmark.types import (
     BlockSeries
 )
 
-from typing import (
-    List
-)
 from models.tmp_abi_lookup import (
     CURVE_GAUGE_V1_ABI,
     CURVE_SWAP_ABI_1,
@@ -220,7 +217,9 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield',
+                         version='1.0',
+                         input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
@@ -234,13 +233,16 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
             'curve-fi-pool-info', Token(address=lp_token_address))
         addrs = self.context.run_model('curve-fi-all-gauge-addresses', input)
 
-        res = self.context.historical.run_model_historical('curve-fi-get-gauge-stake-and-claimable-rewards',
-                                                           window='60 days',
-                                                           interval='7 days',
-                                                           model_input={
-                                                               "gaugeAddress": input.address,
-                                                               "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
-                                                           })
+        gauge_input = {
+            "gaugeAddress": input.address,
+            "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
+        }
+
+        res = self.context.historical.run_model_historical(
+            'curve-fi-get-gauge-stake-and-claimable-rewards',
+            window='60 days',
+            interval='7 days',
+            model_input=gauge_input)
         yields = []
         for idx in range(0, len(res.series) - 1):
             for y1 in res.series[idx].output['yields']:
@@ -284,7 +286,8 @@ class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
         gauges = ['0x72E158d38dbd50A483501c24f792bDAAA3e7D55C']
-        # gauges = ["0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A", "0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", "0x9582C4ADACB3BCE56Fea3e590F05c3ca2fb9C477",
+        # pylint: disable=locally-disabled, line-too-long
+        # gauges = ["0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A","0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", "0x9582C4ADACB3BCE56Fea3e590F05c3ca2fb9C477",
         #          "0x6d10ed2cF043E6fcf51A0e7b4C2Af3Fa06695707", "0xdFc7AdFa664b08767b735dE28f9E84cd30492aeE", "0x69Fb7c45726cfE2baDeE8317005d3F94bE838840", "0x7ca5b0a2910B33e9759DC7dDB0413949071D7575",
         #          "0xAEA6c312f4b3E04D752946d329693F7293bC2e6D", "0x90Bb609649E0451E5aD952683D64BD2d1f245840", "0x72e158d38dbd50a483501c24f792bdaaa3e7d55c", "0xC5cfaDA84E902aD92DD40194f0883ad49639b023",
         #          "0x4c18E409Dc8619bFb6a1cB56D114C3f592E0aE79", "0x2db0E83599a91b508Ac268a6197b8B14F5e72840", "0x5f626c30EC1215f4EdCc9982265E8b1F411D1352", "0x11137B10C210b579405c21A07489e28F3c040AB1",

@@ -7,14 +7,14 @@ from credmark.types import (
     Contracts,
     BlockSeries,
 )
+
 from credmark.types.dto import DTO
+
 from models.tmp_abi_lookup import (
-    DAI_ADDRESS,
     UNISWAP_V3_FACTORY_ABI,
     UNISWAP_V3_FACTORY_ADDRESS,
     UNISWAP_V3_POOL_ABI,
-    USDT_ADDRESS,
-    WETH9_ADDRESS, USDC_ADDRESS,
+    WETH9_ADDRESS,
 )
 
 
@@ -130,7 +130,8 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                     if info.token1.address == WETH9_ADDRESS or info.token0.address == WETH9_ADDRESS:
                         tick_price = tick_price * \
                             self.context.run_model('uniswap-v3-get-average-price',
-                                                   {"address": WETH9_ADDRESS}, return_type=Price).price
+                                                   {"address": WETH9_ADDRESS},
+                                                   return_type=Price).price
 
                 prices.append(tick_price)
         price = sum(prices) / len(prices)
