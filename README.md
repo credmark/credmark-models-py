@@ -10,13 +10,13 @@ Moreover, the Credmark Model Framework includes the credmark-dev command-line to
 
 ## Prerequisites
 
-- Python 3.9+ or Miniconda 4.10+ installed
-- Personal web3 provider url (Alchemy or other) if you need to use your own web3 provider instance to run any model
-- Visual studio 2019+ installed for Windows users
+- [Python 3.9+](https://www.python.org/downloads/) or [Miniconda 4.10+](https://docs.conda.io/en/latest/miniconda.html) installed
+- Personal web3 provider url ([Alchemy](https://docs.alchemy.com/alchemy/introduction/getting-started) or other) if you need to use your own web3 provider instance to run any model
+- [Visual studio 2019+](https://visualstudio.microsoft.com/de/downloads/) installed for Windows users
 
-## Clone Repository
+## Fork Repository
 
-Clone [credmark-models-py](https://github.com/credmark/credmark-models-py) repository
+Fork [credmark-models-py](https://github.com/credmark/credmark-models-py) repository
 
 ## Virtual Env
 
