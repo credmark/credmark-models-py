@@ -124,7 +124,9 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                                    return_type=UniswapV3PoolInfo)
             for p in pools
         ]
+
         prices = []
+        weth_prices = None
         for info in infos:
             # decimal only available for ERC20s
             if info.token0.decimals and info.token1.decimals:
@@ -134,14 +136,16 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                     tick_price = 1/tick_price
 
                 if input.address != WETH9_ADDRESS:
-                    if info.token1.address == WETH9_ADDRESS or info.token0.address == WETH9_ADDRESS:
-                        tick_price = tick_price * \
-                            self.context.run_model('uniswap.v3-get-average-price',
-                                                   {"address": WETH9_ADDRESS},
-                                                   return_type=Price).price
+                    if WETH9_ADDRESS in (info.token1.address, info.token0.address):
+                        if weth_prices is None:
+                            weth_prices = self.context.run_model('uniswap.v3-get-average-price',
+                                                                 {"address": WETH9_ADDRESS},
+                                                                 return_type=Price).price
+                        tick_price = tick_price * weth_prices
 
                 prices.append(tick_price)
         price = sum(prices) / len(prices)
+
         return Price(price=price)
 
 
