@@ -1,15 +1,31 @@
+#!/bin/bash
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]
+then
+    echo -e "\nUsage: $0 [prod]\n"
+    exit 0
+fi
+
 if [ $# -ge 1 ] && [ $1 == 'prod' ]
 then
     cmk_dev='credmark-dev'
-    echo Use installed version.
+    api_url=''  # no api url param uses the gateway api
+    echo Using installed credmark-dev and gateway api.
 else
     cmk_dev='python test/test.py'
-    echo In test mode, using ${cmk_dev}
+    api_url='--api_url=http://localhost:8700'
+    echo In test mode, using ${cmk_dev} and ${api_url}
 fi
 
 cmk_dev2='credmark-dev'
 
-FULL_PATH_TO_SCRIPT="$(realpath "${BASH_SOURCE[-1]}")"
+if [ `which realpath` == '']
+then
+   FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
+else
+   FULL_PATH_TO_SCRIPT="$(realpath "${BASH_SOURCE[-1]}")"
+fi
+
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
 cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
@@ -21,10 +37,10 @@ run_model () {
     input=$2
     if [ $# -eq 3 ] && [ $3 == 'print-command' ]
     then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run"
+        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}"
     else
-        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run" >> $cmd_file
-        ${cmk_dev} run ${model} --input "${input}" -b 14234904 --api_url=http://localhost:8700/v1/model/run
+        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 ${api_url}" >> $cmd_file
+        ${cmk_dev} run ${model} --input "${input}" -b 14234904 ${api_url}
     fi
 }
 
@@ -63,14 +79,23 @@ ${cmk_dev} list | awk -v test_script=$0 '{
     if ($0 ~ / - /) {
         m=substr($2, 0, length($2)-1)
         res=""
-        ( ("grep " m " "test_script) | getline res )
+        command = ("grep " m " "test_script)
+        ( command | getline res )
         if (res == "") {
             print "(Test check) No test for " m
         }
+        close(command)
     }
 }'
 
-echo "${cmk_dev2} list" > $cmd_file
+echo -e "#!/bin/bash\n" > $cmd_file
+
+if [ `which chmod` != '' ]
+then
+   chmod u+x $cmd_file
+fi
+
+echo "${cmk_dev2} list" >> $cmd_file
 
 echo_cmd ""
 echo_cmd "Neil's example:"

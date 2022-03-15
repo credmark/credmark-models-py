@@ -38,7 +38,7 @@ class ExampleLibraries(credmark.model.Model):
                     },
                     {
                         "name": matplotlib.__name__,
-                        "version": matplotlib.__version__,
+                        "version": matplotlib.__version__,  # type: ignore
                     },
                     {
                         "name": scipy.__name__,
@@ -58,7 +58,7 @@ class ExampleLibraries(credmark.model.Model):
                     },
                     {
                         "name": BeautifulSoup.__name__,
-                        "version": bs4.__version__
+                        "version": bs4.__version__  # type: ignore
                     },
                     {
                         "name": pyarrow.__name__,
