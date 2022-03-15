@@ -1,8 +1,25 @@
 from typing import List
+
 import credmark.model
-from credmark.types import Address, Contract, Token, BlockSeries, Position, Portfolio
-from credmark.types.dto import DTO, IterableListGenericDTO
-from models.tmp_abi_lookup import AAVE_V2_TOKEN_CONTRACT_ABI, ERC_20_TOKEN_CONTRACT_ABI
+
+from credmark.types import (
+    Address,
+    Contract,
+    Token,
+    BlockSeries,
+    Position,
+    Portfolio,
+)
+
+from credmark.types.dto import (
+    DTO,
+    IterableListGenericDTO,
+)
+
+from models.tmp_abi_lookup import (
+    AAVE_V2_TOKEN_CONTRACT_ABI,
+    ERC_20_TOKEN_CONTRACT_ABI,
+)
 
 
 class AaveDebtInfo(DTO):
