@@ -14,6 +14,7 @@ from credmark.types.dto import (
 
 from credmark.types import (
     Address,
+    Account,
     Contract,
     Contracts,
     Token,
@@ -37,7 +38,6 @@ class CurveFiPoolInfo(Contract):
     balances: List[int]
     underlying_tokens: Tokens
     A: int
-    name: str
 
 
 class CurveFiPoolInfos(DTO):
@@ -53,8 +53,10 @@ class CurveFiPoolInfos(DTO):
 class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
-        pool_address = input.address
-        _pool_contract = Contract(address=pool_address.checksum, abi=CURVE_SWAP_ABI_1)
+        # Verify input address can create a contract
+        _pool_address = input.address
+        _pool_contract = Contract(address=_pool_address.checksum, abi=CURVE_SWAP_ABI_1)
+
         res = self.context.historical.run_model_historical('curve-fi-pool-info',
                                                            window='60 days',
                                                            interval='7 days',
@@ -74,14 +76,13 @@ class CurveFinanceReserveRatio(credmark.model.Model):
 class CurveFinancePoolInfo(credmark.model.Model):
 
     def run(self, input: Contract) -> CurveFiPoolInfo:
-
         tokens = Tokens()
         underlying_tokens = Tokens()
         balances = []
         try:
             input.functions.coins(0).call()
         except Exception as _err:
-            input = Contract(address=input.address, abi=CURVE_SWAP_ABI_2)
+            input = Contract(address=input.address.checksum, abi=CURVE_SWAP_ABI_2)
         for i in range(0, 8):
             try:
                 tok = input.functions.coins(i).call()
@@ -168,7 +169,7 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
-        gauageAddress = Address('')
+        gauageAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
         _gauge = Contract(address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
 
         return {}
@@ -183,7 +184,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        return addrs
+        return {'data': addrs}
 
 
 @credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
@@ -214,20 +215,21 @@ CRV_PRICE = 3.0
 
 @credmark.model.describe(slug='curve-fi-avg-gauge-yield',
                          version='1.0',
-                         input=Token)
+                         input=Account)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
         presuming that crv has a constant value of $3
         """
 
+        if not input.address:
+            raise ValueError('input address is invalid')
+
         curve_gauge = Contract(
             address=input.address.checksum,
             abi=CURVE_GAUGE_V1_ABI)
 
         lp_token_address = curve_gauge.functions.lp_token().call()
-
-        breakpoint()
 
         pool_info = self.context.run_model(
             'curve-fi-pool-info', Contract(address=lp_token_address, abi=CURVE_SWAP_ABI_1))
@@ -303,8 +305,6 @@ class CurveFinanceAllYield(credmark.model.Model):
         #          "0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1", "0x8101E6760130be2C8Ace79643AB73500571b7162"]
 
         for gauge in gauges:
-            print(gauge)
-            breakpoint()
             yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
             print(yields)
             res.append(yields)

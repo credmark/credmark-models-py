@@ -16,7 +16,7 @@ from models.tmp_abi_lookup import (
 )
 
 
-@credmark.model.describe(slug="sushiswap-all-pools",
+@credmark.model.describe(slug="sushiswap.all-pools",
                          version="1.0",
                          display_name="Sushiswap all pairs",
                          description="Returns the addresses of all pairs on Suhsiswap protocol")
@@ -49,7 +49,7 @@ class SushiSwapPool(DTO):
     token1: Token
 
 
-@credmark.model.describe(slug="sushiswap-get-pool",
+@credmark.model.describe(slug="sushiswap.get-pool",
                          version="1.0",
                          display_name="Sushiswap get pool for a pair of tokens",
                          description=("Returns the addresses of the pool of "
@@ -73,7 +73,7 @@ class SushiswapGetPair(credmark.model.Model):
             return {}
 
 
-@credmark.model.describe(slug="sushiswap-get-pool-info",
+@credmark.model.describe(slug="sushiswap.get-pool-info",
                          version="1.0",
                          display_name="Sushiswap get details for a pool",
                          description="Returns the token details of the pool",

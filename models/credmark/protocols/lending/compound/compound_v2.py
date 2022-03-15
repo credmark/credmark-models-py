@@ -4,8 +4,6 @@ from credmark.types import (
     Token,
     Contract,
 )
-from credmark.types.dto import DTO, DTOField
-from credmark.types import Position
 from models.tmp_abi_lookup import (
     COMPOUND_ABI,
     ERC_20_TOKEN_CONTRACT_ABI,
@@ -52,6 +50,7 @@ class CompoundGetAssets(credmark.model.Model):
             address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
             abi=COMPOUND_ABI
         )
+
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(Address(input.address)).call()
         tokencontract = Contract(

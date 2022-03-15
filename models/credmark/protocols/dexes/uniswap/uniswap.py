@@ -21,7 +21,7 @@ class UniswapQuoterPriceUsd(DTO):
     tokenAddress: Address
 
 
-@credmark.model.describe(slug='uniswap-quoter-price-usd',
+@credmark.model.describe(slug='uniswap.quoter-price-usd',
                          version='1.0',
                          display_name='The Price of a Token on Uniswap in USD',
                          description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
@@ -56,7 +56,7 @@ class UniswapRouterPricePair(credmark.model.Model):
         return result
 
 
-@credmark.model.describe(slug='uniswap-router-price-usd',
+@credmark.model.describe(slug='uniswap.router-price-usd',
                          version='1.0',
                          display_name='The Price of a Token on Uniswap with respect to another Token',
                          description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
@@ -74,7 +74,7 @@ class UniswapRouterPriceUsd(credmark.model.Model):
         return {}
 
 
-@credmark.model.describe(slug='uniswap-tokens',
+@credmark.model.describe(slug='uniswap.tokens',
                          version='1.0',
                          display_name='uniswap tokens',
                          description='uniswap tokens')
@@ -91,10 +91,10 @@ class UniswapTokens(credmark.model.Model):
         return {'value': allPairsLength}
 
 
-@credmark.model.describe(slug='uniswap-exchange',
+@credmark.model.describe(slug='uniswap.exchange',
                          version='1.0',
-                         display_name='uniswap-exchange',
-                         description='uniswap-exchange')
+                         display_name='uniswap.exchange',
+                         description='uniswap.exchange')
 class UniswapExchange(credmark.model.Model):
 
     def run(self, input) -> dict:

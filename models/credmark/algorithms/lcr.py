@@ -11,15 +11,20 @@ from credmark.types import (
 )
 
 
-@credmark.model.describe(slug='var',
+class LCRInput(DTO):
+    address: Address
+    stablecoins: List[str] = DTOField(['USDC', 'USDT', 'DAI'])
+    shock: float
+
+
+@credmark.model.describe(slug='lcr',
                          version='1.0',
-                         display_name='Value at Risk',
-                         description='Value at Risk',
-                         input=Address,
-                         output=VarOutput)
+                         display_name='Liquidity Coverage Ratio',
+                         description='A simple LCR model',
+                         input=LCRInput)
 class Var(credmark.model.Model):
 
-    def run(self, input: VarInput) -> VarOutput:
+    def run(self, input: LCRInput) -> dict:
         """
             Var takes in a portfolio object,
             a list of prices per token into the past,
@@ -31,10 +36,4 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
-        var = []
-        for conf in input.confidence:
-            var.append((conf, 100))
-
-        result = VarOutput(var=var)
-
-        return result
+        return {}
