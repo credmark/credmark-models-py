@@ -1,4 +1,5 @@
 import credmark.model
+from credmark.model import ModelRunError
 
 from credmark.types import (
     Address,
@@ -47,7 +48,7 @@ class CompoundGetAssets(credmark.model.Model):
     def run(self, input: Token) -> dict:
 
         if not input.address:
-            raise ValueError('Error with input')
+            raise ModelRunError(f'Input token is invalid, {input}')
 
         output = {}
         contract = Contract(
@@ -77,7 +78,7 @@ class CompoundGetAssets(credmark.model.Model):
 class CompoundV2GetTokenLiability(credmark.model.Model):
     def run(self, input: Token) -> dict:
         if not input.address:
-            raise ValueError('Error with input')
+            raise ModelRunError(f'Input token is invalid, {input}')
 
         output = {}
         tokenContract = Contract(
@@ -110,7 +111,7 @@ class CompoundV2GetTokenLiability(credmark.model.Model):
 class CompoundV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
         if not input.address:
-            raise ValueError('Error with input')
+            raise ModelRunError(f'Input token is invalid, {input}')
 
         output = {}
         tokenContract = Contract(

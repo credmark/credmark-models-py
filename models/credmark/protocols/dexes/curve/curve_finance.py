@@ -4,6 +4,8 @@ from typing import (
 
 import credmark.model
 
+from credmark.model import ModelRunError
+
 from credmark.types.models.ledger import (
     TransactionTable
 )
@@ -223,7 +225,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         """
 
         if not input.address:
-            raise ValueError('input address is invalid')
+            raise ModelRunError(f'Input account is invalid, {input}')
 
         curve_gauge = Contract(
             address=input.address.checksum,
