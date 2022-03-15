@@ -8,33 +8,15 @@ from credmark.types import (
     Portfolio,
     Price,
     Address,
+    Wallet,
 )
-
-
-class PriceList(DTO):
-    price: Price
-    token: Address
-
-
-class VarInput(DTO):
-    portfolio: Portfolio
-    prices: List[PriceList]
-    window: int = DTOField(..., ge=1)
-    confidence: List[float] = DTOField(..., gt=0.0, lt=1.0)  # accepts multiple values
-
-    class Config:
-        validate_assignment = True
-
-
-class VarOutput(DTO):
-    var: List[Tuple[float, float]]
 
 
 @credmark.model.describe(slug='var',
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',
-                         input=VarInput,
+                         input=Wallet,
                          output=VarOutput)
 class Var(credmark.model.Model):
 

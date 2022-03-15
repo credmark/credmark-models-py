@@ -269,7 +269,7 @@ The Credmark Framework provides access to remote models and access to on-chain d
 
 If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
 
-# SDK Command Documentation 
+# Framework Command Documentation 
 ## Help command
 
 All the commands accept `-h` parameter for help, e.g.:

@@ -10,7 +10,7 @@ class PortfolioSummary(DTO):
 @credmark.model.describe(slug='example.type-test-1',
                          version='1.0',
                          display_name='Test Model',
-                         description='SDK Test Model',
+                         description='Framework Test Model',
                          input=Portfolio,
                          output=PortfolioSummary)
 class TestModel(credmark.model.Model):
@@ -22,7 +22,7 @@ class TestModel(credmark.model.Model):
 @credmark.model.describe(slug='example.type-test-2',
                          version='1.0',
                          display_name='Test Model',
-                         description='SDK Test Model',
+                         description='Framework Test Model',
                          input=Portfolio,
                          output=PortfolioSummary)
 class TestModel2(credmark.model.Model):
