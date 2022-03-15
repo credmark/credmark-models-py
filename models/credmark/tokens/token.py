@@ -1,8 +1,27 @@
+# pylint: disable=locally-disabled, unused-import
 
 import credmark.model
-from credmark.types import Address, Token, Account, Position, Price, Contract, Accounts, Contracts
-from credmark.types.data.token_wei import TokenWei
-from credmark.types.dto import DTO, DTOField, IterableListGenericDTO
+
+from credmark.types import (
+    Address,
+    Token,
+    Account,
+    Position,
+    Price,
+    Contract,
+    Accounts,
+    Contracts
+)
+
+from credmark.types.data.token_wei import (
+    TokenWei
+)
+
+from credmark.types.dto import (
+    DTO,
+    DTOField,
+    IterableListGenericDTO
+)
 from typing import List
 
 

@@ -87,7 +87,7 @@ credmark-dev run <Specify Slug> -b <Specify block number>  -i <Specify Input>
 so for example
 
 ```
-credmark-dev run cmk-circulating-supply -b 14000000  -i “{}”
+credmark-dev run cmk.circulating-supply -b 14000000  -i “{}”
 ```
 
 Tip: you can run the command
@@ -215,13 +215,13 @@ We strongly encourage you to create DTOs and/or make use of the common objects, 
 You may use `credmark-dev describe {model_slug}` to show the input/output schema and examples for specific model(s). For example
 
 ```
-credmark-dev describe aave-token-asset-historical
+credmark-dev describe aave.token-asset-historical
 
 (...omit the output header)
 
 Loaded models:
 
- - slug: aave-token-asset-historical
+ - slug: aave.token-asset-historical
  - version: 1.0
  - tags: None
  - display_name: Aave V2 token liquidity
@@ -269,7 +269,7 @@ The Credmark Framework provides access to remote models and access to on-chain d
 
 If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
 
-# SDK Command Documentation 
+# Framework Command Documentation 
 ## Help command
 
 All the commands accept `-h` parameter for help, e.g.:
@@ -340,11 +340,11 @@ Model-slug: Name of the model (slug) to call the model.
 
 Note:  if chain ID is not mentioned explicitly in the parameter,  it defaults to 1. If the model is using web 3 instance then chain id (and blockchain) will be picked from the .env file we defined during setup (refer to “configure environment variable” section). If the model is using Credmark database then, by default, it will refer to the Ethereum blockchain.
 
-See the example below. Here, we are running the model “cmk-circulating-supply” at block_number 14000000.
+See the example below. Here, we are running the model “cmk.circulating-supply” at block_number 14000000.
 ```
->Credmark-dev run -b 14000000 cmk-circulating-supply -i "{}"
+>Credmark-dev run -b 14000000 cmk.circulating-supply -i "{}"
 
-{"slug": "cmk-circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk-total-supply": {"1.0": 1}, "cmk-circulating-supply": {"1.0": 1}}}
+{"slug": "cmk.circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk.total-supply": {"1.0": 1}, "cmk.circulating-supply": {"1.0": 1}}}
 ```
 
 ## `list`command
@@ -368,9 +368,9 @@ Example below shows simple output (list of all models and their version) of list
 Loaded models:
 
  - var: ['1.0']
- - cmk-total-supply: ['1.0']
- - cmk-circulating-supply: ['1.0']
- - xcmk-total-supply: ['1.0']
+ - cmk.total-supply: ['1.0']
+ - cmk.circulating-supply: ['1.0']
+ - xcmk.total-supply: ['1.0']
 [...]
 ```
 You can also get the list result in different formats using `--json` or `--manifest`.
@@ -441,7 +441,9 @@ The web3 providers are determined from the environment variables as described in
 
 Example:
 
-        contract = self.context.web3.eth.contract(
+        from credmark.types import (Address, Contract)
+
+        contract = Contract(
             # lending pool address
             address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
