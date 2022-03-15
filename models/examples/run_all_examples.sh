@@ -102,11 +102,11 @@ credmark-dev run uniswap.router-price-usd --input '{}' -b 14234904 --api_url=htt
 echo ""
 echo "Run Uniswap V3 Examples:"
 echo ""
-credmark-dev run uniswap.v3-get-pools --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
-credmark-dev run uniswap.v3-get-pool-info --input '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
-credmark-dev run uniswap.v3-get-average-price --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
-credmark-dev run uniswap.v3-get-historical-price --input '{"token": {"symbol": "USDC"}, "window": "10 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
-credmark-dev run uniswap.v3-get-historical-price --input '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap-v3.get-pools --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap-v3.get-pool-info --input '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap-v3.get-average-price --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap-v3.get-historical-price --input '{"token": {"symbol": "USDC"}, "window": "10 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap-v3.get-historical-price --input '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run SushiSwap Examples:"
 echo ""

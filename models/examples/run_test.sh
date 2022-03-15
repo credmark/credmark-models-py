@@ -23,7 +23,7 @@ run_model () {
     then
         echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run"
     else
-        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run" >> $cmd_file    
+        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run" >> $cmd_file
         ${cmk_dev} run ${model} --input "${input}" -b 14234904 --api_url=http://localhost:8700/v1/model/run
     fi
 }
@@ -143,11 +143,11 @@ echo_cmd ""
 test_model 0 example.ledger-token-transfers '{"address":"0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"}'
 test_model 0 example.ledger-transactions '{}'
 test_model 0 example.ledger-receipts '{}'
-test_model 0 example.ledger-traces '{}' 
+test_model 0 example.ledger-traces '{}'
 test_model 0 example.ledger-blocks '{}'
 test_model 0 example.ledger-tokens '{}'
-test_model 0 example.ledger-contracts '{}' 
-test_model 0 example.ledger-logs '{}' 
+test_model 0 example.ledger-contracts '{}'
+test_model 0 example.ledger-logs '{}'
 
 echo_cmd ""
 echo_cmd "Run Iteration Examples:"
@@ -201,12 +201,12 @@ test_model 0 uniswap.router-price-usd '{}'
 echo_cmd ""
 echo_cmd "Run Uniswap V3 Examples:"
 echo_cmd ""
-test_model 0 uniswap.v3-get-pools '{"symbol": "CMK"}'
-test_model 0 uniswap.v3-get-pool-info '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}'
-test_model 0 uniswap.v3-get-average-price '{"symbol": "CMK"}'
+test_model 0 uniswap-v3.get-pools '{"symbol": "CMK"}'
+test_model 0 uniswap-v3.get-pool-info '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}'
+test_model 0 uniswap-v3.get-average-price '{"symbol": "CMK"}'
 # TODO: USDC price wrong from USDC/DAI pool
-test_model 0 uniswap.v3-get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
-test_model 0 uniswap.v3-get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}'
+test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
+test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}'
 
 echo_cmd ""
 echo_cmd "Run SushiSwap Examples:"

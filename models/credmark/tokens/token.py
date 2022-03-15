@@ -58,7 +58,7 @@ class TokenInfoModel(credmark.model.Model):
                          output=Price)
 class PriceModel(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        return self.context.run_model('uniswap.v3-get-average-price', input, return_type=Price)
+        return self.context.run_model('uniswap-v3.get-average-price', input, return_type=Price)
 
 
 @credmark.model.describe(slug='token.holders',
@@ -84,7 +84,7 @@ class TokenSwapPools(credmark.model.Model):
         # TODO: Get All Credmark Supported swap Pools for a token
         response = Contracts(contracts=[])
         response.contracts.extend(
-            self.context.run_model('uniswap.v3-get-pools', input, return_type=Contracts)
+            self.context.run_model('uniswap-v3.get-pools', input, return_type=Contracts)
         )
         return response
 

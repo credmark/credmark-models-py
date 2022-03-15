@@ -77,7 +77,7 @@ class Var(credmark.model.Model):
                 raise ModelRunError(f'Input position is invalid, {input}')
 
             historical = self.context.run_model(
-                'uniswap.v3-get-historical-price',
+                'uniswap-v3.get-historical-price',
                 {
                     'token': pos.token,
                     'window': input.window,
