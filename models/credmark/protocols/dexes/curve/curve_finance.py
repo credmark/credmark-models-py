@@ -181,9 +181,9 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
         return {}
 
 
-@ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
-                          version='1.0',
-                          input=Contract)
+@credmark.model.describe(slug='curve-fi-all-gauge-addresses',
+                         version='1.0',
+                         input=Contract)
 class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 
     def run(self, input: Contract) -> dict:
@@ -193,7 +193,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return addrs
 
 
-@ credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
+@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
@@ -220,7 +220,7 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@ credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield', version='1.0', input=Token)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
