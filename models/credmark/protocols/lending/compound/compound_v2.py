@@ -1,9 +1,11 @@
 import credmark.model
+
 from credmark.types import (
     Address,
     Token,
     Contract,
 )
+
 from models.tmp_abi_lookup import (
     COMPOUND_ABI,
     ERC_20_TOKEN_CONTRACT_ABI,
@@ -44,6 +46,9 @@ class CompoundGetAssets(credmark.model.Model):
 
     def run(self, input: Token) -> dict:
 
+        if not input.address:
+            raise ValueError('Error with input')
+
         output = {}
         contract = Contract(
             # lending pool address for Compound
@@ -52,7 +57,7 @@ class CompoundGetAssets(credmark.model.Model):
         )
 
         # converting the address to 'Address' type for safety
-        comp_asset = contract.functions.markets(Address(input.address)).call()
+        comp_asset = contract.functions.markets(input.address.checksum).call()
         tokencontract = Contract(
             address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
         symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
@@ -71,6 +76,9 @@ class CompoundGetAssets(credmark.model.Model):
                          input=Token)
 class CompoundV2GetTokenLiability(credmark.model.Model):
     def run(self, input: Token) -> dict:
+        if not input.address:
+            raise ValueError('Error with input')
+
         output = {}
         tokenContract = Contract(
             address=input.address.checksum,
@@ -101,6 +109,9 @@ class CompoundV2GetTokenLiability(credmark.model.Model):
                          input=Token)
 class CompoundV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
+        if not input.address:
+            raise ValueError('Error with input')
+
         output = {}
         tokenContract = Contract(
             address=input.address.checksum,

@@ -1,3 +1,4 @@
+# pylint: disable=locally-disabled, line-too-long
 import credmark.model
 from credmark.types import (
     Address,
@@ -64,8 +65,8 @@ class UniswapRouterPriceUsd(credmark.model.Model):
 
     def run(self, input) -> dict:
         """
-        We should be able to hit the IQuoter Interface to get the quoted price from Uniswap, 
-        default to USDC/USDT/DAI and throw out outliers.
+        We should be able to hit the IQuoter Interface to get the quoted price from Uniswap,
+         default to USDC/USDT/DAI and throw out outliers.
         """
         _uniswap_router = Contract(
             address=Address(UNISWAP_V3_SWAP_ROUTER_ADDRESS).checksum,
@@ -103,12 +104,12 @@ class UniswapExchange(credmark.model.Model):
             abi=UNISWAP_DAI_V1_ABI)
 
         # Prices
-        ETH_AMOUNT = self.context.web3.toWei('1', 'Ether')
+        eth_amount = self.context.web3.toWei('1', 'Ether')
 
-        bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(ETH_AMOUNT).call()
-        bid_price = self.context.web3.toWei(bid_daiAmount, 'Ether') / ETH_AMOUNT / ETH_AMOUNT
+        bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(eth_amount).call()
+        bid_price = self.context.web3.toWei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
 
-        offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(ETH_AMOUNT).call()
-        offer_price = self.context.web3.toWei(offer_daiAmount, 'Ether') / ETH_AMOUNT / ETH_AMOUNT
+        offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(eth_amount).call()
+        offer_price = self.context.web3.toWei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
 
         return {'value': (bid_price, offer_price, bid_daiAmount, offer_daiAmount)}
