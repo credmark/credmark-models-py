@@ -1,5 +1,9 @@
 import credmark.model
-from credmark.types import Address, Token
+from credmark.types import (
+    Address,
+    Token,
+    Contract,
+)
 from credmark.types.dto import DTO, DTOField
 from credmark.types import Position
 from models.tmp_abi_lookup import (
@@ -43,14 +47,14 @@ class CompoundGetAssets(credmark.model.Model):
     def run(self, input: Token) -> dict:
 
         output = {}
-        contract = self.context.web3.eth.contract(
+        contract = Contract(
             # lending pool address for Compound
             address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
             abi=COMPOUND_ABI
         )
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(Address(input.address)).call()
-        tokencontract = self.context.web3.eth.contract(
+        tokencontract = Contract(
             address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
         symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
         decimals = tokencontract.functions.decimals().call()
@@ -69,13 +73,13 @@ class CompoundGetAssets(credmark.model.Model):
 class CompoundV2GetTokenLiability(credmark.model.Model):
     def run(self, input: Token) -> dict:
         output = {}
-        tokenContract = self.context.web3.eth.contract(
+        tokenContract = Contract(
             address=input.address.checksum,
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
         symbol = tokenContract.functions.symbol().call()
         cTokenAddress = Address(COMPOUND_ASSETS[symbol]).checksum
-        cTokenContract = self.context.web3.eth.contract(
+        cTokenContract = Contract(
             address=cTokenAddress,
             abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 
@@ -99,13 +103,13 @@ class CompoundV2GetTokenLiability(credmark.model.Model):
 class CompoundV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> dict:
         output = {}
-        tokenContract = self.context.web3.eth.contract(
+        tokenContract = Contract(
             address=input.address.checksum,
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
         symbol = tokenContract.functions.symbol().call()
         cTokenAddress = Address(COMPOUND_ASSETS[symbol]).checksum
-        cTokenContract = self.context.web3.eth.contract(
+        cTokenContract = Contract(
             address=cTokenAddress,
             abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 

@@ -54,10 +54,7 @@ class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
         pool_address = input.address
-        _pool_contract = self.context.web3.eth.contract(
-            address=pool_address.checksum,
-            abi=CURVE_SWAP_ABI_1
-        )
+        _pool_contract = Contract(address=pool_address.checksum, abi=CURVE_SWAP_ABI_1)
         res = self.context.historical.run_model_historical('curve-fi-pool-info',
                                                            window='60 days',
                                                            interval='7 days',
@@ -107,9 +104,9 @@ class CurveFinancePoolInfo(credmark.model.Model):
             a = 0
 
         try:
-            input.name = input.functions.name().call()
+            input.contract_name = input.functions.name().call()
         except Exception as _err:
-            input.name = "swappool"
+            input.contract_name = "swappool"
 
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
@@ -151,7 +148,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 class CurveFinancePools(credmark.model.Model):
 
     def run(self, input) -> Contracts:
-        registry = self.context.web3.eth.contract(
+        registry = Contract(
             address=Address(CURVE_REGISTRY_ADDRESS).checksum,
             abi=CURVE_REGISTRY_ABI)
         total_pools = registry.functions.pool_count().call()
@@ -172,8 +169,7 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
 
         gauageAddress = Address('')
-        _gauge = self.context.web3.eth.contract(
-            address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+        _gauge = Contract(address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
 
         return {}
 
@@ -194,8 +190,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
 class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: dict) -> dict:
 
-        gauge = self.context.web3.eth.contract(
-            address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+        gauge = Contract(address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
         yields = []
         for addr in input['userAddresses']:
             claimable_tokens = gauge.functions.claimable_tokens(
@@ -226,11 +221,17 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         presuming that crv has a constant value of $3
         """
 
-        lp_token_address = self.context.web3.eth.contract(
-            address=input.address.checksum, abi=CURVE_GAUGE_V1_ABI).functions.lp_token().call()
+        curve_gauge = Contract(
+            address=input.address.checksum,
+            abi=CURVE_GAUGE_V1_ABI)
+
+        lp_token_address = curve_gauge.functions.lp_token().call()
+
+        breakpoint()
 
         pool_info = self.context.run_model(
-            'curve-fi-pool-info', Token(address=lp_token_address))
+            'curve-fi-pool-info', Contract(address=lp_token_address, abi=CURVE_SWAP_ABI_1))
+
         addrs = self.context.run_model('curve-fi-all-gauge-addresses', input)
 
         gauge_input = {
@@ -243,6 +244,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
             window='60 days',
             interval='7 days',
             model_input=gauge_input)
+
         yields = []
         for idx in range(0, len(res.series) - 1):
             for y1 in res.series[idx].output['yields']:
@@ -285,8 +287,10 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
+        # FRAX Liquidity Gauge
         gauges = ['0x72E158d38dbd50A483501c24f792bDAAA3e7D55C']
-        # pylint: disable=locally-disabled, line-too-long
+
+        # pylint: disable=line-too-long
         # gauges = ["0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A","0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", "0x9582C4ADACB3BCE56Fea3e590F05c3ca2fb9C477",
         #          "0x6d10ed2cF043E6fcf51A0e7b4C2Af3Fa06695707", "0xdFc7AdFa664b08767b735dE28f9E84cd30492aeE", "0x69Fb7c45726cfE2baDeE8317005d3F94bE838840", "0x7ca5b0a2910B33e9759DC7dDB0413949071D7575",
         #          "0xAEA6c312f4b3E04D752946d329693F7293bC2e6D", "0x90Bb609649E0451E5aD952683D64BD2d1f245840", "0x72e158d38dbd50a483501c24f792bdaaa3e7d55c", "0xC5cfaDA84E902aD92DD40194f0883ad49639b023",
@@ -297,10 +301,11 @@ class CurveFinanceAllYield(credmark.model.Model):
         #          "0x824F13f1a2F29cFEEa81154b46C0fc820677A637", "0x6828bcF74279eE32f2723eC536c22c51Eed383C6", "0x6955a55416a06839309018A8B0cB72c4DDC11f15", "0xC2b1DF84112619D190193E48148000e3990Bf627",
         #          "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4", "0x055be5DDB7A925BfEF3417FC157f53CA77cA7222", "0xBC89cd85491d81C6AD2954E6d0362Ee29fCa8F53", "0x3B7020743Bc2A4ca9EaF9D0722d42E20d6935855",
         #          "0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1", "0x8101E6760130be2C8Ace79643AB73500571b7162"]
+
         for gauge in gauges:
             print(gauge)
-            yields = self.context.run_model(
-                'curve-fi-avg-gauge-yield', Contract(address=gauge))
+            breakpoint()
+            yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
             print(yields)
             res.append(yields)
 

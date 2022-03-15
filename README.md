@@ -441,7 +441,9 @@ The web3 providers are determined from the environment variables as described in
 
 Example:
 
-        contract = self.context.web3.eth.contract(
+        from credmark.types import (Address, Contract)
+
+        contract = Contract(
             # lending pool address
             address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI

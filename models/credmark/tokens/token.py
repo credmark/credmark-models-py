@@ -1,8 +1,27 @@
+# pylint: disable=locally-disabled, unused-import
 
 import credmark.model
-from credmark.types import Address, Token, Account, Position, Price, Contract, Accounts, Contracts
-from credmark.types.data.token_wei import TokenWei
-from credmark.types.dto import DTO, DTOField, IterableListGenericDTO
+
+from credmark.types import (
+    Address,
+    Token,
+    Account,
+    Position,
+    Price,
+    Contract,
+    Accounts,
+    Contracts
+)
+
+from credmark.types.data.token_wei import (
+    TokenWei
+)
+
+from credmark.types.dto import (
+    DTO,
+    DTOField,
+    IterableListGenericDTO
+)
 from typing import List
 
 
@@ -39,7 +58,7 @@ class TokenInfoModel(credmark.model.Model):
                          output=Price)
 class PriceModel(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        return self.context.run_model('uniswap-v3.get-average-price', input, return_type=Price)
+        return self.context.run_model('uniswap-v3-get-average-price', input, return_type=Price)
 
 
 @credmark.model.describe(slug='token.holders',

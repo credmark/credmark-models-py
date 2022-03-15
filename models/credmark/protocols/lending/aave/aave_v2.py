@@ -17,6 +17,9 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
     _iterator: str = 'aaveDebtInfos'
 
 
+AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
+
+
 @credmark.model.describe(slug="aave.overall-liabilities-portfolio",
                          version="1.0",
                          display_name="Aave V2 Lending Pool overall liabilities",
@@ -27,7 +30,7 @@ class AaveV2GetLiability(credmark.model.Model):
 
     def run(self, input) -> Portfolio:
         contract = Contract(
-            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -49,7 +52,7 @@ class AaveV2GetTokenLiability(credmark.model.Model):
 
     def run(self, input: Contract) -> Position:
         contract = Contract(
-            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -71,14 +74,14 @@ class AaveV2GetTokenLiability(credmark.model.Model):
 class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> IterableListGenericDTO[AaveDebtInfo]:
         contract = Contract(
-            # lending pool address
-            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            # AAVE Lending Pool V2
+            address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
         aave_assets = contract.functions.getReservesList().call()
 
         return AaveDebtInfos(aaveDebtInfos=[self.context.run_model(
-            'aave.overall-asset-position',
+            'aave-token-asset',
             input=Token(address=asset),
             return_type=AaveDebtInfo) for asset in aave_assets])
 
@@ -94,8 +97,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
     def run(self, input: Token) -> AaveDebtInfo:
 
         contract = Contract(
-            # lending pool address
-            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            # AAVE Lending Pool V2
+            address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
@@ -125,4 +128,4 @@ class AaveV2GetTokenAsset(credmark.model.Model):
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
-            'aave.overall-asset-position', model_input=input, window='5 days', interval='1 day')
+            'aave-token-asset', model_input=input, window='5 days', interval='1 day', model_version='1.0')
