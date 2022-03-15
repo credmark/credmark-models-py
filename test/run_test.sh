@@ -3,6 +3,9 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
     echo -e "\nUsage: $0 [prod]\n"
+    echo "In prod mode, it uses credmark-dev script and the gateway api"
+    echo "Otherwise it uses test/test.py and a local model-runner-api"
+    echo ""
     exit 0
 fi
 
@@ -29,6 +32,14 @@ fi
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
 cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
+echo "Sending commands to ${cmd_file}"
+
+echo -e "#!/bin/bash\n" > $cmd_file
+
+if [ `which chmod` != '' ]
+then
+   chmod u+x $cmd_file
+fi
 
 set +x
 
@@ -87,13 +98,6 @@ ${cmk_dev} list | awk -v test_script=$0 '{
         close(command)
     }
 }'
-
-echo -e "#!/bin/bash\n" > $cmd_file
-
-if [ `which chmod` != '' ]
-then
-   chmod u+x $cmd_file
-fi
 
 echo "${cmk_dev2} list" >> $cmd_file
 
