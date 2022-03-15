@@ -8,7 +8,6 @@ from credmark.types import (
     Portfolio,
     Price,
     Address,
-    Wallet,
 )
 
 
@@ -16,7 +15,7 @@ from credmark.types import (
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',
-                         input=Wallet,
+                         input=Address,
                          output=VarOutput)
 class Var(credmark.model.Model):
 
