@@ -1,222 +1,139 @@
-if [ $# -ge 1 ] && [ $1 == 'test' ]
-then
-    cmk_dev='python test/test.py'
-    echo In test mode, using ${cmk_dev}
-else
-    cmk_dev='credmark-dev'
-    echo Use installed version.
-fi
-
-set +x
-
-run_model () {
-    model=$1
-    input=$2
-    if [ $# -eq 3 ] && [ $3 == 'print-command' ]
-    then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 --api_url=http://localhost:8700/v1/model/run"
-    else
-        ${cmk_dev} run ${model} --input "${input}" -b 14234904 --api_url=http://localhost:8700/v1/model/run
-    fi
-}
-
-test_model () {
-    expected=$1
-    model=$2
-    input=$3
-    run_model $model "$input"
-    exit_code=$?
-
-    cmd="$(run_model $model "$input" print-command)"    
-    if [ $exit_code -ne $expected ]
-    then
-        echo Failed test with $cmd
-        echo "Stopped with unexpected exit code: $exit_code != $expected."
-        exit
-    else
-        echo Passed test with $cmd
-    fi
-}
-
-${cmk_dev} list | awk -v test_script=$0 '{
-    print $0
-    if ($0 ~ / - /) {
-        m=substr($2, 0, length($2)-1)
-        res=""
-        ( ("grep " m " "test_script) | getline res )
-        if (res == "") {
-            print "(Test check) No test for " m
-        }
-    }
-}'
-
+credmark-dev list
 echo ""
 echo "Neil's example:"
 echo ""
-test_model 0 contrib.neilz '{}'
-
+credmark-dev run contrib.neilz --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
-echo "Echo Examples"
+echo "echo Examples"
 echo ""
-test_model 0 example.echo '{"message":"hello world"}'
-
+credmark-dev run example.echo --input '{"message":"hello world"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "CMK Examples:"
 echo ""
-test_model 0 cmk.total-supply '{}'
-test_model 0 cmk.total-supply '{}'
-test_model 0 cmk.circulating-supply '{"message":"hello world"}'
-test_model 0 xcmk.cmk-staked '{}'
-test_model 0 xcmk.total-supply '{}'
-test_model 0 xcmk.deployment-time '{}'
-
+credmark-dev run cmk.total-supply --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run cmk.total-supply --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run cmk.circulating-supply --input '{"message":"hello world"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run xcmk.cmk-staked --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run xcmk.total-supply --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run xcmk.deployment-time --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Account Examples:"
 echo ""
-test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}'
-
+credmark-dev run account.portfolio --input '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "BLOCKNUMBER Example:"
 echo ""
-test_model 0 example.blocktime '{}'
-
-
+credmark-dev run example.blocktime --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Address Examples:"
 echo ""
-test_model 0 example.address-transforms '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}'
-test_model 0 example.address-transforms '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}'
-
+credmark-dev run example.address-transforms --input '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.address-transforms --input '{"address": "0x1aD91ee08f21bE3dE0BA2ba6918E714dA6B45836"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "DTO Examples:"
 echo ""
-test_model 0 example.type-test-1 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-'
-test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-'
-
+credmark-dev run example.type-test-1 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
+' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.type-test-2 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
+' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Load Contract Examples:"
 echo ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
-test_model 0 example.load-contract-by-address '{"address": "0xa8f8dd56e2352e726b51738889ef6ee938cca7b6"}'
-
+credmark-dev run example.load-contract-by-name --input '{"contractName": "mutantmfers"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.load-contract-by-address --input '{"address": "0xa8f8dd56e2352e726b51738889ef6ee938cca7b6"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Load Contract By Name Example:"
 echo ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
-
+credmark-dev run example.load-contract-by-name --input '{"contractName": "mutantmfers"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Historical Examples:"
 echo ""
-test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}'
-test_model 0 example.historical '{"model_slug":"price","model_input":{"symbol": "USDC"}}'
-test_model 0 example.historical-snap '{}'
-test_model 0 example.historical-block '{}'
-test_model 0 example.historical-block-snap '{}'
-
+credmark-dev run example.historical --input '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.historical --input '{"model_slug":"price","model_input":{"symbol": "USDC"}}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.historical-snap --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.historical-block --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.historical-block-snap --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Ledger Examples:"
 echo ""
-test_model 0 example.ledger-token-transfers '{"address":"0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"}'
-test_model 0 example.ledger-transactions '{}'
-test_model 0 example.ledger-receipts '{}'
-test_model 0 example.ledger-traces '{}' 
-test_model 0 example.ledger-blocks '{}'
-test_model 0 example.ledger-tokens '{}'
-test_model 0 example.ledger-contracts '{}' 
-test_model 0 example.ledger-logs '{}' 
-
+credmark-dev run example.ledger-token-transfers --input '{"address":"0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-transactions --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-receipts --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-traces --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-blocks --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-tokens --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-contracts --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run example.ledger-logs --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Iteration Examples:"
 echo ""
-test_model 0 example.iteration '{}'
-
+credmark-dev run example.iteration --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Token Examples:"
 echo ""
-test_model 0 example.token-loading '{}'
-test_model 0 price '{"symbol": "CMK"}'
-test_model 0 token.holders '{"symbol": "CMK"}'
-test_model 0 token.swap-pools '{"symbol":"CMK"}'
-test_model 0 token.info '{"symbol":"CMK"}'
-# WETH-DAI pool: https://analytics.sushi.com/pairs/0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
-test_model 0 token.swap-pool-volume '{"address":"0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"}'
-# 0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50
-# UniSwap V3 factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984
-test_model 0 token.categorized-supply '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "USDC"}}'
-
-
+credmark-dev run example.token-loading --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run price --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run token.holders --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run token.swap-pools --input '{"symbol":"CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run token.info --input '{"symbol":"CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run token.swap-pool-volume --input '{"address":"0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run token.categorized-supply --input '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "USDC"}}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run TestRun Example:"
 echo ""
-test_model example.run-test '{"model":"price","input":{"symbol": "CMK"}}'
-
+credmark-dev run example.run-test --input '{"model":"price","input":{"symbol": "CMK"}}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Library Examples:"
 echo ""
-test_model 0 example.libraries '{}'
-
+credmark-dev run example.libraries --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Compound Examples:"
 echo ""
-test_model 0 compound.test '{"symbol":"DAI"}'
-# TODO: fix the model
-test_model 1 compound-token-asset '{"symbol":"DAI"}'
-# TODO: fix the model
-test_model 1 compound-token-liability '{"symbol":"DAI"}'
-
-
+credmark-dev run compound.test --input '{"symbol":"DAI"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run compound-token-asset --input '{"symbol":"DAI"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run compound-token-liability --input '{"symbol":"DAI"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Uniswap Examples:"
 echo ""
-test_model 0 uniswap.tokens '{}'
-test_model 0 uniswap.exchange '{}'
-test_model 0 uniswap.quoter-price-usd '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
-test_model 0 uniswap.router-price-usd '{}'
-
-
+credmark-dev run uniswap.tokens --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.exchange --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.quoter-price-usd --input '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.router-price-usd --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Uniswap V3 Examples:"
 echo ""
-test_model 0 uniswap.v3-get-pools '{"symbol": "CMK"}'
-test_model 0 uniswap.v3-get-pool-info '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}'
-test_model 0 uniswap.v3-get-average-price '{"symbol": "CMK"}'
-# TODO: USDC price wrong?
-test_model 0 uniswap.v3-get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
-test_model 0 uniswap.v3-get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}'
-
+credmark-dev run uniswap.v3-get-pools --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.v3-get-pool-info --input '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.v3-get-average-price --input '{"symbol": "CMK"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.v3-get-historical-price --input '{"token": {"symbol": "USDC"}, "window": "10 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run uniswap.v3-get-historical-price --input '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run SushiSwap Examples:"
 echo ""
-test_model 0 sushiswap.all-pools '{}'
-test_model 0 sushiswap.get-pool '{"token0":{"symbol":"USDC"}, "token1":{"symbol":"USDC"}}'
-test_model 0 sushiswap.get-pool-info '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}'
-
+credmark-dev run sushiswap.all-pools --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run sushiswap.get-pool --input '{"token0":{"symbol":"USDC"}, "token1":{"symbol":"USDC"}}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run sushiswap.get-pool-info --input '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Aave V2 Examples:"
 echo ""
-test_model 0 aave.lending-pool-assets '{}'
-test_model 0 aave.token-liability '{"symbol":"USDC"}'
-test_model 0 aave.overall-liabilities-portfolio '{}'
-test_model 0 aave.token-asset-historical '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
-test_model 0 aave.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' # USDC
-test_model 0 aave.token-asset '{"symbol":"USDC"}'
-test_model 0 aave.token-asset '{"symbol":"DAI"}'
-
+credmark-dev run aave.lending-pool-assets --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.token-liability --input '{"symbol":"USDC"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.overall-liabilities-portfolio --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.token-asset-historical --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.token-asset --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.token-asset --input '{"symbol":"USDC"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run aave.token-asset --input '{"symbol":"DAI"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Curve Examples"
 echo ""
-test_model 0 curve-fi-avg-gauge-yield '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}' # includes curve-fi-all-gauge-addresses, curve-fi-get-gauge-stake-and-claimable-rewards
-test_model 0 curve-fi-all-yield '{}'
-test_model 0 curve-fi-all-pool-info '{}' # includes curve-fi-pools, curve-fi-pool-info, curve-fi-pool-historical-reserve
-# TODO: model is not finished.
-test_model 0 curve-fi-historical-lp-dist '{"address":"0x853d955aCEf822Db058eb8505911ED77F175b99e"}'
-
-
+credmark-dev run curve-fi-avg-gauge-yield --input '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run curve-fi-all-yield --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run curve-fi-all-pool-info --input '{}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run curve-fi-historical-lp-dist --input '{"address":"0x853d955aCEf822Db058eb8505911ED77F175b99e"}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
 echo ""
 echo "Run Finance Examples"
 echo ""
-test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-
-test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
+credmark-dev run finance.lcr --input '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904 --api_url=http://localhost:8700/v1/model/run
