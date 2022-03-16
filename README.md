@@ -269,7 +269,17 @@ See a list of the [existing models](https://github.com/credmark/credmark-models-
 
 The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
 
-If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
+## Interactive HTTP requests
+If you go to the popup in the top right of the window you can now choose between the different model groups:
+- [Credmark Models](https://gateway.credmark.com/api/?urls.primaryName=Credmark%20Models)
+- [Utility Models](https://gateway.credmark.com/api/?urls.primaryName=Utility%20Models)
+- [Contributor Models](https://gateway.credmark.com/api/?urls.primaryName=Contributor%20Models)
+- [Example Models](https://gateway.credmark.com/api/?urls.primaryName=Example%20Models)
+
+For each group, you will get the docs for all the models within the group and you are able to run them interactively. Note that not all models are fully documented yet.
+
+## Model documentation 
+If you just look for a generic model description, please refer to the [Credmark Model Documentation](https://gateway.credmark.com/model-docs). This documentation contains the description of the models as well as example requests and responses and is searchable (by name and slug).
 
 # Framework Command Documentation 
 ## Help command
