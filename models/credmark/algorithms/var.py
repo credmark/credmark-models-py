@@ -65,7 +65,7 @@ class ValueAtRisk(credmark.model.Model):
         ppl_d = ppl.copy()
         ppl_d.sort()
         len_ppl_d = ppl_d.shape[0]
-        pos_f = lvl * len_ppl_d
+        pos_f = lvl * (len_ppl_d - 1)
         lower = int(np.floor(pos_f))
         upper = int(np.ceil(pos_f))
         return ppl_d[lower] * (upper - pos_f) + ppl_d[upper] * (pos_f - lower)
@@ -98,6 +98,7 @@ class ValueAtRisk(credmark.model.Model):
 
             rows = result.data
             block_hist = rows[0].get(txn_blocks.NUMBER) if len(rows) else None
+            print('rows', rows)
         else:
             block_hist = self.context.block_number
 
@@ -170,8 +171,8 @@ class ValueAtRisk(credmark.model.Model):
 
                 dict_hist[window] = df_hist
                 dict_ret[window] = df_ret
-                print(df_hist)
-                print(df_ret)
+                # print(df_hist)
+                # print(df_ret)
 
             for ivl, ivl_str in zip(interval_nums, input.intervals):
                 var[window][ivl_str] = {}

@@ -127,6 +127,11 @@ test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.3", "token"
 
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": 1, "token": {"symbol": "AAVE"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
 
+python test/test.py run finance.var --input '{"portfolio": {"positions": [{"amount": 1, "token": {"symbol": "AAVE"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'  -b 14234904 --api_url=http://localhost:8700
+
+python test/test.py run finance.var --input '{"portfolio": {"positions": [{"amount": 1, "token": {"symbol": "AAVE"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05], "asOf": "2021-06-21"}'  -b 14234904 --api_url=http://localhost:8700
+
+
 exit
 
 echo_cmd ""
