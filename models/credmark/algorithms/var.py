@@ -98,7 +98,7 @@ class ValueAtRisk(credmark.model.Model):
 
             rows = result.data
             block_hist = rows[0].get(txn_blocks.NUMBER) if len(rows) else None
-            print('rows', rows)
+            print('rows', rows, input.asOf)
         else:
             block_hist = self.context.block_number
 
@@ -114,6 +114,7 @@ class ValueAtRisk(credmark.model.Model):
                 input.asOf = datetime.fromtimestamp(timestamp, timezone.utc).date()
             else:
                 raise ModelRunError(f'Can not get the timestamp for block={block_hist}')
+            print('rows', rows, input.asOf)
 
         var = {}
 
