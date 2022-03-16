@@ -126,6 +126,8 @@ class EchoModel(credmark.model.Model):
 
 The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO (see later section DTO), with various properties and values, potentially nested with other JSON-compatible data structures.
 
+A special DTO `EmptyInput`, which is an empty DTO, is created for model with no input required. The model input is EmptyInput by default if `input` is not specified in the decorator `@credmark.model.describe`. If the model takes non-empty input, modeller can specify `input=dict` or create a DTO for more structured data.
+
 A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
 
 Models can call other python code, in imported python files (in your models folder or below) or from packages, as needed. You may not import code from other model folders. One thing to keep in mind is that different instances of a model may or may not be run in the same python execution so do not make use of global or class variables unless they are meant to be shared across model instances.
@@ -410,7 +412,7 @@ It also enforces deterministic behavior for Models. The key utilities in `ModelC
 
 ```python
 def run_model(name: str,
-          input: Union[dict, None] = None,
+          input: Union[dict, DTO] = EmptyInput(),
           return_type: Union[Type[dict], Type[DTO], None],
           block_number: Union[int, None] = None,
           version: Union[str, None] = None)

@@ -11,12 +11,16 @@ fi
 
 if [ $# -ge 1 ] && [ $1 == 'test' ]
 then
+    test_mode='test'
     cmk_dev='python test/test.py'
-    api_url='--api_url=http://localhost:8700'
+    api_url=' --api_url=http://localhost:8700'
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh    
     echo In test mode, using ${cmk_dev} and ${api_url}
 else
+    test_mode='prod'
     cmk_dev='credmark-dev'
     api_url=''  # no api url param uses the gateway api
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
 fi
 
@@ -37,7 +41,6 @@ fi
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
 if [ $gen_cmd -eq 1 ]; then
-    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo "Sending commands to ${cmd_file}"
     echo -e "#!/bin/bash\n" > $cmd_file
     if [ `which chmod` != '' ]
@@ -53,12 +56,12 @@ run_model () {
     input=$2
     if [ $# -eq 3 ] && [ $3 == 'print-command' ]
     then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}"
+        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
     else
         if [ $gen_cmd -eq 1 ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}" >> $cmd_file
+            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}" >> $cmd_file
         else
-            ${cmk_dev} run ${model} --input "${input}" -b 14234904 ${api_url}
+            ${cmk_dev} run ${model} --input "${input}" -b 14234904${api_url}
         fi
     fi
 }
@@ -132,7 +135,6 @@ echo_cmd ""
 echo_cmd "CMK Examples:"
 echo_cmd ""
 test_model 0 cmk.total-supply '{}'
-test_model 0 cmk.total-supply '{}'
 test_model 0 cmk.circulating-supply '{"message":"hello world"}'
 test_model 0 xcmk.cmk-staked '{}'
 test_model 0 xcmk.total-supply '{}'
@@ -166,13 +168,15 @@ test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"sy
 echo_cmd ""
 echo_cmd "Load Contract Examples:"
 echo_cmd ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
-test_model 0 example.load-contract-by-address '{"address": "0xa8f8dd56e2352e726b51738889ef6ee938cca7b6"}'
 
-echo_cmd ""
-echo_cmd "Load Contract By Name Example:"
-echo_cmd ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
+if [ $test_mode == 'prod' ]
+then
+    test_model 0 example.load-contract-by-name '{"contractName": "CIM"}'
+    test_model 0 example.load-contract-by-address '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}'
+else
+    test_model 0 example.load-contract-by-name '{"contractName": "CRISP"}'
+    test_model 0 example.load-contract-by-address '{"address": "0xf905835174e278e27150f2a63a6a3786b48b3bd2"}'
+fi
 
 echo_cmd ""
 echo_cmd "Run Historical Examples:"

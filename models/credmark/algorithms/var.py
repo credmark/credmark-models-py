@@ -71,6 +71,9 @@ class Var(credmark.model.Model):
             it returns the one that hits the input percentage.
         """
 
+        # 2021 Jun 21st
+        # 10 day.
+
         df_value = pd.DataFrame()
         for pos in input.portfolio.positions:
             if not pos.token.symbol:
@@ -78,20 +81,25 @@ class Var(credmark.model.Model):
 
             historical = self.context.run_model(
                 'uniswap-v3.get-historical-price',
-                {
+                input={
                     'token': pos.token,
                     'window': input.window,
                     'interval': input.interval,
                 })
+
             for p in historical['series']:
                 p['price'] = p['output']['price']
                 del p['output']
 
             df = pd.DataFrame(historical['series']).sort_values(
                 ['blockNumber'], ascending=False)
+
+            print(f'Price for {pos.token.symbol}')
+            print(df)
+
             ret = df.price[:-1].to_numpy() / df.price[1:].to_numpy() - 1
 
-            # Optional: the last block_number in df may not equal to the input block_number.
+            # The last block_number in df may not equal to the input block_number.
             # specify block_number=df.blockNumber.max() with run_model() to get the match price.
             current = self.context.run_model(
                 'price', pos.token, return_type=Price)
@@ -102,6 +110,9 @@ class Var(credmark.model.Model):
                 df_value.loc[:, pos.token.symbol] += value_changes
             else:
                 df_value.loc[:, pos.token.symbol] = value_changes
+
+            print('Return')
+            print(df_value)
 
         ppl = df_value.sum(axis=1).to_numpy()
 

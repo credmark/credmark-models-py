@@ -189,25 +189,32 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return {'data': addrs}
 
 
-@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards', version='1.0')
-class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
-    def run(self, input: dict) -> dict:
+class CurveGaugeInput(DTO):
+    gaugeAddress: Address
+    userAddresses: List[Account]
 
-        gauge = Contract(address=Address(input['gaugeAddress']).checksum, abi=CURVE_GAUGE_V1_ABI)
+
+@credmark.model.describe(slug='curve-fi-get-gauge-stake-and-claimable-rewards',
+                         version='1.0',
+                         input=CurveGaugeInput)
+class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
+    def run(self, input: CurveGaugeInput) -> dict:
+
+        gauge = Contract(address=input.gaugeAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
         yields = []
-        for addr in input['userAddresses']:
-            claimable_tokens = gauge.functions.claimable_tokens(
-                Address(addr['address']).checksum).call()
-            balanceOf = gauge.functions.balanceOf(
-                Address(addr['address']).checksum).call()
-            working_balances = gauge.functions.working_balances(
-                Address(addr['address']).checksum).call()
+        for addr in input.userAddresses:
+            if not addr.address:
+                raise ModelRunError(f'Input is invalid, {input}')
+
+            claimable_tokens = gauge.functions.claimable_tokens(addr.address.checksum).call()
+            balanceOf = gauge.functions.balanceOf(addr.address.checksum).call()
+            working_balances = gauge.functions.working_balances(addr.address.checksum).call()
 
             yields.append({
                 "claimable_tokens": claimable_tokens,
                 "balanceOf": balanceOf,
                 "working_balances": working_balances,
-                "address": addr['address']
+                "address": addr.address
             })
         return {"yields": yields}
 
@@ -215,9 +222,9 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi-avg-gauge-yield',
-                         version='1.0',
-                         input=Account)
+@ credmark.model.describe(slug='curve-fi-avg-gauge-yield',
+                          version='1.0',
+                          input=Account)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
@@ -287,7 +294,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
+@ credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
