@@ -1,15 +1,6 @@
 #!/bin/bash
 
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]
-then
-    echo -e "\nUsage: $0 [prod]\n"
-    echo "In prod mode, it uses credmark-dev script and the gateway api"
-    echo "Otherwise it uses test/test.py and a local model-runner-api"
-    echo ""
-    exit 0
-fi
-
-if [ `which realpath` == '' ]
+if [ "`which realpath`" == '' ]
 then
    FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
 else
@@ -18,12 +9,25 @@ fi
 
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]
+then
+    echo -e "\nRun model tests\n"
+    echo "Usage: $0 [test] [gen]"
+    echo ""
+    echo -e "In normal mode it uses the credmark-dev script and the gateway api.\n"
+    echo 'In "test" mode it uses test/test.py and a local model-runner-api.'
+    echo ""
+    echo "If \"gen\" is specified, the tests will not run and the ${SCRIPT_DIRECTORY}/run_all_examples[_test].sh file will be generated instead."
+    echo ""
+    exit 0
+fi
+
 if [ $# -ge 1 ] && [ $1 == 'test' ]
 then
     test_mode='test'
     cmk_dev='python test/test.py'
     api_url=' --api_url=http://localhost:8700'
-    cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh    
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
 else
     test_mode='prod'
