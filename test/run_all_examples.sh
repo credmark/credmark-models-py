@@ -20,7 +20,10 @@ credmark-dev run xcmk.deployment-time --input '{}' -b 14234904
 echo ""
 echo "Account Examples:"
 echo ""
+0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50
 credmark-dev run account.portfolio --input '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}' -b 14234904
+credmark-dev run account.portfolio --input '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}' -b 14234904
+
 echo ""
 echo "BLOCKNUMBER Example:"
 echo ""

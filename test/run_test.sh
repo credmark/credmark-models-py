@@ -144,6 +144,8 @@ echo_cmd ""
 echo_cmd "Account Examples:"
 echo_cmd ""
 test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}'
+# Too many holdings
+# test_model 0 account.portfolio '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}'
 
 echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
