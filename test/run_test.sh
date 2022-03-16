@@ -121,6 +121,14 @@ if [ $gen_cmd -eq 1 ]; then
     echo "${cmk_dev} list" >> $cmd_file
 fi
 
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": -2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.3", "token": {"symbol": "CMK"}}, {"amount": -0.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": 1, "token": {"symbol": "AAVE"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+
+exit
+
 echo_cmd ""
 echo_cmd "Neil's example:"
 echo_cmd ""
@@ -295,3 +303,5 @@ test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+
