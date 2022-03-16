@@ -40,8 +40,8 @@ credmark-dev run example.type-test-2 --input '{"positions": [{"amount": "4.2", "
 echo ""
 echo "Load Contract Examples:"
 echo ""
-credmark-dev run example.load-contract-by-name --input '{"contractName": "CRISP"}' -b 14234904
-credmark-dev run example.load-contract-by-address --input '{"address": "0xa8f8dd56e2352e726b51738889ef6ee938cca7b6"}' -b 14234904
+credmark-dev run example.load-contract-by-name --input '{"contractName": "CIM"}' -b 14234904
+credmark-dev run example.load-contract-by-address --input '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}' -b 14234904
 echo ""
 echo "Run Historical Examples:"
 echo ""

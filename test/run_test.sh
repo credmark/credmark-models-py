@@ -9,6 +9,15 @@ then
     exit 0
 fi
 
+if [ `which realpath` == '' ]
+then
+   FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
+else
+   FULL_PATH_TO_SCRIPT="$(realpath "${BASH_SOURCE[-1]}")"
+fi
+
+SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
+
 if [ $# -ge 1 ] && [ $1 == 'test' ]
 then
     test_mode='test'
@@ -30,15 +39,6 @@ then
 else
     gen_cmd=0
 fi
-
-if [ `which realpath` == '' ]
-then
-   FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
-else
-   FULL_PATH_TO_SCRIPT="$(realpath "${BASH_SOURCE[-1]}")"
-fi
-
-SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
 if [ $gen_cmd -eq 1 ]; then
     echo "Sending commands to ${cmd_file}"
