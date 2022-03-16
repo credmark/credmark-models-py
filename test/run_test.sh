@@ -9,20 +9,25 @@ then
     exit 0
 fi
 
-if [ $# -ge 1 ] && [ $1 == 'prod' ]
+if [ $# -ge 1 ] && [ $1 == 'test' ]
 then
-    cmk_dev='credmark-dev'
-    api_url=''  # no api url param uses the gateway api
-    echo Using installed credmark-dev and gateway api.
-else
     cmk_dev='python test/test.py'
     api_url='--api_url=http://localhost:8700'
     echo In test mode, using ${cmk_dev} and ${api_url}
+else
+    cmk_dev='credmark-dev'
+    api_url=''  # no api url param uses the gateway api
+    echo Using installed credmark-dev and gateway api.
 fi
 
-cmk_dev2='credmark-dev'
+if ([ $# -eq 2 ] && [ $2 == 'gen' ]) || ([ $# -eq 1 ] && [ $1 == 'gen' ])
+then
+    gen_cmd=1
+else
+    gen_cmd=0
+fi
 
-if [ `which realpath` == '']
+if [ `which realpath` == '' ]
 then
    FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
 else
@@ -31,14 +36,14 @@ fi
 
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
-cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
-echo "Sending commands to ${cmd_file}"
-
-echo -e "#!/bin/bash\n" > $cmd_file
-
-if [ `which chmod` != '' ]
-then
-   chmod u+x $cmd_file
+if [ $gen_cmd -eq 1 ]; then
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
+    echo "Sending commands to ${cmd_file}"
+    echo -e "#!/bin/bash\n" > $cmd_file
+    if [ `which chmod` != '' ]
+    then
+        chmod u+x $cmd_file
+    fi
 fi
 
 set +x
@@ -50,8 +55,11 @@ run_model () {
     then
         echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}"
     else
-        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 ${api_url}" >> $cmd_file
-        ${cmk_dev} run ${model} --input "${input}" -b 14234904 ${api_url}
+        if [ $gen_cmd -eq 1 ]; then
+            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}" >> $cmd_file
+        else
+            ${cmk_dev} run ${model} --input "${input}" -b 14234904 ${api_url}
+        fi
     fi
 }
 
@@ -70,19 +78,26 @@ test_model () {
     run_model $model "$input"
     exit_code=$?
 
-    if [ $exit_code -ne $expected ]
+    if [ $gen_cmd -eq 0 ]
     then
-        echo Failed test with $cmd
-        echo "Stopped with unexpected exit code: $exit_code != $expected."
-        exit
+        if [ $exit_code -ne $expected ]
+        then
+            echo Failed test with $cmd
+            echo "Stopped with unexpected exit code: $exit_code != $expected."
+            exit
+        else
+            echo Passed test with $cmd
+        fi
     else
-        echo Passed test with $cmd
+        echo Sent $cmd to $cmd_file
     fi
 }
 
 echo_cmd () {
     echo $1
-    echo "echo \"$1\"" >> $cmd_file
+    if [ $gen_cmd -eq 1 ]; then
+        echo "echo \"$1\"" >> $cmd_file
+    fi
 }
 
 ${cmk_dev} list | awk -v test_script=$0 '{
@@ -99,7 +114,9 @@ ${cmk_dev} list | awk -v test_script=$0 '{
     }
 }'
 
-echo "${cmk_dev2} list" >> $cmd_file
+if [ $gen_cmd -eq 1 ]; then
+    echo "${cmk_dev} list" >> $cmd_file
+fi
 
 echo_cmd ""
 echo_cmd "Neil's example:"
