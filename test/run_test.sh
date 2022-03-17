@@ -220,9 +220,9 @@ test_model 0 token.swap-pools '{"symbol":"CMK"}'
 test_model 0 token.info '{"symbol":"CMK"}'
 # WETH-DAI pool: https://analytics.sushi.com/pairs/0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
 test_model 0 token.swap-pool-volume '{"address":"0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"}'
-# 0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50
+# One account: 0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50
 # UniSwap V3 factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984
-test_model 0 token.categorized-supply '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "USDC"}}'
+test_model 0 token.categorized-supply '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "DAI"}}'
 
 
 echo_cmd ""
