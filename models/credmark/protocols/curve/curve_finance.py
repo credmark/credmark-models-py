@@ -1,5 +1,5 @@
 
-from logging import info
+
 from typing import List
 
 from models.tmp_abi_lookup import CURVE_GAUGE_V1_ABI, CURVE_SWAP_ABI_1, CURVE_SWAP_ABI_2, CURVE_REGISTRY_ADDRESS, CURVE_REGISTRY_ABI, CURVE_GAUGUE_CONTROLLER_ABI
@@ -48,6 +48,93 @@ class CurveFiPoolInfos(DTO):
     pool_infos: List[CurveFiPoolInfo]
 
 
+@credmark.model.describe(slug='curve-fi-lp-dist',
+                         version='1.0',
+                         input=Contract)
+class CurveFinanceLPDist(credmark.model.Model):
+
+    def run(self, input: Contract) -> dict:
+        _addrs = self.context.ledger.get_transactions(
+            columns=[TransactionTable.Columns.FROM_ADDRESS],
+            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+
+        gauageAddress = input.address
+        _gauge = Contract(
+            address=gauageAddress, abi=CURVE_GAUGE_V1_ABI)
+
+        dist = []
+
+        for add in _addrs:
+            
+            balanceOf = _gauge.functions.balanceOf(Address(add['from_address']).checksum).call()
+           
+            dist.append({
+                "balanceOf":balanceOf,
+                "address":add['from_address']
+
+            })
+        print(dist)
+        return dist
+
+
+@credmark.model.describe(slug='curve-fi-lp-pool-dist',
+                         version='1.0',
+                         input=Contract)
+class CurveFinanceLPPoolDist(credmark.model.Model):
+
+    def run(self, input: Contract) -> dict:
+        _addrs = self.context.ledger.get_transactions(
+            columns=[TransactionTable.Columns.FROM_ADDRESS],
+            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+
+        pool_address = input.address
+        _pool = Contract(
+            address=pool_address, abi=CURVE_SWAP_ABI_2)
+
+        dist = []
+
+        for add in _addrs:
+            
+            balanceOf = _pool.functions.balanceOf(Address(add['from_address']).checksum).call()
+           
+            dist.append({
+                "balanceOf":balanceOf,
+                "address":add['from_address']
+
+            })
+        # print(dist)
+        return dist
+
+@credmark.model.describe(slug='curve-fi-historical-lp-dist',
+                        version='1.0',
+                        display_name='Curve Finance Pool LP Distribution Historically',
+                        description='gets the historical dist of LP holders for a given pool',
+                        input=Contract,
+                        output=dict
+                        )
+class CurveFinanceHistoricalLPDist(credmark.model.Model):
+    
+    def run(self, input: Contract) -> dict:
+
+        res  = self.context.historical.run_model_historical('curve-fi-lp-dist',
+                                                            window='60 days',
+                                                            interval='7 days',
+                                                            model_input={
+                                                                'address': input.address,
+                                                            })
+        info_i_want = []
+        for r in res:
+            info_i_want.append({
+                "name":r.output['name'],
+                "blockNumber":r.blockNumber,
+                "address":r.output['from_address'],
+                "balanceOf":r.output['balanceOf']
+            })
+
+        return res
+
+
+
 @credmark.model.describe(slug='curve-fi-pool-historical-reserve',
                          version='1.0',
                          display_name='Curve Finance Pool Reserve Ratios',
@@ -59,7 +146,7 @@ class CurveFinanceReserveRatio(credmark.model.Model):
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
 
         res = self.context.historical.run_model_historical('curve-fi-pool-info',
-                                                           window='60 days',
+                                                           window='365 days',
                                                            interval='7 days',
                                                            model_input={
                                                                "address": input.address,
@@ -177,21 +264,7 @@ class CurveFinancePools(credmark.model.Model):
                 for i in range(0, total_pools)])
 
 
-@credmark.model.describe(slug='curve-fi-historical-lp-dist',
-                         version='1.0',
-                         input=Contract)
-class CurveFinanceHistoricalLPDist(credmark.model.Model):
 
-    def run(self, input: Contract) -> dict:
-        _addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-
-        gauageAddress = Address('')
-        _gauge = Contract(
-            address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
-
-        return {}
 
 
 @ credmark.model.describe(slug='curve-fi-all-gauge-addresses',
@@ -248,7 +321,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         addrs = self.context.run_model('curve-fi-all-gauge-addresses', input)
 
         res = self.context.historical.run_model_historical('curve-fi-get-gauge-stake-and-claimable-rewards',
-                                                           window='60 days',
+                                                           window='365 days',
                                                            interval='7 days',
                                                            model_input={
                                                                "gaugeAddress": input.address,
