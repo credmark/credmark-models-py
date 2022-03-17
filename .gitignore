@@ -140,6 +140,8 @@ workspace.code-workspace
 # test
 /test/*.ps1
 /dask-worker-space
+/test/run_all_examples_test.sh
+/test/local_test.sh
 
 # vim
 .swp

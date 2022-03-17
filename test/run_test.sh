@@ -1,28 +1,6 @@
 #!/bin/bash
 
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]
-then
-    echo -e "\nUsage: $0 [prod]\n"
-    echo "In prod mode, it uses credmark-dev script and the gateway api"
-    echo "Otherwise it uses test/test.py and a local model-runner-api"
-    echo ""
-    exit 0
-fi
-
-if [ $# -ge 1 ] && [ $1 == 'prod' ]
-then
-    cmk_dev='credmark-dev'
-    api_url=''  # no api url param uses the gateway api
-    echo Using installed credmark-dev and gateway api.
-else
-    cmk_dev='python test/test.py'
-    api_url='--api_url=http://localhost:8700'
-    echo In test mode, using ${cmk_dev} and ${api_url}
-fi
-
-cmk_dev2='credmark-dev'
-
-if [ `which realpath` == '']
+if [ "`which realpath`" == '' ]
 then
    FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
 else
@@ -31,14 +9,48 @@ fi
 
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
-cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
-echo "Sending commands to ${cmd_file}"
-
-echo -e "#!/bin/bash\n" > $cmd_file
-
-if [ `which chmod` != '' ]
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
-   chmod u+x $cmd_file
+    echo -e "\nRun model tests\n"
+    echo "Usage: $0 [test] [gen]"
+    echo ""
+    echo -e "In normal mode it uses the credmark-dev script and the gateway api.\n"
+    echo 'In "test" mode it uses test/test.py and a local model-runner-api.'
+    echo ""
+    echo "If \"gen\" is specified, the tests will not run and the ${SCRIPT_DIRECTORY}/run_all_examples[_test].sh file will be generated instead."
+    echo ""
+    exit 0
+fi
+
+if [ $# -ge 1 ] && [ $1 == 'test' ]
+then
+    test_mode='test'
+    cmk_dev='python test/test.py'
+    api_url=' --api_url=http://localhost:8700'
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
+    echo In test mode, using ${cmk_dev} and ${api_url}
+else
+    test_mode='prod'
+    cmk_dev='credmark-dev'
+    api_url=''  # no api url param uses the gateway api
+    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
+    echo Using installed credmark-dev and gateway api.
+fi
+
+if ([ $# -eq 2 ] && [ $2 == 'gen' ]) || ([ $# -eq 1 ] && [ $1 == 'gen' ])
+then
+    gen_cmd=1
+else
+    gen_cmd=0
+fi
+
+if [ $gen_cmd -eq 1 ]; then
+    echo "Sending commands to ${cmd_file}"
+    echo -e "#!/bin/bash\n" > $cmd_file
+    if [ `which chmod` != '' ]
+    then
+        chmod u+x $cmd_file
+    fi
 fi
 
 set +x
@@ -48,10 +60,13 @@ run_model () {
     input=$2
     if [ $# -eq 3 ] && [ $3 == 'print-command' ]
     then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904 ${api_url}"
+        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
     else
-        echo "${cmk_dev2} run ${model} --input '${input}' -b 14234904 ${api_url}" >> $cmd_file
-        ${cmk_dev} run ${model} --input "${input}" -b 14234904 ${api_url}
+        if [ $gen_cmd -eq 1 ]; then
+            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}" >> $cmd_file
+        else
+            ${cmk_dev} run ${model} --input "${input}" -b 14234904${api_url}
+        fi
     fi
 }
 
@@ -70,19 +85,26 @@ test_model () {
     run_model $model "$input"
     exit_code=$?
 
-    if [ $exit_code -ne $expected ]
+    if [ $gen_cmd -eq 0 ]
     then
-        echo Failed test with $cmd
-        echo "Stopped with unexpected exit code: $exit_code != $expected."
-        exit
+        if [ $exit_code -ne $expected ]
+        then
+            echo Failed test with $cmd
+            echo "Stopped with unexpected exit code: $exit_code != $expected."
+            exit
+        else
+            echo Passed test with $cmd
+        fi
     else
-        echo Passed test with $cmd
+        echo Sent $cmd to $cmd_file
     fi
 }
 
 echo_cmd () {
     echo $1
-    echo "echo \"$1\"" >> $cmd_file
+    if [ $gen_cmd -eq 1 ]; then
+        echo "echo \"$1\"" >> $cmd_file
+    fi
 }
 
 ${cmk_dev} list | awk -v test_script=$0 '{
@@ -99,7 +121,9 @@ ${cmk_dev} list | awk -v test_script=$0 '{
     }
 }'
 
-echo "${cmk_dev2} list" >> $cmd_file
+if [ $gen_cmd -eq 1 ]; then
+    echo "${cmk_dev} list" >> $cmd_file
+fi
 
 echo_cmd ""
 echo_cmd "Neil's example:"
@@ -115,7 +139,6 @@ echo_cmd ""
 echo_cmd "CMK Examples:"
 echo_cmd ""
 test_model 0 cmk.total-supply '{}'
-test_model 0 cmk.total-supply '{}'
 test_model 0 cmk.circulating-supply '{"message":"hello world"}'
 test_model 0 xcmk.cmk-staked '{}'
 test_model 0 xcmk.total-supply '{}'
@@ -125,6 +148,8 @@ echo_cmd ""
 echo_cmd "Account Examples:"
 echo_cmd ""
 test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}'
+# Too many holdings
+# test_model 0 account.portfolio '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}'
 
 echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
@@ -149,13 +174,15 @@ test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"sy
 echo_cmd ""
 echo_cmd "Load Contract Examples:"
 echo_cmd ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
-test_model 0 example.load-contract-by-address '{"address": "0xa8f8dd56e2352e726b51738889ef6ee938cca7b6"}'
 
-echo_cmd ""
-echo_cmd "Load Contract By Name Example:"
-echo_cmd ""
-test_model 0 example.load-contract-by-name '{"contractName": "mutantmfers"}'
+if [ $test_mode == 'prod' ]
+then
+    test_model 0 example.load-contract-by-name '{"contractName": "CIM"}'
+    test_model 0 example.load-contract-by-address '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}'
+else
+    test_model 0 example.load-contract-by-name '{"contractName": "CRISP"}'
+    test_model 0 example.load-contract-by-address '{"address": "0xf905835174e278e27150f2a63a6a3786b48b3bd2"}'
+fi
 
 echo_cmd ""
 echo_cmd "Run Historical Examples:"
@@ -272,3 +299,4 @@ test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
