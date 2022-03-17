@@ -21,6 +21,7 @@ from credmark.types import (
     Price,
     Address,
     BlockNumber,
+    BlockSeries,
 )
 
 import numpy as np
@@ -40,6 +41,7 @@ class VaRInput(DTO):
     confidences: List[float] = DTOField(..., gt=0.0, lt=1.0)  # accepts multiple values
     asOf: Optional[date]
     outputPrice: Optional[bool] = DTOField(False)
+    debug: Optional[bool] = DTOField(False)
 
     class Config:
         validate_assignment = True
@@ -53,14 +55,14 @@ class VaROutput(DTO):
 CREDMARK_ADDRESS = "0x68CFb82Eacb9f198d508B514d898a403c449533E"
 
 
-@ credmark.model.describe(slug='finance.var',
-                          version='1.0',
-                          display_name='Value at Risk',
-                          description='Value at Risk',
-                          input=VaRInput,
-                          output=VaROutput)
+@credmark.model.describe(slug='finance.var',
+                         version='1.0',
+                         display_name='Value at Risk',
+                         description='Value at Risk',
+                         input=VaRInput,
+                         output=VaROutput)
 class ValueAtRisk(credmark.model.Model):
-    @ staticmethod
+    @staticmethod
     def calc_var(ppl, lvl):
         ppl_d = ppl.copy()
         ppl_d.sort()
@@ -98,7 +100,7 @@ class ValueAtRisk(credmark.model.Model):
 
             rows = result.data
             block_hist = rows[0].get(txn_blocks.NUMBER) if len(rows) else None
-            print('rows', rows, input.asOf)
+            print('rows', rows, input.asOf, block_hist)
         else:
             block_hist = self.context.block_number
 
@@ -114,7 +116,7 @@ class ValueAtRisk(credmark.model.Model):
                 input.asOf = datetime.fromtimestamp(timestamp, timezone.utc).date()
             else:
                 raise ModelRunError(f'Can not get the timestamp for block={block_hist}')
-            print('rows', rows, input.asOf)
+            print('rows', rows, input.asOf, block_hist)
 
         var = {}
 
@@ -143,21 +145,32 @@ class ValueAtRisk(credmark.model.Model):
                 if not pos.token.symbol:
                     raise ModelRunError(f'Input position is invalid, {input}')
 
-                historical = self.context.run_model(
-                    'uniswap-v3.get-historical-price',
-                    input={
-                        'token': pos.token,
-                        'window': window,
-                        'interval': minimal_interval,
-                    },
-                    block_number=block_hist)
+                data = []
+                for x in range(int(12e6), 14378699):
+                    ts = self.context.web3.eth.get_block(x).timestamp
+                    dt = datetime.fromtimestamp(ts, timezone.utc)
+                    data.append((x, ts, dt))
+                    if x // 1e5 == 0:
+                        print(data[-1])
+                df = pd.DataFrame(data, columns=['block_number', 'timestamp', 'dt'])
+                df.to_pickle('block_index_12m_14m.pkl.gz')
+                breakpoint()
 
-                for p in historical['series']:
-                    p['price'] = p['output']['price']
-                    del p['output']
+                data = []
+                for x in range(260):
+                    block_past = block_hist-6500*x
+                    price = self.context.run_model('uniswap-v3.get-average-price',
+                                                   input=pos.token, block_number=block_past)
+                    ts = self.context.web3.eth.get_block(block_past).timestamp
+                    dt = datetime.fromtimestamp(ts, timezone.utc)
+                    data.append([(block_past, price['price'], ts, dt)])
 
-                df_hist = pd.DataFrame(historical['series']).sort_values(
-                    ['blockNumber'], ascending=False)
+                breakpoint()
+
+                df_hist.loc[:, 'blockTime'] = df_hist.blockTimestamp.apply(
+                    lambda x: datetime.fromtimestamp(x, timezone.utc).date())
+                df_hist.loc[:, 'sampleTime'] = df_hist.sampleTimestamp.apply(
+                    lambda x: datetime.fromtimestamp(x, timezone.utc).date())
 
                 ret = df_hist.price[:-1].to_numpy() / df_hist.price[1:].to_numpy()
 
@@ -172,8 +185,9 @@ class ValueAtRisk(credmark.model.Model):
 
                 dict_hist[window] = df_hist
                 dict_ret[window] = df_ret
-                # print(df_hist)
-                # print(df_ret)
+                if input.debug:
+                    print(df_hist)
+                    print(df_ret)
 
             for ivl, ivl_str in zip(interval_nums, input.intervals):
                 var[window][ivl_str] = {}

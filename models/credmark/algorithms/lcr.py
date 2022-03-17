@@ -17,7 +17,9 @@ from credmark.types import (
 
 class LCRInput(DTO):
     address: Address
-    stablecoins: List[str] = DTOField(['USDC', 'USDT', 'DAI'])
+    stablecoins: List[dict] = DTOField([{'address': '0xa2327a938febf5fec13bacfb16ae10ecbc4cbdcf'},  # Work-around for USDC
+                                        {'symbol': 'USDT'},
+                                        {'symbol': 'DAI'}])
     cashflow_shock: float = DTOField(1e10)
 
     class Config:
@@ -27,11 +29,11 @@ class LCRInput(DTO):
         }
 
 
-@credmark.model.describe(slug='finance.lcr',
-                         version='1.0',
-                         display_name='Liquidity Coverage Ratio',
-                         description='A simple LCR model',
-                         input=LCRInput)
+@ credmark.model.describe(slug='finance.lcr',
+                          version='1.0',
+                          display_name='Liquidity Coverage Ratio',
+                          description='A simple LCR model',
+                          input=LCRInput)
 class Var(credmark.model.Model):
 
     def run(self, input: LCRInput) -> dict:
@@ -50,9 +52,9 @@ class Var(credmark.model.Model):
         sb_sum = 0
         sb_dict = {}
         for sb in input.stablecoins:
-            ct = Token(symbol=sb)
+            ct = Token(**sb)
             bal = ct.balance_of(account).scaled
             sb_sum += bal
-            sb_dict[sb] = bal
+            sb_dict[ct.symbol] = bal
 
         return {'account': account, 'holding': sb_dict, 'total': sb_sum, 'lcr': sb_sum / input.cashflow_shock}

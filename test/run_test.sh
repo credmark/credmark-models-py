@@ -9,103 +9,7 @@ fi
 
 SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]
-then
-    echo -e "\nRun model tests\n"
-    echo "Usage: $0 [test] [gen]"
-    echo ""
-    echo -e "In normal mode it uses the credmark-dev script and the gateway api.\n"
-    echo 'In "test" mode it uses test/test.py and a local model-runner-api.'
-    echo ""
-    echo "If \"gen\" is specified, the tests will not run and the ${SCRIPT_DIRECTORY}/run_all_examples[_test].sh file will be generated instead."
-    echo ""
-    exit 0
-fi
-
-if [ $# -ge 1 ] && [ $1 == 'test' ]
-then
-    test_mode='test'
-    cmk_dev='python test/test.py'
-    api_url=' --api_url=http://localhost:8700'
-    cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
-    echo In test mode, using ${cmk_dev} and ${api_url}
-else
-    test_mode='prod'
-    cmk_dev='credmark-dev'
-    api_url=''  # no api url param uses the gateway api
-    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
-    echo Using installed credmark-dev and gateway api.
-fi
-
-if ([ $# -eq 2 ] && [ $2 == 'gen' ]) || ([ $# -eq 1 ] && [ $1 == 'gen' ])
-then
-    gen_cmd=1
-else
-    gen_cmd=0
-fi
-
-if [ $gen_cmd -eq 1 ]; then
-    echo "Sending commands to ${cmd_file}"
-    echo -e "#!/bin/bash\n" > $cmd_file
-    if [ `which chmod` != '' ]
-    then
-        chmod u+x $cmd_file
-    fi
-fi
-
-set +x
-
-run_model () {
-    model=$1
-    input=$2
-    if [ $# -eq 3 ] && [ $3 == 'print-command' ]
-    then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
-    else
-        if [ $gen_cmd -eq 1 ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}" >> $cmd_file
-        else
-            ${cmk_dev} run ${model} --input "${input}" -b 14234904${api_url}
-        fi
-    fi
-}
-
-test_model () {
-    expected=$1
-    model=$2
-    input=$3
-    cmd="$(run_model $model "$input" print-command)"
-
-    if [ $expected -ne 0 ] && [ $expected -ne 1 ]
-    then
-        echo "Got unexpected expected=${expected} for ${cmd}"
-        exit
-    fi
-
-    run_model $model "$input"
-    exit_code=$?
-
-    if [ $gen_cmd -eq 0 ]
-    then
-        if [ $exit_code -ne $expected ]
-        then
-            echo Failed test with $cmd
-            echo "Stopped with unexpected exit code: $exit_code != $expected."
-            exit
-        else
-            echo Passed test with $cmd
-        fi
-    else
-        echo Sent $cmd to $cmd_file
-    fi
-}
-
-echo_cmd () {
-    echo $1
-    if [ $gen_cmd -eq 1 ]; then
-        echo "echo \"$1\"" >> $cmd_file
-    fi
-}
+source $SCRIPT_DIRECTORY/test_common.sh
 
 ${cmk_dev} list | awk -v test_script=$0 '{
     print $0
@@ -148,7 +52,7 @@ echo_cmd ""
 echo_cmd "Account Examples:"
 echo_cmd ""
 test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}'
-# Too many holdings
+# Working but taking long time.
 # test_model 0 account.portfolio '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}'
 
 echo_cmd ""
@@ -166,10 +70,9 @@ test_model 0 example.address-transforms '{"address": "0x1aD91ee08f21bE3dE0BA2ba6
 echo_cmd ""
 echo_cmd "DTO Examples:"
 echo_cmd ""
-test_model 0 example.type-test-1 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-'
-test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-'
+# Fix USDC here
+test_model 0 example.type-test-1 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}'
+test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}'
 
 echo_cmd ""
 echo_cmd "Load Contract Examples:"
@@ -238,7 +141,7 @@ test_model 0 example.libraries '{}'
 echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
-test_model 0 compound.test '{"symbol":"DAI"}'
+test_model 0 compound.test '{"symbol":"USDC"}'
 # TODO: fix the model
 test_model 1 compound-token-asset '{"symbol":"DAI"}'
 # TODO: fix the model
