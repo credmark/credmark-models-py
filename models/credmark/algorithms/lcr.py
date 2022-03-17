@@ -17,7 +17,7 @@ from credmark.types import (
 
 class LCRInput(DTO):
     address: Address
-    stablecoins: List[dict] = DTOField([{'address': '0xa2327a938febf5fec13bacfb16ae10ecbc4cbdcf'},  # Work-around for USDC
+    stablecoins: List[dict] = DTOField([{'address': '0xa2327a938febf5fec13bacfb16ae10ecbc4cbdcf'},  # Work-around for USDC (with DelegateCall)
                                         {'symbol': 'USDT'},
                                         {'symbol': 'DAI'}])
     cashflow_shock: float = DTOField(1e10)
