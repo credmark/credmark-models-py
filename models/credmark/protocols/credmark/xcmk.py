@@ -11,7 +11,9 @@ from credmark.types import (
     Contract,
 )
 
-from credmark.types.dto import DTO
+from credmark.types.dto import (
+    DTO,
+)
 
 # TODO: Need to get ABI's programmatically, I want to be able to do something like:
 # self.context.contract(protocol:Union[str, None], product:Union[str,None], address:Union[str, None], abi:Union[str,None])
@@ -60,7 +62,6 @@ class xCmkDeploymentTimeOutput(DTO):  # pylint: disable=invalid-name
                          display_name='xCMK deployment time',
                          description='xCMK deployment time',
                          developer='Credmark',
-                         input=None,
                          output=xCmkDeploymentTimeOutput)
 class xCmkDeploymentTime(credmark.model.Model):  # pylint: disable=invalid-name
     """

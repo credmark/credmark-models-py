@@ -123,7 +123,6 @@ class CurveFinancePoolInfo(credmark.model.Model):
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
                          output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
@@ -136,7 +135,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             for pool in
             self.context.run_model(
                 "curve-fi-pools",
-                input=None,
+                input={},
                 return_type=Contracts)]
 
         return CurveFiPoolInfos(pool_infos=pool_infos)
@@ -146,7 +145,6 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
                          output=Contracts)
 class CurveFinancePools(credmark.model.Model):
 
@@ -222,9 +220,9 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@ credmark.model.describe(slug='curve-fi-avg-gauge-yield',
-                          version='1.0',
-                          input=Account)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield',
+                         version='1.0',
+                         input=Account)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
@@ -294,7 +292,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@ credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
+@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []

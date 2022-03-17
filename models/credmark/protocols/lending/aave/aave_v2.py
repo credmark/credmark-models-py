@@ -1,5 +1,4 @@
 from typing import List
-
 import credmark.model
 
 from credmark.types import (
@@ -41,7 +40,6 @@ AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
                          version="1.0",
                          display_name="Aave V2 Lending Pool overall liabilities",
                          description="Aave V2 liabilities for the main lending pool",
-                         input=None,
                          output=Portfolio)
 class AaveV2GetLiability(credmark.model.Model):
 
@@ -86,7 +84,6 @@ class AaveV2GetTokenLiability(credmark.model.Model):
                          version="1.0",
                          display_name="Aave V2 Lending Pool Assets",
                          description="Aave V2 assets for the main lending pool",
-                         input=None,
                          output=AaveDebtInfos)
 class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> IterableListGenericDTO[AaveDebtInfo]:
@@ -145,4 +142,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
-            'aave.token-asset', model_input=input, window='5 days', interval='1 day', model_version='1.0')
+            'aave.token-asset',
+            model_input=input,
+            window='5 days',
+            interval='1 day',
+            model_version='1.0')
