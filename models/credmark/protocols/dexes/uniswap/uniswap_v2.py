@@ -59,9 +59,10 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
                 price = (reserves[1] / (10 ** token1.decimals)) / \
                     (reserves[0] / (10**input.decimals))
                 if token1.symbol == 'WETH':
-                    weth_price = self.context.run_model('uniswap-v2.get-average-price',
-                                                        token1,
-                                                        return_type=Price).price
+                    if weth_price is None:
+                        weth_price = self.context.run_model('uniswap-v2.get-average-price',
+                                                            token1,
+                                                            return_type=Price).price
                     price = price * weth_price
             else:
                 token0 = Token(address=pool.functions.token0().call())
@@ -69,12 +70,13 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
                 price = (reserves[0] / (10 ** token0.decimals)) / \
                     (reserves[1] / (10**input.decimals))
                 if token0.symbol == 'WETH':
-                    weth_price = self.context.run_model('uniswap-v2.get-average-price',
-                                                        token0,
-                                                        return_type=Price).price
+                    if weth_price is None:
+                        weth_price = self.context.run_model('uniswap-v2.get-average-price',
+                                                            token0,
+                                                            return_type=Price).price
                     price = price * weth_price
 
             prices.append((price, reserve))
         if len(prices) == 0:
-            return None
+            return Price(price=None)
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))

@@ -16,7 +16,6 @@ class ExampleTokenLoadingOutput(DTO):
 
 @credmark.model.describe(slug='example.token-loading',
                          version='1.0',
-                         input=None,
                          developer='credmark',
                          output=ExampleTokenLoadingOutput)
 class ExampleTokenLoading(credmark.model.Model):

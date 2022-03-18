@@ -8,7 +8,7 @@ import credmark.types
     description="This model exists simply as an example of how and where to contribute a model to the Credmark framework",
     version='1.0',
     developer='neilz.eth',
-    input=None,
+
     output=dict
 )
 class MyModel(credmark.model.Model):

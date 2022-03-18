@@ -1,5 +1,9 @@
 import credmark.model
-from credmark.types import Account, Accounts, Address
+from credmark.types import (
+    Account,
+    Accounts,
+    Address,
+)
 
 
 @credmark.model.describe(slug='example.iteration',

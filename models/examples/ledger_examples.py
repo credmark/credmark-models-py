@@ -1,7 +1,12 @@
 
-from trace import Trace
+# pylint: disable=locally-disabled, line-too-long
+
 import credmark.model
-from credmark.types import Account
+
+from credmark.types import (
+    Account
+)
+
 from credmark.types.models.ledger import (
     BlockTable,
     TransactionTable,
@@ -17,7 +22,6 @@ from credmark.types.models.ledger import (
 @credmark.model.describe(
     slug='example.ledger-blocks',
     version="1.0",
-    input=None,
     developer="Credmark")
 class ExampleLedgerBlock(credmark.model.Model):
 

@@ -1,5 +1,6 @@
 from typing import (
-    Optional
+    Optional,
+    Union,
 )
 
 import credmark.model
@@ -153,7 +154,7 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
 
 class HistoricalPriceDTO(DTO):
     token: Token
-    window: str
+    window: Union[str, list[str]]
     interval: Optional[str]
 
 
