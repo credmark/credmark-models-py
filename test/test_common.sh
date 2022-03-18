@@ -17,6 +17,7 @@ if [ $# -ge 1 ] && [ $1 == 'test' ]
 then
     test_mode='test'
     cmk_dev='python test/test.py'
+    # Use prod for test:
     # api_url=' --api_url=http://localhost:8700'
     api_url=''
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
@@ -57,6 +58,7 @@ run_model () {
         if [ $gen_cmd -eq 1 ]; then
             echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}" >> $cmd_file
         else
+            echo "Running: ${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
             ${cmk_dev} run ${model} --input "${input}" -b 14234904${api_url}
         fi
     fi
