@@ -1,5 +1,6 @@
 from typing import (
     List,
+    Optional,
 )
 
 import credmark.model
@@ -29,8 +30,7 @@ class AaveDebtInfo(DTO):
     aToken: Token
     stableDebtToken: Token
     variableDebtToken: Token
-    #TODO: unused
-    # interestRateStrategyContract: Optional[Contract]
+    interestRateStrategyContract: Optional[Contract]
     totalStableDebt: int
     totalVariableDebt: int
     totalDebt: int
@@ -108,11 +108,6 @@ class AaveV2GetAssets(credmark.model.Model):
             input=Token(address=asset_address),
             return_type=AaveDebtInfo) for asset_address in aave_assets_address])
 
-        for debt in aave_debts.aaveDebtInfos:
-            asset_supply = debt.aToken.functions.totalSupply().call()
-            total_debt = debt.totalDebt
-            # print(debt.token.symbol, asset_supply - total_debt,
-            #      (asset_supply, total_debt, 'NA' if total_debt == 0 else asset_supply / total_debt))
         return aave_debts
 
 
@@ -137,7 +132,7 @@ class AaveV2GetTokenAsset(credmark.model.Model):
         aToken = Token(address=reservesData[7], abi=ERC_20_TOKEN_CONTRACT_ABI)
         stableDebtToken = Token(address=reservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
         variableDebtToken = Token(address=reservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        # TODO: interestRateStrategyContract = Contract(address=reservesData[10])
+        interestRateStrategyContract = Contract(address=reservesData[10])
 
         totalStableDebt = stableDebtToken.total_supply()
         totalVariableDebt = variableDebtToken.total_supply()
@@ -148,7 +143,7 @@ class AaveV2GetTokenAsset(credmark.model.Model):
             aToken=aToken,
             stableDebtToken=stableDebtToken,
             variableDebtToken=variableDebtToken,
-            # TODO: interestRateStrategyContract=interestRateStrategyContract,
+            interestRateStrategyContract=interestRateStrategyContract,
             totalStableDebt=totalStableDebt,
             totalVariableDebt=totalVariableDebt,
             totalDebt=totalDebt)
