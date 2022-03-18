@@ -24,7 +24,6 @@ class DebtDaoV1(credmark.model.Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{REDACTED_MULTISIG_ADDRESS}\' and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{VOTIUM_CONTRACT_ADDRESS}\'')
         i = 0
         for transfer in transfers:
-            print(transfer, i, len(transfers.data))
             i = i+1
             token = Token(address=transfer['token_address'])
             try:
@@ -37,7 +36,6 @@ class DebtDaoV1(credmark.model.Model):
                         transfer['price'] = self.context.run_model(
                             'uniswap-v3.get-average-price', input=token, block_number=transfer['block_number'])['price']
             except:
-                print('price failed')
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
