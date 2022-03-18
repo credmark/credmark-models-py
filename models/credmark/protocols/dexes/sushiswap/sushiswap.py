@@ -57,7 +57,7 @@ class SushiSwapPool(DTO):
                          input=SushiSwapPool)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: SushiSwapPool):
-        print('DEBUG', input)
+        self.logger.info(f'{input=}')
         contract = Contract(
             address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
             abi=SUSHISWAP_FACTORY_ABI
@@ -87,7 +87,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
 
     def run(self, input: Contract):
         output = {}
-        print('DEBUG', input)
+        self.logger.info(f'{input=}')
         contract = Contract(
             address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
@@ -121,4 +121,4 @@ class SushiswapGetPairDetails(credmark.model.Model):
                   'token1_symbol': _token1_symbol,
                   'token1_reserve': token1_reserve}
 
-        print(output)
+        return output

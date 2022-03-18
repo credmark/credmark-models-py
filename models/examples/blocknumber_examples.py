@@ -33,7 +33,8 @@ class BlockNumberTransformExample(credmark.model.Model):
         try:
             block = block + 1
         except BlockNumberOutOfRangeException:
-            print("I can't look into the future, looking at the next block was attempted.")
+            self.logger.info(
+                "I can't look into the future, looking at the next block was attempted.")
 
         ten_thousand_blocks_ago = self.context.block_number - 10000
 

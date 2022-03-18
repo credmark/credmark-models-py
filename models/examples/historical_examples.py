@@ -34,7 +34,7 @@ class ExampleHistorical(credmark.model.Model):
         if block is not None:
             assert block.output
 
-        print(res[3].dict())
+        self.logger.info(res[3].dict())
 
         return res.dict()
 
@@ -54,7 +54,6 @@ class ExampleHistoricalSnap(credmark.model.Model):
             # block.output is type LibrariesDto
             assert block.output.libraries
         return blocks
-
 
 
 @credmark.model.describe(slug='example.historical-block-snap', version="1.0")

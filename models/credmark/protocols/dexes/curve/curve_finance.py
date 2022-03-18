@@ -313,7 +313,7 @@ class CurveFinanceAllYield(credmark.model.Model):
 
         for gauge in gauges:
             yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
-            print(yields)
+            self.logger.info(yields)
             res.append(yields)
 
         return {"results": res}

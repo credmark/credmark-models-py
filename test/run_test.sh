@@ -78,14 +78,8 @@ echo_cmd ""
 echo_cmd "Load Contract Examples:"
 echo_cmd ""
 
-if [ $test_mode == 'prod' ]
-then
-    test_model 0 example.load-contract-by-name '{"contractName": "CIM"}'
-    test_model 0 example.load-contract-by-address '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}'
-else
-    test_model 0 example.load-contract-by-name '{"contractName": "CRISP"}'
-    test_model 0 example.load-contract-by-address '{"address": "0xf905835174e278e27150f2a63a6a3786b48b3bd2"}'
-fi
+test_model 0 example.load-contract-by-name '{"contractName": "CIM"}' # CRISP
+test_model 0 example.load-contract-by-address '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}'
 
 echo_cmd ""
 echo_cmd "Run Historical Examples:"
@@ -186,6 +180,15 @@ test_model 0 aave.token-asset '{"symbol":"USDC"}'
 test_model 0 aave.token-asset '{"symbol":"DAI"}'
 
 echo_cmd ""
+echo_cmd "Run Finance Examples"
+echo_cmd ""
+test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "10 days", "interval": "1 day", "confidence": [0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "10 days", "interval": "1 day", "confidence": [0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'
+
+echo_cmd ""
 echo_cmd "Run Curve Examples"
 echo_cmd ""
 test_model 0 curve-fi-avg-gauge-yield '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}' # includes curve-fi-all-gauge-addresses, curve-fi-get-gauge-stake-and-claimable-rewards
@@ -193,13 +196,3 @@ test_model 0 curve-fi-all-yield '{}'
 test_model 0 curve-fi-all-pool-info '{}' # includes curve-fi-pools, curve-fi-pool-info, curve-fi-pool-historical-reserve
 # TODO: model is not finished.
 test_model 0 curve-fi-historical-lp-dist '{"address":"0x853d955aCEf822Db058eb8505911ED77F175b99e"}'
-
-
-echo_cmd ""
-echo_cmd "Run Finance Examples"
-echo_cmd ""
-test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "windows": ["30 days","60 days","90 days"], "intervals": ["1 day","2 days"], "confidences": [0.01,0.05]}'

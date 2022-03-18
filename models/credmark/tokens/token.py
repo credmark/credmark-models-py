@@ -42,7 +42,7 @@ class TokenInfo(DTO):
 class TokenInfoModel(credmark.model.Model):
     def run(self, input: Token) -> TokenInfo:
         input.load()
-        print(f'ABI functions: {input.functions.__dir__()}')
+        self.logger.info(f'ABI functions: {input.functions.__dir__()}')
         total_supply = input.total_supply()
         return TokenInfo(
             token=input,
