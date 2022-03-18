@@ -1,4 +1,7 @@
-from typing import List
+from typing import (
+    List,
+)
+
 import credmark.model
 
 from credmark.types import (
@@ -23,6 +26,11 @@ from models.tmp_abi_lookup import (
 
 class AaveDebtInfo(DTO):
     token: Token
+    aToken: Token
+    stableDebtToken: Token
+    variableDebtToken: Token
+    #TODO: unused
+    # interestRateStrategyContract: Optional[Contract]
     totalStableDebt: int
     totalVariableDebt: int
     totalDebt: int
@@ -92,12 +100,20 @@ class AaveV2GetAssets(credmark.model.Model):
             address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
-        aave_assets = contract.functions.getReservesList().call()
 
-        return AaveDebtInfos(aaveDebtInfos=[self.context.run_model(
+        aave_assets_address = contract.functions.getReservesList().call()
+
+        aave_debts = AaveDebtInfos(aaveDebtInfos=[self.context.run_model(
             'aave.token-asset',
-            input=Token(address=asset),
-            return_type=AaveDebtInfo) for asset in aave_assets])
+            input=Token(address=asset_address),
+            return_type=AaveDebtInfo) for asset_address in aave_assets_address])
+
+        for debt in aave_debts.aaveDebtInfos:
+            asset_supply = debt.aToken.functions.totalSupply().call()
+            total_debt = debt.totalDebt
+            # print(debt.token.symbol, asset_supply - total_debt,
+            #      (asset_supply, total_debt, 'NA' if total_debt == 0 else asset_supply / total_debt))
+        return aave_debts
 
 
 @credmark.model.describe(slug="aave.token-asset",
@@ -116,29 +132,34 @@ class AaveV2GetTokenAsset(credmark.model.Model):
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
 
-        getReservesData = contract.functions.getReserveData(input.address).call()
-        stableToken = Token(
-            address=getReservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        totalStableDebt = stableToken.total_supply()
+        reservesData = contract.functions.getReserveData(input.address).call()
 
-        totalVariableDebt = Token(
-            address=getReservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI).total_supply()
+        aToken = Token(address=reservesData[7], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        stableDebtToken = Token(address=reservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        variableDebtToken = Token(address=reservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        # TODO: interestRateStrategyContract = Contract(address=reservesData[10])
 
+        totalStableDebt = stableDebtToken.total_supply()
+        totalVariableDebt = variableDebtToken.total_supply()
         totalDebt = totalStableDebt + totalVariableDebt
 
         return AaveDebtInfo(
-            token=Token(symbol=stableToken.symbol, decimals=stableToken.decimals),
+            token=input,
+            aToken=aToken,
+            stableDebtToken=stableDebtToken,
+            variableDebtToken=variableDebtToken,
+            # TODO: interestRateStrategyContract=interestRateStrategyContract,
             totalStableDebt=totalStableDebt,
             totalVariableDebt=totalVariableDebt,
             totalDebt=totalDebt)
 
 
-@credmark.model.describe(slug="aave.token-asset-historical",
-                         version="1.0",
-                         display_name="Aave V2 token liquidity",
-                         description="Aave V2 token liquidity at a given block number",
-                         input=Token,
-                         output=BlockSeries)
+@ credmark.model.describe(slug="aave.token-asset-historical",
+                          version="1.0",
+                          display_name="Aave V2 token liquidity",
+                          description="Aave V2 token liquidity at a given block number",
+                          input=Token,
+                          output=BlockSeries)
 class AaveV2GetTokenAssetHistorical(credmark.model.Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
