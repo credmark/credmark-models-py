@@ -192,6 +192,8 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                     price = price * weth_price
 
             prices.append((price, reserve))
+
         if len(prices) == 0:
-            return None
+            return Price(price=None)
+
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
