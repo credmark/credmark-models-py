@@ -126,7 +126,6 @@ class SushiswapGetPairDetails(credmark.model.Model):
 
         return output
 
-
 @credmark.model.describe(slug='sushiswap.get-pools',
                          version='1.0',
                          display_name='Uniswap v2 Token Pools',
