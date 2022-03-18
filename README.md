@@ -6,17 +6,19 @@ It contains dependencies to the [Credmark Model Framework repo](https://github.c
 
 Moreover, the Credmark Model Framework includes the credmark-dev command-line tool that lets you list the models in the local repo and run local models as you develop. It will also run remote non-local models on the server by automatically doing API calls when models are not present locally. Once the Credmark model framework is installed you can use this command-line tool.
 
+You can browse the models that are already deployed at the [Credmark Model Documentation](https://gateway.credmark.com/model-docs) site.
+
 # Quickstart
 
 ## Prerequisites
 
-- Python 3.9+ or Miniconda 4.10+ installed
-- Personal web3 provider url (Alchemy or other) if you need to use your own web3 provider instance to run any model
-- Visual studio 2019+ installed for Windows users
+- [Python 3.9+](https://www.python.org/downloads/) or [Miniconda 4.10+](https://docs.conda.io/en/latest/miniconda.html) installed
+- Personal web3 provider url ([Alchemy](https://docs.alchemy.com/alchemy/introduction/getting-started) or other) if you need to use your own web3 provider instance to run any model
+- [Visual studio 2019+](https://visualstudio.microsoft.com/de/downloads/) installed for Windows users
 
-## Clone Repository
+## Fork Repository
 
-Clone [credmark-models-py](https://github.com/credmark/credmark-models-py) repository
+Fork [credmark-models-py](https://github.com/credmark/credmark-models-py) repository
 
 ## Virtual Env
 
@@ -87,7 +89,7 @@ credmark-dev run <Specify Slug> -b <Specify block number>  -i <Specify Input>
 so for example
 
 ```
-credmark-dev run cmk-circulating-supply -b 14000000  -i “{}”
+credmark-dev run cmk.circulating-supply -b 14000000  -i “{}”
 ```
 
 Tip: you can run the command
@@ -125,6 +127,8 @@ class EchoModel(credmark.model.Model):
 ```
 
 The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO (see later section DTO), with various properties and values, potentially nested with other JSON-compatible data structures.
+
+A special DTO `EmptyInput`, which is an empty DTO, is created for model with no input required. The model input is EmptyInput by default if `input` is not specified in the decorator `@credmark.model.describe`. If the model takes non-empty input, modeller can specify `input=dict` or create a DTO for more structured data.
 
 A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
 
@@ -215,13 +219,13 @@ We strongly encourage you to create DTOs and/or make use of the common objects, 
 You may use `credmark-dev describe {model_slug}` to show the input/output schema and examples for specific model(s). For example
 
 ```
-credmark-dev describe aave-token-asset-historical
+credmark-dev describe aave.token-asset-historical
 
 (...omit the output header)
 
 Loaded models:
 
- - slug: aave-token-asset-historical
+ - slug: aave.token-asset-historical
  - version: 1.0
  - tags: None
  - display_name: Aave V2 token liquidity
@@ -251,11 +255,11 @@ Loaded models:
 
 If you are a contributor external to credmark, you should create your folder in [credmark-models-py/models/contrib].
 
-You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
+You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`.
 
 If you are a contributor external to credmark, you should create your folder in [credmark-models-py/models/contrib].
 
-You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`. 
+You should create and keep your models under this folder. Note that we have applied additional conditions for model slug names under this folder. Slug name must start with `contrib.<model-name>`, so for example: `Slug = ‘contrib.sample-model`.
 
 Once your model is ready to submit, simply create a pull request on the github repo and let us know in our [Discord](https://discord.com/invite/BJbYSRDdtr).
 
@@ -267,12 +271,27 @@ See a list of the [existing models](https://github.com/credmark/credmark-models-
 
 The Credmark Framework provides access to remote models and access to on-chain data via [Credmark API Gateway](https://gateway.credmark.com/api/).
 
-If you go to the popup in the top right of the window you can now choose [Models Documentation](https://gateway.credmark.com/api/?urls.primaryName=Model%20Documentation) and get docs for all the models and try running them (Note that not all models are fully documented yet.)
+## Interactive HTTP requests
 
-# SDK Command Documentation 
+If you go to the popup in the top right of the window you can now choose between the different model groups:
+
+- [Credmark Models](https://gateway.credmark.com/api/?urls.primaryName=Credmark%20Models)
+- [Utility Models](https://gateway.credmark.com/api/?urls.primaryName=Utility%20Models)
+- [Contributor Models](https://gateway.credmark.com/api/?urls.primaryName=Contributor%20Models)
+- [Example Models](https://gateway.credmark.com/api/?urls.primaryName=Example%20Models)
+
+For each group, you will get the docs for all the models within the group and you are able to run them interactively. Note that not all models are fully documented yet.
+
+## Model documentation
+
+If you're just looking for model documentation (without all the API details), please refer to the [Credmark Model Documentation](https://gateway.credmark.com/model-docs). This documentation contains the description of the models as well as example requests and responses and is searchable (by name and slug).
+
+# Framework Command Documentation
+
 ## Help command
 
 All the commands accept `-h` parameter for help, e.g.:
+
 ```
 >credmark-dev -h
 
@@ -306,8 +325,11 @@ Commands:
     clean (remove-manifest)
                         Clean model manifest
 ```
+
 ## `run`command
+
 Below -h command shows the details of options available for run commands.
+
 ```
 >credmark-dev run -h
 
@@ -336,19 +358,22 @@ To call any model we can specify the output by providing below parameters (they'
 
 - `-b` or `–block_number` : to define against which block number the model should run. If not specified, it uses the "latest" block from our ledger db.
 - `-i` or `–input` : to provide input for a model in a predefined structure.(you can run command `credmark-dev list --manifests` to see the input format required for each model. See example below). If not provided it will default to “{}”.
-Model-slug: Name of the model (slug) to call the model.
+  Model-slug: Name of the model (slug) to call the model.
 
-Note:  if chain ID is not mentioned explicitly in the parameter,  it defaults to 1. If the model is using web 3 instance then chain id (and blockchain) will be picked from the .env file we defined during setup (refer to “configure environment variable” section). If the model is using Credmark database then, by default, it will refer to the Ethereum blockchain.
+Note: if chain ID is not mentioned explicitly in the parameter, it defaults to 1. If the model is using web 3 instance then chain id (and blockchain) will be picked from the .env file we defined during setup (refer to “configure environment variable” section). If the model is using Credmark database then, by default, it will refer to the Ethereum blockchain.
 
-See the example below. Here, we are running the model “cmk-circulating-supply” at block_number 14000000.
+See the example below. Here, we are running the model “cmk.circulating-supply” at block_number 14000000.
+
 ```
->Credmark-dev run -b 14000000 cmk-circulating-supply -i "{}"
+>Credmark-dev run -b 14000000 cmk.circulating-supply -i "{}"
 
-{"slug": "cmk-circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk-total-supply": {"1.0": 1}, "cmk-circulating-supply": {"1.0": 1}}}
+{"slug": "cmk.circulating-supply", "version": "1.0", "output": {"result": 28314402605762084044696668}, "dependencies": {"cmk.total-supply": {"1.0": 1}, "cmk.circulating-supply": {"1.0": 1}}}
 ```
 
 ## `list`command
+
 Below `-h` command shows the details of options available for list commands.
+
 ```
 >credmark-dev list -h
 
@@ -359,24 +384,26 @@ optional arguments:
   --manifests
   --json
 ```
+
 Note: You can also run `list-models` command alternatively.
 
 Example below shows simple output (list of all models and their version) of list command:
+
 ```
 >credmark-dev list -h
 
 Loaded models:
 
  - var: ['1.0']
- - cmk-total-supply: ['1.0']
- - cmk-circulating-supply: ['1.0']
- - xcmk-total-supply: ['1.0']
+ - cmk.total-supply: ['1.0']
+ - cmk.circulating-supply: ['1.0']
+ - xcmk.total-supply: ['1.0']
 [...]
 ```
+
 You can also get the list result in different formats using `--json` or `--manifest`.
 
 **Note:** the commands `build` and `clean` does not need to be used.
-
 
 # Credmark Model Framework Core Components
 
@@ -404,13 +431,13 @@ It also enforces deterministic behavior for Models. The key utilities in `ModelC
 - contract
 - ledger
 - block number
-- historical utility 
+- historical utility
 
 ### Methods
 
 ```python
 def run_model(name: str,
-          input: Union[dict, None] = None,
+          input: Union[dict, DTO] = EmptyInput(),
           return_type: Union[Type[dict], Type[DTO], None],
           block_number: Union[int, None] = None,
           version: Union[str, None] = None)
@@ -441,7 +468,9 @@ The web3 providers are determined from the environment variables as described in
 
 Example:
 
-        contract = self.context.web3.eth.contract(
+        from credmark.types import (Address, Contract)
+
+        contract = Contract(
             # lending pool address
             address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
@@ -492,11 +521,11 @@ As a subclass of int, the `block_number` class allows the provided block numbers
 
 Example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py).
 
-### Historical Utility 
+### Historical Utility
 
-The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval. 
+The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval.
 
-Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second. 
+Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second.
 
 See [historical_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/historical_examples.py) on how to use this class.
 
@@ -512,42 +541,44 @@ To create a DTO, simply subclass the DTO base class and use DTOFields to annotat
 
 Please see the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/models/) for more information.
 
-## Additional Useful Modules 
+## Additional Useful Modules
 
-We also have some built-in reusable type classes available under [Credmark.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/types). 
+We also have some built-in reusable type classes available under [Credmark.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/types).
 
 We have created and grouped together different classes to manage input and output types to be used by models. These types include some standard blockchain and financial data structures as well as some standard input and output objects for Credmark models.
 
 ### models
+
 1. ledger.py : DTOs and data used by the ledger models
 2. series.py: DTOs for the series models
 
 ### data
+
 **1. Address:** this class is a subclass of string and holds ablockchain address.
 
-The address can be provided in lower case, upper case or checksum hex format. This class will normalize the address into lower case. Note that It can be used as a normal string but it also has a "checksum" property which returns a web3 ChecksumAddress. 
+The address can be provided in lower case, upper case or checksum hex format. This class will normalize the address into lower case. Note that It can be used as a normal string but it also has a "checksum" property which returns a web3 ChecksumAddress.
 
 See [address_examples.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py) on how to use this class.
 
-**2. Account(s):** Account simply holds an address. Accounts is a list of account instances which allows iteration through each account. 
+**2. Account(s):** Account simply holds an address. Accounts is a list of account instances which allows iteration through each account.
 
 See [iteration_example](https://github.com/credmark/credmark-models-py/blob/main/models/examples/iteration_examples.py) on how to use this class.
 
-**3. Contract:** a contract is a subclass  of Account which has a name, deployed transaction hash, abi, protocol name etc.. 
+**3. Contract:** a contract is a subclass of Account which has a name, deployed transaction hash, abi, protocol name etc..
 
-Object instantiation of this class will load all information available for the contract (against contract address provided as input) in our database and you can access whatever information you want from the object. 
+Object instantiation of this class will load all information available for the contract (against contract address provided as input) in our database and you can access whatever information you want from the object.
 
 See [contact_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/contract_examples.py) on how to use this class.
 
-**4. Token:** Token is a specific kind of contract; hence the Token class inherits from Contract class. 
+**4. Token:** Token is a specific kind of contract; hence the Token class inherits from Contract class.
 
-This class allows you to load token information with an address or symbol as well as get its price in USD Currently this class supports data load for erc20 token but we will support erc721 as well soon.  
+This class allows you to load token information with an address or symbol as well as get its price in USD Currently this class supports data load for erc20 token but we will support erc721 as well soon.
 
 See [token_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/token_examples.py) on how to use this class. Token_data.py lists all erc20 tokens currently supported.
 
 **5. Price and TokenPairPrice:** these classes can be used to hold a price or a price of a token against a reference token (such as CMK-BTC, CMK-ETH etc.)
 
-**6. Position:** this class holds a Token and an amount It can calculate its value based on the token price in USD. You can also access the scaled amount property if you need the scaled amount of the erc20 token. 
+**6. Position:** this class holds a Token and an amount It can calculate its value based on the token price in USD. You can also access the scaled amount property if you need the scaled amount of the erc20 token.
 
 Token_data.py lists all erc20 tokens currently supported.
 

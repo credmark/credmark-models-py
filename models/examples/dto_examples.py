@@ -7,10 +7,10 @@ class PortfolioSummary(DTO):
     num_tokens: int = DTOField(..., description='Number of different tokens')
 
 
-@credmark.model.describe(slug='type-test-1',
+@credmark.model.describe(slug='example.type-test-1',
                          version='1.0',
                          display_name='Test Model',
-                         description='SDK Test Model',
+                         description='Framework Test Model',
                          input=Portfolio,
                          output=PortfolioSummary)
 class TestModel(credmark.model.Model):
@@ -19,10 +19,10 @@ class TestModel(credmark.model.Model):
         return PortfolioSummary(num_tokens=len(input.positions))
 
 
-@credmark.model.describe(slug='type-test-2',
+@credmark.model.describe(slug='example.type-test-2',
                          version='1.0',
                          display_name='Test Model',
-                         description='SDK Test Model',
+                         description='Framework Test Model',
                          input=Portfolio,
                          output=PortfolioSummary)
 class TestModel2(credmark.model.Model):
@@ -30,7 +30,7 @@ class TestModel2(credmark.model.Model):
     def run(self, input: Portfolio) -> PortfolioSummary:
         # return PortfolioSummary(num_tokens=len(input.positions))
 
-        # This will raise an error because we're not returning
-        # the type PortfolioSummary that we set as "output"
-        # in the describe() decorator above.
+        print("This model will raise an error because we're not returning")
+        print("the type PortfolioSummary that we set as \"output\"")
+        print("in the describe() decorator above.")
         return {'xx': 'ss'}  # type: ignore

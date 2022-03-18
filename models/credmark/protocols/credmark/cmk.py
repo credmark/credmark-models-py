@@ -15,7 +15,7 @@ lockedAddresses = [
 ]
 
 
-@credmark.model.describe(slug='cmk-total-supply',
+@credmark.model.describe(slug='cmk.total-supply',
                          version='1.0',
                          display_name='CMK Total Supply',
                          description='This is the Total Supply of CMK',
@@ -28,7 +28,7 @@ class TotalSupplyCMK(credmark.model.Model):
         return {'total_supply': total_supply}
 
 
-@credmark.model.describe(slug='cmk-circulating-supply',
+@credmark.model.describe(slug='cmk.circulating-supply',
                          version='1.0',
                          display_name='CMK Circulating Supply',
                          description='This is the Circulating Supply of CMK.',
@@ -37,7 +37,7 @@ class CirculatingCMK(credmark.model.Model):
 
     def run(self, input) -> dict:
 
-        supply = self.context.run_model("cmk-total-supply")['total_supply']
+        supply = self.context.run_model("cmk.total-supply")['total_supply']
         cmk_token = Token(symbol='CMK')
 
         for addr in lockedAddresses:

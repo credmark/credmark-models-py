@@ -93,7 +93,8 @@ disable=raw-checker-failed,
         unspecified-encoding,
         useless-super-delegation,
         consider-using-f-string,
-        logging-not-lazy
+        logging-not-lazy,
+        too-few-public-methods # for pydantic objects
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

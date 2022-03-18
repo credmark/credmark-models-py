@@ -63,14 +63,15 @@ class ExampleLedgerReceipts(credmark.model.Model):
 class ExampleLedgerTokenTransfers(credmark.model.Model):
 
     """
-    This model returns all ERC20 Token Transfers performed by an address
+    This model returns the 10 most recent ERC20 Token Transfers into or out of an address, with respect to blocknumber
     """
 
     def run(self, input: Account):
         return self.context.ledger.get_erc20_transfers(columns=[c for c in TokenTransferTable.columns()],
                                                        where=f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.address.lower()}\' or \
                                                        {TokenTransferTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'',
-                                                       order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc')
+                                                       order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
+                                                       limit="10")
 
 
 @credmark.model.describe(slug='example.ledger-tokens', version="1.0")

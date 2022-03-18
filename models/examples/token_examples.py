@@ -3,11 +3,6 @@ import credmark.model
 from credmark.types import Token, Address
 from credmark.types.dto import DTO
 
-from typing import (
-    Dict,
-    Union
-)
-
 
 class ExampleTokenLoadingOutput(DTO):
     loadedFromAddress: Token
@@ -28,8 +23,9 @@ class ExampleTokenLoading(credmark.model.Model):
     def run(self, input) -> ExampleTokenLoadingOutput:
         cmk = Token(symbol='CMK')
         cmk_holder = Address("0xF6dBFf8433b643bc08cB53BeD6C535c8a57AC912")
+
         return ExampleTokenLoadingOutput(
-            loadedFromAddress=Token(address='0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'),
+            loadedFromAddress=Token(symbol='AAVE'),
             loadedFromSymbol=cmk,
             loadedNativeToken=Token.native_token(),
             loadedFromSymbolPrice=cmk.price_usd,
