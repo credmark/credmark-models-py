@@ -1,6 +1,6 @@
 import credmark.model
 from credmark.types import Address, Account
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 
 
 class AddressTransformsExampleOutput(DTO):

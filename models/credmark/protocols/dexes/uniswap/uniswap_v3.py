@@ -13,7 +13,7 @@ from credmark.types import (
     BlockSeries,
 )
 
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
     UNISWAP_V3_FACTORY_ABI,

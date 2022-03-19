@@ -14,7 +14,7 @@ from credmark.types import (
     Portfolio,
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     IterableListGenericDTO,
 )

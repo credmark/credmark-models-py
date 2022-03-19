@@ -1,7 +1,7 @@
 
 import credmark.model
 from credmark.types import Token, Address
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 
 
 class ExampleTokenLoadingOutput(DTO):
