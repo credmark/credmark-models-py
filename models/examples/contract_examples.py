@@ -1,6 +1,6 @@
 from typing import List
 import credmark.model
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField,
 )

@@ -4,7 +4,7 @@ from typing import (
 
 import credmark.model
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField
 )

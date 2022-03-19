@@ -1,6 +1,6 @@
 from typing import Any, List
 import credmark.model
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 import pandas
 import numpy
 import matplotlib

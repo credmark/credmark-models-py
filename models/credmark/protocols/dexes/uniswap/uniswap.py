@@ -5,7 +5,7 @@ from credmark.types import (
     Contract,
     Token
 )
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 from models.tmp_abi_lookup import (UNISWAP_QUOTER_ABI,
                                    UNISWAP_QUOTER_ADDRESS,
                                    DAI_ADDRESS,

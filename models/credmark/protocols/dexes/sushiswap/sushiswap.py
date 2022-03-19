@@ -6,7 +6,7 @@ from credmark.types import (
     Contracts,
     Price
 )
-from credmark.types.dto import (
+from credmark.dto import (
     DTO
 )
 
@@ -125,6 +125,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
                   'token1_reserve': token1_reserve}
 
         return output
+
 
 @credmark.model.describe(slug='sushiswap.get-pools',
                          version='1.0',
