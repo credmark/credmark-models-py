@@ -17,7 +17,7 @@ from credmark.types.data.token_wei import (
     TokenWei
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField,
     IterableListGenericDTO

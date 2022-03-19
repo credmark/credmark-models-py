@@ -1,6 +1,6 @@
 import credmark.model
 
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 
 
 class RunTestIn(DTO):

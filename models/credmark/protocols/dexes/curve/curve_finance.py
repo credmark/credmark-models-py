@@ -10,7 +10,7 @@ from credmark.types.models.ledger import (
     TransactionTable
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
 )
 

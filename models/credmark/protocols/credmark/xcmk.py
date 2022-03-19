@@ -11,7 +11,7 @@ from credmark.types import (
     Contract,
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
 )
 

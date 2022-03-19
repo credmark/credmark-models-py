@@ -6,7 +6,7 @@ from credmark.types import (
     Contracts,
     Price
 )
-from credmark.types.dto import (
+from credmark.dto import (
     DTO
 )
 
