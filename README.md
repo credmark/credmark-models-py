@@ -608,6 +608,54 @@ To create a DTO, simply subclass the DTO base class and use DTOFields to annotat
 
 Please see the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/models/) for more information.
 
+### Model Error Detail DTO
+
+Besides input and output, subclases of `ModelBaseError` can use a DTO for the `data.detail` object instead of a dict. You can simply pass a DTO as the `detail` arg in a model constructor:
+
+```python
+address = Address(some_address_string)
+e = ModelDataError(message='Address is not a contract',
+                   code=ModelDataError.ErrorCodes.CONFLICT,
+                   detail=address)
+```
+
+If your detail object has many properties and you want to document the error and details, you can create a custom DTO and error class:
+
+- Create a DTO subclass that defines the data you want to store in the detail.
+
+For example:
+
+```python
+class TokenAddressNotFoundDetailDTO(DTO):
+    address: Address = DTOField(...,description='Address for token not found')
+```
+
+- Create a DTO subclass that defines the new error DTO. (This step is not strictly necessary but it lets you document the error.) The trick is to use the generic properties of the `ModelErrorDTO` to specify the detail's DTO class: `ModelErrorDTO[TokenAddressNotFoundDetailDTO]`
+
+```python
+class TokenAddressNotFoundDTO(ModelErrorDTO[TokenAddressNotFoundDetailDTO]):
+  """
+  This error occurs when there is no token at the specified address.
+  The detail contains the address.
+  """
+```
+
+- Then create a `ModelDataError` (or `ModelRunError`) subclass and set the class property `dto_class` to your new error DTO class:
+
+```python
+class TokenAddressNotFoundError(ModelDataError):
+    dto_class = TokenAddressNotFoundDTO
+```
+
+- You can now create an error instance with:
+
+```python
+# bad_address is set to an Address instance
+error = TokenAddressNotFoundError(message='Bad address',
+                                detail=TokenAddressNotFoundDetailDTO(address=bad_address))
+# You can now access: error.data.detail.address
+```
+
 ## Additional Useful Modules
 
 We also have some built-in reusable type classes available under [Credmark.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/types).
