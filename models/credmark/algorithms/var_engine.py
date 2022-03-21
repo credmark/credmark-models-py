@@ -250,7 +250,6 @@ class ValueAtRisk(credmark.model.Model):
                 var[asOf_str][ivl_str] = {}
                 df_historical_values = port.value(historical_mkts, df_base)
                 df_historical_values.loc[:, 'SCEN_ID'] += 1
-                breakpoint()
 
                 ppl = df_historical_values.groupby('SCEN_ID').value.sum().to_numpy()
 

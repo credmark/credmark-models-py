@@ -71,7 +71,7 @@ class PortfolioManager:
 
     def requires(self):
         all_required = [t.requires() for t in self._trades]
-        breakpoint()
+        # breakpoint()
         merged_required = itertools.chain.from_iterable(all_required)
         for x in set(merged_required):
             yield x
@@ -87,7 +87,7 @@ class PortfolioManager:
 
         df_res = pd.DataFrame(values, columns=['SCEN_ID', 'TRADE_ID', 'VALUE'])
         if as_dict:
-            breakpoint()
+            # breakpoint()
             return df_res.loc[:, ['TRADE_ID', 'VALUE']].to_dict()
         return df_res
 
