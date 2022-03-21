@@ -145,8 +145,10 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                         tick_price = tick_price * weth_prices
 
                 prices.append(tick_price)
+
         if len(prices) == 0:
-            return Price(price=0)
+            return Price(price=None)
+
         price = sum(prices) / len(prices)
 
         return Price(price=price)
