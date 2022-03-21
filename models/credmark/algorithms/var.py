@@ -27,6 +27,7 @@ from credmark.types import (
 
 from models.credmark.algorithms.risk import calc_var
 
+import os
 import numpy as np
 import pandas as pd
 
@@ -107,16 +108,16 @@ class ValueAtRisk(credmark.model.Model):
                          for dt in pd.date_range(min_date, max_date)]
             else:
                 asOfs = input.asOfs
-            block_hist = self.context.historical.get_block_number_of_date(max_date)
+            block_hist = self.context.ledger.get_block_number_of_date(max_date)
 
             if not block_hist:
-                block_time = self.context.historical.get_date_of_block_number(current_block)
+                block_time = self.context.ledger.get_date_of_block_number(current_block)
                 raise ModelRunError(
                     (f'max(input.asOf)={max_date:%Y-%m-%d} is later than input block\'s timestamp, '
                      f'{current_block} on {block_time:%Y-%m-%d}.'))
         else:
             block_hist = current_block
-            min_date = self.context.historical.get_date_of_block_number(block_hist)
+            min_date = self.context.ledger.get_date_of_block_number(block_hist)
             max_date = min_date
             asOfs = [min_date]
 
@@ -191,7 +192,7 @@ class ValueAtRisk(credmark.model.Model):
             key_cols.append(key_col)
             if input.debug:
                 self.logger.info(df_hist)
-                df_hist.to_csv('df_hist.csv', index=False)
+                df_hist.to_csv(os.path.join('tmp', 'df_hist.csv'), index=False)
 
         var = {}
         res_arr = []
@@ -240,15 +241,15 @@ class ValueAtRisk(credmark.model.Model):
                     res_arr.append((ivl_str, conf, asOf_str, v))
 
                 if input.debug:
-                    df_current.to_csv('df_current.csv')
-                    df_hist_ivl.to_csv('df_hist_ivl.csv')
-                    df_ret.to_csv('df_ret.csv')
+                    df_current.to_csv(os.path.join('tmp', 'df_current.csv'), index=False)
+                    df_hist_ivl.to_csv(os.path.join('tmp', 'df_hist_ivl.csv'), index=False)
+                    df_ret.to_csv(os.path.join('tmp', 'df_ret.csv'), index=False)
 
         result = VaROutput(window=window, var=var)
 
         df_res = (pd.DataFrame(res_arr, columns=['asOf', 'interval', 'confidence', 'var'])
-                    .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
-                                 ascending=[True, True, False, True]))
+                  .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
+                               ascending=[True, True, False, True]))
         df_res.to_csv('df_res.csv')
 
         return result
