@@ -274,7 +274,7 @@ class ValueAtRisk(credmark.model.Model):
         return result
 
 
-@credmark.model.describe(slug='finance.var-aave',
+@credmark.model.describe(slug='finance.var-engine-aave',
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',

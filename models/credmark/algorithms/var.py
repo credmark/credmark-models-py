@@ -17,12 +17,16 @@ from credmark.model import ModelRunError
 from credmark.dto import (
     DTO,
     DTOField,
+    IterableListGenericDTO,
 )
 
 from credmark.types import (
     Portfolio,
+    Position,
     Price,
     Address,
+    Token,
+    Contract,
 )
 
 from models.credmark.algorithms.risk import calc_var
@@ -104,8 +108,9 @@ class ValueAtRisk(credmark.model.Model):
             min_date = min(input.asOfs)
             max_date = max(input.asOfs)
             if input.asOfsRange:
-                asOfs = [dt.to_pydatetime()  # .replace(tzinfo=timezone.utc)
-                         for dt in pd.date_range(min_date, max_date)]
+                asOfs = [dt.to_pydatetime()
+                         for dt in pd.date_range(min_date, max_date)
+                         ][::-1]  # .replace(tzinfo=timezone.utc)
             else:
                 asOfs = input.asOfs
             block_hist = self.context.ledger.get_block_number_of_date(max_date)
@@ -151,7 +156,7 @@ class ValueAtRisk(credmark.model.Model):
             if not pos.token.address:
                 raise ModelRunError(f'Input position is invalid, {input}')
 
-            key_col = (pos.token.address, pos.token.symbol)
+            key_col = f'{pos.token.address}.{pos.token.symbol}'
             if key_col in df_hist:
                 continue
 
@@ -171,7 +176,7 @@ class ValueAtRisk(credmark.model.Model):
             df_tk = (pd.DataFrame(historical['series'])
                      .sort_values(['blockNumber'], ascending=False)
                      .rename(columns={'price': key_col})
-                       .reset_index(drop=True))
+                     .reset_index(drop=True))
 
             df_tk.loc[:, 'blockTime'] = df_tk.blockTimestamp.apply(
                 lambda x: datetime.fromtimestamp(x, timezone.utc))
@@ -191,7 +196,8 @@ class ValueAtRisk(credmark.model.Model):
 
             key_cols.append(key_col)
             if input.debug:
-                self.logger.info(df_hist)
+                self.logger.info(key_col)
+                self.logger.info(df_tk)
                 df_hist.to_csv(os.path.join('tmp', 'df_hist.csv'), index=False)
 
         var = {}
@@ -212,12 +218,12 @@ class ValueAtRisk(credmark.model.Model):
                 n_ivl = int(np.floor(w_seconds / ivl_seconds))
 
                 df_hist_ivl = df_hist.iloc[idx_last:(
-                    idx_last+n_ivl*step_ivl):step_ivl].copy()  # type: ignore
+                    idx_last+n_ivl*step_ivl)].copy()  # type: ignore
 
                 df_hist_ivl_p_only = df_hist_ivl.loc[:, key_cols]
 
-                df_ret = df_hist_ivl_p_only.iloc[:-1, :].reset_index(drop=True) / \
-                    df_hist_ivl_p_only.iloc[1:, :].reset_index(drop=True)
+                df_ret = df_hist_ivl_p_only.iloc[:-step_ivl, :].reset_index(drop=True) / \
+                    df_hist_ivl_p_only.iloc[step_ivl:, :].reset_index(drop=True)
 
                 df_ret = df_ret.apply(lambda x: x - 1)
                 # assert np.all(df_ret.copy().rolling(1).agg(lambda x : x.prod()) == df_ret.copy())
@@ -225,7 +231,7 @@ class ValueAtRisk(credmark.model.Model):
                 var[asOf_str][ivl_str] = {}
                 df_value = pd.DataFrame()
                 for pos in input.portfolio.positions:
-                    key_col = (pos.token.address, pos.token.symbol)
+                    key_col = f'{pos.token.address}.{pos.token.symbol}'
                     ret = df_ret[key_col].to_numpy()
                     current_value = pos.amount * dict_current[key_col]
                     value_changes = ret * current_value
@@ -247,9 +253,73 @@ class ValueAtRisk(credmark.model.Model):
 
         result = VaROutput(window=window, var=var)
 
-        df_res = (pd.DataFrame(res_arr, columns=['asOf', 'interval', 'confidence', 'var'])
+        df_res = (pd.DataFrame(res_arr, columns=['interval', 'confidence', 'asOf', 'var'])
                   .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
                                ascending=[True, True, False, True]))
-        df_res.to_csv('df_res.csv')
+        df_res.to_csv(os.path.join('tmp', 'df_res.csv'), index=False)
 
         return result
+
+
+class ContractVaRInput(DTO):
+    """
+    ContractVaRInput omits the input of portfolio
+    """
+    window: str
+    intervals: List[str] = DTOField(...)
+    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
+    asOf: date
+    outputPrice: Optional[bool] = DTOField(False)
+    debug: Optional[bool] = DTOField(False)
+
+    class Config:
+        validate_assignment = True
+
+
+class AaveDebtInfo(DTO):
+    token: Token
+    aToken: Token
+    stableDebtToken: Token
+    variableDebtToken: Token
+    interestRateStrategyContract: Optional[Contract]
+    totalStableDebt: int
+    totalVariableDebt: int
+    totalDebt: int
+
+
+class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
+    aaveDebtInfos: List[AaveDebtInfo]
+    _iterator: str = 'aaveDebtInfos'
+
+
+@credmark.model.describe(slug='finance.var-aave',
+                         version='1.0',
+                         display_name='Value at Risk',
+                         description='Value at Risk',
+                         input=ContractVaRInput,
+                         output=dict)
+class ValueAtRiskAave(credmark.model.Model):
+    def run(self, input: ContractVaRInput) -> dict:
+        """
+        ValueAtRiskAave evaluates the risk of the assets that Aave holds asOf a day
+        """
+        block_hist = self.context.ledger.get_block_number_of_date(input.asOf)
+
+        debts = self.context.run_model(
+            'aave.lending-pool-assets', input=None, return_type=AaveDebtInfos, block_number=block_hist)
+
+        portfolio = []
+        for dbt in debts:
+            net_amt = debts[0].aToken.functions.totalSupply().call() - debts[0].totalDebt
+            portfolio.append(Position(amount=net_amt, token=dbt.token))
+
+        var_input = VaRInput(portfolio=Portfolio(positions=portfolio),
+                             window=input.window,
+                             intervals=input.intervals,
+                             confidences=input.confidences,
+                             asOfs=[input.asOf.strftime('%Y-%m-%d')],
+                             asOfRange=False,
+                             debug=input.debug)
+
+        var = self.context.run_model('finance.var', input=var_input, return_type=VaROutput)
+        return var
