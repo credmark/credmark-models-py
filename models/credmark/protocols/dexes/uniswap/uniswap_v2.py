@@ -1,4 +1,12 @@
+from typing import (
+    Union,
+    Optional,
+)
+
 import credmark.model
+from credmark.dto import (
+    DTO,
+)
 from credmark.types import (
     Price,
     Token,
@@ -7,6 +15,7 @@ from credmark.types import (
     Contracts,
     BlockSeries,
 )
+
 from .....tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
 
 UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
@@ -80,3 +89,23 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         if len(prices) == 0:
             return None
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+
+
+class HistoricalPriceDTO(DTO):
+    token: Token
+    window: Union[str, list[str]]
+    interval: Optional[str]
+
+
+@credmark.model.describe(slug='uniswap-v2.get-historical-price',
+                         version='1.0',
+                         input=HistoricalPriceDTO,
+                         output=BlockSeries[Price])
+class UniswapV3GetAveragePrice30Day(credmark.model.Model):
+
+    def run(self, input: HistoricalPriceDTO) -> BlockSeries[Price]:
+
+        return self.context.historical.run_model_historical('uniswap-v2.get-average-price',
+                                                            window=input.window,
+                                                            interval=input.interval,
+                                                            model_input=input.token)
