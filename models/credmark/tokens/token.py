@@ -1,7 +1,8 @@
 # pylint: disable=locally-disabled, unused-import
 
+from pyexpat import model
 import credmark.model
-
+from credmark.model.errors import ModelDataError
 from credmark.types import (
     Address,
     Token,
@@ -15,6 +16,9 @@ from credmark.types import (
 
 from credmark.types.data.token_wei import (
     TokenWei
+)
+from credmark.types.models.ledger import (
+    TokenTransferTable
 )
 
 from credmark.dto import (
@@ -52,14 +56,39 @@ class TokenInfoModel(credmark.model.Model):
 
 
 @credmark.model.describe(slug='price',
-                         version='1.0',
+                         version='1.1',
                          display_name='Token Price',
-                         description='The Current Credmark Supported Price Algorithm',
+                         description='DEPRECATED - use token.price',
                          input=Token,
                          output=Price)
 class PriceModel(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        return self.context.run_model('uniswap-v3.get-average-price', input, return_type=Price)
+        return self.context.run_model('token.price', input, return_type=Price)
+
+
+@credmark.model.describe(slug='token.price',
+                         version='1.0',
+                         display_name='Token Price',
+                         description='The Current Credmark Supported Price Algorithm',
+                         developer='Credmark',
+                         input=Token,
+                         output=Price)
+class TokenPriceModel(credmark.model.Model):
+    def run(self, input: Token) -> Price:
+        prices = []
+        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
+        if uniswap_v2.price is not None:
+            prices.append(uniswap_v2)
+        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
+        if uniswap_v3.price is not None:
+            prices.append(uniswap_v3)
+        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
+        if sushiswap.price is not None:
+            prices.append(sushiswap)
+        average_price = 0
+        if len(prices) > 0:
+            average_price = sum([p.price for p in prices]) / len(prices)
+        return Price(price=average_price)
 
 
 @credmark.model.describe(slug='token.holders',
@@ -82,11 +111,10 @@ class TokenHolders(credmark.model.Model):
                          output=Contracts)
 class TokenSwapPools(credmark.model.Model):
     def run(self, input: Token) -> Contracts:
-        # TODO: Get All Credmark Supported swap Pools for a token
         response = Contracts(contracts=[])
-        response.contracts.extend(
-            self.context.run_model('uniswap-v3.get-pools', input, return_type=Contracts)
-        )
+        response.contracts.extend(Contracts(**self.context.models.uniswap_v3.get_pools(input)))
+        response.contracts.extend(Contracts(**self.context.models.uniswap_v2.get_pools(input)))
+        response.contracts.extend(Contracts(**self.context.models.sushiswap.get_pools(input)))
         return response
 
 
