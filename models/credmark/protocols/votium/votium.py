@@ -27,4 +27,4 @@ from models.tmp_abi_lookup import VOTIUM_MERKLE_ABI
 class BribeClaim(credmark.model.Model):
 
     def run(self, input: Address) -> dict:
-        
+        return
