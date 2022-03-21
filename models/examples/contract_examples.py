@@ -1,6 +1,6 @@
 from typing import List
 import credmark.model
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField,
 )
@@ -48,5 +48,5 @@ class LoadContractByAddress(credmark.model.Model):
     def run(self, input: Contract) -> Contract:
         contract = self.context.contracts.load_address(address=input.address.checksum)
 
-        print(f'ABI functions: {contract.functions.__dict__.keys()}')
+        self.logger.info(f'ABI functions: {contract.functions.__dict__.keys()}')
         return contract

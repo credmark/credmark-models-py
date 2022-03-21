@@ -14,7 +14,7 @@ from credmark.types.models.ledger import (
     TransactionTable
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
 )
 
@@ -222,7 +222,7 @@ class CurveFinancePoolInfo(credmark.model.Model):
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None)
+                         output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
     def run(self, input) -> CurveFiPoolInfos:
@@ -235,7 +235,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             for pool in
             self.context.run_model(
                 "curve-fi-pools",
-                input=None,
+                input={},
                 return_type=Contracts)]
         for pi in pool_infos:
             info_i_want.append({
@@ -253,7 +253,6 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
                          version="1.0",
                          display_name="Curve Finance Pool Liqudity",
                          description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=None,
                          output=Contracts)
 class CurveFinancePools(credmark.model.Model):
 
@@ -328,9 +327,9 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@ credmark.model.describe(slug='curve-fi-avg-gauge-yield',
-                          version='1.0',
-                          input=Account)
+@credmark.model.describe(slug='curve-fi-avg-gauge-yield',
+                         version='1.0',
+                         input=Account)
 class CurveFinanceAverageGaugeYield(credmark.model.Model):
     def run(self, input: Token) -> dict:
         """
@@ -400,7 +399,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@ credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
+@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
@@ -421,7 +420,7 @@ class CurveFinanceAllYield(credmark.model.Model):
 
         for gauge in gauges:
             yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
-            print(yields)
+            self.logger.info(yields)
             res.append(yields)
 
         return {"results": res}

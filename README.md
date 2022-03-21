@@ -443,7 +443,7 @@ def run_model(name: str,
           version: Union[str, None] = None)
 ```
 
-A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an error if the called model was unavailable or had an error.)
+A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an exception if there was an error. See [Error handling](#error-handling))
 
 For example:
 
@@ -529,6 +529,73 @@ Block ranges can be specified by blocks (either a window from current block or a
 
 See [historical_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/historical_examples.py) on how to use this class.
 
+## Error handling
+
+When running a model, the top level framework code will catch any exceptions, convert it to a ModelRunError if needed, and output an error object in the response.
+
+Models can raise a `ModelRunError` (or other Exception) to terminate a run.
+
+When a model calls `self.context.run_model()` to run another model, an exception can be raised by the called model which will be received by the caller. `run_model()` can raise `ModelDataError`, `ModelRunError`, `ModelInputError`, `ModelNotFoundError` and various other sublasses of `ModelBaseError`.
+
+The standard models are in `credmark.model.errors`.
+
+In order for models to be consistently deterministic, the ONLY type of exception a model should catch and handle from a call to `run_model()` is a `ModelDataError`, which is considered a permanent error for the given context. All other errors are considered transient resource issues, coding errors, or conditions that may change in the future.
+
+Because of this behavior, if a model raises a `ModelRunError` somewhere down a model run stack, the entire run will end up being aborted. This is by design.
+
+### ModelBaseError
+
+The `ModelBaseError` defines a set of properties that are common to all errors. The data associated with an error is available from an error instance at `error.data`. The following properties are available:
+
+- `type` (string) Short identifying name for type of error
+
+- `message` (string) A message about the error
+
+- `code` (string) A short string, values to specific to the error type
+
+- `detail` (object | null) - An object or null. Some errors may have a detail object containing error-specific data.
+
+- `permanent` (boolean) If true the error is considered derministically permanent. This is currently only true for ModelDataErrors
+
+- `stack` (list) The model run call stack. First element is the first called model and last element is the model that raised the error. An array of objects containing:
+
+  - `slug` (string) Short identifying name for the model
+
+  - `version` (string) Version of the model
+
+  - `chainId` (number) Context chain id
+
+  - `blockNumber` (number) Context block number
+
+### ModelDataError
+
+A `ModelDataError` is an error that occurs during the lookup, generation, or processing of data this is considered deterministic and permanent, in the sense that for the given context, the same error will always occur.
+
+A model may raise a ModelDataError in situations such as:
+
+- the requested data does not exist or is not available for
+  the current context block number.
+- the input data is inconsistent, references non-existent
+  items, or cannot be processed
+
+A model may (and often should) catch and handle `ModelDataError`s raised from calls to `context.run_model()`.
+
+Some standard `code`s have been defined for `ModelDataError`s, available at `ModelDataError.ErrorCodes`:
+
+- `ErrorCodes.GENERIC = 'generic'` Default error code
+- `ErrorCodes.NO_DATA = 'no_data'` Requested data does not exist (and never will for the given context)
+- `ErrorCodes.CONFLICT = 'conflict'` There is an inherent conflict in the data for the given context that can never be resolved.
+
+### ModelInputError
+
+If a model is using an input DTO, the expected model input parameters are automatically validated and a `ModelInputError` will be raised on error. `ModelInputError` is a non-permanent error because it's considered a coding error by the calling model.
+
+The `ModelInputError` will contain a stack with the latest entry in the stack being the model that received the bad input data.
+
+## Logging
+
+Models should never write to stdout or use `print()`. They should use a logger to write to stderr. From a model, you can use `self.logger`.
+
 ## Data Transfer Object (DTO)
 
 Input and output data for models are json-serializable objects of arbitrary depth and complexity. Objects can have 0 or more keys whose values can be null, number, string, array, or another object.
@@ -540,6 +607,54 @@ DTOs are classes with typed properties which will serialize and deserialize to a
 To create a DTO, simply subclass the DTO base class and use DTOFields to annotate your properties. Under the hood, the Credmark Model Framework uses the pydantic python module (DTO is simply an alias for pydantic BaseModel and DTOField an alias for Field) so almost anything that works with pydantic will work for your DTO.
 
 Please see the [pydantic docs](https://pydantic-docs.helpmanual.io/usage/models/) for more information.
+
+### Model Error Detail DTO
+
+Besides input and output, subclases of `ModelBaseError` can use a DTO for the `data.detail` object instead of a dict. You can simply pass a DTO as the `detail` arg in a model constructor:
+
+```python
+address = Address(some_address_string)
+e = ModelDataError(message='Address is not a contract',
+                   code=ModelDataError.ErrorCodes.CONFLICT,
+                   detail=address)
+```
+
+If your detail object has many properties and you want to document the error and details, you can create a custom DTO and error class:
+
+- Create a DTO subclass that defines the data you want to store in the detail.
+
+For example:
+
+```python
+class TokenAddressNotFoundDetailDTO(DTO):
+    address: Address = DTOField(...,description='Address for token not found')
+```
+
+- Create a DTO subclass that defines the new error DTO. (This step is not strictly necessary but it lets you document the error.) The trick is to use the generic properties of the `ModelErrorDTO` to specify the detail's DTO class: `ModelErrorDTO[TokenAddressNotFoundDetailDTO]`
+
+```python
+class TokenAddressNotFoundDTO(ModelErrorDTO[TokenAddressNotFoundDetailDTO]):
+  """
+  This error occurs when there is no token at the specified address.
+  The detail contains the address.
+  """
+```
+
+- Then create a `ModelDataError` (or `ModelRunError`) subclass and set the class property `dto_class` to your new error DTO class:
+
+```python
+class TokenAddressNotFoundError(ModelDataError):
+    dto_class = TokenAddressNotFoundDTO
+```
+
+- You can now create an error instance with:
+
+```python
+# bad_address is set to an Address instance
+error = TokenAddressNotFoundError(message='Bad address',
+                                detail=TokenAddressNotFoundDetailDTO(address=bad_address))
+# You can now access: error.data.detail.address
+```
 
 ## Additional Useful Modules
 
@@ -583,13 +698,3 @@ See [token_example.py](https://github.com/credmark/credmark-models-py/blob/main/
 Token_data.py lists all erc20 tokens currently supported.
 
 **7. Portfolio:** This class holds a list of positions. So, it can be used to calculate all positions within a wallet.
-
-# Error handling
-
-When running a model, the top level framework code will catch any exceptions and output error JSON to stdout and exit with an error code.
-
-Models can raise a `credmark.model.ModelRunError` (or other Exception) to terminate a run.
-
-Models that run another model will terminate if the requested model has an error.
-
-Models should never write to stdout. They should use a logger to write to stderr.

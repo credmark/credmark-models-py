@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField
 from credmark.types import Portfolio
 
 
@@ -30,7 +30,7 @@ class TestModel2(credmark.model.Model):
     def run(self, input: Portfolio) -> PortfolioSummary:
         # return PortfolioSummary(num_tokens=len(input.positions))
 
-        print("This model will raise an error because we're not returning")
-        print("the type PortfolioSummary that we set as \"output\"")
-        print("in the describe() decorator above.")
+        self.logger.info("This model will raise an error because we're not returning")
+        self.logger.info("the type PortfolioSummary that we set as \"output\"")
+        self.logger.info("in the describe() decorator above.")
         return {'xx': 'ss'}  # type: ignore

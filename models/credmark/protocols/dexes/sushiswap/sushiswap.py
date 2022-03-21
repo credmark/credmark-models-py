@@ -6,7 +6,7 @@ from credmark.types import (
     Contracts,
     Price
 )
-from credmark.types.dto import (
+from credmark.dto import (
     DTO
 )
 
@@ -60,7 +60,7 @@ class SushiSwapPool(DTO):
                          input=SushiSwapPool)
 class SushiswapGetPair(credmark.model.Model):
     def run(self, input: SushiSwapPool):
-        print('DEBUG', input)
+        self.logger.info(f'{input=}')
         contract = Contract(
             address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
             abi=SUSHISWAP_FACTORY_ABI
@@ -90,7 +90,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
 
     def run(self, input: Contract):
         output = {}
-        print('DEBUG', input)
+        self.logger.info(f'{input=}')
         contract = Contract(
             address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
@@ -124,7 +124,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
                   'token1_symbol': _token1_symbol,
                   'token1_reserve': token1_reserve}
 
-        print(output)
+        return output
 
 
 @credmark.model.describe(slug='sushiswap.get-pools',
@@ -174,9 +174,10 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                 price = (reserves[1] / (10 ** token1.decimals)) / \
                     (reserves[0] / (10**input.decimals))
                 if token1.symbol == 'WETH':
-                    weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                        token1,
-                                                        return_type=Price).price
+                    if weth_price is None:
+                        weth_price = self.context.run_model('sushiswap.get-average-price',
+                                                            token1,
+                                                            return_type=Price).price
                     price = price * weth_price
             else:
                 token0 = Token(address=pool.functions.token0().call())
@@ -184,12 +185,15 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                 price = (reserves[0] / (10 ** token0.decimals)) / \
                     (reserves[1] / (10**input.decimals))
                 if token0.symbol == 'WETH':
-                    weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                        token0,
-                                                        return_type=Price).price
+                    if weth_price is None:
+                        weth_price = self.context.run_model('sushiswap.get-average-price',
+                                                            token0,
+                                                            return_type=Price).price
                     price = price * weth_price
 
             prices.append((price, reserve))
+
         if len(prices) == 0:
-            return None
+            return Price(price=None)
+
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))

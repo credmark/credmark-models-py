@@ -17,7 +17,7 @@ from credmark.types.data.token_wei import (
     TokenWei
 )
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField,
     IterableListGenericDTO
@@ -42,6 +42,7 @@ class TokenInfo(DTO):
 class TokenInfoModel(credmark.model.Model):
     def run(self, input: Token) -> TokenInfo:
         input.load()
+        self.logger.info(f'ABI functions: {input.functions.__dir__()}')
         total_supply = input.total_supply()
         return TokenInfo(
             token=input,

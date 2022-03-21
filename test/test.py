@@ -13,7 +13,7 @@ if __name__ == '__main__':
         context: credmark.model.ModelContext
 
         def run(self, input) -> dict:
-            print(self._manifest)
+            self.logger.info(self._manifest)
             return {'value': 42}
 
     import credmark.credmark_dev

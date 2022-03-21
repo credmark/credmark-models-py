@@ -2,6 +2,7 @@ from credmark.types import Address, Token
 from credmark.types.models.ledger import TokenTransferTable
 from credmark.types.data.block_number import BlockNumber
 import credmark.model
+from credmark.dto import EmptyInput
 
 
 @credmark.model.describe(
@@ -9,7 +10,7 @@ import credmark.model
     version='1.0',
     display_name='Redacted Cartel Votium Cashflow',
     description='Redacted Cartel weekly Cashflow',
-    input=None,
+    input=EmptyInput,
     output=dict
 )
 class DebtDaoV1(credmark.model.Model):
@@ -35,10 +36,10 @@ class DebtDaoV1(credmark.model.Model):
                     if transfer['price'] == 0.0:
                         transfer['price'] = self.context.run_model(
                             'uniswap-v3.get-average-price', input=token, block_number=transfer['block_number'])['price']
-            except:
+            except Exception:
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
             transfer['block_time'] = BlockNumber(transfer['block_number']).datestring
             transfer['token_symbol'] = token.symbol
-        return transfers
+        return transfers.dict()

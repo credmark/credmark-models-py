@@ -1,5 +1,5 @@
 import credmark.model
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 from models.examples.library_examples import LibrariesDto
 
 
@@ -34,7 +34,7 @@ class ExampleHistorical(credmark.model.Model):
         if block is not None:
             assert block.output
 
-        print(res[3].dict())
+        self.logger.info(res[3].dict())
 
         return res.dict()
 

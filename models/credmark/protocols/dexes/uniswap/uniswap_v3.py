@@ -1,5 +1,6 @@
 from typing import (
-    Optional
+    Optional,
+    Union,
 )
 
 import credmark.model
@@ -12,7 +13,7 @@ from credmark.types import (
     BlockSeries,
 )
 
-from credmark.types.dto import DTO
+from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
     UNISWAP_V3_FACTORY_ABI,
@@ -153,7 +154,7 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
 
 class HistoricalPriceDTO(DTO):
     token: Token
-    window: str
+    window: Union[str, list[str]]
     interval: Optional[str]
 
 

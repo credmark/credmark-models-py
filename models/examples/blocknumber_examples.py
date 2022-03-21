@@ -1,7 +1,6 @@
 import credmark.model
-from credmark.types import BlockNumber
-from credmark.types.data.block_number import BlockNumberOutOfRangeException
-from credmark.types.dto import DTO
+from credmark.types.data.block_number import BlockNumberOutOfRangeError
+from credmark.dto import DTO
 
 
 class BlockNumberTransformExampleOutput(DTO):
@@ -22,7 +21,7 @@ class BlockNumberTransformExample(credmark.model.Model):
 
     """
     This example returns information about the current block, attempts
-    to look at a future block, 
+    to look at a future block,
     and offers information about a previous block.
     """
 
@@ -30,10 +29,14 @@ class BlockNumberTransformExample(credmark.model.Model):
 
         block = self.context.block_number
 
+        # NOTE: This is for demonstration only.
+        # You should NOT catch BlockNumberOutOfRangeError or
+        # other ModelRunErrors in your models!
         try:
             block = block + 1
-        except BlockNumberOutOfRangeException:
-            print("I can't look into the future, looking at the next block was attempted.")
+        except BlockNumberOutOfRangeError:
+            self.logger.info(
+                "I can't look into the future, looking at the next block was attempted.")
 
         ten_thousand_blocks_ago = self.context.block_number - 10000
 
