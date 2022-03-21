@@ -153,7 +153,7 @@ For the DTOs (Data Transfer Objects) we use the python module `pydantic` to defi
 The DTO used in the example above, for both the input and output, looks like this:
 
 ```py
-from credmark.types.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField
 
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')

@@ -15,7 +15,7 @@ import credmark.model
 
 from credmark.model import ModelRunError
 
-from credmark.types.dto import (
+from credmark.dto import (
     DTO,
     DTOField,
 )
