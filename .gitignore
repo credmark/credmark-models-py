@@ -145,3 +145,4 @@ workspace.code-workspace
 
 # vim
 .swp
+tmp/

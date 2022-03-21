@@ -12,6 +12,7 @@ from datetime import (
 )
 
 import credmark.model
+
 from credmark.model import ModelRunError
 
 from credmark.types.dto import (
@@ -25,7 +26,12 @@ from credmark.types import (
     Address,
 )
 
-from models.credmark.algorithms.risk import calc_var
+from models.credmark.algorithms.risk import (
+    PortfolioManager,
+    TokenTradeable,
+    Market,
+    calc_var,
+)
 
 import numpy as np
 import pandas as pd
@@ -36,15 +42,24 @@ class PriceList(DTO):
     token: Address
 
 
-class VaRInput(DTO):
-    # block_number: int
-    portfolio: Portfolio
+class ContractVaRInput(DTO):
+    """
+    ContractVaRInput omits the input of portfolio
+    """
     window: str
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
     asOfs: Optional[List[date]]
     asOfsRange: Optional[bool] = DTOField(False)
+    outputPrice: Optional[bool] = DTOField(False)
     debug: Optional[bool] = DTOField(False)
+
+    class Config:
+        validate_assignment = True
+
+
+class VaRInput(ContractVaRInput):
+    portfolio: Union[Portfolio, Dict[date, Portfolio]]
 
     class Config:
         validate_assignment = True
@@ -56,7 +71,7 @@ class VaROutput(DTO):
     var: Dict[str, Dict[str, Dict[float, float]]]
 
 
-@credmark.model.describe(slug='finance.var',
+@credmark.model.describe(slug='finance.var-engine',
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',
@@ -107,16 +122,16 @@ class ValueAtRisk(credmark.model.Model):
                          for dt in pd.date_range(min_date, max_date)]
             else:
                 asOfs = input.asOfs
-            block_hist = self.context.historical.get_block_number_of_date(max_date)
+            block_hist = self.context.ledger.get_block_number_of_date(max_date)
 
             if not block_hist:
-                block_time = self.context.historical.get_date_of_block_number(current_block)
+                block_time = self.context.ledger.get_date_of_block(current_block)
                 raise ModelRunError(
                     (f'max(input.asOf)={max_date:%Y-%m-%d} is later than input block\'s timestamp, '
                      f'{current_block} on {block_time:%Y-%m-%d}.'))
         else:
             block_hist = current_block
-            min_date = self.context.historical.get_date_of_block_number(block_hist)
+            min_date = self.context.ledger.get_date_of_block(block_hist)
             max_date = min_date
             asOfs = [min_date]
 
@@ -146,18 +161,25 @@ class ValueAtRisk(credmark.model.Model):
         df_hist = pd.DataFrame()
         key_cols = []
 
-        for pos in input.portfolio.positions:
+        trades = []
+        for (pos_n, pos) in enumerate(input.portfolio.positions):
             if not pos.token.address:
                 raise ModelRunError(f'Input position is invalid, {input}')
 
-            key_col = (pos.token.address, pos.token.symbol)
+            t = TokenTradeable(pos_n, pos.token, pos.amount, init_price=0)
+            trades.append(t)
+
+        port = PortfolioManager(trades)
+
+        for tk in port.requires():
+            key_col = (tk.address, tk.symbol)  # type: ignore
             if key_col in df_hist:
                 continue
 
             historical = self.context.run_model(
                 'uniswap-v3.get-historical-price',
                 input={
-                    'token': pos.token,
+                    'token': tk,
                     'window': new_window,
                     'interval': minimal_interval,
                 },
@@ -170,7 +192,7 @@ class ValueAtRisk(credmark.model.Model):
             df_tk = (pd.DataFrame(historical['series'])
                      .sort_values(['blockNumber'], ascending=False)
                      .rename(columns={'price': key_col})
-                       .reset_index(drop=True))
+                     .reset_index(drop=True))
 
             df_tk.loc[:, 'blockTime'] = df_tk.blockTimestamp.apply(
                 lambda x: datetime.fromtimestamp(x, timezone.utc))
@@ -200,10 +222,12 @@ class ValueAtRisk(credmark.model.Model):
             var[asOf_str] = {}
             asOf_last = datetime(asOf.year, asOf.month, asOf.day,
                                  23, 59, 59, tzinfo=timezone.utc)
+
             idx_last = df_hist.index.get_loc(
                 df_hist.index[df_hist['blockTime'] <= asOf_last][0])  # type: ignore
             df_current = df_hist.loc[:, key_cols].iloc[idx_last, :]
-            dict_current = df_current.to_dict()
+            dict_current = Market(df_current.to_dict())
+            df_base = port.value([dict_current], as_dict=True)
 
             for ivl_k, ivl_n, ivl_str in zip(interval_keys, interval_nums, input.intervals):
                 ivl_seconds = self.context.historical.range_timestamp(ivl_k, ivl_n)  # type: ignore
@@ -221,18 +245,14 @@ class ValueAtRisk(credmark.model.Model):
                 df_ret = df_ret.apply(lambda x: x - 1)
                 # assert np.all(df_ret.copy().rolling(1).agg(lambda x : x.prod()) == df_ret.copy())
 
+                historical_mkts = [((r + 1) * df_current).to_dict() for _, r in df_ret.iterrows()]
+
                 var[asOf_str][ivl_str] = {}
-                df_value = pd.DataFrame()
-                for pos in input.portfolio.positions:
-                    key_col = (pos.token.address, pos.token.symbol)
-                    ret = df_ret[key_col].to_numpy()
-                    current_value = pos.amount * dict_current[key_col]
-                    value_changes = ret * current_value
-                    if key_col not in df_value:
-                        df_value.insert(0, (key_col), value_changes)
-                    else:
-                        df_value[key_col] += value_changes
-                ppl = df_value.sum(axis=1).to_numpy()
+                df_historical_values = port.value(historical_mkts, df_base)
+                df_historical_values.loc[:, 'SCEN_ID'] += 1
+                breakpoint()
+
+                ppl = df_historical_values.groupby('SCEN_ID').value.sum().to_numpy()
 
                 for conf in input.confidences:
                     v = calc_var(ppl, conf)
@@ -247,8 +267,24 @@ class ValueAtRisk(credmark.model.Model):
         result = VaROutput(window=window, var=var)
 
         df_res = (pd.DataFrame(res_arr, columns=['asOf', 'interval', 'confidence', 'var'])
-                    .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
-                                 ascending=[True, True, False, True]))
+                  .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
+                               ascending=[True, True, False, True]))
         df_res.to_csv('df_res.csv')
 
         return result
+
+
+@credmark.model.describe(slug='finance.var-aave',
+                         version='1.0',
+                         display_name='Value at Risk',
+                         description='Value at Risk',
+                         input=ContractVaRInput,
+                         output=dict)
+class ValueAtRiskAave(credmark.model.Model):
+    def run(self, input: ContractVaRInput) -> dict:
+        """
+        ValueAtRiskAave evaluates the risk of the assets that Aave holds asOf a day
+        """
+        self.context.run_model()
+
+        return {}
