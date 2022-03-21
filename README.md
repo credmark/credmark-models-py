@@ -433,7 +433,40 @@ It also enforces deterministic behavior for Models. The key utilities in `ModelC
 - block number
 - historical utility
 
-### Methods
+### Calling Other Models
+
+A model can call other models and use their results. You can pass the input as an input arg and the model output is returned as a dict (or DTO if `return_type` is specified.)
+
+If an error occurs during a call to run a model, an exception is raised. See [Error handling](#error-handling)
+
+There are 2 ways to call another model:
+
+- Using `context.models` (Recommended)
+- Calling `context.run_model()`
+
+#### `context.models`
+
+Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing args as desired.
+
+For example:
+
+```python
+# Returns a dict with output of the model
+result = self.context.models.example.echo(input=dict(message='Hello world'))
+```
+
+You can use a DTO for the output by inializing it with the output dict.
+
+```python
+class EchoDto(DTO):
+    message: str = DTOField('Hello', description='A message')
+
+echo = EchoDto(**self.context.models.example.echo(input=dict(message='Hello world')))
+
+echo.message # will equal 'Hello world'
+```
+
+Alternatively you can run a model by slug string using the `context.run_model` method:
 
 ```python
 def run_model(name: str,
@@ -443,44 +476,30 @@ def run_model(name: str,
           version: Union[str, None] = None)
 ```
 
-A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an exception if there was an error. See [Error handling](#error-handling))
+If `return_type` is None or dict, then the method returns the model output as a dict. If it's a DTO class, the method returns a DTO instance. As above, you can use a dict result with `**` to initialize a DTO instance yourself.
 
 For example:
 
 ```python
-price = context.run_model('price', token, return_type=credmark.types.Price)
+# token = Token( ) instance
+
+price = Price(**self.context.run_model('price', token))
+
+# has the same effect as:
+
+price = self.context.run_model('price', token, return_type=credmark.types.Price)
 ```
 
 ### Web3
 
-context.web3 will return a configured web3 instance with the default block set to the block number of context.
+`context.web3` will return a configured web3 instance with the default block set to the block number of context.
 The web3 providers are determined from the environment variables as described in the configuration section above. Currently users will need to use their own alchemy account (or other web3 provider) to access web3 functionality.
-
-### Address
-
-`Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
-
-✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
-
-❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
-
-❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
-
-Example:
-
-        from credmark.types import (Address, Contract)
-
-        contract = Contract(
-            # lending pool address
-            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
 
 ### Contract
 
 Credmark simplified the process of getting web3 instances of any contract from any chain. So you don't need to find and hardcode chain specific attributes and functions within these chains to run your models.
 
-The model context exposes the “context.contracts” property which can be used to get contracts by metadata or address. The contracts are instances of the `Contract` class which are configured and use the web3 instance at specified block number and specified chain id along with additional data based on `constructor_args`.
+The model context exposes the `context.contracts` property which can be used to get contracts by metadata or address. The contracts are instances of the `Contract` class which are configured and use the web3 instance at specified block number and specified chain id along with additional data based on `constructor_args`.
 
 Example code for contact class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/contract.py).
 
@@ -528,6 +547,28 @@ The historical utility, available at `context.historical` (see [here](https://gi
 Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second.
 
 See [historical_example.py](https://github.com/credmark/credmark-models-py/blob/main/models/examples/historical_examples.py) on how to use this class.
+
+## Types
+
+### Address
+
+`Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
+
+✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
+
+❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
+
+❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
+
+Example:
+
+        from credmark.types import (Address, Contract)
+
+        contract = Contract(
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
 
 ## Error handling
 
