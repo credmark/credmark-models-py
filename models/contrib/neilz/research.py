@@ -29,13 +29,7 @@ class DebtDaoV1(credmark.model.Model):
             token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'sushiswap.get-average-price', input=token, block_number=transfer['block_number'])['price']
-                if transfer['price'] == 0.0:
-                    transfer['price'] = self.context.run_model(
-                        'uniswap-v2.get-average-price', input=token, block_number=transfer['block_number'])['price']
-                    if transfer['price'] == 0.0:
-                        transfer['price'] = self.context.run_model(
-                            'uniswap-v3.get-average-price', input=token, block_number=transfer['block_number'])['price']
+                    'token.price', input=token, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
