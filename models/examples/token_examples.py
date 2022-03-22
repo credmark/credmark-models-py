@@ -1,4 +1,5 @@
 
+from typing import Union
 import credmark.model
 from credmark.types import Token, Address
 from credmark.dto import DTO
@@ -8,7 +9,7 @@ class ExampleTokenLoadingOutput(DTO):
     loadedFromAddress: Token
     loadedFromSymbol: Token
     loadedNativeToken: Token
-    loadedFromSymbolPrice: float
+    loadedFromSymbolPrice: Union[float, None]
     loadedFromSymbolTotalSupply: float
     loadedFromSymbolBalanceOf: float
     loadedFromSymbolBalanceOfWei: int

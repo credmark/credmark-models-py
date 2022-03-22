@@ -71,7 +71,7 @@ class ExampleLedgerTokenTransfers(credmark.model.Model):
     """
 
     def run(self, input: Account):
-        return self.context.ledger.get_erc20_transfers(columns=[c for c in TokenTransferTable.columns()],
+        return self.context.ledger.get_erc20_transfers(columns=list(TokenTransferTable.columns()),
                                                        where=f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.address.lower()}\' or \
                                                        {TokenTransferTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'',
                                                        order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
@@ -88,7 +88,7 @@ class ExampleLedgerTokens(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.ledger.get_erc20_tokens(columns=[c for c in TokenTable.columns()],
+        return self.context.ledger.get_erc20_tokens(columns=list(TokenTable.columns()),
                                                     limit="100",
                                                     order_by=TokenTable.Columns.BLOCK_NUMBER)
 
@@ -117,7 +117,7 @@ class ExampleLedgerContracts(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.ledger.get_contracts(columns=[c for c in ContractTable.columns()], limit="100", order_by=ContractTable.Columns.BLOCK_NUMBER)
+        return self.context.ledger.get_contracts(columns=list(ContractTable.columns()), limit="100", order_by=ContractTable.Columns.BLOCK_NUMBER)
 
 
 @credmark.model.describe(slug='example.ledger-traces', version="1.0")
