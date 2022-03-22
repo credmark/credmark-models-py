@@ -586,6 +586,8 @@ The `ModelBaseError` defines a set of properties that are common to all errors. 
 
   - `blockNumber` (number) Context block number
 
+  - `trace` (string | null) Human-readable code trace that generated the error
+
 ### ModelDataError
 
 A `ModelDataError` is an error that occurs during the lookup, generation, or processing of data this is considered deterministic and permanent, in the sense that for the given context, the same error will always occur.
@@ -688,7 +690,25 @@ We have created and grouped together different classes to manage input and outpu
 
 ### data
 
-**1. Address:** this class is a subclass of string and holds ablockchain address.
+**1. Address:** this class is a subclass of string and holds a blockchain address.
+
+`Address` class is inherited from `str` to help with web3 address conversion. It's highly recommended to use it instead of a baremetal address.
+
+✔️: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum # checksum version to be used
+
+❌: Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9") # lower case version
+
+❌:"0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9" # lower case version
+
+Example:
+
+        from credmark.types import (Address, Contract)
+
+        contract = Contract(
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
+            abi=AAVE_V2_TOKEN_CONTRACT_ABI
+        )
 
 The address can be provided in lower case, upper case or checksum hex format. This class will normalize the address into lower case. Note that It can be used as a normal string but it also has a "checksum" property which returns a web3 ChecksumAddress.
 
