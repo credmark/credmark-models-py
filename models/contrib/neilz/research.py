@@ -32,6 +32,8 @@ class DebtDaoV1(credmark.model.Model):
                     'token.price', input=token, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
+            if transfer['price'] is None:
+                transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
             transfer['block_time'] = BlockNumber(transfer['block_number']).datestring
