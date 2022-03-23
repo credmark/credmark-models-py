@@ -133,7 +133,7 @@ class CurveFinanceHistoricalLPDist(credmark.model.Model):
                 "balanceOf":r.output['balanceOf']
             })
 
-        return res
+        return info_i_want
 
 
 
