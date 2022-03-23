@@ -592,7 +592,7 @@ Examples
     # datetime.datetime(2022, 2, 18, 0, 0, tzinfo=datetime.timezone.utc)
 
     # Be caution, when we obtain a timestamp from a datetime, Python counts the local timezone if we do not provide a timezone.
-    # Below example converts the datetime using local timezone (GMT+8 for the auther's case)
+    # Below example converts the datetime using local timezone (UTC+8 for below case)
     self.context.block_number.from_datetime(datetime(2022, 2, 18).timestamp())
     > 14224550
     self.context.block_number.datetime_of(14224550)
