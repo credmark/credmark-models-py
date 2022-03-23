@@ -601,11 +601,38 @@ A model may raise a ModelDataError in situations such as:
 
 A model may (and often should) catch and handle `ModelDataError`s raised from calls to `context.run_model()`.
 
-Some standard `code`s have been defined for `ModelDataError`s, available at `ModelDataError.ErrorCodes`:
+Some standard `code`s have been defined for `ModelDataError`s, available at `ModelDataError.Codes`:
 
-- `ErrorCodes.GENERIC = 'generic'` Default error code
-- `ErrorCodes.NO_DATA = 'no_data'` Requested data does not exist (and never will for the given context)
-- `ErrorCodes.CONFLICT = 'conflict'` There is an inherent conflict in the data for the given context that can never be resolved.
+- `Codes.GENERIC = 'generic'` Default error code
+- `Codes.NO_DATA = 'no_data'` Requested data does not exist (and never will for the given context)
+- `Codes.CONFLICT = 'conflict'` There is an inherent conflict in the data for the given context that can never be resolved.
+
+#### Raising ModelDataError Errors
+
+If you want your model to raise ModelDataError errors, you should add a `ModelDataErrorDesc` to the `errors` arg of your model `describe()` decorator with a description of the codes you are using and what they mean. For example:
+
+```python
+import credmark.model
+from credmark.model import EmptyInput, ModelDataErrorDesc
+
+@credmark.model.describe(slug='example.data-error',
+                         version='1.0',
+                         display_name='Data Error Example',
+                         description="A test model to generate a ModelDataError.",
+                         input=EmptyInput,
+                         errors=ModelDataErrorDesc(
+                             code=ModelDataError.Codes.NO_DATA,
+                             code_desc='Data does not exist'))
+class ExampleModel(credmark.model.Model):
+```
+
+If you're using multiple codes, `ModelDataErrorDesc` also lets you pass in `codes` as a list of `(code, code_description)` tuples.
+
+Then in your model `run()` code you simply raise a ModelDataError, for example:
+
+```python
+raise ModelDataError('Data does not exist', ModelDataError.Codes.NO_DATA)
+```
 
 ### ModelInputError
 
@@ -636,7 +663,7 @@ Besides input and output, subclases of `ModelBaseError` can use a DTO for the `d
 ```python
 address = Address(some_address_string)
 e = ModelDataError(message='Address is not a contract',
-                   code=ModelDataError.ErrorCodes.CONFLICT,
+                   code=ModelDataError.Codes.CONFLICT,
                    detail=address)
 ```
 
