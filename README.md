@@ -448,7 +448,7 @@ There are 2 ways to call another model:
 
 Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing the input as a DTO or dict or as standard keyword args (kwargs).
 
-For example:
+For example, here we use keyword args:
 
 ```python
 # Returns a dict with output of the model
@@ -456,6 +456,8 @@ result = self.context.models.example.echo(message='Hello world')
 ```
 
 You can use a DTO for the output by inializing it with the output dict.
+
+Here we use a DTO instance as the input and convert the output to a DTO instance (in this case they happen to be the same DTO class but they don't have to be):
 
 ```python
 class EchoDto(DTO):
