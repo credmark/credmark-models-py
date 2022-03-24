@@ -467,6 +467,15 @@ echo = EchoDto(**self.context.models.example.echo(input))
 echo.message # will equal 'Hello world'
 ```
 
+You can run a model at a different block number by using the `context.models(block_number=12345)` syntax, for example:
+
+```python
+# Runs the model with a context of block number 12345
+result = self.context.models(block_number=12345).example.echo(message='Hello world')
+```
+
+#### `context.run_model()`
+
 Alternatively you can run a model by slug string using the `context.run_model` method:
 
 ```python
