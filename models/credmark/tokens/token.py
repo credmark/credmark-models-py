@@ -1,6 +1,5 @@
 # pylint: disable=locally-disabled, unused-import
 
-from pyexpat import model
 import credmark.model
 from credmark.model.errors import ModelDataError
 from credmark.types import (
