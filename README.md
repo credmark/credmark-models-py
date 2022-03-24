@@ -446,13 +446,13 @@ There are 2 ways to call another model:
 
 #### `context.models`
 
-Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing args as desired.
+Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing the input as a DTO or dict or as standard keyword args (kwargs).
 
 For example:
 
 ```python
 # Returns a dict with output of the model
-result = self.context.models.example.echo(input=dict(message='Hello world'))
+result = self.context.models.example.echo(message='Hello world')
 ```
 
 You can use a DTO for the output by inializing it with the output dict.
@@ -461,7 +461,8 @@ You can use a DTO for the output by inializing it with the output dict.
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 
-echo = EchoDto(**self.context.models.example.echo(input=dict(message='Hello world')))
+input = EchoDto(message='Hello world')
+echo = EchoDto(**self.context.models.example.echo(input))
 
 echo.message # will equal 'Hello world'
 ```
