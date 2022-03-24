@@ -42,7 +42,7 @@ class PriceList(DTO):
     token: Address
 
 
-class ContractVaRInput(DTO):
+class VaRParameter(DTO):
     """
     ContractVaRInput omits the input of portfolio
     """
@@ -58,8 +58,8 @@ class ContractVaRInput(DTO):
         validate_assignment = True
 
 
-class VaRInput(ContractVaRInput):
-    portfolio: Union[Portfolio, Dict[date, Portfolio]]
+class VaRInput(VaRParameter):
+    portfolio: Portfolio
 
     class Config:
         validate_assignment = True
@@ -172,14 +172,15 @@ class ValueAtRisk(credmark.model.Model):
         port = PortfolioManager(trades)
 
         for tk in port.requires():
-            key_col = (tk.address, tk.symbol)  # type: ignore
-            if key_col in df_hist:
+            tk_key = tk['key']
+            tk_token = tk['token']
+            if tk_key in df_hist:
                 continue
 
             historical = self.context.run_model(
                 'uniswap-v3.get-historical-price',
                 input={
-                    'token': tk,
+                    'token': tk_token,
                     'window': new_window,
                     'interval': minimal_interval,
                 },
@@ -191,7 +192,7 @@ class ValueAtRisk(credmark.model.Model):
 
             df_tk = (pd.DataFrame(historical['series'])
                      .sort_values(['blockNumber'], ascending=False)
-                     .rename(columns={'price': key_col})
+                     .rename(columns={'price': tk_key})
                      .reset_index(drop=True))
 
             df_tk.loc[:, 'blockTime'] = df_tk.blockTimestamp.apply(
@@ -210,7 +211,7 @@ class ValueAtRisk(credmark.model.Model):
                 for col in df_hist.columns:
                     assert df_hist.loc[:, col].isnull().sum() == 0
 
-            key_cols.append(key_col)
+            key_cols.append(tk_key)
             if input.debug:
                 self.logger.info(df_hist)
                 df_hist.to_csv('df_hist.csv', index=False)
@@ -277,10 +278,10 @@ class ValueAtRisk(credmark.model.Model):
                          version='1.0',
                          display_name='Value at Risk',
                          description='Value at Risk',
-                         input=ContractVaRInput,
+                         input=VaRParameter,
                          output=dict)
 class ValueAtRiskAave(credmark.model.Model):
-    def run(self, input: ContractVaRInput) -> dict:
+    def run(self, input: VaRParameter) -> dict:
         """
         ValueAtRiskAave evaluates the risk of the assets that Aave holds asOf a day
         """

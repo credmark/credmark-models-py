@@ -40,7 +40,8 @@ class TokenTradeable(Tradeable):
         self._init_price = init_price
 
     def requires(self):
-        yield [self._token]
+        yield [{'token': self._token,
+                'key': f'token.{self._token.address}.{self._token.symbol}'}]
 
     def value(self, mkt):
         key_col = (self._token.address, self._token.symbol)
@@ -108,6 +109,11 @@ def calc_var(ppl, lvl):
         return ppl_d[-1]
 
     pos_f = lvl * (len_ppl_d - 1)
+    if np.isclose(pos_f, 0):
+        return ppl_d[0]
+    if np.isclose(pos_f, len_ppl_d - 1):
+        return ppl_d[-1]
     lower = int(np.floor(pos_f))
-    upper = int(np.ceil(pos_f))
-    return ppl_d[lower] * (upper - pos_f) + ppl_d[upper] * (pos_f - lower)
+    upper = lower+1
+    res = ppl_d[lower] * (upper - pos_f) + ppl_d[upper] * (pos_f - lower)
+    return res
