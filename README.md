@@ -541,69 +541,23 @@ As a subclass of int, the `block_number` class allows the provided block numbers
 
 __Block number, Timestamp and Python datetime__
 
-In blockchain, every block is created with a timestamp (in Unix epoch). In Python there are two types for date, date and datetime, with datetime can be with tzinfo or without. To resolve the confusion around time and also provide convienent tools to query between the three, we have a few tools with `BlockNumber` class.
+In blockchain, every block is created with a timestamp (in Unix epoch). In Python there are two types for date, date and datetime, with datetime can be with tzinfo or without. To provide convienent tools to query between the three and resolve the confusion around time, we have a few tools with `BlockNumber` class.
 
 1. instance method, `block_number.to_datetime(self)`:
-    Return the Python datetime with UTC of the block
+    Return the Python datetime with UTC of the block.
 
 2. instance method, `block_number.timestamp(self)`:
     Return the Unix epoch of the block.
 
-3. claas method: `from_datetime(cls, datetime_date_ts: Union[datetime, date, int, float])`
-    Obtain a block to be less or equal to the input datetime, date (as of the end time of the day), and timestamp.
+3. class method: `from_datetime(cls, datetime_date_ts: Union[datetime, date, int, float])`
+    Obtain a BlockNumber to be less or equal to the input of datetime with tzinfo,  as of the end time of a day,  and a timestamp.
 
-    Be caution when we obtain a timestamp from a Python datetime, we should attach a tzinfo (e.g. timezone.utc) to the datetime. Otherwise, Python take account of the local timezone when converting to a timestamp. See examples below.
+    Be cautious when we obtain a timestamp from a Python datetime, we should attach a tzinfo (e.g. timezone.utc) to the datetime. Otherwise, Python take account of the local timezone when converting to a timestamp. See the mode  [`example.block-time`](https://github.com/credmark/credmark-models-py/blob/main/models/examples/block_time_example.py).
 
-4. stati method: `datetime_of(block_number: int)`
-    Obtain the Python datetime of the block
+4. static method: `datetime_of(block_number: int)`
+    Obtain a Python datetime with UTC of the block
 
-Examples
-
-    from datetime import (datetime, datetime, timezone)
-
-    # We run the model as of block 14234904
-
-    # To obtan the datetime
-    self.context.block_number.datetime_of(14234904)
-    > datetime.datetime(2022, 2, 19, 6, 19, 56, tzinfo=datetime.timezone.utc)
-
-    # We can not obtain information of a future block
-    self.context.block_number.datetime_of(14239569)
-    > credmark.model.errors.ModelInvalidStateError: Invalid future block 14239569 for block 14234904 context
-
-    # To obtain the last block of the day, we provides an input of date.
-    self.context.block_number.from_datetime(date(2022, 2, 19))
-    > 14234904
-    # Below warning message may appear if we run as of a block earlier than the end of the day
-    > 2022-03-23 15:20:15,540 - credmark.model.engine.context - WARNING - Return the current block 14234904 on 2022-02-19 06:19:56+00:00, because block 14239569 for 2022-02-19 23:59:57+00:00 is later.
-
-    # Let's try with one day earlier. we shall obtain the last block of the day
-    self.context.block_number.from_datetime(date(2022, 2, 18))
-    > 14233162
-    # Check the time of the block, it's the last of the day
-    self.context.block_number.datetime_of(14233162)
-    # datetime.datetime(2022, 2, 18, 23, 59, 54, tzinfo=datetime.timezone.utc)
-
-    # If we input a datetime, time 00:00:00 is by default. We obtain a different block with the input of a date.
-    self.context.block_number.from_datetime(datetime(2022, 2, 18))
-    > 14226745
-    # Check the time of the block, it's the start of the day
-    self.context.block_number.datetime_of(14226745)
-    # datetime.datetime(2022, 2, 18, 0, 0, tzinfo=datetime.timezone.utc)
-
-    # Be caution, when we obtain a timestamp from a datetime, Python counts the local timezone if we do not provide a timezone.
-    # Below example converts the datetime using local timezone (UTC+8 for below case)
-    self.context.block_number.from_datetime(datetime(2022, 2, 18).timestamp())
-    > 14224550
-    self.context.block_number.datetime_of(14224550)
-    > datetime.datetime(2022, 2, 17, 15, 59, 47, tzinfo=datetime.timezone.utc)
-
-    # Convert to timezone with a timezone will return the same result as datetime(2022, 2, 18).
-    self.context.block_number.from_datetime(
-        datetime(2022, 2, 18, tzinfo=timezone.utc).timestamp())
-    > 14226745    
-
-More example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py).
+More example code for the block-number class can be found in [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py) and model [`example.block-time`](https://github.com/credmark/credmark-models-py/blob/main/models/examples/block_time_example.py).
 
 
 ### Historical Utility

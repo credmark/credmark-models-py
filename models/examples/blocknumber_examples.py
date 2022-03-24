@@ -12,7 +12,7 @@ class BlockNumberTransformExampleOutput(DTO):
     tenThousandBlocksAgoDatestring: str
 
 
-@credmark.model.describe(slug='example.blocktime',
+@credmark.model.describe(slug='example.blocknumber',
                          version='1.0',
                          display_name='(Example) BlockNumber',
                          description='The Time of the block of the execution context',
