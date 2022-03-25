@@ -20,12 +20,14 @@ then
     # Use prod for test:
     # api_url=' --api_url=http://localhost:8700'
     api_url=''
+    block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
 else
     test_mode='prod'
     cmk_dev='credmark-dev'
     api_url=''  # no api url param uses the gateway api
+    block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
 fi
@@ -53,13 +55,13 @@ run_model () {
     input=$2
     if [ $# -eq 3 ] && [ $3 == 'print-command' ]
     then
-        echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
+        echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}"
     else
         if [ $gen_cmd -eq 1 ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}" >> $cmd_file
+            echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}" >> $cmd_file
         else
-            echo "Running: ${cmk_dev} run ${model} --input '${input}' -b 14234904${api_url}"
-            ${cmk_dev} run ${model} --input "${input}" -b 14234904${api_url}
+            echo "Running: ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}"
+            ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}
         fi
     fi
 }
