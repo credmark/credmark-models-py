@@ -33,7 +33,7 @@ class RedactedVotiumCashflow(credmark.model.Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = BlockNumber(transfer['block_number']).datestring
+            transfer['block_time'] = BlockNumber(transfer['block_number']).timestamp_datetime
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
 
@@ -70,6 +70,6 @@ class RedactedConvexCashflow(credmark.model.Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = BlockNumber(transfer['block_number']).datestring
+            transfer['block_time'] = BlockNumber(transfer['block_number']).timestamp_datetime
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
