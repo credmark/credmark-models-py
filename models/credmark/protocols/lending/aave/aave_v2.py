@@ -107,7 +107,6 @@ class AaveV2GetAssets(credmark.model.Model):
             'aave.token-asset',
             input=Token(address=asset_address),
             return_type=AaveDebtInfo) for asset_address in aave_assets_address])
-
         return aave_debts
 
 

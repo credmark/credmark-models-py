@@ -25,6 +25,20 @@ class MarketObject(DTO):
     artifact: Any
 
 
+class Plan:
+    def create(self):
+        pass
+
+    def execute(self):
+        pass
+
+    def post_proc(self):
+        pass
+
+
+tag = 'eod'
+
+
 class Tradeable:
     def __init__(self, tid):
         self._tid = tid

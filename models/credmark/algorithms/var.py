@@ -175,6 +175,10 @@ from models.credmark.algorithms.dto import (
     VaROutput
 )
 
+from models.credmark.algorithms.base import (
+    ValueAtRiskBase
+)
+
 
 @credmark.model.describe(slug='finance.var',
                          version='1.0',
@@ -182,11 +186,7 @@ from models.credmark.algorithms.dto import (
                          description='Value at Risk',
                          input=VaRPortfolioInput,
                          output=VaROutput)
-class ValueAtRisk(credmark.model.Model):
-    def eod_block(self, dt):
-        dt_eod = datetime.combine(dt, datetime.max.time(), tzinfo=timezone.utc)
-        return self.context.block_number.from_timestamp(int(dt_eod.timestamp()))
-
+class ValueAtRisk(ValueAtRiskBase):
     def run(self, input: VaRPortfolioInput) -> VaROutput:
         """
             Var takes in a portfolio object,
@@ -209,31 +209,10 @@ class ValueAtRisk(credmark.model.Model):
         minimal_interval = f'1 {unique_ivl_keys[0]}'
         minimal_interval_seconds = self.context.historical.range_timestamp(unique_ivl_keys[0], 1)
 
-        current_block = self.context.block_number
-        current_block_date = self.context.block_number.to_datetime().date()
-        if input.asOfs:
-            min_date = min(input.asOfs)
-            max_date = max(input.asOfs)
-
-            if max_date >= current_block_date:
-                raise ModelRunError(
-                    (f'max(input.asOf)={max_date:%Y-%m-%d} shall be earlier than the input block, '
-                     f'{current_block} on {current_block_date:%Y-%m-%d}.'))
-
-            if input.asOfsRange:
-                asOfs = [dt.to_pydatetime().replace(tzinfo=timezone.utc)
-                         for dt in pd.date_range(min_date, max_date)][::-1]
-            else:
-                asOfs = input.asOfs
-        else:
-            min_date = current_block_date - timedelta(days=1)
-            max_date = min_date
-            asOfs = [min_date]
-
-        window = input.window
-        w_k, w_i = self.context.historical.parse_timerangestr(window)
+        w_k, w_i = self.context.historical.parse_timerangestr(input.window)
         w_seconds = self.context.historical.range_timestamp(w_k, w_i)
 
+<<<<<<< HEAD
         # TODO: pending for time range fix
         # current_to_asOf_range = f'{(current_block_date - max_date).days} days'
         # window_from_current = [..., current_to_asOf_range]
@@ -247,6 +226,12 @@ class ValueAtRisk(credmark.model.Model):
         self.logger.info(
             f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {current_block_date=:%Y-%m-%d} {window_from_max_asOf=} {block_max_asOf=}')
 >>>>>>> ba2e051 (var work consolidated)
+=======
+        dict_asOf = self.set_window(input)
+        asOfs = dict_asOf['asOfs']
+        block_max_asOf = dict_asOf['block_max_asOf']
+        window_from_max_asOf = dict_asOf['window_from_max_asOf']
+>>>>>>> 8525411 (aave VaR)
 
 #         self.logger.info(
 #             f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {block_hist=}')
@@ -410,8 +395,12 @@ class ValueAtRisk(credmark.model.Model):
                     df_ret.to_csv(os.path.join('tmp', 'df_ret.csv'), index=False)
 >>>>>>> ba2e051 (var work consolidated)
 
+<<<<<<< HEAD
 #                 df_ret = df_hist_ivl_p_only.iloc[:-1, :].reset_index(drop=True) / \
 #                     df_hist_ivl_p_only.iloc[1:, :].reset_index(drop=True)
+=======
+        result = VaROutput(window=input.window, var=var)
+>>>>>>> 8525411 (aave VaR)
 
 <<<<<<< HEAD
 #                 df_ret = df_ret.apply(lambda x: x - 1)

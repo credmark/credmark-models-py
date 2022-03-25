@@ -50,7 +50,7 @@ class VaRParameter(DTO):
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
     asOfs: Optional[List[date]]
-    asof_is_range: Optional[bool] = DTOField(False)
+    asOf_is_range: Optional[bool] = DTOField(False)
     outputPrice: Optional[bool] = DTOField(False)
     dev_mode: Optional[bool] = DTOField(False)
 

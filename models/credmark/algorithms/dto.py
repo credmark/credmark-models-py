@@ -11,16 +11,11 @@ from typing import (
 
 from credmark.types import (
     Portfolio,
-    Position,
-    Address,
-    Token,
-    Contract,
 )
 
 from credmark.dto import (
     DTO,
     DTOField,
-    EmptyInput,
 )
 
 
@@ -30,7 +25,7 @@ class VaRPortfolioInput(DTO):
     """
     portfolio: Portfolio
     asOfs: Optional[List[date]]
-    asof_is_range: Optional[bool] = DTOField(False)
+    asOf_is_range: Optional[bool] = DTOField(False)
     dev_mode: Optional[bool] = DTOField(False)
     window: str
     intervals: List[str] = DTOField(...)
@@ -60,9 +55,12 @@ class VaRParameters(DTO):
     """
     VaRParameters contains only the VaR model parameters
     """
+    asOfs: Optional[List[date]]
+    asOf_is_range: Optional[bool] = DTOField(False)
+    dev_mode: Optional[bool] = DTOField(False)
     window: str
     intervals: List[str] = DTOField(...)
-    dev_mode: Optional[bool] = DTOField(False)
+    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
 
     class Config:
         validate_assignment = True
