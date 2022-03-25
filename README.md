@@ -153,7 +153,7 @@ For the DTOs (Data Transfer Objects) we use the python module `pydantic` to defi
 The DTO used in the example above, for both the input and output, looks like this:
 
 ```py
-from credmark.types.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField
 
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
@@ -446,37 +446,25 @@ There are 2 ways to call another model:
 
 #### `context.models`
 
-Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing the input as a DTO or dict or as standard keyword args (kwargs).
+Models are exposed on `context.models` by their slug (with any "-" (hyphens) in the slug replaced with "\_" (underscores)) and can be called like a function, passing args as desired.
 
-For example, here we use keyword args:
+For example:
 
 ```python
 # Returns a dict with output of the model
-result = self.context.models.example.echo(message='Hello world')
+result = self.context.models.example.echo(input=dict(message='Hello world'))
 ```
 
 You can use a DTO for the output by inializing it with the output dict.
-
-Here we use a DTO instance as the input and convert the output to a DTO instance (in this case they happen to be the same DTO class but they don't have to be):
 
 ```python
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 
-input = EchoDto(message='Hello world')
-echo = EchoDto(**self.context.models.example.echo(input))
+echo = EchoDto(**self.context.models.example.echo(input=dict(message='Hello world')))
 
 echo.message # will equal 'Hello world'
 ```
-
-You can run a model at a different block number by using the `context.models(block_number=12345)` syntax, for example:
-
-```python
-# Runs the model with a context of block number 12345
-result = self.context.models(block_number=12345).example.echo(message='Hello world')
-```
-
-#### `context.run_model()`
 
 Alternatively you can run a model by slug string using the `context.run_model` method:
 
@@ -488,7 +476,7 @@ def run_model(name: str,
           version: Union[str, None] = None)
 ```
 
-If `return_type` is None or dict, then the method returns the model output as a dict. If it's a DTO class, the method returns a DTO instance. As above, you can use a dict result with `**` to initialize a DTO instance yourself.
+A model can call other models and use their results. `run_model()` calls the specified model and returns the results as a dict or DTO (if `return_type` is specified) (or raises an exception if there was an error. See [Error handling](#error-handling))
 
 For example:
 
@@ -548,9 +536,31 @@ Please refer [here](https://github.com/credmark/credmark-model-framework-py/blob
 ### Block number
 
 The `context.block_number` holds the block number for which a model is running. Models only have access to data at (by default) or before this block number (by instantiating a new context). In other words models cannot see into the future and ledger queries etc. will restrict access to data by this block number.
+
 As a subclass of int, the `block_number` class allows the provided block numbers to be treated as integers and hence enables arithmetic operations on block numbers. It also allows you to fetch the corresponding datetime and timestamp properties for the block number. This can be super useful in case we want to run any model iteratively for a certain block-interval or time-interval backwards from the block number provided in the context.
 
-Example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py).
+__Block number, Timestamp and Python datetime__
+
+In blockchain, every block is created with a timestamp (in Unix epoch). In Python there are two types for date, date and datetime, with datetime can be with tzinfo or without. To provide convienent tools to query between the three and resolve the confusion around time, we have a few tools with `BlockNumber` class.
+
+1. property, `block_number.timestamp_datetime`: Return the Python datetime with UTC of the block.
+
+2. property, `block_number.timestamp`: Return the Unix epoch of the block.
+
+3. class method: `from_datetime(cls, timestamp: int)`: Return a BlockNumber instance to be less or equal to the input timestamp.
+
+    Be cautious when we obtain a timestamp from a Python datetime, we should attach a tzinfo (e.g. timezone.utc) to the datetime. Otherwise, Python take account of the local timezone when converting to a timestamp. See the mode  [`example.block-time`](https://github.com/credmark/credmark-models-py/blob/main/models/examples/block_time_example.py).
+
+4. Use a BlockNumber instance: Obtain a Python datetime with UTC of the block. The block number should be less or equal to the context block.
+    
+    ```
+    from credmark.types import ( BlockNumber )
+
+    dt = BlockNumber(14234904).to_datetime()
+    ```
+
+More example code for the block-number class can be found in [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py) and model [`example.block-time`](https://github.com/credmark/credmark-models-py/blob/main/models/examples/block_time_example.py).
+
 
 ### Historical Utility
 
@@ -613,38 +623,11 @@ A model may raise a ModelDataError in situations such as:
 
 A model may (and often should) catch and handle `ModelDataError`s raised from calls to `context.run_model()`.
 
-Some standard `code`s have been defined for `ModelDataError`s, available at `ModelDataError.Codes`:
+Some standard `code`s have been defined for `ModelDataError`s, available at `ModelDataError.ErrorCodes`:
 
-- `Codes.GENERIC = 'generic'` Default error code
-- `Codes.NO_DATA = 'no_data'` Requested data does not exist (and never will for the given context)
-- `Codes.CONFLICT = 'conflict'` There is an inherent conflict in the data for the given context that can never be resolved.
-
-#### Raising ModelDataError Errors
-
-If you want your model to raise ModelDataError errors, you should add a `ModelDataErrorDesc` to the `errors` arg of your model `describe()` decorator with a description of the codes you are using and what they mean. For example:
-
-```python
-import credmark.model
-from credmark.model import EmptyInput, ModelDataErrorDesc
-
-@credmark.model.describe(slug='example.data-error',
-                         version='1.0',
-                         display_name='Data Error Example',
-                         description="A test model to generate a ModelDataError.",
-                         input=EmptyInput,
-                         errors=ModelDataErrorDesc(
-                             code=ModelDataError.Codes.NO_DATA,
-                             code_desc='Data does not exist'))
-class ExampleModel(credmark.model.Model):
-```
-
-If you're using multiple codes, `ModelDataErrorDesc` also lets you pass in `codes` as a list of `(code, code_description)` tuples.
-
-Then in your model `run()` code you simply raise a ModelDataError, for example:
-
-```python
-raise ModelDataError('Data does not exist', ModelDataError.Codes.NO_DATA)
-```
+- `ErrorCodes.GENERIC = 'generic'` Default error code
+- `ErrorCodes.NO_DATA = 'no_data'` Requested data does not exist (and never will for the given context)
+- `ErrorCodes.CONFLICT = 'conflict'` There is an inherent conflict in the data for the given context that can never be resolved.
 
 ### ModelInputError
 
@@ -675,7 +658,7 @@ Besides input and output, subclases of `ModelBaseError` can use a DTO for the `d
 ```python
 address = Address(some_address_string)
 e = ModelDataError(message='Address is not a contract',
-                   code=ModelDataError.Codes.CONFLICT,
+                   code=ModelDataError.ErrorCodes.CONFLICT,
                    detail=address)
 ```
 
