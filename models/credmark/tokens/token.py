@@ -26,13 +26,7 @@ from credmark.dto import (
     DTOField,
     IterableListGenericDTO
 )
-from typing import List
-
-
-class TokenInfo(DTO):
-    token: Token
-    total_supply_wei: int
-    total_supply: float
+from typing import List, Union
 
 
 @credmark.model.describe(
@@ -41,18 +35,11 @@ class TokenInfo(DTO):
     display_name="Token Information",
     developer="Credmark",
     input=Token,
-    output=TokenInfo
+    output=Token
 )
 class TokenInfoModel(credmark.model.Model):
-    def run(self, input: Token) -> TokenInfo:
-        input.load()
-        self.logger.info(f'ABI functions: {input.functions.__dir__()}')
-        total_supply = input.total_supply()
-        return TokenInfo(
-            token=input,
-            total_supply=total_supply.scaled,
-            total_supply_wei=total_supply
-        )
+    def run(self, input: Token) -> Token:
+        return input.info
 
 
 @credmark.model.describe(slug='price',
@@ -173,12 +160,14 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
 class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
-        total_supply_scaled = input.token.total_supply().scaled
-
+        total_supply_scaled = input.token.scaled(input.token.total_supply)
+        token_price: Union[Price, None] = self.context.models.token.price(input.token)
+        
         for c in response.categories:
             for account in c.accounts:
-                c.amountScaled += response.token.balance_of(account.address).scaled
-            c.valueUsd = c.amountScaled * response.token.price_usd
+                c.amountScaled += response.token.scaled(response.token.functions.balanceOf(account.address))
+            if token_price is not None and token_price.price is not None:
+                c.valueUsd = c.amountScaled * token_price.price
         response.categories.append(CategorizedSupplyResponse.CategorizedSupplyCategory(
             accounts=Accounts(accounts=[]),
             categoryName='uncategorized',

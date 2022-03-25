@@ -5,6 +5,7 @@ from credmark.types import (
     Account,
     Position,
     Portfolio,
+    NativeToken
 )
 from credmark.types.models.ledger import (
     TokenTransferTable
@@ -30,7 +31,7 @@ class WalletInfoModel(credmark.model.Model):
 
         positions = [
             Position(
-                amount=Token.native_token().balance_of(input.address),
+                amount=self.context.web3.eth.get_balance(input.address),
                 token=Token.native_token()
             )
         ]
