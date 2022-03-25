@@ -58,7 +58,7 @@ test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c0171
 echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
 echo_cmd ""
-test_model 0 example.blocktime '{}'
+test_model 0 example.block-number '{}'
 
 
 echo_cmd ""

@@ -1,50 +1,51 @@
+#pylint: disable=pointless-string-statement, pointless-statement
+
 import credmark.model
-from credmark.types.data.block_number import BlockNumberOutOfRangeError
-from credmark.dto import DTO
+from credmark.types.data.block_number import BlockNumberOutOfRangeError, BlockNumber
+from credmark.model.errors import ModelRunError
 
 
-class BlockNumberTransformExampleOutput(DTO):
-    blockNumber: int
-    blockTime: int
-    blockDatestring: str
-    tenThousandBlocksAgo: int
-    tenThousandBlocksAgoTimestamp: int
-    tenThousandBlocksAgoDatestring: str
-
-
-@credmark.model.describe(slug='example.blocktime',
+@credmark.model.describe(slug='example.block-number',
                          version='1.0',
                          display_name='(Example) BlockNumber',
-                         description='The Time of the block of the execution context',
-                         output=BlockNumberTransformExampleOutput)
+                         description='This example shows the capabilities on the BlockNumber class',
+                         output=dict)
 class BlockNumberTransformExample(credmark.model.Model):
 
     """
-    This example returns information about the current block, attempts
-    to look at a future block,
-    and offers information about a previous block.
+    This example shows the capabilities on the BlockNumber class
     """
 
-    def run(self, input) -> BlockNumberTransformExampleOutput:
+    def run(self, input) -> dict:
 
-        block = self.context.block_number
+        block_number = self.context.block_number
+        self.logger.info(
+            f"block_number : {block_number}")
+        self.logger.info(
+            f"block_number.timestamp : {block_number.timestamp}")
+        self.logger.info(
+            f"block_number.datestring : {block_number.datestring}")
+        self.logger.info(
+            f"block_number - 100 + 50 : {(block_number - 100) + 50}")
+        self.logger.info(
+            f"block_number.from_datetime(block_number.timestamp - 3600) : \
+                {block_number.from_timestamp(block_number.timestamp - 3600)}")
+        self.logger.info(
+            f"BlockNumber.from_datetime(block_number.timestamp - 3600) : \
+                {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")
 
-        # NOTE: This is for demonstration only.
-        # You should NOT catch BlockNumberOutOfRangeError or
-        # other ModelRunErrors in your models!
         try:
-            block = block + 1
+            block_number + 10
+            raise ModelRunError(
+                message="BlockNumbers cannot exceed the current context.block_number, an exception was NOT caught, and the example has FAILED")
         except BlockNumberOutOfRangeError:
+            """
+                NOTE: THIS IS FOR DEMONSTRATION ONLY.
+                You should NOT catch BlockNumberOutOfRangeError or
+                other ModelRunErrors in your models!
+            """
+
             self.logger.info(
-                "I can't look into the future, looking at the next block was attempted.")
+                "BlockNumbers cannot exceed the current context.block_number, an exception was caught successfully")
 
-        ten_thousand_blocks_ago = self.context.block_number - 10000
-
-        return BlockNumberTransformExampleOutput(
-            blockNumber=block,
-            blockTime=block.timestamp,
-            blockDatestring=block.datestring,
-            tenThousandBlocksAgo=ten_thousand_blocks_ago,
-            tenThousandBlocksAgoTimestamp=ten_thousand_blocks_ago.timestamp,
-            tenThousandBlocksAgoDatestring=ten_thousand_blocks_ago.datestring
-        )
+        return dict(block_number=block_number)
