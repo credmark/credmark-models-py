@@ -1,6 +1,15 @@
 from datetime import (datetime, date, timezone)
 import credmark.model
+from credmark.model import (
+    ModelRunError,
+)
+from credmark.types.data.block_number import (
+    BlockNumberOutOfRangeError,
+)
 from credmark.dto import (EmptyInput)
+from credmark.types import (
+    BlockNumber
+)
 
 
 @credmark.model.describe(slug='example.blocktime',
@@ -18,52 +27,58 @@ class BlockTimeExample(credmark.model.Model):
     """
 
     def run(self, input) -> None:
+
         if self.context.block_number != 14234904:
-            self.logger.warn(
+            self.logger.info(
                 'The example code in this model works with block number input, -b 14234904')
 
         # We run the model as of block 14234904
         # To obtan the datetime
-        res = self.context.block_number.datetime_of(14234904)
+        res = BlockNumber(14234904).to_datetime()
         assert res == datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc)
-
-        # We can not obtain information of a future block
-        try:
-            res = self.context.block_number.datetime_of(14239569)
-        except Exception as _err:
-            self.logger.info('You have caught the below error')
-            self.logger.info(
-                'Expected exception print out in the next line: `"ERROR - ModelError: Invalid future block 14239569 for block 14234904 context`"')
-            self.logger.error(_err)
+        self.logger.info(f'Block 14234904\'s datetime is {res}')
 
         # To obtain the last block of the day, we provides an input of date.
-        # Below warning message may appear if we run as of a block earlier than the end of the day
-        # 2022-03-23 15: 20: 15, 540 - credmark.model.engine.context - WARNING - Return the current block 14234904 on 2022-02-19 06: 19: 56+00: 00, because block 14239569 for 2022-02-19 23: 59: 57+00: 00 is later.
-        res = self.context.block_number.from_datetime(date(2022, 2, 19))
+        res = self.context.block_number.from_timestamp(
+            datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc).timestamp())
         assert res == 14234904
-
-        # Let's try with one day earlier. we shall obtain the last block of the day
-        res = self.context.block_number.from_datetime(date(2022, 2, 18))
-        assert res == 14233162
-        # Check the time of the block, it's the last of the day
-        res = self.context.block_number.datetime_of(14233162)
-        assert res == datetime(2022, 2, 18, 23, 59, 54, tzinfo=timezone.utc)
-
-        # If we input a datetime, time 00:00:00 is by default. We obtain a different block with the input of a date.
-        res = self.context.block_number.from_datetime(datetime(2022, 2, 18, tzinfo=timezone.utc))
-        assert res == 14226745
-        # Check the time of the block, it's the start of the day
-        res = self.context.block_number.datetime_of(14226745)
-        assert res == datetime(2022, 2, 18, 0, 0, tzinfo=timezone.utc)
 
         # When we obtain a timestamp from a datetime, Python counts the local timezone if we do not provide a timezone.
         # Below example converts the datetime using local timezone (UTC+8 for below case)
-        res = self.context.block_number.from_datetime(datetime(2022, 2, 18).timestamp())
-        assert res == 14224550
-        res = self.context.block_number.datetime_of(14224550)
-        assert res == datetime(2022, 2, 17, 15, 59, 47, tzinfo=timezone.utc)
+        # We will get a different block number other than 14234904 and it's with another UTC time.
+        ts = datetime(2022, 2, 19, 6, 19, 56).timestamp()
+        res = self.context.block_number.from_timestamp(ts)
+        assert res == 14232694
+        self.logger.info(f'Block 14232694\'s timestamp is {ts}')
 
-        # Convert to timezone with a timezone will return the same result as datetime(2022, 2, 18).
-        res = self.context.block_number.from_datetime(
-            datetime(2022, 2, 18, tzinfo=timezone.utc).timestamp())
-        assert res == 14226745
+        res = BlockNumber(14232694).to_datetime()
+        assert res == datetime(2022, 2, 18, 22, 19, 35, tzinfo=timezone.utc)
+
+        # Let's try with one day earlier. we shall obtain the last block of the day
+        ts = datetime(2022, 2, 18, 23, 59, 59, tzinfo=timezone.utc).timestamp()
+        res = self.context.block_number.from_timestamp(ts)
+        assert res == 14233162
+        self.logger.info(f'Block 14232694\'s timestamp is {ts}')
+
+        # Check the time of the block, it's the last of the day
+        res = BlockNumber(14233162).to_datetime()
+        assert res == datetime(2022, 2, 18, 23, 59, 54, tzinfo=timezone.utc)
+        self.logger.info(f'Block 14233162\'s datetime is {res}')
+
+        # We can not obtain information of a future block
+        try:
+            res = BlockNumber(14239569).to_datetime()
+            raise ModelRunError(
+                message="BlockNumbers cannot exceed the current context.block_number, an exception was NOT caught, and the example has FAILED")
+        except BlockNumberOutOfRangeError as _err:
+            _ = """
+                NOTE: THIS IS FOR DEMONSTRATION ONLY.
+                You should NOT catch BlockNumberOutOfRangeError or
+                other ModelRunErrors in your models!
+                """
+
+            self.logger.info(
+                f'You have caught the below error from querying 14239569\'s datetime because it\'s later than the currente block {self.context.block_number}')
+            self.logger.info(
+                f'Expected exception print out in the next line: `"ERROR - BlockNumber 14239569 is out of maximum range: {self.context.block_number}"')
+            self.logger.error(_err)
