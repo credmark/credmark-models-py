@@ -5,7 +5,9 @@ from credmark.types import (
     Account,
     Position,
     Portfolio,
-    NativeToken
+    NativeToken, 
+    NativePosition,
+    TokenPosition
 )
 from credmark.types.models.ledger import (
     TokenTransferTable
@@ -29,20 +31,22 @@ class WalletInfoModel(credmark.model.Model):
                  "or",
                  f"{TokenTransferTable.Columns.TO_ADDRESS}='{input.address}'"]))
 
-        positions = [
-            Position(
+        positions = []
+        positions.append(
+            NativePosition(
                 amount=self.context.web3.eth.get_balance(input.address),
-                token=Token.native_token()
+                asset=NativeToken()
             )
-        ]
+        )
 
         for t in list(dict.fromkeys([t['token_address'] for t in token_addresses])):
             try:
                 token = Token(address=t)
-                balance = token.balance_of(input.address)
+                balance = float(token.functions.balanceOf(input.address).call())
+            
                 if balance > 0.0:
                     positions.append(
-                        Position(token=token, amount=balance.scaled))
+                        TokenPosition(asset=token, amount=balance))
             except Exception as _err:
                 # TODO: currently skip NFTs
                 pass
