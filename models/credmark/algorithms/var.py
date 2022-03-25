@@ -30,6 +30,8 @@
 # import numpy as np
 # import pandas as pd
 
+import credmark.model
+from credmark.model import ModelRunError
 
 # class PriceList(DTO):
 #     price: Price
