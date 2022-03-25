@@ -15,7 +15,6 @@ from credmark.model.errors import ModelRunError
 class ExampleBlockNumber(credmark.model.Model):
 
     def run(self, input) -> dict:
-
         """
             This model demonstrates the functionality of the BlockNumber class
         """
@@ -66,4 +65,4 @@ class ExampleBlockNumber(credmark.model.Model):
                 "Attempting to create a BlockNumber object with a negative block number "
                 "raises BlockNumberOutOfRangeError")
 
-        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"} # pylint: disable=line-too-long
+        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"}  # pylint: disable=line-too-long

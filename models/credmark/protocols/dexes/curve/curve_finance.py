@@ -132,8 +132,8 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             abi=CURVE_REGISTRY_ABI)
         total_pools = registry.functions.pool_count().call()
         pool_contracts = [
-                Contract(address=registry.functions.pool_list(i).call())
-                for i in range(0, total_pools)]
+            Contract(address=registry.functions.pool_list(i).call())
+            for i in range(0, total_pools)]
 
         pool_infos = [
             CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(
@@ -142,10 +142,11 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
         return CurveFiPoolInfos(pool_infos=pool_infos)
 
+
 @credmark.model.describe(slug="curve-fi.all-gauges",
-                        version='1.0',
-                        display_name="Curve Finance Gauge List",
-                        description="All Gauge Contracts for Curve Finance Pools")
+                         version='1.0',
+                         display_name="Curve Finance Gauge List",
+                         description="All Gauge Contracts for Curve Finance Pools")
 class CurveFinanceAllGauges(credmark.model.Model):
     def run(self, input):
         gauge_controller = Contract(address='0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
@@ -161,7 +162,6 @@ class CurveFinanceAllGauges(credmark.model.Model):
         return gauges
 
 
-
 @credmark.model.describe(slug='curve-fi.all-gauge-claim-addresses',
                          version='1.0',
                          input=Contract,
@@ -175,7 +175,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return Accounts(accounts=[
             Account(address=address)
             for address in
-            list( dict.fromkeys([
+            list(dict.fromkeys([
                 a[TransactionTable.Columns.FROM_ADDRESS]
                 for a
                 in addrs]))])
@@ -216,7 +216,6 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         """
         presuming that crv has a constant value of $3
         """
-
 
         pool_info = self.context.models.curve_fi.pool_info(
             Contract(address=input.functions.lp_token().call()))

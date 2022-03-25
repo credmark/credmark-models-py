@@ -1,4 +1,12 @@
+from typing import (
+    Union,
+    Optional,
+)
+
 import credmark.model
+from credmark.dto import (
+    DTO,
+)
 from credmark.types import (
     Price,
     Token,
@@ -87,8 +95,8 @@ class UniswapV2PoolSwapVolume(credmark.model.Model):
     def run(self, input: Contract) -> TradingVolume:
         input = Contract(address=input.address, abi=UNISWAP_V2_SWAP_ABI)
         swaps = input.events.Swap.createFilter(
-                fromBlock=self.context.block_number - int(86400 / 14),
-                toBlock=self.context.block_number).get_all_entries()
+            fromBlock=self.context.block_number - int(86400 / 14),
+            toBlock=self.context.block_number).get_all_entries()
         token0 = Token(address=input.functions.token0().call())
         token1 = Token(address=input.functions.token1().call())
         return TradingVolume(
@@ -101,4 +109,4 @@ class UniswapV2PoolSwapVolume(credmark.model.Model):
                     token=token1,
                     sellAmount=sum([s['args']['amount1In'] for s in swaps]),
                     buyAmount=sum([s['args']['amount1Out'] for s in swaps]))
-                    ])
+            ])
