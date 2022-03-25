@@ -1,4 +1,9 @@
-from datetime import (datetime, date, timezone)
+# pylint: disable=locally-disabled, line-too-long
+
+from datetime import (
+    datetime,
+    timezone
+)
 import credmark.model
 from credmark.model import (
     ModelRunError,
@@ -40,13 +45,13 @@ class BlockTimeExample(credmark.model.Model):
 
         # To obtain the last block of the day, we provides an input of date.
         res = self.context.block_number.from_timestamp(
-            datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc).timestamp())
+            int(datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc).timestamp()))
         assert res == 14234904
 
         # When we obtain a timestamp from a datetime, Python counts the local timezone if we do not provide a timezone.
         # Below example converts the datetime using local timezone (UTC+8 for below case)
         # We will get a different block number other than 14234904 and it's with another UTC time.
-        ts = datetime(2022, 2, 19, 6, 19, 56).timestamp()
+        ts = int(datetime(2022, 2, 19, 6, 19, 56).timestamp())
         res = self.context.block_number.from_timestamp(ts)
         assert res == 14232694
         self.logger.info(f'Block 14232694\'s timestamp is {ts}')
@@ -55,7 +60,7 @@ class BlockTimeExample(credmark.model.Model):
         assert res == datetime(2022, 2, 18, 22, 19, 35, tzinfo=timezone.utc)
 
         # Let's try with one day earlier. we shall obtain the last block of the day
-        ts = datetime(2022, 2, 18, 23, 59, 59, tzinfo=timezone.utc).timestamp()
+        ts = int(datetime(2022, 2, 18, 23, 59, 59, tzinfo=timezone.utc).timestamp())
         res = self.context.block_number.from_timestamp(ts)
         assert res == 14233162
         self.logger.info(f'Block 14232694\'s timestamp is {ts}')

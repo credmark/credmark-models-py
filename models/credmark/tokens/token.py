@@ -158,11 +158,22 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
                          output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
+        if input.token.price_usd is None:
+            raise ModelDataError('Input token price is None')
         response = CategorizedSupplyResponse(**input.dict())
+<<<<<<< HEAD
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.token.price(input.token))
         if token_price is None:
             raise ModelDataError(f"No Price for {response.token}")
+=======
+        if response.token.price_usd is None:
+            raise ModelDataError('Response token price is None')
+
+        total_supply_scaled = input.token.total_supply().scaled
+        token_price: Union[Price, None] = self.context.models.token.price(input.token)
+
+>>>>>>> 29b05fb (fix typing with examples)
         for c in response.categories:
             for account in c.accounts:
                 c.amountScaled += response.token.scaled(
@@ -174,11 +185,22 @@ class TokenCirculatingSupply(credmark.model.Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled - sum([c.amountScaled for c in response.categories])
+            amountScaled=total_supply_scaled -
+            sum([c.amountScaled for c in response.categories])
         ))
+<<<<<<< HEAD
         response.circulatingSupplyScaled = sum(
             [c.amountScaled for c in response.categories if c.circulating])
         if isinstance(token_price.price, float):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
+=======
+
+        all_circulating = [c.amountScaled for c in response.categories if c.circulating]
+        if len(all_circulating) > 0:
+            response.circulatingSupplyScaled = sum(all_circulating)
+        else:
+            response.circulatingSupplyScaled = 0
+        response.circulatingSupplyUsd = response.circulatingSupplyScaled * input.token.price_usd
+>>>>>>> 29b05fb (fix typing with examples)
         return response

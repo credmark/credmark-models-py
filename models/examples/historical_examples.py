@@ -81,5 +81,7 @@ class ExampleHistoricalBlock(credmark.model.Model):
 
     def run(self, input):
         return self.context.historical.run_model_historical_blocks(
-            'example.libraries', window=500, interval=100,
+            'example.libraries',
+            window=500,
+            interval=100,
             snap_block=None)
