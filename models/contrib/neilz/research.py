@@ -1,13 +1,16 @@
 from credmark.types import Address, Token
+from credmark.model.errors import ModelDataError
 from credmark.types.models.ledger import TokenTransferTable
 from credmark.types.data.block_number import BlockNumber
 import credmark.model
 from credmark.dto import EmptyInput
 
+from models.tmp_abi_lookup import ERC_20_ABI
+
 
 @credmark.model.describe(
     slug='contrib.neilz-redacted-votium-cashflow',
-    version='1.0',
+    version='1.1',
     display_name='Redacted Cartel Votium Cashflow',
     description='Redacted Cartel Votium Cashflow',
     input=EmptyInput,
@@ -20,10 +23,14 @@ class RedactedVotiumCashflow(credmark.model.Model):
         transfers = self.context.ledger.get_erc20_transfers(columns=[
             TokenTransferTable.Columns.BLOCK_NUMBER,
             TokenTransferTable.Columns.VALUE,
-            TokenTransferTable.Columns.TOKEN_ADDRESS
+            TokenTransferTable.Columns.TOKEN_ADDRESS,
+            TokenTransferTable.Columns.TRANSACTION_HASH
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{REDACTED_MULTISIG_ADDRESS}\' and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{VOTIUM_CONTRACT_ADDRESS}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address'])
+            try:
+                token = Token(address=transfer['token_address']).info
+            except ModelDataError:
+                token = Token(address=transfer['token_address'], abi=ERC_20_ABI)
             try:
                 transfer['price'] = self.context.run_model(
                     'token.price', input=token, block_number=transfer['block_number'])['price']
@@ -33,14 +40,14 @@ class RedactedVotiumCashflow(credmark.model.Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = BlockNumber(transfer['block_number']).timestamp_datetime
+            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
 
 
 @credmark.model.describe(
     slug='contrib.neilz-redacted-convex-cashflow',
-    version='1.0',
+    version='1.1',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
     input=EmptyInput,
@@ -70,6 +77,6 @@ class RedactedConvexCashflow(credmark.model.Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = BlockNumber(transfer['block_number']).timestamp_datetime
+            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()

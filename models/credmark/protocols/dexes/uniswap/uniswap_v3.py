@@ -39,7 +39,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @credmark.model.describe(slug='uniswap-v3.get-pools',
-                         version='1.0',
+                         version='1.1',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
                          input=Token,
@@ -48,7 +48,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
 
     def run(self, input: Token) -> Contracts:
 
-        fees = [500, 3000, 10000]
+        fees = [3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
                           Token(symbol='WETH'),
                           Token(symbol='USDC'),
@@ -74,14 +74,16 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
 
 
 @credmark.model.describe(slug='uniswap-v3.get-pool-info',
-                         version='1.0',
+                         version='1.1',
                          display_name='Uniswap v3 Token Pools',
                          description='The Uniswap v3 pools that support a token contract',
                          input=Contract,
                          output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(credmark.model.Model):
     def run(self, input: Contract) -> UniswapV3PoolInfo:
-        input.abi = UNISWAP_V3_POOL_ABI
+        if input.abi is None:
+            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
+
         pool = input.instance
 
         slot0 = pool.functions.slot0().call()
