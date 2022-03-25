@@ -49,7 +49,7 @@ echo ""
 echo "Run Historical Examples:"
 echo ""
 credmark-dev run example.historical --input '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' -b 14234904
-credmark-dev run example.historical --input '{"model_slug":"price","model_input":{"symbol": "USDC"}}' -b 14234904
+credmark-dev run example.historical --input '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' -b 14234904
 credmark-dev run example.historical-snap --input '{}' -b 14234904
 credmark-dev run example.historical-block --input '{}' -b 14234904
 credmark-dev run example.historical-block-snap --input '{}' -b 14234904

@@ -543,10 +543,10 @@ __Block number, Timestamp and Python datetime__
 
 In blockchain, every block is created with a timestamp (in Unix epoch). In Python there are two types for date, date and datetime, with datetime can be with tzinfo or without. To provide convienent tools to query between the three and resolve the confusion around time, we have a few tools with `BlockNumber` class.
 
-1. instance method, `block_number.to_datetime(self)`:
+1. property, `block_number.timestamp_datetime`:
     Return the Python datetime with UTC of the block.
 
-2. instance method, `block_number.timestamp(self)`:
+2. property, `block_number.timestamp`:
     Return the Unix epoch of the block.
 
 3. class method: `from_datetime(cls, datetime_date_ts: Union[datetime, date, int, float])`

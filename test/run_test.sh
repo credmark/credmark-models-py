@@ -59,6 +59,7 @@ echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
 echo_cmd ""
 test_model 0 example.blocktime '{}'
+test_model 0 example.blocknumber '{}'
 
 
 echo_cmd ""
@@ -85,7 +86,7 @@ echo_cmd ""
 echo_cmd "Run Historical Examples:"
 echo_cmd ""
 test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}'
-test_model 0 example.historical '{"model_slug":"price","model_input":{"symbol": "USDC"}}'
+test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}'
 test_model 0 example.historical-snap '{}'
 test_model 0 example.historical-block '{}'
 test_model 0 example.historical-block-snap '{}'
@@ -192,8 +193,8 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "debug":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "debug":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "debug":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "debug":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "debug":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}'
