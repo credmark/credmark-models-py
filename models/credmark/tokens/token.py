@@ -77,6 +77,27 @@ class TokenPriceModel(credmark.model.Model):
         return Price(price=average_price)
 
 
+@credmark.model.describe(slug='token.price-ext',
+                         version='1.0',
+                         display_name='Token Price',
+                         description='The Current Credmark Supported Price Algorithm',
+                         developer='Credmark',
+                         input=Token,
+                         output=Price)
+class TokenPriceModelExt(credmark.model.Model):
+    def run(self, input: Token) -> Price:
+        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
+        if uniswap_v2.price is not None:
+            return uniswap_v2
+        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
+        if uniswap_v3.price is not None:
+            return uniswap_v3
+        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
+        if sushiswap.price is not None:
+            return sushiswap
+        return Price(price=None)
+
+
 @credmark.model.describe(slug='token.holders',
                          version='1.0',
                          display_name='Token Holders',
