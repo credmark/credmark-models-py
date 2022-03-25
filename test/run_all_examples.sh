@@ -20,14 +20,12 @@ credmark-dev run xcmk.deployment-time --input '{}' -b 14234904
 echo ""
 echo "Account Examples:"
 echo ""
-0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50
 credmark-dev run account.portfolio --input '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}' -b 14234904
-credmark-dev run account.portfolio --input '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}' -b 14234904
-
 echo ""
 echo "BLOCKNUMBER Example:"
 echo ""
-credmark-dev run example.block-number --input '{}' -b 14234904
+credmark-dev run example.blocktime --input '{}' -b 14234904
+credmark-dev run example.blocknumber --input '{}' -b 14234904
 echo ""
 echo "Address Examples:"
 echo ""
@@ -36,10 +34,8 @@ credmark-dev run example.address-transforms --input '{"address": "0x1aD91ee08f21
 echo ""
 echo "DTO Examples:"
 echo ""
-credmark-dev run example.type-test-1 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-' -b 14234904
-credmark-dev run example.type-test-2 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}
-' -b 14234904
+credmark-dev run example.type-test-1 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}' -b 14234904
+credmark-dev run example.type-test-2 --input '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}' -b 14234904
 echo ""
 echo "Load Contract Examples:"
 echo ""
@@ -49,7 +45,7 @@ echo ""
 echo "Run Historical Examples:"
 echo ""
 credmark-dev run example.historical --input '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' -b 14234904
-credmark-dev run example.historical --input '{"model_slug":"price","model_input":{"symbol": "USDC"}}' -b 14234904
+credmark-dev run example.historical --input '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' -b 14234904
 credmark-dev run example.historical-snap --input '{}' -b 14234904
 credmark-dev run example.historical-block --input '{}' -b 14234904
 credmark-dev run example.historical-block-snap --input '{}' -b 14234904
@@ -77,7 +73,7 @@ credmark-dev run token.holders --input '{"symbol": "CMK"}' -b 14234904
 credmark-dev run token.swap-pools --input '{"symbol":"CMK"}' -b 14234904
 credmark-dev run token.info --input '{"symbol":"CMK"}' -b 14234904
 credmark-dev run token.swap-pool-volume --input '{"address":"0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"}' -b 14234904
-credmark-dev run token.categorized-supply --input '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "USDC"}}' -b 14234904
+credmark-dev run token.categorized-supply --input '{"categories": [{"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": true}], "token": {"symbol": "DAI"}}' -b 14234904
 echo ""
 echo "Run TestRun Example:"
 echo ""
@@ -89,7 +85,7 @@ credmark-dev run example.libraries --input '{}' -b 14234904
 echo ""
 echo "Run Compound Examples:"
 echo ""
-credmark-dev run compound.test --input '{"symbol":"DAI"}' -b 14234904
+credmark-dev run compound.test --input '{"symbol":"USDC"}' -b 14234904
 credmark-dev run compound-token-asset --input '{"symbol":"DAI"}' -b 14234904
 credmark-dev run compound-token-liability --input '{"symbol":"DAI"}' -b 14234904
 echo ""
@@ -134,6 +130,8 @@ echo ""
 echo "Run Finance Examples"
 echo ""
 credmark-dev run finance.lcr --input '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "-2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "2.1", "token": {"symbol": "CMK"}}, {"amount": 2.1, "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": "4.2", "token": {"symbol": "CMK"}}]}, "window": "30 days", "interval": "1 day", "confidence": [0.05]}' -b 14234904
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": -0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": -1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
+credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}' -b 14234904
