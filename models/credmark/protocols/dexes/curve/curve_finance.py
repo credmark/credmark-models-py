@@ -184,7 +184,7 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        return {'data': addrs}
+        return addrs
 
 
 class CurveGaugeInput(DTO):
@@ -292,7 +292,7 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
+@ credmark.model.describe(slug='curve-fi-all-yield', version='1.0')
 class CurveFinanceAllYield(credmark.model.Model):
     def run(self, input) -> dict:
         res = []
