@@ -156,7 +156,6 @@ from credmark.model import ModelRunError
 from datetime import (
     datetime,
     timezone,
-    timedelta,
 )
 
 import os
@@ -198,13 +197,12 @@ class ValueAtRisk(ValueAtRiskBase):
             It then calculates the change in value over the window period for each timestamp,
             it returns the one that hits the input confidence levels.
         """
-        parsed_intervals = [
-            self.context.historical.parse_timerangestr(ii) for ii in input.intervals]
-        interval_keys, interval_nums = zip(*parsed_intervals)
-        unique_ivl_keys = list(set(interval_keys))
+        parsed_intervals = [(self.context.historical
+                             .parse_timerangestr(ii)) for ii in input.intervals]
+        unique_ivl_keys = list(set([x[0] for x in parsed_intervals]))
         if unique_ivl_keys.__len__() != 1:
             raise ModelRunError(
-                f'There is more than one type of interval in input intervals={input.intervals}')
+                f'There is more than one type of interval in input intervals={unique_ivl_keys}')
 
         minimal_interval = f'1 {unique_ivl_keys[0]}'
         minimal_interval_seconds = self.context.historical.range_timestamp(unique_ivl_keys[0], 1)
@@ -236,6 +234,7 @@ class ValueAtRisk(ValueAtRiskBase):
 #         self.logger.info(
 #             f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {block_hist=}')
 
+<<<<<<< HEAD
 #         window = input.window
 #         w_k, w_i = self.context.historical.parse_timerangestr(window)
 #         w_seconds = self.context.historical.range_timestamp(w_k, w_i)
@@ -256,19 +255,37 @@ class ValueAtRisk(ValueAtRiskBase):
 #                 f'There is more than one type of interval in input intervals={input.intervals}')
 =======
             key_col = f'{pos.token.address}.{pos.token.symbol}'
+=======
+        for pos in input.portfolio.positions:
+            if not pos.asset.address:
+                raise ModelRunError(f'Input position is invalid, {input}')
+
+            breakpoint()
+            key_col = f'{pos.asset.address}.{pos.asset.symbol}'
+>>>>>>> 64e354e (update with framework=0.7.7)
             if key_col in df_hist:
                 continue
 
+            self.logger.info(f'Start loading {pos.asset.symbol}')
             historical = (self.context.historical
-                          .run_model_historical('uniswap-v3.get-average-price',  # 'token.price',
+                          .run_model_historical('token.price-ext',  # 'uniswap-v3.get-average-price',  # 'token.price',
                                                 window=window_from_max_asOf,
                                                 interval=minimal_interval,
-                                                model_input=pos.token,
+                                                model_input=pos.asset,
                                                 block_number=block_max_asOf)
                           .dict())
+<<<<<<< HEAD
 >>>>>>> ba2e051 (var work consolidated)
 
 #         minimal_interval = f'1 {unique_ivl_keys[0]}'
+=======
+            self.logger.info(f'Finished loading {pos.asset.symbol}')
+
+            for p in historical['series']:
+                p['price'] = p['output']['price']
+                p['src'] = p['output']['src']
+                del p['output']
+>>>>>>> 64e354e (update with framework=0.7.7)
 
 <<<<<<< HEAD
 #         df_hist = pd.DataFrame()
@@ -276,7 +293,7 @@ class ValueAtRisk(ValueAtRiskBase):
 =======
             df_tk = (pd.DataFrame(historical['series'])
                      .sort_values(['blockNumber'], ascending=False)
-                     .rename(columns={'price': key_col})
+                     .rename(columns={'price': key_col, 'src': key_col+'.src'})
                      .reset_index(drop=True))
 >>>>>>> ba2e051 (var work consolidated)
 
@@ -301,7 +318,7 @@ class ValueAtRisk(ValueAtRiskBase):
             key_cols.append(key_col)
             if input.dev_mode:
                 self.logger.info(key_col)
-                self.logger.info(df_tk)
+                self.logger.info(f'\n{df_tk}')
                 if not os.path.isdir('tmp'):
                     os.mkdir('tmp')
                 df_hist.to_csv(os.path.join('tmp', 'df_hist.csv'), index=False)
@@ -323,7 +340,7 @@ class ValueAtRisk(ValueAtRiskBase):
 #                 lambda x: datetime.fromtimestamp(x, timezone.utc))
 =======
             window_n_ivl = int(np.floor(w_seconds / minimal_interval_seconds))
-            for ivl_k, ivl_n, ivl_str in zip(interval_keys, interval_nums, input.intervals):
+            for (ivl_k, ivl_n), ivl_str in zip(parsed_intervals, input.intervals):
                 ivl_seconds = self.context.historical.range_timestamp(ivl_k, ivl_n)  # type: ignore
                 step_ivl = int(ivl_seconds / minimal_interval_seconds)
 
@@ -373,7 +390,7 @@ class ValueAtRisk(ValueAtRiskBase):
                 var[asOf_str][ivl_str] = {}
                 df_value = pd.DataFrame()
                 for pos in input.portfolio.positions:
-                    key_col = f'{pos.token.address}.{pos.token.symbol}'
+                    key_col = f'{pos.asset.address}.{pos.asset.symbol}'
                     ret = df_ret[key_col].to_numpy()
                     current_value = pos.amount * dict_current[key_col]
                     value_changes = ret * current_value

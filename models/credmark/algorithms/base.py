@@ -11,9 +11,27 @@ import credmark.model
 from credmark.model import (
     ModelRunError
 )
-from credmark.dto import DTO
+from credmark.dto import (
+    DTO,
+    EmptyInput,
+)
 
 import pandas as pd
+
+
+@credmark.model.describe(slug='finance.get-one',
+                         version='1.0',
+                         display_name='Get Block History',
+                         description='Get Block History',
+                         output=dict)
+class GetBlockHistory(credmark.model.Model):
+    # TODO: better integrate with history_utils to only retrieve the list of block numbers/timestamp
+    """
+    We are only interested in past block numbers
+    """
+
+    def run(self, input: EmptyInput) -> dict:
+        return {'x': 1}
 
 
 class ValueAtRiskBase(credmark.model.Model):
@@ -23,7 +41,7 @@ class ValueAtRiskBase(credmark.model.Model):
 
     def set_window(self, input):
         current_block = self.context.block_number
-        current_block_date = self.context.block_number.to_datetime().date()
+        current_block_date = self.context.block_number.timestamp_datetime.date()
         if input.asOfs:
             min_date = min(input.asOfs)
             max_date = max(input.asOfs)
@@ -64,6 +82,6 @@ class ValueAtRiskBase(credmark.model.Model):
             'window_from_max_asOf': window_from_max_asOf,
         }
 
-    @abstractmethod
+    @ abstractmethod
     def run(self, input: Union[dict, DTO]) -> Union[dict, DTO]:
         return super().run(input)

@@ -44,7 +44,7 @@ class ValueAtRiskAave(ValueAtRiskBase):
 
             debts = self.context.run_model(
                 'aave.lending-pool-assets',
-                return_type=AaveDebtInfos,
+                return_type=AaveDebtInfos,  # type: ignore
                 block_number=block_hist)
 
             portfolio = []
@@ -66,7 +66,8 @@ class ValueAtRiskAave(ValueAtRiskBase):
                 window = var_out.window
             else:
                 if window != var_out.window:
-                    raise ModelRunError(f'All results\'s window shall be the same, but {windows=}')
+                    raise ModelRunError(
+                        f'All results\'s window shall be the same, but ({var_out.window=})!=({window=})')
             for k, v in var_out.var.items():
                 var_consol[k] = v
 

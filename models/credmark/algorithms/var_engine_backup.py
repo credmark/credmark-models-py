@@ -140,10 +140,10 @@ class ValueAtRisk(credmark.model.Model):
 
         trades = []
         for (pos_n, pos) in enumerate(input.portfolio.positions):
-            if not pos.token.address:
+            if not pos.asset.address:
                 raise ModelRunError(f'Input position is invalid, {input}')
 
-            t = TokenTradeable(pos_n, pos.token, pos.amount, init_price=0)
+            t = TokenTradeable(pos_n, pos.asset, pos.amount, init_price=0)
             trades.append(t)
 
         port = PortfolioManager(trades)

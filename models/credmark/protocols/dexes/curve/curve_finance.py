@@ -172,7 +172,6 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-<<<<<<< HEAD
         return Accounts(accounts=[
             Account(address=address)
             for address in
@@ -180,9 +179,6 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
                 a[TransactionTable.Columns.FROM_ADDRESS]
                 for a
                 in addrs]))])
-=======
-        return addrs.dict()
->>>>>>> 29b05fb (fix typing with examples)
 
 
 @credmark.model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',

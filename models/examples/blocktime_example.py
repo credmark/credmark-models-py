@@ -39,7 +39,7 @@ class BlockTimeExample(credmark.model.Model):
 
         # We run the model as of block 14234904
         # To obtan the datetime
-        res = BlockNumber(14234904).to_datetime()
+        res = BlockNumber(14234904).timestamp_datetime
         assert res == datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc)
         self.logger.info(f'Block 14234904\'s datetime is {res}')
 
@@ -56,7 +56,7 @@ class BlockTimeExample(credmark.model.Model):
         assert res == 14232694
         self.logger.info(f'Block 14232694\'s timestamp is {ts}')
 
-        res = BlockNumber(14232694).to_datetime()
+        res = BlockNumber(14232694).timestamp_datetime
         assert res == datetime(2022, 2, 18, 22, 19, 35, tzinfo=timezone.utc)
 
         # Let's try with one day earlier. we shall obtain the last block of the day
@@ -66,13 +66,13 @@ class BlockTimeExample(credmark.model.Model):
         self.logger.info(f'Block 14232694\'s timestamp is {ts}')
 
         # Check the time of the block, it's the last of the day
-        res = BlockNumber(14233162).to_datetime()
+        res = BlockNumber(14233162).timestamp_datetime
         assert res == datetime(2022, 2, 18, 23, 59, 54, tzinfo=timezone.utc)
         self.logger.info(f'Block 14233162\'s datetime is {res}')
 
         # We can not obtain information of a future block
         try:
-            res = BlockNumber(14239569).to_datetime()
+            res = BlockNumber(14239569).timestamp_datetime
             raise ModelRunError(
                 message="BlockNumbers cannot exceed the current context.block_number, an exception was NOT caught, and the example has FAILED")
         except BlockNumberOutOfRangeError as _err:

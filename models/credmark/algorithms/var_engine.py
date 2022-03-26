@@ -191,20 +191,22 @@ class ValueAtRiskFetchPrice(credmark.model.Model):
         key_cols = []
 
         for pos in input.portfolio.positions:
-            if not pos.token.address:
+            if not pos.asset.address:
                 raise ModelRunError(f'Input position is invalid, {input}')
 
-            key_col = f'{pos.token.address}.{pos.token.symbol}'
+            key_col = f'{pos.asset.address}.{pos.asset.symbol}'
             if key_col in df_hist:
                 continue
 
+            self.logger.info(f'Start loading {pos.asset.symbol}')
             historical = (self.context.historical
-                          .run_model_historical('uniswap-v3.get-average-price',  # 'token.price',
+                          .run_model_historical('token.price-ext',  # 'uniswap-v3.get-average-price',  # 'token.price',
                                                 window=window_from_max_asOf,
                                                 interval=minimal_interval,
-                                                model_input=pos.token,
+                                                model_input=pos.asset,
                                                 block_number=block_max_asOf)
                           .dict())
+            self.logger.info(f'Finished loading {pos.asset.symbol}')
 
             for p in historical['series']:
                 p['price'] = p['output']['price']
@@ -283,7 +285,7 @@ class VaRPPLInput(DTO):
             var[asOf_str][ivl_str] = {}
             df_value = pd.DataFrame()
             for pos in input.portfolio.positions:
-                key_col = f'{pos.token.address}.{pos.token.symbol}'
+                key_col = f'{pos.asset.address}.{pos.asset.symbol}'
                 ret = df_ret[key_col].to_numpy()
                 current_value = pos.amount * dict_current[key_col]
                 value_changes = ret * current_value

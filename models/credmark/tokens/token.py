@@ -76,6 +76,18 @@ class TokenPriceModel(credmark.model.Model):
             average_price = sum([p.price for p in prices]) / len(prices)
         return Price(price=average_price)
 
+# TODO: to be merged to framework
+
+
+class PriceExt(DTO):
+    price: Union[float, None] = DTOField(None, description='Value of one Token')
+    src: Union[str, None] = DTOField(None, description='Source')
+
+    class Config:
+        schema_extra: dict = {
+            'examples': [{'price': 4.2, 'src': 'uniswap-v3'}]
+        }
+
 
 @credmark.model.describe(slug='token.price-ext',
                          version='1.0',
@@ -83,19 +95,22 @@ class TokenPriceModel(credmark.model.Model):
                          description='The Current Credmark Supported Price Algorithm',
                          developer='Credmark',
                          input=Token,
-                         output=Price)
+                         output=PriceExt)
 class TokenPriceModelExt(credmark.model.Model):
-    def run(self, input: Token) -> Price:
-        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
+    def run(self, input: Token) -> PriceExt:
+        uniswap_v2 = PriceExt(
+            **self.context.models.uniswap_v2.get_average_price(input), src='uniswap_v2')
         if uniswap_v2.price is not None:
             return uniswap_v2
-        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
+        uniswap_v3 = PriceExt(
+            **self.context.models.uniswap_v3.get_average_price(input), src='uniswap_v3')
         if uniswap_v3.price is not None:
             return uniswap_v3
-        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
+        sushiswap = PriceExt(
+            **self.context.models.sushiswap.get_average_price(input), src='sushiswap')
         if sushiswap.price is not None:
             return sushiswap
-        return Price(price=None)
+        return PriceExt(price=None, src=None)
 
 
 @credmark.model.describe(slug='token.holders',
@@ -182,19 +197,10 @@ class TokenCirculatingSupply(credmark.model.Model):
         if input.token.price_usd is None:
             raise ModelDataError('Input token price is None')
         response = CategorizedSupplyResponse(**input.dict())
-<<<<<<< HEAD
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.token.price(input.token))
         if token_price is None:
             raise ModelDataError(f"No Price for {response.token}")
-=======
-        if response.token.price_usd is None:
-            raise ModelDataError('Response token price is None')
-
-        total_supply_scaled = input.token.total_supply().scaled
-        token_price: Union[Price, None] = self.context.models.token.price(input.token)
-
->>>>>>> 29b05fb (fix typing with examples)
         for c in response.categories:
             for account in c.accounts:
                 c.amountScaled += response.token.scaled(
@@ -209,19 +215,9 @@ class TokenCirculatingSupply(credmark.model.Model):
             amountScaled=total_supply_scaled -
             sum([c.amountScaled for c in response.categories])
         ))
-<<<<<<< HEAD
         response.circulatingSupplyScaled = sum(
             [c.amountScaled for c in response.categories if c.circulating])
         if isinstance(token_price.price, float):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
-=======
-
-        all_circulating = [c.amountScaled for c in response.categories if c.circulating]
-        if len(all_circulating) > 0:
-            response.circulatingSupplyScaled = sum(all_circulating)
-        else:
-            response.circulatingSupplyScaled = 0
-        response.circulatingSupplyUsd = response.circulatingSupplyScaled * input.token.price_usd
->>>>>>> 29b05fb (fix typing with examples)
         return response

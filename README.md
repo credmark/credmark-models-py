@@ -556,7 +556,7 @@ In blockchain, every block is created with a timestamp (in Unix epoch). In Pytho
     ```
     from credmark.types import ( BlockNumber )
 
-    dt = BlockNumber(14234904).to_datetime()
+    dt = BlockNumber(14234904).timestamp_datetime
     ```
 
 More example code for the block-number class can be found in [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py) and model [`example.block-time`](https://github.com/credmark/credmark-models-py/blob/main/models/examples/block_time_example.py).
