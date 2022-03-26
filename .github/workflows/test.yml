@@ -1,4 +1,4 @@
-name: Test Models
+name: Verify Code and Test Models
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Test Models
+    name: Verify Code and Test Models
     runs-on: ubuntu-latest
 
     steps:
