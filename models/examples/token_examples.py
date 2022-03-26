@@ -18,6 +18,8 @@ class ExampleTokenLoading(credmark.model.Model):
     def run(self, input) -> ExampleTokenLoadingOutput:
         cmk = Token(symbol='CMK')
 
+        _ = cmk.symbol
+
         return ExampleTokenLoadingOutput(
             loadedFromAddress=Token(symbol='AAVE'),
             loadedFromSymbol=cmk,
