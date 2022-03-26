@@ -29,32 +29,35 @@ class BlockNumberTransformExample(credmark.model.Model):
         self.logger.info(
             f"(block_number - 1000) : {(block_number - 1000)}")
         self.logger.info(
-            f"(block_number - 1000).timestamp_datetime : {(block_number - 1000).timestamp_datetime}")
+            f"(block_number - 1000).timestamp_datetime : {(block_number - 1000).timestamp_datetime}")  # pylint: disable=line-too-long
         self.logger.info(
-            f"block_number.from_datetime(block_number.timestamp - 3600): {block_number.from_timestamp(block_number.timestamp - 3600)}")
+            f"block_number.from_datetime(block_number.timestamp - 3600): {block_number.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
         self.logger.info(
-            f"BlockNumber.from_datetime(block_number.timestamp - 3600): {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")
+            f"BlockNumber.from_datetime(block_number.timestamp - 3600): {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
         """
             NOTE: THIS IS FOR DEMONSTRATION ONLY.
             You should NOT catch BlockNumberOutOfRangeError or
             other ModelRunErrors in your models!
         """
         try:
-            block_number + 1000000 # type: ignore
+            block_number + 1000000  # type: ignore
             raise ModelRunError(
-                message="BlockNumbers cannot exceed the current context.block_number, an exception was NOT caught, and the example has FAILED")
+                message='BlockNumbers cannot exceed the current context.block_number, '
+                'an exception was NOT caught, and the example has FAILED')
         except BlockNumberOutOfRangeError as _e:
             self.logger.info(_e)
-            self.logger.info(
-                "Attempting to create a BlockNumber object higher than the current context's block_number raises BlockNumberOutOfRangeError")
-        
+            self.logger.info("Attempting to create a BlockNumber object higher than the current "
+                             "context's block_number raises BlockNumberOutOfRangeError")
+
         try:
             BlockNumber(-1)
             raise ModelRunError(
-                message="BlockNumbers cannot be negative, an exception was NOT caught, and the example has FAILED")
+                message="BlockNumbers cannot be negative, an exception was NOT caught, "
+                "and the example has FAILED")
         except BlockNumberOutOfRangeError as _e:
             self.logger.info(_e)
             self.logger.info(
-                "Attempting to create a BlockNumber object with a negative block number raises BlockNumberOutOfRangeError")
+                "Attempting to create a BlockNumber object with a negative block number "
+                "raises BlockNumberOutOfRangeError")
 
         return dict(block_number=block_number)

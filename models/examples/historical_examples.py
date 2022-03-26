@@ -20,7 +20,8 @@ class ExampleHistorical(credmark.model.Model):
         model_input = input.model_input
 
         res = self.context.historical.run_model_historical(
-            model_slug, window='5 hours', interval='45 minutes', model_version='1.0', model_input=model_input)
+            model_slug, window='5 hours', interval='45 minutes',
+            model_version='1.0', model_input=model_input)
 
         #   You can get historical elements by blocknumber,
         #    You can get historical elements by time,
@@ -79,4 +80,6 @@ class ExampleHistoricalBlock(credmark.model.Model):
     """
 
     def run(self, input):
-        return self.context.historical.run_model_historical_blocks('example.libraries', window=500, interval=100, snap_block=None)
+        return self.context.historical.run_model_historical_blocks(
+            'example.libraries', window=500, interval=100,
+            snap_block=None)

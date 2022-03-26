@@ -13,13 +13,14 @@ class RunTestOut(DTO):
     output: dict
 
 
-@credmark.model.describe(slug='example.run-test',
-                         version='1.0',
-                         display_name='Runner test model',
-                         description='Test model runs another model specified with \'model\' in input.',
-                         developer='Credmark',
-                         input=RunTestIn,
-                         output=RunTestOut)
+@credmark.model.describe(
+    slug='example.run-test',
+    version='1.0',
+    display_name='Runner test model',
+    description='Test model runs another model specified with \'model\' in input.',
+    developer='Credmark',
+    input=RunTestIn,
+    output=RunTestOut)
 class RunnerTestModel(credmark.model.Model):
     """A test model that runs another model that's specified
     in the input. For example: {"model":"example.echo"}

@@ -1,7 +1,6 @@
 
-from typing import Union
 import credmark.model
-from credmark.types import Token, Address, NativeToken
+from credmark.types import Token, NativeToken
 from credmark.dto import DTO
 
 

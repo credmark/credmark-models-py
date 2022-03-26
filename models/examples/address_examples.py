@@ -9,17 +9,19 @@ class AddressTransformsExampleOutput(DTO):
     lowerAddress: str
 
 
-@credmark.model.describe(slug='example.address-transforms',
-                         version='1.0',
-                         display_name='(Example) Address Transforms',
-                         description='Input an address and output transformations we can make to that address',
-                         developer='Credmark',
-                         input=Account,
-                         output=AddressTransformsExampleOutput)
+@credmark.model.describe(
+    slug='example.address-transforms',
+    version='1.0',
+    display_name='(Example) Address Transforms',
+    description='Input an address and output transformations we can make to that address',
+    developer='Credmark',
+    input=Account,
+    output=AddressTransformsExampleOutput)
 class AddressTransformsExample(credmark.model.Model):
     def run(self, input: Account) -> AddressTransformsExampleOutput:
         """
-            This model demonstrates how to take in an address as an Account input, and output the various transformations.
+            This model demonstrates how to take in an address as an
+            Account input, and output the various transformations.
         """
         return AddressTransformsExampleOutput(
             inputAddress=input.address,
