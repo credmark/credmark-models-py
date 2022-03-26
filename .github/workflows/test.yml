@@ -1,6 +1,7 @@
 name: Verify Code and Test Models
 
 on:
+  workflow_call:
   push:
     branches:
       - "**"
