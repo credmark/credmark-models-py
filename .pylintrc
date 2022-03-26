@@ -94,7 +94,11 @@ disable=raw-checker-failed,
         useless-super-delegation,
         consider-using-f-string,
         logging-not-lazy,
-        too-few-public-methods # for pydantic objects
+        too-few-public-methods, # for pydantic objects
+        R0801, # Similar lines - models may be similar
+        no-else-return,
+        no-self-use,
+        fixme # TODO in comment
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -131,7 +135,8 @@ score=yes
 [REFACTORING]
 
 # Maximum number of nested blocks for function / method body
-max-nested-blocks=5
+# credmark: Increased from 5 for complex models
+max-nested-blocks=7
 
 # Complete name of functions that never returns. When checking for
 # inconsistent-return-statements if a never returning function is called then
@@ -340,7 +345,8 @@ attr-naming-style=snake_case
 
 # Regular expression matching correct attribute names. Overrides attr-naming-
 # style.
-#attr-rgx=
+# credmark: we allow snake or camel case
+attr-rgx=[a-z_][a-zA-Z0-9_]{0,30}$
 
 # Bad variable names which should always be refused, separated by a comma.
 bad-names=foo,
@@ -446,8 +452,9 @@ property-classes=abc.abstractproperty
 # Naming style matching correct variable names.
 variable-naming-style=snake_case
 
-# Regular expression matching correct variable names. Overrides variable-
-# naming-style.
+# Regular expression matching correct variable names.
+# Overrides variable-naming-style.
+# credmark: we allow snake or camel case
 variable-rgx=[a-z_][a-zA-Z0-9_]{0,30}$
 
 
@@ -540,19 +547,23 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=5
+# credmark: Increased from 5 for complex models
+max-args=7
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=7
 
 # Maximum number of boolean expressions in an if statement (see R0916).
-max-bool-expr=5
+# credmark: Increased from 5 for complex models
+max-bool-expr=8
 
 # Maximum number of branch for function / method body.
-max-branches=12
+# credmark: Increased from 12 for complex models
+max-branches=24
 
 # Maximum number of locals for function / method body.
-max-locals=15
+# credmark: Increased from 15 because models may need many locals
+max-locals=60
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7
@@ -564,10 +575,12 @@ max-public-methods=20
 max-returns=6
 
 # Maximum number of statements in function / method body.
-max-statements=50
+# credmark: Increased from 50 for complex models
+max-statements=100
 
 # Minimum number of public methods for a class (see R0903).
-min-public-methods=2
+# credmark: decreased from 2
+min-public-methods=1
 
 
 [EXCEPTIONS]
