@@ -4,11 +4,9 @@ from credmark.types import (
     Token,
     Address,
     Contract,
-    Contracts,
-    BlockSeries,
+    Contracts
 )
-from .....tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
-
+from models.tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
 UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 
 
@@ -25,13 +23,12 @@ class UniswapV2GetPoolsForToken(credmark.model.Model):
         factory = Contract(address=UNISWAP_V2_FACTORY_ADDRESS)
         tokens = [Token(symbol="USDC"),
                   Token(symbol="WETH"),
-                  Token(symbol="DAI"),
-                  Token(symbol="USDT")]
+                  Token(symbol="DAI")]
         contracts = []
         for token in tokens:
             pair_address = factory.functions.getPair(input.address, token.address).call()
             if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI))
+                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
         return Contracts(contracts=contracts)
 
 
@@ -52,12 +49,11 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         weth_price = None
         for pool in pools:
             reserves = pool.functions.getReserves().call()
-
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
                 reserve = reserves[0]
-                price = (reserves[1] / (10 ** token1.decimals)) / \
-                    (reserves[0] / (10**input.decimals))
+                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
+
                 if token1.symbol == 'WETH':
                     if weth_price is None:
                         weth_price = self.context.run_model('uniswap-v2.get-average-price',
@@ -67,15 +63,13 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
             else:
                 token0 = Token(address=pool.functions.token0().call())
                 reserve = reserves[1]
-                price = (reserves[0] / (10 ** token0.decimals)) / \
-                    (reserves[1] / (10**input.decimals))
+                price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
                 if token0.symbol == 'WETH':
                     if weth_price is None:
                         weth_price = self.context.run_model('uniswap-v2.get-average-price',
                                                             token0,
                                                             return_type=Price).price
                     price = price * weth_price
-
             prices.append((price, reserve))
         if len(prices) == 0:
             return Price(price=None)

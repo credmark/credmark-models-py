@@ -1,6 +1,5 @@
 # pylint: disable=locally-disabled, unused-import
 
-from pyexpat import model
 import credmark.model
 from credmark.model.errors import ModelDataError
 from credmark.types import (
@@ -161,11 +160,13 @@ class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price: Union[Price, None] = self.context.models.token.price(input.token)
-        
+        token_price = Price(**self.context.models.token.price(input.token))
+        if token_price is None:
+            raise ModelDataError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
-                c.amountScaled += response.token.scaled(response.token.functions.balanceOf(account.address))
+                c.amountScaled += response.token.scaled(
+                    response.token.functions.balanceOf(account.address))
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
         response.categories.append(CategorizedSupplyResponse.CategorizedSupplyCategory(
@@ -177,5 +178,7 @@ class TokenCirculatingSupply(credmark.model.Model):
         ))
         response.circulatingSupplyScaled = sum(
             [c.amountScaled for c in response.categories if c.circulating])
-        response.circulatingSupplyUsd = response.circulatingSupplyScaled * input.token.price_usd
+        if isinstance(token_price.price, float):
+            if isinstance(response.circulatingSupplyScaled, float):
+                response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
         return response

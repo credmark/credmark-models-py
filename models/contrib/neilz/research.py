@@ -18,14 +18,15 @@ from models.tmp_abi_lookup import ERC_20_ABI
 )
 class RedactedVotiumCashflow(credmark.model.Model):
     def run(self, input: None) -> dict:
-        VOTIUM_CONTRACT_ADDRESS = Address("0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A")
-        REDACTED_MULTISIG_ADDRESS = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
+        votium_claim_address = Address("0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A")
+        redacted_multisig_address = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
         transfers = self.context.ledger.get_erc20_transfers(columns=[
             TokenTransferTable.Columns.BLOCK_NUMBER,
             TokenTransferTable.Columns.VALUE,
             TokenTransferTable.Columns.TOKEN_ADDRESS,
             TokenTransferTable.Columns.TRANSACTION_HASH
-        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{REDACTED_MULTISIG_ADDRESS}\' and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{VOTIUM_CONTRACT_ADDRESS}\'')
+        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
+        and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
         for transfer in transfers:
             try:
                 token = Token(address=transfer['token_address']).info
@@ -55,17 +56,18 @@ class RedactedVotiumCashflow(credmark.model.Model):
 )
 class RedactedConvexCashflow(credmark.model.Model):
     def run(self, input: None) -> dict:
-        CONVEX_ADDRESSES = [
+        convex_addresses = [
             Address("0x72a19342e8F1838460eBFCCEf09F6585e32db86E"),
             Address("0xD18140b4B819b895A3dba5442F959fA44994AF50"),
         ]
-        REDACTED_MULTISIG_ADDRESS = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
+        redacted_multisig_address = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
         transfers = self.context.ledger.get_erc20_transfers(columns=[
             TokenTransferTable.Columns.BLOCK_NUMBER,
             TokenTransferTable.Columns.VALUE,
             TokenTransferTable.Columns.TOKEN_ADDRESS
-        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{REDACTED_MULTISIG_ADDRESS}\' \
-            and {TokenTransferTable.Columns.FROM_ADDRESS} in(\'{CONVEX_ADDRESSES[0]}\',\'{CONVEX_ADDRESSES[1]}\')')
+        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
+            and {TokenTransferTable.Columns.FROM_ADDRESS} \
+                in(\'{convex_addresses[0]}\',\'{convex_addresses[1]}\')')
         for transfer in transfers:
             token = Token(address=transfer['token_address'])
             try:

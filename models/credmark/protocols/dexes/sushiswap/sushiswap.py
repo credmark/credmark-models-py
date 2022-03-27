@@ -128,7 +128,7 @@ class SushiswapGetPairDetails(credmark.model.Model):
 
 
 @credmark.model.describe(slug='sushiswap.get-pools',
-                         version='1.0',
+                         version='1.1',
                          display_name='Uniswap v2 Token Pools',
                          description='The Uniswap v2 pools that support a token contract',
                          input=Token,
@@ -140,13 +140,12 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
         factory = Contract(address=SUSHISWAP_FACTORY_ADDRESS)
         tokens = [Token(symbol="USDC"),
                   Token(symbol="WETH"),
-                  Token(symbol="DAI"),
-                  Token(symbol="USDT")]
+                  Token(symbol="DAI")]
         contracts = []
         for token in tokens:
             pair_address = factory.functions.getPair(input.address, token.address).call()
             if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI))
+                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
         return Contracts(contracts=contracts)
 
 
@@ -167,12 +166,11 @@ class SushiswapGetAveragePrice(credmark.model.Model):
         weth_price = None
         for pool in pools:
             reserves = pool.functions.getReserves().call()
-
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
                 reserve = reserves[0]
-                price = (reserves[1] / (10 ** token1.decimals)) / \
-                    (reserves[0] / (10**input.decimals))
+                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
+
                 if token1.symbol == 'WETH':
                     if weth_price is None:
                         weth_price = self.context.run_model('sushiswap.get-average-price',
@@ -182,18 +180,14 @@ class SushiswapGetAveragePrice(credmark.model.Model):
             else:
                 token0 = Token(address=pool.functions.token0().call())
                 reserve = reserves[1]
-                price = (reserves[0] / (10 ** token0.decimals)) / \
-                    (reserves[1] / (10**input.decimals))
+                price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
                 if token0.symbol == 'WETH':
                     if weth_price is None:
                         weth_price = self.context.run_model('sushiswap.get-average-price',
                                                             token0,
                                                             return_type=Price).price
                     price = price * weth_price
-
             prices.append((price, reserve))
-
         if len(prices) == 0:
             return Price(price=None)
-
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))

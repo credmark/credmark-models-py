@@ -3,9 +3,8 @@ import credmark.model
 from credmark.types import (
     Token,
     Account,
-    Position,
     Portfolio,
-    NativeToken, 
+    NativeToken,
     NativePosition,
     TokenPosition
 )
@@ -43,7 +42,6 @@ class WalletInfoModel(credmark.model.Model):
             try:
                 token = Token(address=t)
                 balance = float(token.functions.balanceOf(input.address).call())
-            
                 if balance > 0.0:
                     positions.append(
                         TokenPosition(asset=token, amount=balance))

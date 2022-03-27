@@ -51,8 +51,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
         fees = [3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
                           Token(symbol='WETH'),
-                          Token(symbol='USDC'),
-                          Token(symbol='USDT')]
+                          Token(symbol='USDC')]
 
         if self.context.chain_id != 1:
             return Contracts(contracts=[])
@@ -68,7 +67,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
                     pool = uniswap_factory.functions.getPool(
                         input.address.checksum, primary_token.address.checksum, fee).call()
                     if pool != "0x0000000000000000000000000000000000000000":
-                        pools.append(Contract(address=pool))
+                        pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
 
         return Contracts(contracts=pools)
 
@@ -81,8 +80,8 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
                          output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(credmark.model.Model):
     def run(self, input: Contract) -> UniswapV3PoolInfo:
-        if input.abi is None:
-            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
+        if input._meta.abi is None:
+            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
 
         pool = input.instance
 

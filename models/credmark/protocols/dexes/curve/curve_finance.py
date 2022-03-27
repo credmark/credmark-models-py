@@ -19,19 +19,16 @@ from credmark.types import (
     Account,
     Accounts,
     Contract,
-    Contracts,
     Token,
     Tokens,
     BlockSeries
 )
 
 from models.tmp_abi_lookup import (
-    CURVE_GAUGE_V1_ABI,
     CURVE_SWAP_ABI_1,
     CURVE_SWAP_ABI_2,
     CURVE_REGISTRY_ADDRESS,
-    CURVE_REGISTRY_ABI,
-    # CURVE_GAUGUE_CONTROLLER_ABI
+    CURVE_REGISTRY_ABI
 )
 
 
@@ -139,8 +136,8 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
                 for i in range(0, total_pools)]
 
         pool_infos = [
-            self.context.models.curve_fi.pool_info(
-                Contract(address=pool.address, abi=CURVE_SWAP_ABI_1))
+            CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(
+                Contract(address=pool.address, abi=CURVE_SWAP_ABI_1)))
             for pool in pool_contracts]
 
         return CurveFiPoolInfos(pool_infos=pool_infos)
@@ -151,8 +148,7 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
                         description="All Gauge Contracts for Curve Finance Pools")
 class CurveFinanceAllGauges(credmark.model.Model):
     def run(self, input):
-        GAUGE_CONTROLLER_ADDRESS='0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB'
-        gauge_controller = Contract(address=GAUGE_CONTROLLER_ADDRESS)
+        gauge_controller = Contract(address='0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
         gauges = []
         i = 0
         while True:

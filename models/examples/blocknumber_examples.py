@@ -7,25 +7,29 @@ from credmark.model.errors import ModelRunError
 
 @credmark.model.describe(slug='example.block-number',
                          version='1.0',
-                         display_name='(Example) BlockNumber',
-                         description='This example shows the capabilities on the BlockNumber class',
-                         input=dict,
+                         display_name='BlockNumber Usage Examples',
+                         description='This model gives examples of \
+                             the functionality available on \the BlockNumber class',
+                         developer='Credmark',
                          output=dict)
-class BlockNumberTransformExample(credmark.model.Model):
-
-    """
-    This example shows the capabilities on the BlockNumber class
-    """
+class ExampleBlockNumber(credmark.model.Model):
 
     def run(self, input) -> dict:
 
+        """
+            This model demonstrates the functionality of the BlockNumber class
+        """
         block_number = self.context.block_number
+        self.logger.info(
+            f"The current environment's BlockNumber is available in the Model Context "
+            "self.context.block_number : {self.context.block_number}")
         self.logger.info(
             f"block_number : {block_number}")
         self.logger.info(
             f"block_number.timestamp : {block_number.timestamp}")
         self.logger.info(
             f"block_number.timestamp_datetime : {block_number.timestamp_datetime}")
+        self.logger.info(f'Addition and subtraction works across BlockNumber and int types')
         self.logger.info(
             f"(block_number - 1000) : {(block_number - 1000)}")
         self.logger.info(
@@ -34,13 +38,15 @@ class BlockNumberTransformExample(credmark.model.Model):
             f"block_number.from_datetime(block_number.timestamp - 3600): {block_number.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
         self.logger.info(
             f"BlockNumber.from_datetime(block_number.timestamp - 3600): {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
+        
         """
-            NOTE: THIS IS FOR DEMONSTRATION ONLY.
+            NOTE: THE FOLLOWING IS FOR DEMONSTRATION ONLY.
             You should NOT catch BlockNumberOutOfRangeError or
             other ModelRunErrors in your models!
         """
+
         try:
-            block_number + 1000000  # type: ignore
+            block_number + 1  # type: ignore
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
                 'an exception was NOT caught, and the example has FAILED')
@@ -60,4 +66,4 @@ class BlockNumberTransformExample(credmark.model.Model):
                 "Attempting to create a BlockNumber object with a negative block number "
                 "raises BlockNumberOutOfRangeError")
 
-        return dict(block_number=block_number)
+        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"} # pylint: disable=line-too-long
