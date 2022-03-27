@@ -4,6 +4,7 @@ from credmark.model import ModelRunError
 from credmark.types import (
     Position,
     Portfolio,
+    Token,
 )
 
 from models.credmark.protocols.lending.aave.aave_v2 import (
@@ -19,6 +20,7 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.base import (
     ValueAtRiskBase,
 )
+from models.tmp_abi_lookup import ERC_20_ABI
 
 
 @credmark.model.describe(slug='finance.var-aave',
@@ -48,9 +50,14 @@ class ValueAtRiskAave(ValueAtRiskBase):
                 block_number=eod['block'])
 
             portfolio = []
+            self.logger.info('Aave net asset = Asset - liability')
             for dbt in debts:
-                net_amt = debts[0].aToken.functions.totalSupply().call() - debts[0].totalDebt
-                portfolio.append(Position(amount=net_amt, token=dbt.token))
+                dbt.aToken = Token(address=dbt.aToken.address, abi=ERC_20_ABI)
+                aTokenSupply = dbt.aToken.functions.totalSupply().call()
+                net_amt = aTokenSupply - dbt.totalDebt
+                self.logger.info(f'{dbt.aToken.address=} {net_amt=} '
+                                 f'from {aTokenSupply=}-{dbt.totalDebt=}')
+                portfolio.append(Position(amount=net_amt, asset=dbt.token))
 
             var_input = VaRPortfolioInput(portfolio=Portfolio(positions=portfolio),
                                           window=input.window,
@@ -67,7 +74,8 @@ class ValueAtRiskAave(ValueAtRiskBase):
             else:
                 if window != var_out.window:
                     raise ModelRunError(
-                        f'All results\'s window shall be the same, but ({var_out.window=})!=({window=})')
+                        f'All results\'s window shall be the same, '
+                        f'but ({var_out.window=})!=({window=})')
             for k, v in var_out.var.items():
                 var_consol[k] = v
 

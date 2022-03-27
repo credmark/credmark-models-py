@@ -4,6 +4,9 @@ from typing import (
 )
 
 import credmark.model
+from credmark.model import (
+    ModelRunError
+)
 
 from credmark.types import (
     Address,
@@ -85,7 +88,10 @@ class AaveV2GetTokenLiability(credmark.model.Model):
             address=getReservesData[7],
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
-        return Position(asset=aToken, amount=aToken.total_supply)
+        if aToken.total_supply is not None:
+            return Position(asset=aToken, amount=aToken.total_supply)
+        else:
+            raise ModelRunError('Unable to obtain total_supply for {aToken.address=}')
 
 
 @credmark.model.describe(slug="aave.lending-pool-assets",
@@ -135,17 +141,21 @@ class AaveV2GetTokenAsset(credmark.model.Model):
 
         totalStableDebt = stableDebtToken.total_supply
         totalVariableDebt = variableDebtToken.total_supply
-        totalDebt = totalStableDebt + totalVariableDebt
+        if totalStableDebt is not None and totalVariableDebt is not None:
+            totalDebt = totalStableDebt + totalVariableDebt
 
-        return AaveDebtInfo(
-            token=input,
-            aToken=aToken,
-            stableDebtToken=stableDebtToken,
-            variableDebtToken=variableDebtToken,
-            interestRateStrategyContract=interestRateStrategyContract,
-            totalStableDebt=totalStableDebt,
-            totalVariableDebt=totalVariableDebt,
-            totalDebt=totalDebt)
+            return AaveDebtInfo(
+                token=input,
+                aToken=aToken,
+                stableDebtToken=stableDebtToken,
+                variableDebtToken=variableDebtToken,
+                interestRateStrategyContract=interestRateStrategyContract,
+                totalStableDebt=totalStableDebt,
+                totalVariableDebt=totalVariableDebt,
+                totalDebt=totalDebt)
+        else:
+            raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
+                                f'for {aToken.address=}')
 
 
 @ credmark.model.describe(slug="aave.token-asset-historical",

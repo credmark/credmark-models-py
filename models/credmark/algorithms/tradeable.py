@@ -101,7 +101,7 @@ class EODPlan(Plan):
                                interval='1 day')]
 
     def post_proc(self):
-        return super().execute()
+        return super().post_proc()
 
 
 class VaRPlan(Plan):
