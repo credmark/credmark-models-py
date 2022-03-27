@@ -27,6 +27,8 @@ from credmark.dto import (
 )
 from typing import List, Union
 
+from models.tmp_abi_lookup import ERC_20_ABI
+
 
 @credmark.model.describe(
     slug="token.info",
@@ -194,8 +196,8 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
                          output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
-        if input.token.price_usd is None:
-            raise ModelDataError('Input token price is None')
+        # FIXME: remove abi
+        input.token = Token(address=input.token.address, abi=ERC_20_ABI)
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.token.price(input.token))

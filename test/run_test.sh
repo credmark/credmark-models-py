@@ -58,8 +58,8 @@ test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c0171
 echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
 echo_cmd ""
-test_model 0 example.blocktime '{}'
-test_model 0 example.blocknumber '{}'
+test_model 0 example.block-time '{}'
+test_model 0 example.block-number '{}'
 
 
 echo_cmd ""
@@ -72,8 +72,8 @@ echo_cmd ""
 echo_cmd "DTO Examples:"
 echo_cmd ""
 # Fix USDC here
-test_model 0 example.type-test-1 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}'
-test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "token": {"symbol": "USDC"}},{"amount": "4.4", "token": {"symbol": "USDT"}}]}'
+test_model 0 example.type-test-1 '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}'
+test_model 1 example.type-test-2 '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}'
 
 echo_cmd ""
 echo_cmd "Load Contract Examples:"
@@ -82,11 +82,13 @@ echo_cmd ""
 test_model 0 example.load-contract-by-name '{"contractName": "CIM"}' # CRISP
 test_model 0 example.load-contract-by-address '{"address": "0x4c456a17eb8612231f510c62f02c0b4a1922c7ea"}'
 
+# "address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0"
+
 echo_cmd ""
 echo_cmd "Run Historical Examples:"
 echo_cmd ""
-test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}'
 test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}'
+test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}'
 test_model 0 example.historical-snap '{}'
 test_model 0 example.historical-block '{}'
 test_model 0 example.historical-block-snap '{}'
@@ -112,6 +114,8 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 test_model 0 example.token-loading '{}'
+test_model 0 token.price '{"symbol": "CMK"}'
+test_model 0 token.price-ext '{"symbol": "CMK"}'
 test_model 0 price '{"symbol": "CMK"}'
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
@@ -151,6 +155,10 @@ test_model 0 uniswap.exchange '{}'
 test_model 0 uniswap.quoter-price-usd '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
 test_model 0 uniswap.router-price-usd '{}'
 
+echo_cmd ""
+echo_cmd "Run Uniswap V2 Examples:"
+echo_cmd ""
+test_model 0 uniswap-v2.get-average-price '{"symbol": "DAI"}'
 
 echo_cmd ""
 echo_cmd "Run Uniswap V3 Examples:"
@@ -165,8 +173,9 @@ test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "CMK"}, "wind
 echo_cmd ""
 echo_cmd "Run SushiSwap Examples:"
 echo_cmd ""
+test_model 0 sushiswap.get-average-price '{"symbol":"DAI"}'
 test_model 0 sushiswap.all-pools '{}'
-test_model 0 sushiswap.get-pool '{"token0":{"symbol":"USDC"}, "token1":{"symbol":"USDC"}}'
+test_model 0 sushiswap.get-pool '{"token0":{"symbol":"DAI"}, "token1":{"symbol":"WETH"}}'
 test_model 0 sushiswap.get-pool-info '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}'
 
 echo_cmd ""
@@ -193,8 +202,8 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
+test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}'

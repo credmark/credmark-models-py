@@ -21,6 +21,7 @@ from models.tmp_abi_lookup import (
     UNISWAP_V3_FACTORY_ADDRESS,
     UNISWAP_V3_POOL_ABI,
     WETH9_ADDRESS,
+    ERC_20_ABI,
 )
 
 
@@ -119,6 +120,9 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
                          output=Price)
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
+        # FIXME: remove ABI
+        input = Token(address=input.address, abi=ERC_20_ABI)
+
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -129,6 +133,11 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                                    return_type=UniswapV3PoolInfo)
             for p in pools
         ]
+
+        # FIXME: remove ABI
+        for info in infos:
+            info.token0 = Token(address=info.token0.address, abi=ERC_20_ABI)
+            info.token1 = Token(address=info.token1.address, abi=ERC_20_ABI)
 
         prices = []
         weth_prices = None

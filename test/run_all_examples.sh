@@ -24,8 +24,8 @@ credmark-dev run account.portfolio --input '{"address": "0xCE017A1dcE5A15668C429
 echo ""
 echo "BLOCKNUMBER Example:"
 echo ""
-credmark-dev run example.blocktime --input '{}' -b 14234904
-credmark-dev run example.blocknumber --input '{}' -b 14234904
+credmark-dev run example.block-time --input '{}' -b 14234904
+credmark-dev run example.block-number --input '{}' -b 14234904
 echo ""
 echo "Address Examples:"
 echo ""

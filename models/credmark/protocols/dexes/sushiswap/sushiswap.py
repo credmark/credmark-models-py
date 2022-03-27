@@ -15,7 +15,8 @@ from models.tmp_abi_lookup import (
     SUSHISWAP_FACTORY_ABI,
     SUSHISWAP_PAIRS_ABI,
     ERC_20_TOKEN_CONTRACT_ABI,
-    UNISWAP_V2_SWAP_ABI
+    UNISWAP_V2_SWAP_ABI,
+    ERC_20_ABI,
 )
 
 
@@ -145,7 +146,7 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
         for token in tokens:
             pair_address = factory.functions.getPair(input.address, token.address).call()
             if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
+                contracts.append(Contract(address=pair_address))
         return Contracts(contracts=contracts)
 
 
@@ -157,9 +158,14 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
                          output=Price)
 class SushiswapGetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
+        # FIXME: remove ABI
+        input = Token(address=input.address, abi=ERC_20_ABI)
+
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts)
+        # FIXME: remove ABI
+        pools = [Contract(address=p.address, abi=UNISWAP_V2_SWAP_ABI) for p in pools]
 
         prices = []
         reserves = []
@@ -167,7 +173,9 @@ class SushiswapGetAveragePrice(credmark.model.Model):
         for pool in pools:
             reserves = pool.functions.getReserves().call()
             if input.address == pool.functions.token0().call():
-                token1 = Token(address=pool.functions.token1().call())
+                # FIXME: remove ABI
+                token1 = Token(address=pool.functions.token1().call(), abi=ERC_20_ABI)
+
                 reserve = reserves[0]
                 price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
 
@@ -178,7 +186,8 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                                                             return_type=Price).price
                     price = price * weth_price
             else:
-                token0 = Token(address=pool.functions.token0().call())
+                # FIXME: remove ABI
+                token0 = Token(address=pool.functions.token0().call(), abi=ERC_20_ABI)
                 reserve = reserves[1]
                 price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
                 if token0.symbol == 'WETH':

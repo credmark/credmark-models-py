@@ -15,7 +15,10 @@ from credmark.types import (
     Contracts
 )
 from models.dtos.volume import TradingVolume, TokenTradingVolume
-from models.tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
+from models.tmp_abi_lookup import (
+    UNISWAP_V2_SWAP_ABI,
+    ERC_20_ABI,
+)
 UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 
 
@@ -37,7 +40,7 @@ class UniswapV2GetPoolsForToken(credmark.model.Model):
         for token in tokens:
             pair_address = factory.functions.getPair(input.address, token.address).call()
             if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
+                contracts.append(Contract(address=pair_address))
         return Contracts(contracts=contracts)
 
 
@@ -49,9 +52,13 @@ class UniswapV2GetPoolsForToken(credmark.model.Model):
                          output=Price)
 class UniswapV2GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        pools = self.context.run_model('uniswap-v2.get-pools',
-                                       input,
-                                       return_type=Contracts)
+        # FIXME: remove ABI
+        input = Token(address=input.address, abi=ERC_20_ABI)
+
+        pools = self.context.run_model('uniswap-v2.get-pools', input, return_type=Contracts)
+
+        # FIXME: remove abi
+        pools = [Contract(address=p.address,  abi=UNISWAP_V2_SWAP_ABI) for p in pools]
 
         prices = []
         reserves = []
@@ -59,7 +66,8 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         for pool in pools:
             reserves = pool.functions.getReserves().call()
             if input.address == pool.functions.token0().call():
-                token1 = Token(address=pool.functions.token1().call())
+                # FIXME: remove ABI
+                token1 = Token(address=pool.functions.token1().call(), abi=ERC_20_ABI)
                 reserve = reserves[0]
                 price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
 
@@ -70,7 +78,8 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
                                                             return_type=Price).price
                     price = price * weth_price
             else:
-                token0 = Token(address=pool.functions.token0().call())
+                # FIXME: remove ABI
+                token0 = Token(address=pool.functions.token0().call(), abi=ERC_20_ABI)
                 reserve = reserves[1]
                 price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
                 if token0.symbol == 'WETH':
