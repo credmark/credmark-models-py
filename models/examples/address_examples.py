@@ -1,30 +1,33 @@
 import credmark.model
-from credmark.types import Address, Account
+from credmark.types import Address
 from credmark.dto import DTO
 
 
-class AddressTransformsExampleOutput(DTO):
-    inputAddress: Address
-    checksumAddress: str
-    lowerAddress: str
-
-
 @credmark.model.describe(
-    slug='example.address-transforms',
+    slug='example.address',
     version='1.0',
     display_name='(Example) Address Transforms',
     description='Input an address and output transformations we can make to that address',
     developer='Credmark',
-    input=Account,
-    output=AddressTransformsExampleOutput)
-class AddressTransformsExample(credmark.model.Model):
-    def run(self, input: Account) -> AddressTransformsExampleOutput:
+    output=dict)
+class AddressExample(credmark.model.Model):
+    def run(self, input: dict) -> dict:
         """
-            This model demonstrates how to take in an address as an
-            Account input, and output the various transformations.
+            This model demonstrates the functionality of the Address class
         """
-        return AddressTransformsExampleOutput(
-            inputAddress=input.address,
-            checksumAddress=input.address.checksum,
-            lowerAddress=input.address.lower()
-        )
+        
+        address = Address("0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf")
+
+        self.logger.info(f"Address automatically normalizes to lowercase : {address}")
+        self.logger.info(f"Address('0xeb2629a2734e272bcc07bda959863f316f4bd4cf').checksum : {address.checksum}")
+        self.logger.info(f"Address equality exists for string and Address, and is case insensitive")
+        self.logger.info(f"address == '0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf' : {address == '0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf'}")
+        self.logger.info(f"Address equality for strings is case-insensitive : {address == '0xeb2629a2734e272bcc07bda959863f316f4bd4cf'}")
+        self.logger.info(f"You can hash the address : {hash(address)}")
+ 
+        self.logger.info(f"Address.null() returns the NULL Address : {Address.null()}")
+        self.logger.info(f"Address.valid() is whether a string is a valid address format") 
+        self.logger.info(f"Address.valid('0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf') : {Address.valid('0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf')}")
+        self.logger.info(f"Address.valid('0xThIsIsNoTaVaLiDaDdReSsItSGaRbaGeLeTtErSs') : {Address.valid('0xThIsIsNoTaVaLiDaDdReSsItSGaRbaGeLeTtErSs')}")
+        
+        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py for examples of Address usage"}
