@@ -4,6 +4,7 @@ from typing import (
 )
 
 import credmark.model
+from credmark.model.errors import ModelDataError
 from credmark.types import (
     Price,
     Token,
@@ -80,7 +81,9 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
                          output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(credmark.model.Model):
     def run(self, input: Contract) -> UniswapV3PoolInfo:
-        if input._meta.abi is None:
+        try:
+            input.abi
+        except ModelDataError:
             input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
 
         pool = input.instance

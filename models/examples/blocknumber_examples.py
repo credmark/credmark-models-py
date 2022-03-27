@@ -21,15 +21,15 @@ class ExampleBlockNumber(credmark.model.Model):
         """
         block_number = self.context.block_number
         self.logger.info(
-            f"The current environment's BlockNumber is available in the Model Context "
-            "self.context.block_number : {self.context.block_number}")
+            "The current environment's BlockNumber is available in the Model Context "
+            f"self.context.block_number : {self.context.block_number}")
         self.logger.info(
             f"block_number : {block_number}")
         self.logger.info(
             f"block_number.timestamp : {block_number.timestamp}")
         self.logger.info(
             f"block_number.timestamp_datetime : {block_number.timestamp_datetime}")
-        self.logger.info(f'Addition and subtraction works across BlockNumber and int types')
+        self.logger.info('Addition and subtraction works across BlockNumber and int types')
         self.logger.info(
             f"(block_number - 1000) : {(block_number - 1000)}")
         self.logger.info(
@@ -38,7 +38,7 @@ class ExampleBlockNumber(credmark.model.Model):
             f"block_number.from_datetime(block_number.timestamp - 3600): {block_number.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
         self.logger.info(
             f"BlockNumber.from_datetime(block_number.timestamp - 3600): {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
-        
+
         """
             NOTE: THE FOLLOWING IS FOR DEMONSTRATION ONLY.
             You should NOT catch BlockNumberOutOfRangeError or

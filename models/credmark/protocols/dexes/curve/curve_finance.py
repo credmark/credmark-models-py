@@ -104,7 +104,7 @@ class CurveFinancePoolInfo(credmark.model.Model):
         except Exception as _err:
             virtual_price = (10**18)
             a = 0
-        
+
         try:
             name = input.functions.name().call()
         except Exception as _err:
@@ -172,12 +172,12 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         addrs = self.context.ledger.get_transactions(
             columns=[TransactionTable.Columns.FROM_ADDRESS],
             where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        return Accounts(accounts=[   
+        return Accounts(accounts=[
             Account(address=address)
-            for address in 
+            for address in
             list( dict.fromkeys([
-                a[TransactionTable.Columns.FROM_ADDRESS] 
-                for a 
+                a[TransactionTable.Columns.FROM_ADDRESS]
+                for a
                 in addrs]))])
 
 
@@ -218,7 +218,8 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         """
 
 
-        pool_info = self.context.models.curve_fi.pool_info(Contract(address=input.functions.lp_token().call()))
+        pool_info = self.context.models.curve_fi.pool_info(
+            Contract(address=input.functions.lp_token().call()))
 
         addrs = self.context.run_model('curve-fi.all-gauge-addresses', input)
 

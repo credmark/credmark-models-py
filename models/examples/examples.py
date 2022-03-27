@@ -8,26 +8,27 @@ import credmark.model
     developer='Credmark',
     output=dict)
 class AllExample(credmark.model.Model):
-    def run(self, input) -> dict:
-        
+    def run(self, input) -> dict:    
+ 
         """
             This model runs all of the Credmark Example Models
         """
-        self.logger.info(f"This model runs all of the example Credmark Models demonstrating the functionality of the credmark model framework")
-        self.logger.info(f"---------------------")
-        self.logger.info(f"------ Address ------")
-        self.logger.info(f"---------------------")
+
+        self.logger.info("This model runs all of the example Credmark Models demonstrating the functionality of the credmark model framework")
+        self.logger.info("---------------------")
+        self.logger.info("------ Address ------")
+        self.logger.info("---------------------")
         self.context.models.example.address()
-        self.logger.info(f"---------------------")
-        self.logger.info(f"---- BlockNumber ----")
-        self.logger.info(f"---------------------")
+        self.logger.info("---------------------")
+        self.logger.info("---- BlockNumber ----")
+        self.logger.info("---------------------")
         self.context.models.example.block_number()
-        self.logger.info(f"---------------------")
-        self.logger.info(f"------ Account ------")
-        self.logger.info(f"---------------------")
+        self.logger.info("---------------------")
+        self.logger.info("------ Account ------")
+        self.logger.info("---------------------")
         self.context.models.example.account()
-        self.logger.info(f"---------------------")
-        self.logger.info(f"------ Contract -----")
-        self.logger.info(f"---------------------")
+        self.logger.info("---------------------")
+        self.logger.info("------ Contract -----")
+        self.logger.info("---------------------")
         self.context.models.example.contract()
         return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py for examples of Address usage"}
