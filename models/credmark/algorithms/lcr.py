@@ -53,8 +53,11 @@ class Var(credmark.model.Model):
         sb_dict = {}
         for sb in input.stablecoins:
             ct = Token(**sb)
-            bal = ct.scaled(ct.functions.balance_of(account).call())
+            bal = ct.scaled(ct.functions.balanceOf(account).call())
             sb_sum += bal
             sb_dict[ct.symbol] = bal
 
-        return {'account': account, 'holding': sb_dict, 'total': sb_sum, 'lcr': sb_sum / input.cashflow_shock}
+        return {'account': account, 
+            'holding': sb_dict, 
+            'total': sb_sum, 
+            'lcr': sb_sum / input.cashflow_shock}

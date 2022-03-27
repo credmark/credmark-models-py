@@ -142,7 +142,7 @@
 #             if not block_hist:
 #                 block_time = self.get_date_of_block(current_block)
 #                 raise ModelRunError(
-#                     (f'max(input.asOf)={max_date:%Y-%m-%d} is later than input block\'s timestamp, '
+#                     (f'max(input.asOf)={max_date:%Y-%m-%d} is later than input block timestamp, '
 #                      f'{current_block} on {block_time:%Y-%m-%d}.'))
 #         else:
 #             block_hist = current_block
@@ -150,7 +150,8 @@
 #             max_date = min_date
 #             asOfs = [min_date]
 
-#         self.logger.info(f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {block_hist=}')
+#         self.logger.info(
+#             f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {block_hist=}')
 
 #         window = input.window
 #         w_k, w_i = self.context.historical.parse_timerangestr(window)
@@ -235,7 +236,8 @@
 #             dict_current = df_current.to_dict()
 
 #             for ivl_k, ivl_n, ivl_str in zip(interval_keys, interval_nums, input.intervals):
-#                 ivl_seconds = self.context.historical.range_timestamp(ivl_k, ivl_n)  # type: ignore
+#                 ivl_seconds = self.context.historical.range_timestamp(
+#                     ivl_k, ivl_n)  # type: ignore
 #                 n_ivl = int(np.floor(w_seconds / ivl_seconds))
 
 #                 df_hist_ivl = df_hist.iloc[idx_last:(idx_last+n_ivl):ivl_n].copy()  # type: ignore
@@ -246,7 +248,6 @@
 #                     df_hist_ivl_p_only.iloc[1:, :].reset_index(drop=True)
 
 #                 df_ret = df_ret.apply(lambda x: x - 1)
-#                 # assert np.all(df_ret.copy().rolling(1).agg(lambda x : x.prod()) == df_ret.copy())
 
 #                 var[asOf_str][ivl_str] = {}
 #                 df_value = pd.DataFrame()
