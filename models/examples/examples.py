@@ -8,13 +8,14 @@ import credmark.model
     developer='Credmark',
     output=dict)
 class AllExample(credmark.model.Model):
-    def run(self, input) -> dict:    
- 
+    def run(self, input) -> dict:
+
         """
             This model runs all of the Credmark Example Models
         """
 
-        self.logger.info("This model runs all of the example Credmark Models demonstrating the functionality of the credmark model framework")
+        self.logger.info("This model runs all of the example Credmark Models "
+            "demonstrating the functionality of the credmark model framework")
         self.logger.info("---------------------")
         self.logger.info("------ Address ------")
         self.logger.info("---------------------")
@@ -31,4 +32,4 @@ class AllExample(credmark.model.Model):
         self.logger.info("------ Contract -----")
         self.logger.info("---------------------")
         self.context.models.example.contract()
-        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py for examples of Address usage"}
+        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py for examples of Address usage"} # pylint: disable=line-too-long

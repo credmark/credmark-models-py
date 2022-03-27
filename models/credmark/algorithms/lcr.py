@@ -17,7 +17,7 @@ from credmark.types import (
 
 class LCRInput(DTO):
     address: Address
-    stablecoins: List[dict] = DTOField([{'address': '0xa2327a938febf5fec13bacfb16ae10ecbc4cbdcf'},  # Work-around for USDC (with DelegateCall)
+    stablecoins: List[dict] = DTOField([{'symbol': 'USDC'},
                                         {'symbol': 'USDT'},
                                         {'symbol': 'DAI'}])
     cashflow_shock: float = DTOField(1e10)
@@ -53,7 +53,7 @@ class Var(credmark.model.Model):
         sb_dict = {}
         for sb in input.stablecoins:
             ct = Token(**sb)
-            bal = ct.balance_of(account).scaled
+            bal = ct.scaled(ct.functions.balance_of(account).call())
             sb_sum += bal
             sb_dict[ct.symbol] = bal
 
