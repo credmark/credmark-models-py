@@ -57,7 +57,7 @@ class Var(credmark.model.Model):
             sb_sum += bal
             sb_dict[ct.symbol] = bal
 
-        return {'account': account, 
-            'holding': sb_dict, 
-            'total': sb_sum, 
+        return {'account': account,
+            'holding': sb_dict,
+            'total': sb_sum,
             'lcr': sb_sum / input.cashflow_shock}
