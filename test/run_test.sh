@@ -29,6 +29,7 @@ if [ $gen_cmd -eq 1 ]; then
     echo "${cmk_dev} list" >> $cmd_file
 fi
 
+
 echo_cmd ""
 echo_cmd "Neil's example:"
 echo_cmd ""
@@ -54,6 +55,12 @@ echo_cmd ""
 test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"}'
 # Working but taking long time.
 # test_model 0 account.portfolio '{"address": "0xbdfa4f4492dd7b7cf211209c4791af8d52bf5c50"}'
+
+echo_cmd ""
+echo_cmd "Error Examples:"
+echo_cmd ""
+test_model 3 example.data-error '{}'
+test_model 3 example.data-error-2 '{}'
 
 echo_cmd ""
 echo_cmd "BLOCKNUMBER Example:"
@@ -159,6 +166,9 @@ echo_cmd ""
 echo_cmd "Run Uniswap V2 Examples:"
 echo_cmd ""
 test_model 0 uniswap-v2.get-average-price '{"symbol": "DAI"}'
+test_model 0 uniswap-v2.get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
+test_model 0 uniswap-v2.get-pools '{"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}'
+
 
 echo_cmd ""
 echo_cmd "Run Uniswap V3 Examples:"
@@ -174,9 +184,11 @@ echo_cmd ""
 echo_cmd "Run SushiSwap Examples:"
 echo_cmd ""
 test_model 0 sushiswap.get-average-price '{"symbol":"DAI"}'
+test_model 0 sushiswap.get-average-price '{"symbol":"WETH"}'
 test_model 0 sushiswap.all-pools '{}'
 test_model 0 sushiswap.get-pool '{"token0":{"symbol":"DAI"}, "token1":{"symbol":"WETH"}}'
 test_model 0 sushiswap.get-pool-info '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}'
+test_model 0 sushiswap.get-pools '{"address":"0x68CFb82Eacb9f198d508B514d898a403c449533E"}' # CMK_ADDRESS
 
 echo_cmd ""
 echo_cmd "Run Aave V2 Examples:"
@@ -201,7 +213,10 @@ test_model 0 curve-fi-historical-lp-dist '{"address":"0x853d955aCEf822Db058eb850
 echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
+
 test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
+test_model 0 finance.get-one '{}'
+test_model 0 finance.var-regtest '{}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
 test_model 0 finance.var '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'

@@ -14,6 +14,8 @@ from credmark.types import (
     Token,
 )
 
+from models.tmp_abi_lookup import ERC_20_ABI
+
 
 class LCRInput(DTO):
     address: Address
@@ -52,12 +54,12 @@ class Var(credmark.model.Model):
         sb_sum = 0
         sb_dict = {}
         for sb in input.stablecoins:
-            ct = Token(**sb)
+            ct = Token(**sb, abi=ERC_20_ABI)
             bal = ct.scaled(ct.functions.balanceOf(account).call())
             sb_sum += bal
             sb_dict[ct.symbol] = bal
 
         return {'account': account,
-            'holding': sb_dict,
-            'total': sb_sum,
-            'lcr': sb_sum / input.cashflow_shock}
+                'holding': sb_dict,
+                'total': sb_sum,
+                'lcr': sb_sum / input.cashflow_shock}

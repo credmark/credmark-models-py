@@ -40,12 +40,12 @@ class ValueAtRiskAave(ValueAtRiskBase):
         window = ''
         var_consol = {}
         for asOf in asOfs:
-            block_hist = self.eod_block(asOf)
+            eod = self.eod_block(asOf)
 
             debts = self.context.run_model(
                 'aave.lending-pool-assets',
                 return_type=AaveDebtInfos,  # type: ignore
-                block_number=block_hist)
+                block_number=eod['block'])
 
             portfolio = []
             for dbt in debts:

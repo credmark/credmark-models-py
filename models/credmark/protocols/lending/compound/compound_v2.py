@@ -9,6 +9,7 @@ from credmark.types import (
 
 from models.tmp_abi_lookup import (
     COMPOUND_ABI,
+    ERC_20_ABI,
     ERC_20_TOKEN_CONTRACT_ABI,
     COMPOUND_CTOKEN_CONTRACT_ABI,
 )
@@ -46,6 +47,8 @@ class CompoundGetAssets(credmark.model.Model):
             return default
 
     def run(self, input: Token) -> dict:
+        # FIXME: remove abi
+        input = Token(address=input.address, abi=ERC_20_ABI)
 
         if not input.address:
             raise ModelRunError(f'Input token is invalid, {input}')
@@ -59,8 +62,7 @@ class CompoundGetAssets(credmark.model.Model):
 
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(input.address.checksum).call()
-        tokencontract = Contract(
-            address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
+        tokencontract = Contract(address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
         symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
         decimals = tokencontract.functions.decimals().call()
         totalSupply = comp_asset[3]/pow(10, decimals)

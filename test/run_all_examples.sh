@@ -93,45 +93,6 @@ echo "Run Uniswap Examples:"
 echo ""
 credmark-dev run uniswap.tokens --input '{}' -b 14234904
 credmark-dev run uniswap.exchange --input '{}' -b 14234904
-credmark-dev run uniswap.quoter-price-usd --input '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}' -b 14234904
-credmark-dev run uniswap.router-price-usd --input '{}' -b 14234904
-echo ""
-echo "Run Uniswap V3 Examples:"
-echo ""
-credmark-dev run uniswap-v3.get-pools --input '{"symbol": "CMK"}' -b 14234904
-credmark-dev run uniswap-v3.get-pool-info --input '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}' -b 14234904
-credmark-dev run uniswap-v3.get-average-price --input '{"symbol": "CMK"}' -b 14234904
-credmark-dev run uniswap-v3.get-historical-price --input '{"token": {"symbol": "USDC"}, "window": "10 days"}' -b 14234904
-credmark-dev run uniswap-v3.get-historical-price --input '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}' -b 14234904
-echo ""
-echo "Run SushiSwap Examples:"
-echo ""
-credmark-dev run sushiswap.all-pools --input '{}' -b 14234904
-credmark-dev run sushiswap.get-pool --input '{"token0":{"symbol":"USDC"}, "token1":{"symbol":"USDC"}}' -b 14234904
-credmark-dev run sushiswap.get-pool-info --input '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}' -b 14234904
-echo ""
-echo "Run Aave V2 Examples:"
-echo ""
-credmark-dev run aave.lending-pool-assets --input '{}' -b 14234904
-credmark-dev run aave.token-liability --input '{"symbol":"USDC"}' -b 14234904
-credmark-dev run aave.overall-liabilities-portfolio --input '{}' -b 14234904
-credmark-dev run aave.token-asset-historical --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904
-credmark-dev run aave.token-asset --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904
-credmark-dev run aave.token-asset --input '{"symbol":"USDC"}' -b 14234904
-credmark-dev run aave.token-asset --input '{"symbol":"DAI"}' -b 14234904
-echo ""
-echo "Run Curve Examples"
-echo ""
-credmark-dev run curve-fi-avg-gauge-yield --input '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}' -b 14234904
-credmark-dev run curve-fi-all-yield --input '{}' -b 14234904
-credmark-dev run curve-fi-all-pool-info --input '{}' -b 14234904
-credmark-dev run curve-fi-historical-lp-dist --input '{"address":"0x853d955aCEf822Db058eb8505911ED77F175b99e"}' -b 14234904
-echo ""
-echo "Run Finance Examples"
-echo ""
-credmark-dev run finance.lcr --input '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": -0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  0.5, "token": {"symbol": "WETH"}}, {"amount": 0.5, "token": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount": -1, "token": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}' -b 14234904
-credmark-dev run finance.var --input '{"portfolio": {"positions": [{"amount":  1, "token": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}' -b 14234904
+
+# HERE
+

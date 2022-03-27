@@ -13,7 +13,7 @@ from models.tmp_abi_lookup import (UNISWAP_QUOTER_ABI,
                                    UNISWAP_FACTORY_ADDRESS,
                                    UNISWAP_DAI_V1_ABI,
                                    UNISWAP_DAI_V1_ADDRESS,
-                                   MIN_ERC20_ABI,
+                                   ERC_20_ABI,
                                    UNISWAP_V3_SWAP_ROUTER_ABI,
                                    UNISWAP_V3_SWAP_ROUTER_ADDRESS)
 
@@ -34,11 +34,11 @@ class UniswapRouterPricePair(credmark.model.Model):
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
         """
-        tokenIn = Address(DAI_ADDRESS).checksum
-        tokenOut = input.tokenAddress.checksum
+        inTokenAddress = Address(DAI_ADDRESS).checksum
+        outTokenAddress = input.tokenAddress.checksum
 
-        decimals = Token(address=tokenOut,
-                         abi=MIN_ERC20_ABI).functions.decimals().call()
+        # FIXME: remove abi
+        decimals = Token(address=outTokenAddress, abi=ERC_20_ABI).decimals
 
         fee = 10000
         sqrtPriceLimitX96 = 0
@@ -47,8 +47,8 @@ class UniswapRouterPricePair(credmark.model.Model):
         uniswap_quoter = Contract(address=Address(
             UNISWAP_QUOTER_ADDRESS).checksum, abi=UNISWAP_QUOTER_ABI)
 
-        quote = uniswap_quoter.functions.quoteExactOutputSingle(tokenIn,
-                                                                tokenOut,
+        quote = uniswap_quoter.functions.quoteExactOutputSingle(inTokenAddress,
+                                                                outTokenAddress,
                                                                 fee,
                                                                 tokenAmount,
                                                                 sqrtPriceLimitX96).call()

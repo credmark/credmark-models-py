@@ -57,8 +57,8 @@ class ExampleBlockNumber(credmark.model.Model):
         try:
             BlockNumber(-1)
             raise ModelRunError(
-                message="BlockNumbers cannot be negative, an exception was NOT caught, "
-                "and the example has FAILED")
+                message=("BlockNumbers cannot be negative, an exception was NOT caught, "
+                         "and the example has FAILED"))
         except BlockNumberOutOfRangeError as _e:
             self.logger.info(_e)
             self.logger.info(

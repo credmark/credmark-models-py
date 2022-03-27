@@ -116,8 +116,9 @@ tag = 'eod'
 
 
 class Tradeable:
-    def __init__(self, tid):
+    def __init__(self, tid, asOf):
         self._tid = tid
+        self._asOf = asOf
 
     @property
     def tid(self):
@@ -128,37 +129,37 @@ class Tradeable:
         pass
 
     @abstractmethod
-    def value(self, mkt) -> float:
+    def value(self, mkt, new_asOf) -> float:
         pass
 
 
 class TokenTradeable(Tradeable):
-    def __init__(self, tid, token, amount, init_price):
-        super().__init__(tid)
+    def __init__(self, tid, asOf, token, amount, init_price):
+        super().__init__(tid, asOf)
         self._token = token
+        self._mkt_key = self._token.address
         self._amount = amount
         self._init_price = init_price
 
     def requires(self) -> Generator[MarketTarget, None, None]:
-        mkt_obj = MarketTarget(key=f'token.{self._token.address}.{self._token.symbol}',
+        mkt_obj = MarketTarget(key=self._mkt_key,
                                artifact=self._token)
         yield mkt_obj
 
-    def value(self, mkt) -> float:
-        key_col = (self._token.address, self._token.symbol)
-        pnl = mkt.get(key_col) - self._init_price
+    def value(self, mkt, new_asOf) -> float:
+        pnl = mkt.get((self._mkt_key, new_asOf)) - self._init_price
         pnl *= self._amount
         return pnl
 
 
 class ContractTradeable(Tradeable):
-    def __init__(self, tid):
-        super().__init__(tid)
+    def __init__(self, tid, asOf):
+        super().__init__(tid, asOf)
 
     def requires(self) -> Generator[MarketTarget, None, None]:
         yield from []
 
-    def value(self, mkt) -> float:
+    def value(self, mkt, new_asOf) -> float:
         return 0
 
 

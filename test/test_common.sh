@@ -72,7 +72,7 @@ test_model () {
     input=$3
     cmd="$(run_model $model "$input" print-command)"
 
-    if [ $expected -ne 0 ] && [ $expected -ne 1 ]
+    if [ $expected -ne 0 ] && [ $expected -ne 1 ] && [ $expected -ne 2 ] && [ $expected -ne 3 ]
     then
         echo "Got unexpected expected=${expected} for ${cmd}"
         exit

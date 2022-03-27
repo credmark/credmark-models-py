@@ -37,7 +37,10 @@ class GetBlockHistory(credmark.model.Model):
 class ValueAtRiskBase(credmark.model.Model):
     def eod_block(self, dt):
         dt_eod = datetime.combine(dt, datetime.max.time(), tzinfo=timezone.utc)
-        return self.context.block_number.from_timestamp(int(dt_eod.timestamp()))
+        eod_time_stamp = int(dt_eod.timestamp())
+        eod_block = self.context.block_number.from_timestamp(eod_time_stamp)
+        return {'block': eod_block,
+                'timestamp': eod_time_stamp, }
 
     def set_window(self, input):
         current_block = self.context.block_number
@@ -72,13 +75,16 @@ class ValueAtRiskBase(credmark.model.Model):
             asOf_range = f'{(max_date - min_date).days} days'
             window_from_max_asOf = [window, asOf_range]
 
-        block_max_asOf = self.eod_block(max_date)
+        max_asOf_eod = self.eod_block(max_date)
         self.logger.info(
-            f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} {current_block_date=:%Y-%m-%d} {window_from_max_asOf=} {block_max_asOf=}')
+            f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.asOfs=} '
+            f'{current_block_date=:%Y-%m-%d} {window_from_max_asOf=} '
+            f'{max_asOf_eod["block"]=}/{max_asOf_eod["timestamp"]=}')
 
         return {
             'asOfs': asOfs,
-            'block_max_asOf': block_max_asOf,
+            'block_max_asOf': max_asOf_eod['block'],
+            'timestamp_max_asOf': max_asOf_eod['timestamp'],
             'window_from_max_asOf': window_from_max_asOf,
         }
 

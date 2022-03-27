@@ -85,7 +85,7 @@ class AaveV2GetTokenLiability(credmark.model.Model):
             address=getReservesData[7],
             abi=ERC_20_TOKEN_CONTRACT_ABI)
 
-        return Position(token=aToken, amount=aToken.total_supply())
+        return Position(asset=aToken, amount=aToken.total_supply)
 
 
 @credmark.model.describe(slug="aave.lending-pool-assets",
@@ -133,8 +133,8 @@ class AaveV2GetTokenAsset(credmark.model.Model):
         variableDebtToken = Token(address=reservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
         interestRateStrategyContract = Contract(address=reservesData[10])
 
-        totalStableDebt = stableDebtToken.total_supply()
-        totalVariableDebt = variableDebtToken.total_supply()
+        totalStableDebt = stableDebtToken.total_supply
+        totalVariableDebt = variableDebtToken.total_supply
         totalDebt = totalStableDebt + totalVariableDebt
 
         return AaveDebtInfo(
