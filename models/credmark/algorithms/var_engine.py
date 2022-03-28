@@ -1,4 +1,5 @@
 from datetime import (
+    date,
     datetime,
     timezone,
 )
@@ -20,8 +21,10 @@ from models.credmark.algorithms.risk import (
 from models.credmark.algorithms.dto import (
     PPLAggregationInput,
     VaRPortfolioInput,
-    VaRPortfolioAndPriceInput,
     VaROutput,
+    VaRPortfolioAndPriceInput,
+    VaRPortfolioAndPriceOutput,
+
 )
 
 from models.credmark.algorithms.base import (
@@ -55,57 +58,58 @@ class PPLAggregation(credmark.model.Model):
                          display_name='Value at Risk - from portfolio and prices',
                          description='Value at Risk - from portfolio and prices',
                          input=VaRPortfolioAndPriceInput,
-                         output=VaROutput)
+                         output=VaRPortfolioAndPriceOutput)
 class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
-    def run(self, input: VaRPortfolioAndPriceInput) -> VaROutput:
+    def run(self, input: VaRPortfolioAndPriceInput) -> VaRPortfolioAndPriceOutput:
         """
-        VaR takes in a portfolio with positions, prices and VaR parameters.
+        VaR takes in a portfolio, prices and VaR parameters.
         It calculates the usd value of the portfolio for the asOf dates.
         It then calculates the change in value over the window period,
         it returns the one that hits the input confidence levels.
         """
 
-        dict_as_of = self.set_window(input)
-        as_ofs = dict_as_of['as_ofs']
-
-        parsed_intervals = [(self.context.historical
-                             .parse_timerangestr(ii)) for ii in input.intervals]
-        unique_ivl_keys = list(set([x[0] for x in parsed_intervals]))
-        if unique_ivl_keys.__len__() != 1:
-            raise ModelRunError(
-                f'There is more than one type of interval in input intervals={unique_ivl_keys}')
-
-        base_mkt = {}
+        len_price_list = 0
         for pl in input.priceList:
-            key_col = f'Token.{Address(pl.tokenAddress)}'
-            base_mkt[key_col] = {}
-            base_mkt[key_col]['extracted'] = pl.prices[0]
-        base_mkt = Market(base_mkt)
+            if len_price_list == 0:
+                len_price_list = len(pl.prices)
+            else:
+                if len_price_list != len(pl.prices):
+                    raise ModelRunError(
+                        f'Input prices are not aligned for {pl.tokenAddress} '
+                        f'{len_price_list=}!={len(pl.prices)=}')
+        # Put any date here
+        as_of_dt = datetime.combine(date(2022, 2, 22), datetime.max.time(), tzinfo=timezone.utc)
 
         var_result = {}
-        for as_of in as_ofs:
-            as_of_str = as_of.strftime('%Y-%m-%d')
-            var_result[as_of_str] = {}
-            as_of_dt = datetime.combine(as_of, datetime.max.time(), tzinfo=timezone.utc)
+        for shift in range(len_price_list - input.n_window - 1 + 1):
+            var_result[shift] = {}
 
             pm = PortfolioManager.from_portfolio(as_of_dt, input.portfolio, self.context)
-            # base_mkt =
+            base_mkt = {}
+            for pl in input.priceList:
+                key_col = f'Token.{Address(pl.tokenAddress)}'
+                base_mkt[key_col] = {}
+                base_mkt[key_col]['extracted'] = pl.prices[shift]
+            base_mkt = Market(base_mkt)
+
             _ = pm.value(base_mkt)
 
-            for ((_, ivl_n), ivl) in zip(parsed_intervals, input.intervals):
-                var_result[as_of_str][ivl] = {}
+            for ivl_n in input.n_intervals:
+                var_result[shift][ivl_n] = {}
                 mkt_scenarios = {}
                 for pl in input.priceList:
                     key_col = f'Token.{Address(pl.tokenAddress)}'
+                    shifted = np.array(pl.prices[shift:(input.n_window+1)]).copy()
                     mkt_scenarios[key_col] = {}
-                    mkt_scenarios[key_col]['extracted'] = np.array(pl.prices[:-ivl_n]) / np.array(pl.prices[ivl_n:])
+                    mkt_scenarios[key_col]['raw'] = shifted
+                    mkt_scenarios[key_col]['extracted'] = shifted[:-ivl_n] / pl.prices[ivl_n:]
                 mkt_scenarios = Market(mkt_scenarios)
 
                 value_scen_df = pm.value_scenarios(base_mkt, mkt_scenarios)
 
                 ppl = (value_scen_df.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
                        .agg({'VALUE': ['sum']}))
-                var_result[as_of_str][ivl] = {
+                var_result[shift][ivl_n] = {
                     conf: calc_var(ppl[('VALUE', 'sum')].to_numpy(), conf)
                     for conf in input.confidences
                 }
@@ -114,7 +118,8 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
             df_res_p = self.res_to_df(var_result)
             df_res_p.to_csv(os.path.join('tmp', 'df_res.csv'), index=False)
 
-        var_output = VaROutput(window=input.window, var=var_result)
+        var_output = VaRPortfolioAndPriceOutput(n_window=input.n_window,
+                                                var=var_result)
 
         return var_output
 
@@ -167,8 +172,6 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                                   window=[input.window, minimal_interval],
                                                   interval=minimal_interval,
                                                   rolling_interval=ivl_n)
-
-                breakpoint()
 
                 value_scen_df = pm.value_scenarios(base_mkt, mkt_scenarios)
 

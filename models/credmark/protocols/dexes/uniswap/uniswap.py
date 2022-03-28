@@ -37,7 +37,7 @@ class UniswapRouterPricePair(credmark.model.Model):
         inTokenAddress = Address(DAI_ADDRESS).checksum
         outTokenAddress = input.tokenAddress.checksum
 
-        # FIXME: remove abi
+        # TODO: remove abi
         decimals = Token(address=outTokenAddress, abi=ERC_20_ABI).decimals
 
         fee = 10000

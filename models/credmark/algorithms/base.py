@@ -66,7 +66,7 @@ class ValueAtRiskBase(credmark.model.Model):
 
         window = input.window
 
-        # FIXME: pending for time range fix
+        # TODO: pending for time range fix
         # current_to_as_of_range = f'{(current_block_date - max_date).days} days'
         # window_from_current = [..., current_to_as_of_range]
         if min_date == max_date:

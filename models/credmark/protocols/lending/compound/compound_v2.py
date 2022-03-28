@@ -47,7 +47,7 @@ class CompoundGetAssets(credmark.model.Model):
             return default
 
     def run(self, input: Token) -> dict:
-        # FIXME: remove abi
+        # TODO: remove abi
         input = Token(address=input.address, abi=ERC_20_ABI)
 
         if not input.address:

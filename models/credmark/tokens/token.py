@@ -196,9 +196,13 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
                          output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
-        # FIXME: remove abi
+        # TODO: remove abi
         input.token = Token(address=input.token.address, abi=ERC_20_ABI)
         response = CategorizedSupplyResponse(**input.dict())
+
+        # TODO: remove abi
+        # response.token = Token(address=response.token.address, abi=ERC_20_ABI)
+
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.token.price(input.token))
         if token_price is None:

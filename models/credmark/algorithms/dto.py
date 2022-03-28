@@ -11,29 +11,15 @@ from typing import (
 
 from credmark.types import (
     Portfolio,
-    Price,
-    Address,
-    Account,
+    PriceList,
 )
 
 from credmark.dto import (
     DTO,
     DTOField,
-    cross_examples,
 )
 
 # TODO: to be merged to framework
-
-
-class PriceList(DTO):
-    prices: List[Price]
-    tokenAddress: Address
-
-    class Config:
-        schema_extra: dict = {
-            'examples': cross_examples(Price.Config.schema_extra['examples'],
-                                       Account.Config.schema_extra['examples'])
-        }
 
 
 class VaRParameters(DTO):
@@ -61,14 +47,25 @@ class VaRPortfolioInput(VaRParameters):
         validate_assignment = True
 
 
-class VaRPortfolioAndPriceInput(VaRPortfolioInput):
+class VaRPortfolioAndPriceInput(DTO):
     """
-    VaRPortfolioInput: calcualte VaR for a fixed portfolio
+    VaRPortfolioAndPriceInput: calcualte VaR for a fixed portfolio and price input
     """
+    portfolio: Portfolio
     priceList: List[PriceList] = DTOField(default=[], description='List of prices')
+    n_window: int
+    n_intervals: List[int] = DTOField(...)
+    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
+    dev_mode: Optional[bool] = DTOField(False)
 
     class Config:
         validate_assignment = True
+
+
+class VaRPortfolioAndPriceOutput(DTO):
+    n_window: int
+    # n_shifted/n_interval/confidence -> var
+    var: Dict[int, Dict[int, Dict[float, float]]]
 
 
 class VaROutput(DTO):

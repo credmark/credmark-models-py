@@ -74,7 +74,7 @@ class ValueAtRisk(ValueAtRiskBase):
         total_n_pos = len(input.portfolio.positions)
         for n_pos, pos in enumerate(input.portfolio.positions):
             if pos.asset.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
-                # FIXME: MKR abi for symol
+                # TODO: MKR abi for symol
                 pos.asset = Token(address=pos.asset.address,
                                   abi=MKR_TOKEN_ABI)
             else:

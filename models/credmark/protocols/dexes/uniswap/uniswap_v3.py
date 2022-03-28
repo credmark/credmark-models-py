@@ -121,9 +121,9 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
                          output=Price)
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        # FIXME: remove ABI
+        # TODO: remove ABI
         if input.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
-            # FIXME: MKR abi for symol
+            # TODO: MKR abi for symol
             input = Token(address=input.address, abi=MKR_TOKEN_ABI)
         else:
             input = Token(address=input.address, abi=ERC_20_ABI)
@@ -139,7 +139,7 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
             for p in pools
         ]
 
-        # FIXME: remove ABI
+        # TODO: remove ABI
         for info in infos:
             info.token0 = Token(address=info.token0.address, abi=ERC_20_ABI)
             info.token1 = Token(address=info.token1.address, abi=ERC_20_ABI)
