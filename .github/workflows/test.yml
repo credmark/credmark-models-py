@@ -1,4 +1,4 @@
-name: Verify Code and Test Models
+name: Test
 
 on:
   workflow_call:
