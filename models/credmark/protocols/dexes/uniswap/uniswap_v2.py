@@ -6,6 +6,7 @@ from credmark.types import (
     Contract,
     Contracts
 )
+from models.dtos.volume import TradingVolume, TokenTradingVolume
 from models.tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
 UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 
@@ -74,3 +75,30 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         if len(prices) == 0:
             return Price(price=None)
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+
+
+@credmark.model.describe(slug='uniswap-v2.pool-volume',
+                         version='1.0',
+                         display_name='Uniswap v2 Pool Swap Volumes',
+                         description='The volume of each token swapped in a pool in a window',
+                         input=Contract,
+                         output=TradingVolume)
+class UniswapV2PoolSwapVolume(credmark.model.Model):
+    def run(self, input: Contract) -> TradingVolume:
+        input = Contract(address=input.address, abi=UNISWAP_V2_SWAP_ABI)
+        swaps = input.events.Swap.createFilter(
+                fromBlock=self.context.block_number - int(86400 / 14),
+                toBlock=self.context.block_number).get_all_entries()
+        token0 = Token(address=input.functions.token0().call())
+        token1 = Token(address=input.functions.token1().call())
+        return TradingVolume(
+            tokenVolumes=[
+                TokenTradingVolume(
+                    token=token0,
+                    sellAmount=sum([s['args']['amount0In'] for s in swaps]),
+                    buyAmount=sum([s['args']['amount0Out'] for s in swaps])),
+                TokenTradingVolume(
+                    token=token1,
+                    sellAmount=sum([s['args']['amount1In'] for s in swaps]),
+                    buyAmount=sum([s['args']['amount1Out'] for s in swaps]))
+                    ])
