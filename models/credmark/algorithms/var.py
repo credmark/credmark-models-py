@@ -28,13 +28,13 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.base import (
     ValueAtRiskBase
 )
-from models.tmp_abi_lookup import ERC_20_ABI
+from models.tmp_abi_lookup import ERC_20_ABI, MKR_TOKEN_ABI
 
 
-@credmark.model.describe(slug='finance.var',
+@credmark.model.describe(slug='finance.var-reference',
                          version='1.0',
-                         display_name='Value at Risk',
-                         description='Value at Risk',
+                         display_name='Value at Risk: reference model - replaced by var-engine-*',
+                         description='Value at Risk: reference model - replaced by var-engine-*',
                          input=VaRPortfolioInput,
                          output=VaROutput)
 class ValueAtRisk(ValueAtRiskBase):
@@ -42,8 +42,8 @@ class ValueAtRisk(ValueAtRiskBase):
         """
             Var takes in a portfolio object,
             a price window, and
-            some intervals/confidences/asOfs
-            default value for asOf is the date of the input block.
+            some intervals/confidences/as_ofs
+            default value for as_of is the date of the input block.
 
             It calculates the usd value of the portfolio for each of the blockstamps/timestamps.
             It then calculates the change in value over the window period for each timestamp,
@@ -62,19 +62,21 @@ class ValueAtRisk(ValueAtRiskBase):
         w_k, w_i = self.context.historical.parse_timerangestr(input.window)
         w_seconds = self.context.historical.range_timestamp(w_k, w_i)
 
-        dict_asOf = self.set_window(input)
-        asOfs = dict_asOf['asOfs']
-        _block_max_asOf = dict_asOf['block_max_asOf']
-        timestamp_max_asOf = dict_asOf['timestamp_max_asOf']
-        window_from_max_asOf = dict_asOf['window_from_max_asOf']
+        dict_as_of = self.set_window(input)
+        as_ofs = dict_as_of['as_ofs']
+        _block_max_as_of = dict_as_of['block_max_as_of']
+        timestamp_max_as_of = dict_as_of['timestamp_max_as_of']
+        window_from_max_as_of = dict_as_of['window_from_max_as_of']
 
         df_hist = pd.DataFrame()
         key_cols = []
 
-        for pos in input.portfolio.positions:
+        total_n_pos = len(input.portfolio.positions)
+        for n_pos, pos in enumerate(input.portfolio.positions):
             if pos.asset.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
                 # FIXME: MKR abi for symol
-                pos.asset = Token(address=pos.asset.address, abi='[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"stop","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"owner_","type":"address"}],"name":"setOwner","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"mint","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"name_","type":"bytes32"}],"name":"setName","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"src","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"stopped","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"authority_","type":"address"}],"name":"setAuthority","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"mint","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"push","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"move","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"start","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"authority","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"src","type":"address"},{"name":"guy","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"wad","type":"uint256"}],"name":"pull","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"symbol_","type":"bytes32"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"authority","type":"address"}],"name":"LogSetAuthority","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"}],"name":"LogSetOwner","type":"event"},{"anonymous":true,"inputs":[{"indexed":true,"name":"sig","type":"bytes4"},{"indexed":true,"name":"guy","type":"address"},{"indexed":true,"name":"foo","type":"bytes32"},{"indexed":true,"name":"bar","type":"bytes32"},{"indexed":false,"name":"wad","type":"uint256"},{"indexed":false,"name":"fax","type":"bytes"}],"name":"LogNote","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]')
+                pos.asset = Token(address=pos.asset.address,
+                                  abi=MKR_TOKEN_ABI)
             else:
                 pos.asset = Token(address=pos.asset.address, abi=ERC_20_ABI)
 
@@ -85,15 +87,15 @@ class ValueAtRisk(ValueAtRiskBase):
             if key_col in df_hist:
                 continue
 
-            self.logger.info(f'Start loading {pos.asset.address}')
+            self.logger.info(f'Start loading {n_pos+1}/{total_n_pos} {pos.asset.address}')
             historical = (self.context.historical
-                          .run_model_historical('token.price-ext',  # 'uniswap-v3.get-average-price',  # 'token.price',
-                                                window=window_from_max_asOf,
+                          .run_model_historical('token.price-ext',
+                                                window=window_from_max_as_of,
                                                 interval=minimal_interval,
                                                 model_input=pos.asset,
-                                                end_timestamp=timestamp_max_asOf)
+                                                end_timestamp=timestamp_max_as_of)
                           .dict())
-            self.logger.info(f'Finished loading {pos.asset.address}')
+            self.logger.info(f'Finished loading {n_pos+1}/{total_n_pos} {pos.asset.address}')
 
             for p in historical['series']:
                 p['price'] = p['output']['price']
@@ -131,13 +133,13 @@ class ValueAtRisk(ValueAtRiskBase):
 
         var = {}
         res_arr = []
-        for asOf in asOfs:
-            asOf_str = asOf.strftime('%Y-%m-%d')
-            var[asOf_str] = {}
-            asOf_last = datetime(asOf.year, asOf.month, asOf.day,
-                                 23, 59, 59, tzinfo=timezone.utc)
+        for as_of in as_ofs:
+            as_of_str = as_of.strftime('%Y-%m-%d')
+            var[as_of_str] = {}
+            as_of_last = datetime(as_of.year, as_of.month, as_of.day,
+                                  23, 59, 59, tzinfo=timezone.utc)
             idx_last = df_hist.index.get_loc(
-                df_hist.index[df_hist['blockTime'] <= asOf_last][0])  # type: ignore
+                df_hist.index[df_hist['blockTime'] <= as_of_last][0])  # type: ignore
             df_current = df_hist.loc[:, key_cols].iloc[idx_last, :]
             dict_current = df_current.to_dict()
 
@@ -157,7 +159,7 @@ class ValueAtRisk(ValueAtRiskBase):
                 df_ret = df_ret.apply(lambda x: x - 1)
                 # assert np.all(df_ret.copy().rolling(1).agg(lambda x : x.prod()) == df_ret.copy())
 
-                var[asOf_str][ivl_str] = {}
+                var[as_of_str][ivl_str] = {}
                 df_value = pd.DataFrame()
                 for pos in input.portfolio.positions:
                     key_col = f'{pos.asset.address}'
@@ -172,8 +174,8 @@ class ValueAtRisk(ValueAtRiskBase):
 
                 for conf in input.confidences:
                     v = calc_var(ppl, conf)
-                    var[asOf_str][ivl_str][conf] = v
-                    res_arr.append((ivl_str, conf, asOf_str, v))
+                    var[as_of_str][ivl_str][conf] = v
+                    res_arr.append((ivl_str, conf, as_of_str, v))
 
                 if input.dev_mode:
                     df_current.to_csv(os.path.join('tmp', 'df_current.csv'), index=False)
@@ -182,14 +184,15 @@ class ValueAtRisk(ValueAtRiskBase):
 
         result = VaROutput(window=input.window, var=var)
 
-        df_res = (pd.DataFrame(res_arr, columns=['interval', 'confidence', 'asOf', 'var'])
-                  .sort_values(by=['interval', 'confidence', 'asOf', 'var'],
+        df_res = (pd.DataFrame(res_arr, columns=['interval', 'confidence', 'as_of', 'var'])
+                  .sort_values(by=['interval', 'confidence', 'as_of', 'var'],
                                ascending=[True, True, False, True]))
-        df_res.loc[:, 'interval'] = df_res.interval.apply(self.context.historical.parse_timerangestr)
-        df_res_p = (df_res.pivot(index=['asOf'],
+        df_res.loc[:, 'interval'] = df_res.interval.apply(
+            self.context.historical.parse_timerangestr)
+        df_res_p = (df_res.pivot(index=['as_of'],
                                  columns=['confidence', 'interval'],
                                  values='var')
-                    .sort_values('asOf', ascending=False)
+                    .sort_values('as_of', ascending=False)
                     .sort_index(axis=1)
                     .reset_index(drop=False))
         if input.dev_mode:

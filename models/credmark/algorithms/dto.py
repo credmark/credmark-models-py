@@ -11,20 +11,37 @@ from typing import (
 
 from credmark.types import (
     Portfolio,
+    Price,
+    Address,
+    Account,
 )
 
 from credmark.dto import (
     DTO,
     DTOField,
+    cross_examples,
 )
+
+# TODO: to be merged to framework
+
+
+class PriceList(DTO):
+    prices: List[Price]
+    tokenAddress: Address
+
+    class Config:
+        schema_extra: dict = {
+            'examples': cross_examples(Price.Config.schema_extra['examples'],
+                                       Account.Config.schema_extra['examples'])
+        }
 
 
 class VaRParameters(DTO):
     """
     VaRParameters contains only the VaR model parameters
     """
-    asOfs: Optional[List[date]]
-    asOf_is_range: Optional[bool] = DTOField(False)
+    as_ofs: Optional[List[date]]
+    as_of_is_range: Optional[bool] = DTOField(False)
     window: str
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
@@ -44,9 +61,19 @@ class VaRPortfolioInput(VaRParameters):
         validate_assignment = True
 
 
+class VaRPortfolioAndPriceInput(VaRPortfolioInput):
+    """
+    VaRPortfolioInput: calcualte VaR for a fixed portfolio
+    """
+    priceList: List[PriceList] = DTOField(default=[], description='List of prices')
+
+    class Config:
+        validate_assignment = True
+
+
 class VaROutput(DTO):
     window: str
-    # asOf/interval/confidence -> var
+    # as_of/interval/confidence -> var
     var: Dict[str, Dict[str, Dict[float, float]]]
 
 
@@ -65,4 +92,4 @@ class VaRAggregation(DTO):
 
 
 class VaRPPLAggregation(DTO):
-    asOf: date
+    as_of: date

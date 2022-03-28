@@ -6,6 +6,8 @@ from models.credmark.algorithms.tradeable import (
     ContractTradeable,
     Market,
     PortfolioManager,
+    EODPlan,
+    Cook,
 )
 
 from models.credmark.algorithms.risk_method import (
