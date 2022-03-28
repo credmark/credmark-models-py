@@ -30,6 +30,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run pylint
+        timeout-minutes: 10
         run: |
           pylint models
 
