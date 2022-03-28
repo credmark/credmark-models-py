@@ -19,17 +19,26 @@ from credmark.dto import (
 )
 
 
-class VaRPortfolioInput(DTO):
+class VaRParameters(DTO):
+    """
+    VaRParameters contains only the VaR model parameters
+    """
+    asOfs: Optional[List[date]]
+    asOf_is_range: Optional[bool] = DTOField(False)
+    window: str
+    intervals: List[str] = DTOField(...)
+    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
+    dev_mode: Optional[bool] = DTOField(False)
+
+    class Config:
+        validate_assignment = True
+
+
+class VaRPortfolioInput(VaRParameters):
     """
     VaRPortfolioInput: calcualte VaR for a fixed portfolio
     """
     portfolio: Portfolio
-    asOfs: Optional[List[date]]
-    asOf_is_range: Optional[bool] = DTOField(False)
-    dev_mode: Optional[bool] = DTOField(False)
-    window: str
-    intervals: List[str] = DTOField(...)
-    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
 
     class Config:
         validate_assignment = True
@@ -49,21 +58,6 @@ class PPLAggregationInput(DTO):
     ppl: List[float]
     confidence: List[float]
     var_or_es: Literal['es', 'var'] = DTOField('es')
-
-
-class VaRParameters(DTO):
-    """
-    VaRParameters contains only the VaR model parameters
-    """
-    asOfs: Optional[List[date]]
-    asOf_is_range: Optional[bool] = DTOField(False)
-    dev_mode: Optional[bool] = DTOField(False)
-    window: str
-    intervals: List[str] = DTOField(...)
-    confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
-
-    class Config:
-        validate_assignment = True
 
 
 class VaRAggregation(DTO):

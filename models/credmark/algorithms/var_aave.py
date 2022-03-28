@@ -5,6 +5,7 @@ from credmark.types import (
     Position,
     Portfolio,
     Token,
+    Address,
 )
 
 from models.credmark.protocols.lending.aave.aave_v2 import (
@@ -58,6 +59,9 @@ class ValueAtRiskAave(ValueAtRiskBase):
                 self.logger.info(f'{dbt.aToken.address=} {net_amt=} '
                                  f'from {aTokenSupply=}-{dbt.totalDebt=}')
                 portfolio.append(Position(amount=net_amt, asset=dbt.token))
+
+            # For DEBUG on certain type of token
+            # portfolio = [p for p in portfolio if p.asset.address == '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2']
 
             var_input = VaRPortfolioInput(portfolio=Portfolio(positions=portfolio),
                                           window=input.window,
