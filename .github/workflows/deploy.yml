@@ -1,0 +1,63 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test code
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Checkout build repo
+      uses: actions/checkout@v2
+      with:
+        repository: credmark/models-py-build
+        path: ./build-files
+        ssh-key: ${{ secrets.MODELS_PY_BUILD_DEPLOY_KEY }}
+
+    - name: Copy build files
+      run: ./build-files/scripts/copy-build-files.sh .
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build image to Amazon ECR and deploy lambda
+      id: build-deploy-lambda
+      env:
+        DOCKER_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        DOCKER_REPOSITORY: ${{ github.event.repository.name }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        # Build the lambda import and create/update lambda
+        # Name of the repo is the name of the lambda
+
+        ./build-files/scripts/deploy-lambda.sh $DOCKER_REPOSITORY
+
+    - name: Reload Runner Service
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        ./build-files/scripts/restart-runner-service.sh
+
+    - name: Log out of Amazon ECR
+      if: always()
+      run: docker logout ${{ steps.login-ecr.outputs.registry }}

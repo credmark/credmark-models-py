@@ -3,8 +3,8 @@ name: Verify Code and Test Models
 on:
   workflow_call:
   push:
-    branches:
-      - "**"
+    branches-ignore:
+      - "main"
   pull_request:
     branches:
       - "main"
