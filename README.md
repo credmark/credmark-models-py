@@ -417,6 +417,8 @@ All Models should import this class `import credmark.model` and can override the
 
 The `@credmark.model.describe()` decorator provides a simple interface to define the model properties such as slug, version, display_name, description, developer, input, output etc so that it can be used easily by consumers and other models.
 
+If description is not specified, the `__doc__` string of the model's class is used for the model description.
+
 See example [here](https://github.com/credmark/credmark-models-py/blob/main/models/examples/address_examples.py).
 
 ## Model Context
