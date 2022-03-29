@@ -87,8 +87,9 @@ class TokenPriceModel(credmark.model.Model):
                          output=Price)
 class TokenPriceModelExt(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        _ = input.decimals
-        breakpoint()
+        # _ = input.decimals
+        # _ = input.functions.implementation.call()
+
         uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
         if uniswap_v2.price is not None:
             return uniswap_v2
