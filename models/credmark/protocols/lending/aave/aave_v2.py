@@ -170,5 +170,4 @@ class AaveV2GetTokenAssetHistorical(credmark.model.Model):
             'aave.token-asset',
             model_input=input,
             window='5 days',
-            interval='1 day',
-            model_version='1.0')
+            interval='1 day')

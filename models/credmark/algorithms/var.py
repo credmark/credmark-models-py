@@ -9,11 +9,6 @@ import pandas as pd
 
 import credmark.model
 
-from credmark.types import (
-    Token,
-    Address,
-)
-
 from credmark.model import ModelRunError
 
 from models.credmark.algorithms.risk import (
@@ -28,7 +23,6 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.base import (
     ValueAtRiskBase
 )
-from models.tmp_abi_lookup import ERC_20_ABI, MKR_TOKEN_ABI
 
 
 @credmark.model.describe(slug='finance.var-reference',
@@ -51,20 +45,22 @@ class ValueAtRisk(ValueAtRiskBase):
         """
         parsed_intervals = [(self.context.historical
                              .parse_timerangestr(ii)) for ii in input.intervals]
-        unique_ivl_keys = list(set([x[0] for x in parsed_intervals]))
+        unique_ivl_keys = {x[0] for x in parsed_intervals}
         if unique_ivl_keys.__len__() != 1:
             raise ModelRunError(
                 f'There is more than one type of interval in input intervals={unique_ivl_keys}')
+        unique_ivl_key = unique_ivl_keys.pop()
+        del unique_ivl_keys
 
-        minimal_interval = f'1 {unique_ivl_keys[0]}'
-        minimal_interval_seconds = self.context.historical.range_timestamp(unique_ivl_keys[0], 1)
+        minimal_interval = f'1 {unique_ivl_key}'
+        minimal_interval_seconds = self.context.historical.range_timestamp(unique_ivl_key, 1)
 
         w_k, w_i = self.context.historical.parse_timerangestr(input.window)
         w_seconds = self.context.historical.range_timestamp(w_k, w_i)
 
         dict_as_of = self.set_window(input)
         as_ofs = dict_as_of['as_ofs']
-        _block_max_as_of = dict_as_of['block_max_as_of']
+        __block_max_as_of = dict_as_of['block_max_as_of']
         timestamp_max_as_of = dict_as_of['timestamp_max_as_of']
         window_from_max_as_of = dict_as_of['window_from_max_as_of']
 
@@ -73,13 +69,6 @@ class ValueAtRisk(ValueAtRiskBase):
 
         total_n_pos = len(input.portfolio.positions)
         for n_pos, pos in enumerate(input.portfolio.positions):
-            if pos.asset.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
-                # TODO: MKR abi for symol
-                pos.asset = Token(address=pos.asset.address,
-                                  abi=MKR_TOKEN_ABI)
-            else:
-                pos.asset = Token(address=pos.asset.address, abi=ERC_20_ABI)
-
             if not pos.asset.address:
                 raise ModelRunError(f'Input position is invalid, {input}')
 

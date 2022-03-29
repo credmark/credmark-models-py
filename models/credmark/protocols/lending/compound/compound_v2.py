@@ -9,7 +9,6 @@ from credmark.types import (
 
 from models.tmp_abi_lookup import (
     COMPOUND_ABI,
-    ERC_20_ABI,
     ERC_20_TOKEN_CONTRACT_ABI,
     COMPOUND_CTOKEN_CONTRACT_ABI,
 )
@@ -47,9 +46,6 @@ class CompoundGetAssets(credmark.model.Model):
             return default
 
     def run(self, input: Token) -> dict:
-        # TODO: remove abi
-        input = Token(address=input.address, abi=ERC_20_ABI)
-
         if not input.address:
             raise ModelRunError(f'Input token is invalid, {input}')
 
@@ -62,9 +58,9 @@ class CompoundGetAssets(credmark.model.Model):
 
         # converting the address to 'Address' type for safety
         comp_asset = contract.functions.markets(input.address.checksum).call()
-        tokencontract = Contract(address=input.address.checksum, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        symbol = self.try_or(lambda: tokencontract.functions.symbol().call())
-        decimals = tokencontract.functions.decimals().call()
+        token = Token(address=input.address.checksum)
+        symbol = token.symbol
+        decimals = token.decimals
         totalSupply = comp_asset[3]/pow(10, decimals)
         totalBorrows = comp_asset[6]/pow(10, decimals)
         output[symbol] = {'totalsupply': totalSupply, 'totalborrow': totalBorrows}
@@ -79,23 +75,19 @@ class CompoundGetAssets(credmark.model.Model):
                          input=Token)
 class CompoundV2GetTokenLiability(credmark.model.Model):
     def run(self, input: Token) -> dict:
-        if not input.address:
-            raise ModelRunError(f'Input token is invalid, {input}')
-
         output = {}
-        tokenContract = Contract(
-            address=input.address.checksum,
-            abi=ERC_20_TOKEN_CONTRACT_ABI)
 
-        symbol = tokenContract.functions.symbol().call()
+        symbol = input.symbol
+        if symbol is None:
+            raise ModelRunError('Input token is invalid')
+
         cTokenAddress = Address(COMPOUND_ASSETS[symbol]).checksum
-        cTokenContract = Contract(
-            address=cTokenAddress,
-            abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+        cToken = Token(address=cTokenAddress,
+                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 
-        totalLiquidity = cTokenContract.functions.totalSupply().call()
-        totalBorrows = cTokenContract.functions.totalBorrows().call()
-        decimals = cTokenContract.functions.decimals().call()
+        totalLiquidity = cToken.functions.totalSupply().call()
+        totalBorrows = cToken.functions.totalBorrows().call()
+        decimals = cToken.functions.decimals().call()
         totalLiquidity = float(totalLiquidity)/pow(10, decimals)
         totalBorrows = float(totalBorrows)/pow(10, decimals)
 
@@ -122,13 +114,12 @@ class CompoundV2GetTokenAsset(credmark.model.Model):
 
         symbol = tokenContract.functions.symbol().call()
         cTokenAddress = Address(COMPOUND_ASSETS[symbol]).checksum
-        cTokenContract = Contract(
-            address=cTokenAddress,
-            abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+        cToken = Token(address=cTokenAddress,
+                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 
-        getCash = cTokenContract.functions.getCash().call()
-        totalReserves = cTokenContract.functions.totalReserves().call()
-        decimals = cTokenContract.functions.decimals().call()
+        getCash = cToken.functions.getCash().call()
+        totalReserves = cToken.functions.totalReserves().call()
+        decimals = cToken.functions.decimals().call()
         getCash = float(getCash)/pow(10, decimals)
         totalReserves = float(totalReserves)/pow(10, decimals)
 

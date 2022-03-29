@@ -55,10 +55,10 @@ class CurveFinanceReserveRatio(credmark.model.Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
         # Verify input address can create a contract
-        _pool_address = input.address
-        _pool_contract = Contract(address=_pool_address.checksum, abi=CURVE_SWAP_ABI_1)
+        __pool_address = input.address
+        __pool_contract = Contract(address=__pool_address.checksum, abi=CURVE_SWAP_ABI_1)
 
-        res = self.context.historical.run_model_historical('curve-fi-pool-info',
+        res = self.context.historical.run_model_historical('curve-fi.pool-info',
                                                            window='60 days',
                                                            interval='7 days',
                                                            model_input={
@@ -188,7 +188,8 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
     def run(self, input: Contract) -> dict:
         yields = []
 
-        for addr in self.context.models.curve_fi.all_gauge_claim_addresses(input):
+        accounts = Accounts(**self.context.models.curve_fi.all_gauge_claim_addresses(input))
+        for addr in accounts:
             if not addr.address:
                 raise ModelRunError(f'Input is invalid, {input}')
 
@@ -220,18 +221,11 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         pool_info = self.context.models.curve_fi.pool_info(
             Contract(address=input.functions.lp_token().call()))
 
-        addrs = self.context.run_model('curve-fi.all-gauge-addresses', input)
-
-        gauge_input = {
-            "gaugeAddress": input.address,
-            "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
-        }
-
         res = self.context.historical.run_model_historical(
-            'curve-fi-get-gauge-stake-and-claimable-rewards',
+            'curve-fi.get-gauge-stake-and-claimable-rewards',
             window='60 days',
             interval='7 days',
-            model_input=gauge_input)
+            model_input=input)
 
         yields = []
         for idx in range(0, len(res.series) - 1):
@@ -291,7 +285,7 @@ class CurveFinanceAllYield(credmark.model.Model):
         #          "0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1", "0x8101E6760130be2C8Ace79643AB73500571b7162"]
 
         for gauge in gauges:
-            yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
+            yields = self.context.run_model('curve-fi.gauge-yield', Token(address=gauge))
             self.logger.info(yields)
             res.append(yields)
 

@@ -22,7 +22,6 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.base import (
     ValueAtRiskBase,
 )
-from models.tmp_abi_lookup import ERC_20_ABI
 
 
 @credmark.model.describe(slug='finance.var-aave',
@@ -56,7 +55,7 @@ class ValueAtRiskAave(ValueAtRiskBase):
             portfolio = []
             self.logger.info('Aave net asset = Asset - liability')
             for dbt in debts:
-                dbt.aToken = Token(address=dbt.aToken.address, abi=ERC_20_ABI)
+                dbt.aToken = Token(address=dbt.aToken.address)
                 aTokenSupply = dbt.aToken.functions.totalSupply().call()
                 net_amt = aTokenSupply - dbt.totalDebt
                 self.logger.info(f'{dbt.aToken.address=} {net_amt=} '

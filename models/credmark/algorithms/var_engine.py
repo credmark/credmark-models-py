@@ -148,16 +148,19 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
 
         parsed_intervals = [(self.context.historical
                              .parse_timerangestr(ii)) for ii in input.intervals]
-        unique_ivl_keys = list(set([x[0] for x in parsed_intervals]))
+        unique_ivl_keys = {x[0] for x in parsed_intervals}
         if unique_ivl_keys.__len__() != 1:
             raise ModelRunError(
                 f'There is more than one type of interval in input intervals={unique_ivl_keys}')
+        unique_ivl_key = unique_ivl_keys.pop()
+        del unique_ivl_keys
 
-        minimal_interval = f'1 {unique_ivl_keys[0]}'
+        minimal_interval = f'1 {unique_ivl_key}'
 
         var_result = {}
         for as_of in as_ofs:
             as_of_str = as_of.strftime('%Y-%m-%d')
+            self.logger.info(f'Calculating VaR for {as_of_str}')
             var_result[as_of_str] = {}
             as_of_dt = datetime.combine(as_of, datetime.max.time(), tzinfo=timezone.utc)
 

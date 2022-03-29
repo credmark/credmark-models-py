@@ -13,7 +13,6 @@ from models.tmp_abi_lookup import (UNISWAP_QUOTER_ABI,
                                    UNISWAP_FACTORY_ADDRESS,
                                    UNISWAP_DAI_V1_ABI,
                                    UNISWAP_DAI_V1_ADDRESS,
-                                   ERC_20_ABI,
                                    UNISWAP_V3_SWAP_ROUTER_ABI,
                                    UNISWAP_V3_SWAP_ROUTER_ADDRESS)
 
@@ -37,8 +36,7 @@ class UniswapRouterPricePair(credmark.model.Model):
         inTokenAddress = Address(DAI_ADDRESS).checksum
         outTokenAddress = input.tokenAddress.checksum
 
-        # TODO: remove abi
-        decimals = Token(address=outTokenAddress, abi=ERC_20_ABI).decimals
+        decimals = Token(address=outTokenAddress).decimals
 
         fee = 10000
         sqrtPriceLimitX96 = 0

@@ -27,8 +27,6 @@ from credmark.dto import (
 )
 from typing import List, Union
 
-from models.tmp_abi_lookup import ERC_20_ABI
-
 
 @credmark.model.describe(
     slug="token.info",
@@ -73,46 +71,34 @@ class TokenPriceModel(credmark.model.Model):
         sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
         if sushiswap.price is not None:
             prices.append(sushiswap)
-        average_price = 0
         if len(prices) > 0:
             average_price = sum([p.price for p in prices]) / len(prices)
-        return Price(price=average_price)
-
-# TODO: to be merged to framework
-
-
-class PriceExt(DTO):
-    price: Union[float, None] = DTOField(None, description='Value of one Token')
-    src: Union[str, None] = DTOField(None, description='Source')
-
-    class Config:
-        schema_extra: dict = {
-            'examples': [{'price': 4.2, 'src': 'uniswap-v3'}]
-        }
+            return Price(price=average_price, src='token.price')
+        else:
+            return Price(price=None, src='token.price')
 
 
 @credmark.model.describe(slug='token.price-ext',
                          version='1.0',
                          display_name='Token Price',
-                         description='The Current Credmark Supported Price Algorithm',
+                         description='The Current Credmark Supported Price Algorithm (fast)',
                          developer='Credmark',
                          input=Token,
-                         output=PriceExt)
+                         output=Price)
 class TokenPriceModelExt(credmark.model.Model):
-    def run(self, input: Token) -> PriceExt:
-        uniswap_v2 = PriceExt(
-            **self.context.models.uniswap_v2.get_average_price(input), src='uniswap_v2')
+    def run(self, input: Token) -> Price:
+        _ = input.decimals
+        breakpoint()
+        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
         if uniswap_v2.price is not None:
             return uniswap_v2
-        uniswap_v3 = PriceExt(
-            **self.context.models.uniswap_v3.get_average_price(input), src='uniswap_v3')
+        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
         if uniswap_v3.price is not None:
             return uniswap_v3
-        sushiswap = PriceExt(
-            **self.context.models.sushiswap.get_average_price(input), src='sushiswap')
+        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
         if sushiswap.price is not None:
             return sushiswap
-        return PriceExt(price=None, src=None)
+        return Price(price=None, src='token.price-ext')
 
 
 @credmark.model.describe(slug='token.holders',
@@ -196,12 +182,7 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
                          output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(credmark.model.Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
-        # TODO: remove abi
-        input.token = Token(address=input.token.address, abi=ERC_20_ABI)
         response = CategorizedSupplyResponse(**input.dict())
-
-        # TODO: remove abi
-        # response.token = Token(address=response.token.address, abi=ERC_20_ABI)
 
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.token.price(input.token))
@@ -210,7 +191,7 @@ class TokenCirculatingSupply(credmark.model.Model):
         for c in response.categories:
             for account in c.accounts:
                 c.amountScaled += response.token.scaled(
-                    response.token.functions.balanceOf(account.address))
+                    response.token.functions.balanceOf(account.address).call())
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
         response.categories.append(CategorizedSupplyResponse.CategorizedSupplyCategory(

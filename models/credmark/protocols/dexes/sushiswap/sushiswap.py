@@ -11,13 +11,10 @@ from credmark.dto import (
 )
 
 from models.tmp_abi_lookup import (
-    MKR_TOKEN_ABI,
     SUSHISWAP_FACTORY_ADDRESS,
     SUSHISWAP_FACTORY_ABI,
     SUSHISWAP_PAIRS_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
     UNISWAP_V2_SWAP_ABI,
-    ERC_20_ABI,
 )
 
 
@@ -84,12 +81,6 @@ class SushiswapGetPair(credmark.model.Model):
                          description="Returns the token details of the pool",
                          input=Contract)
 class SushiswapGetPairDetails(credmark.model.Model):
-    def try_or(self, func, default=None, expected_exc=(Exception,)):
-        try:
-            return func()
-        except expected_exc:
-            return default
-
     def run(self, input: Contract):
         output = {}
         self.logger.info(f'{input=}')
@@ -97,21 +88,17 @@ class SushiswapGetPairDetails(credmark.model.Model):
             address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
         )
-        token0 = contract.functions.token0().call()
-        token1 = contract.functions.token1().call()
+        token0 = Token(address=contract.functions.token0().call())
+        token1 = Token(address=contract.functions.token1().call())
         getReserves = contract.functions.getReserves().call()
 
-        token0_instance = Contract(
-            address=token0, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token0_name = self.try_or(lambda: token0_instance.functions.name().call())
-        _token0_symbol = self.try_or(lambda: token0_instance.functions.symbol().call())
-        _token0_decimals = token0_instance.functions.decimals().call()
+        _token0_name = token0.name
+        _token0_symbol = token0.symbol
+        _token0_decimals = token0.decimals
 
-        token1_instance = Contract(
-            address=token1, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token1_name = self.try_or(lambda: token1_instance.functions.name().call())
-        _token1_symbol = self.try_or(lambda: token1_instance.functions.symbol().call())
-        _token1_decimals = token1_instance.functions.decimals().call()
+        _token1_name = token1.name
+        _token1_symbol = token1.symbol
+        _token1_decimals = token1.decimals
 
         token0_reserve = getReserves[0]/pow(10, _token0_decimals)
         token1_reserve = getReserves[1]/pow(10, _token1_decimals)
@@ -159,13 +146,6 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
                          output=Price)
 class SushiswapGetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        # TODO: remove ABI
-        if input.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
-            # TODO: MKR abi for symol
-            input = Token(address=input.address, abi=MKR_TOKEN_ABI)
-        else:
-            input = Token(address=input.address, abi=ERC_20_ABI)
-
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -178,8 +158,7 @@ class SushiswapGetAveragePrice(credmark.model.Model):
         for pool in pools:
             reserves = pool.functions.getReserves().call()
             if input.address == pool.functions.token0().call():
-                # TODO: remove ABI
-                token1 = Token(address=pool.functions.token1().call(), abi=ERC_20_ABI)
+                token1 = Token(address=pool.functions.token1().call())
 
                 reserve = reserves[0]
                 price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
@@ -191,8 +170,7 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                                                             return_type=Price).price
                     price = price * weth_price
             else:
-                # TODO: remove ABI
-                token0 = Token(address=pool.functions.token0().call(), abi=ERC_20_ABI)
+                token0 = Token(address=pool.functions.token0().call())
                 reserve = reserves[1]
                 price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
                 if token0.symbol == 'WETH':
@@ -203,5 +181,6 @@ class SushiswapGetAveragePrice(credmark.model.Model):
                     price = price * weth_price
             prices.append((price, reserve))
         if len(prices) == 0:
-            return Price(price=None)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+            return Price(price=None, src='sushiswap')
+        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+                     src='sushiswap')

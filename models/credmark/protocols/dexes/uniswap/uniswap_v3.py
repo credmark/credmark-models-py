@@ -21,8 +21,6 @@ from models.tmp_abi_lookup import (
     UNISWAP_V3_FACTORY_ADDRESS,
     UNISWAP_V3_POOL_ABI,
     WETH9_ADDRESS,
-    ERC_20_ABI,
-    MKR_TOKEN_ABI,
 )
 
 
@@ -60,7 +58,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
             return Contracts(contracts=[])
 
         uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
-                                   abi=UNISWAP_V3_FACTORY_ABI).instance
+                                   abi=UNISWAP_V3_FACTORY_ABI)
 
         pools = []
 
@@ -88,7 +86,7 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
         except ModelDataError:
             input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
 
-        pool = input.instance
+        pool = input
 
         slot0 = pool.functions.slot0().call()
         token0 = pool.functions.token0().call()
@@ -121,13 +119,6 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
                          output=Price)
 class UniswapV3GetAveragePrice(credmark.model.Model):
     def run(self, input: Token) -> Price:
-        # TODO: remove ABI
-        if input.address == Address('0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'):
-            # TODO: MKR abi for symol
-            input = Token(address=input.address, abi=MKR_TOKEN_ABI)
-        else:
-            input = Token(address=input.address, abi=ERC_20_ABI)
-
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -138,11 +129,6 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                                    return_type=UniswapV3PoolInfo)
             for p in pools
         ]
-
-        # TODO: remove ABI
-        for info in infos:
-            info.token0 = Token(address=info.token0.address, abi=ERC_20_ABI)
-            info.token1 = Token(address=info.token1.address, abi=ERC_20_ABI)
 
         prices = []
         weth_prices = None
@@ -165,11 +151,10 @@ class UniswapV3GetAveragePrice(credmark.model.Model):
                 prices.append(tick_price)
 
         if len(prices) == 0:
-            return Price(price=None)
+            return Price(price=None, src='uniswap_v3')
 
         price = sum(prices) / len(prices)
-
-        return Price(price=price)
+        return Price(price=price, src='uniswap_v3')
 
 
 class HistoricalPriceDTO(DTO):

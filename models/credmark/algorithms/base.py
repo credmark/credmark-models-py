@@ -13,25 +13,9 @@ from credmark.model import (
 )
 from credmark.dto import (
     DTO,
-    EmptyInput,
 )
 
 import pandas as pd
-
-
-@credmark.model.describe(slug='finance.get-one',
-                         version='1.0',
-                         display_name='Get Block History',
-                         description='Get Block History',
-                         output=dict)
-class GetBlockHistory(credmark.model.Model):
-    # TODO: better integrate with history_utils to only retrieve the list of block numbers/timestamp
-    """
-    We are only interested in past block numbers
-    """
-
-    def run(self, input: EmptyInput) -> dict:
-        return {'x': 1}
 
 
 class ValueAtRiskBase(credmark.model.Model):

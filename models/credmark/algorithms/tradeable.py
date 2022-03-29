@@ -50,8 +50,8 @@ class Recipe(DTO):
 
 class Cook:
     def __init__(self, context, reset_cache=False, use_cache=True):
-        self._cache_file = os.path.join('tmp', 'chain.cache.pkl')
-        self._cache = {}
+        self._cache_file = os.path.join('tmp', f'chain_id_{context.chain_id}.cache.pkl')
+        self._cache = {'__log__': [datetime.now()]}
         self._cache_hit = 0
         self._total_hit = 0
         self._cache_saved = True
@@ -60,48 +60,58 @@ class Cook:
 
         if self._use_cache:
             if reset_cache:
-                self.save_cache()
+                self._save_cache()
             else:
-                self.load_cache()
+                self._load_cache()
 
     def __del__(self):
         if self._use_cache:
             self.print_cache()
             if not self._cache_saved:
-                self.save_cache()
+                self._save_cache()
 
-    def load_cache(self):
-        self._cache = {}
+    def _load_cache(self):
         try:
             if os.path.isfile(self._cache_file):
                 with open(self._cache_file, 'rb') as handle:
                     self._cache = pickle.load(handle)
+                    if '__log__' not in self._cache:
+                        self._cache['__log__'] = {}
+                    cache_log = self._cache['__log__']
+                    cache_log_info = (f'[{min(cache_log):%Y-%m-%d %H:%M:%S}] to '
+                                      f'[{max(cache_log):%Y-%m-%d %H:%M:%S}] '
+                                      f'for saved {len(cache_log)} times.')
+                    self._context.logger.info(
+                        f'Loaded local cache from {self._cache_file} '
+                        f'with {cache_log_info}')
         except EOFError:
-            self.save_cache()
+            self._save_cache()
 
-    def save_cache(self):
+    def _save_cache(self):
         cache_dir = os.path.dirname(self._cache_file)
         if not os.path.isdir(cache_dir):
             os.mkdir(cache_dir)
         with open(self._cache_file, 'wb') as handle:
+            self._cache['__log__'].append(datetime.now())
             pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    @property
+    @ property
     def context(self):
         return self._context
 
-    @property
+    @ property
     def cache_hit(self):
         return self._cache_hit
 
-    @property
+    @ property
     def total_hit(self):
         return self._total_hit
 
     def print_cache(self):
-        self._context.logger.info(
-            f'Local cache hit {self.cache_hit} for {self.total_hit} requests '
-            f'rate={self.cache_hit/self.total_hit*100:.1f}%')
+        if self.total_hit != 0:
+            self._context.logger.info(
+                f'Local cache hit {self.cache_hit} for {self.total_hit} requests '
+                f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
     def cook(self, rec: Recipe):
         result = None
@@ -135,7 +145,7 @@ class Plan:
         self._target = target
         self._data = data
 
-    @abstractmethod
+    @ abstractmethod
     def execute(self, cook):
         pass
 
@@ -158,7 +168,7 @@ class HistoricalBlockPlan(Plan):
 
     def execute(self, cook):
         method = 'run_model_historical'
-        slug = 'finance.get-one'
+        slug = 'example.echo'
         as_of = self._data['as_of']
         window = self._data['window']
         interval = self._data['interval']
@@ -171,12 +181,13 @@ class HistoricalBlockPlan(Plan):
         else:
             raise ModelRunError(f'Unsupported {as_of=}')
 
-        _as_of_block = cook.context.block_number.from_timestamp(as_of_timestamp)
+        __as_of_block = cook.context.block_number.from_timestamp(as_of_timestamp)
 
         recipe = Recipe(key=f'{method}.{slug}.{window}.{interval}.{as_of_timestamp}',
                         target_key=self._target.key,
                         method='run_model_historical',
-                        input={'model_slug': slug, 'window': window,
+                        input={'model_input': '',
+                               'model_slug': slug, 'window': window,
                                'interval': interval, 'end_timestamp': as_of_timestamp},
                         post_proc=self.post_proc_block_series
                         )
@@ -258,23 +269,23 @@ class Tradeable:
         self.__tid = tid
         self.__traces = traces
 
-    @property
+    @ property
     def tid(self):
         return self.__tid
 
-    @property
+    @ property
     def traces(self):
         return self.__traces
 
-    @abstractmethod
+    @ abstractmethod
     def requires(self) -> Generator[MarketTarget, None, None]:
         pass
 
-    @abstractmethod
+    @ abstractmethod
     def value(self, new_as_of, mkt, mkt_adj=lambda x: x) -> float:
         pass
 
-    @abstractmethod
+    @ abstractmethod
     def value_scenarios(self, new_as_of, mkt, mkt_scenarios) -> pd.Series:
         pass
 
@@ -289,7 +300,7 @@ class TokenTradeable(Tradeable):
         self._init_price = init_price
         self._key = f'Token.{self._token.address}'
 
-    @property
+    @ property
     def key(self):
         return self._key
 
@@ -353,7 +364,7 @@ class PortfolioManager:
         self._as_of = as_of
         self._cook = Cook(context)
 
-    @classmethod
+    @ classmethod
     def from_portfolio(cls, as_of, portfolio: Portfolio, context):
         trades = []
         for (pos_n, pos) in enumerate(portfolio.positions):
