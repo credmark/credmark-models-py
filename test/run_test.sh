@@ -106,13 +106,18 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 test_model 0 example.token-loading '{}'
+test_model 0 token.price '{"symbol": "WETH"}'
 test_model 0 token.price '{"symbol": "CMK"}'
 test_model 0 token.price '{"symbol": "AAVE"}'
 test_model 0 token.price '{"symbol": "USDC"}'
+test_model 0 token.price '{"symbol": "MKR"}'
+# Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
+test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}'
+# RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
+test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}'
+
 test_model 0 token.price-ext '{"symbol": "CMK"}'
-# RenFil token
-test_model 0 token.price-ext '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}'
-test_model 0 price '{"symbol": "CMK"}'
+
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
 test_model 0 token.info '{"symbol":"CMK"}'

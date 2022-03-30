@@ -87,6 +87,7 @@ class TokenPriceModel(credmark.model.Model):
                          output=Price)
 class TokenPriceModelExt(credmark.model.Model):
     def run(self, input: Token) -> Price:
+        _ = input.proxy_for
         # _ = input.decimals
         # _ = input.functions.implementation.call()
 

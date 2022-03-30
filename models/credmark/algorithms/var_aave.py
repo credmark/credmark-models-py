@@ -16,12 +16,50 @@ from models.credmark.protocols.lending.aave.aave_v2 import (
 from models.credmark.algorithms.dto import (
     VaRParameters,
     VaRPortfolioInput,
-    VaROutput
+    VaROutput,
 )
 
-from models.credmark.algorithms.base import (
+from models.credmark.algorithms.risk import (
     ValueAtRiskBase,
+    Plan,
+    Recipe,
+    MarketTarget,
 )
+
+
+class AaveDebtHistorical(Plan):
+    def post_proc(self, context, data):
+        debts = AaveDebtInfos(**data)
+        positions = []
+        context.logger.info('Aave net asset = Asset - liability')
+        n_debts = len(data['aaveDebtInfos'])  # type: ignore
+        for n_dbt, dbt in enumerate(debts):
+            context.logger.info(f'{n_dbt+1}/{n_debts} '
+                                f'Token info: {dbt.token.symbol=} {dbt.token.address=} '
+                                f'{dbt.token.name=} {dbt.token.total_supply=} '
+                                f'{dbt.token.decimals=}')
+            dbt.aToken = Token(address=dbt.aToken.address)
+            aTokenSupply = dbt.aToken.functions.totalSupply().call()
+            net_amt = aTokenSupply - dbt.totalDebt
+            context.logger.info(f'{dbt.aToken.address=} {net_amt=} '
+                                f'from {aTokenSupply=}-{dbt.totalDebt=}')
+            positions.append(Position(amount=net_amt, asset=dbt.token))
+        return Portfolio(positions=positions)
+
+    def define(self, cook):
+        method = 'run_model'
+        slug = 'aave.lending-pool-assets'
+        block_number = self._data['block_number']
+
+        recipe = Recipe(key=f'{method}.{slug}.{block_number}',
+                        target_key=self._target.key,
+                        method=method,
+                        input={'slug': slug,
+                               'block_number': block_number},
+                        post_proc=self.post_proc,
+                        return_type=self._return_type,
+                        )
+        return cook.cook(recipe)
 
 
 @credmark.model.describe(slug='finance.var-aave',
@@ -45,37 +83,39 @@ class ValueAtRiskAave(ValueAtRiskBase):
         window = ''
         var_result = {}
         for as_of in as_ofs:
+            as_of_str = as_of.strftime('%Y-%m-%d')
             eod = self.eod_block(as_of)
 
-            debts = self.context.run_model(
-                'aave.lending-pool-assets',
-                return_type=AaveDebtInfos,  # type: ignore
-                block_number=eod['block'])
+            tag = 'eod'
+            aave_tgt = MarketTarget(key=f'AaveDebtHistorical.{tag}.{eod["block"]}', artifact=None)
 
-            portfolio = []
-            self.logger.info('Aave net asset = Asset - liability')
-            for dbt in debts:
-                dbt.aToken = Token(address=dbt.aToken.address)
-                aTokenSupply = dbt.aToken.functions.totalSupply().call()
-                net_amt = aTokenSupply - dbt.totalDebt
-                self.logger.info(f'{dbt.aToken.address=} {net_amt=} '
-                                 f'from {aTokenSupply=}-{dbt.totalDebt=}')
-                portfolio.append(Position(amount=net_amt, asset=dbt.token))
+            aave_debts_plan = AaveDebtHistorical(tag,
+                                                 aave_tgt,
+                                                 slug='AaveDebtHistorical',
+                                                 context=self.context,
+                                                 return_type=Portfolio,
+                                                 block_number=eod['block'])
+            portfolio = aave_debts_plan.execute()
+
+            self.logger.info(
+                f'Loaded Aave portfolio of {len(portfolio.positions)} '  # type: ignore
+                f'assets as of {as_of_str}')
 
             # For DEBUG on certain type of token
             # portfolio = [p for p in portfolio
-            # if p.asset.address == '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2']
+            # if p.asset.address == '0x0000000000085d4780B73119b644AE5ecd22b376']
 
-            var_input = VaRPortfolioInput(portfolio=Portfolio(positions=portfolio),
+            var_input = VaRPortfolioInput(portfolio=portfolio,  # type: ignore
                                           window=input.window,
                                           intervals=input.intervals,
                                           confidences=input.confidences,
-                                          as_ofs=[as_of.strftime('%Y-%m-%d')],
+                                          as_ofs=[as_of_str],
                                           as_of_is_range=False,
-                                          dev_mode=False)
+                                          dev_mode=True)
 
             var_out = self.context.run_model(
-                'finance.var-engine',  # 'finance.var',
+                # 'finance.var-reference',
+                'finance.var-engine',
                 input=var_input,
                 return_type=VaROutput)
             if window == '':

@@ -12,16 +12,13 @@ import credmark.model
 from credmark.model import ModelRunError
 
 from models.credmark.algorithms.risk import (
-    calc_var
+    calc_var,
+    ValueAtRiskBase,
 )
 
 from models.credmark.algorithms.dto import (
     VaRPortfolioInput,
     VaROutput
-)
-
-from models.credmark.algorithms.base import (
-    ValueAtRiskBase
 )
 
 

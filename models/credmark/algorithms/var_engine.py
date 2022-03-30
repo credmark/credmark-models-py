@@ -16,6 +16,7 @@ from models.credmark.algorithms.risk import (
     calc_var,
     PortfolioManager,
     Market,
+    ValueAtRiskBase,
 )
 
 from models.credmark.algorithms.dto import (
@@ -25,10 +26,6 @@ from models.credmark.algorithms.dto import (
     VaRPortfolioAndPriceInput,
     VaRPortfolioAndPriceOutput,
 
-)
-
-from models.credmark.algorithms.base import (
-    ValueAtRiskBase
 )
 
 import os
@@ -84,7 +81,10 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
         for shift in range(len_price_list - input.n_window - 1 + 1):
             var_result[shift] = {}
 
-            pm = PortfolioManager.from_portfolio(as_of_dt, input.portfolio, self.context)
+            pm = PortfolioManager.from_portfolio(as_of_dt,
+                                                 input.portfolio,
+                                                 context=self.context,
+                                                 slug=self.slug)
             base_mkt = {}
             for pl in input.priceList:
                 key_col = f'Token.{Address(pl.tokenAddress)}'
@@ -164,7 +164,10 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
             var_result[as_of_str] = {}
             as_of_dt = datetime.combine(as_of, datetime.max.time(), tzinfo=timezone.utc)
 
-            pm = PortfolioManager.from_portfolio(as_of_dt, input.portfolio, self.context)
+            pm = PortfolioManager.from_portfolio(as_of_dt,
+                                                 input.portfolio,
+                                                 context=self.context,
+                                                 slug=self.slug)
             base_mkt = pm.prepare_market('eod', as_of=as_of_dt)
             _ = pm.value(base_mkt)
 
