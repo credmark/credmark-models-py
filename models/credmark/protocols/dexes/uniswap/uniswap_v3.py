@@ -1,5 +1,7 @@
-from eth_abi.exceptions import InsufficientDataBytes
-from ast import Add
+from eth_abi.exceptions import (
+    InsufficientDataBytes
+)
+
 from typing import (
     Optional,
     Union,
@@ -74,7 +76,7 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
 
             return Contracts(contracts=pools)
         except InsufficientDataBytes:
-            # if self.context.block_number < 12369621:
+            # Or use this condition: if self.context.block_number < 12369621:
             return Contracts(contracts=[])
 
 

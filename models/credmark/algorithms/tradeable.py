@@ -51,10 +51,10 @@ class Recipe(DTO):
     return_type: Union[Type[DTO], None] = DTOField(default=None)
 
 
-class Cook:
+class Chef:
     def __init__(self, context, slug, reset_cache=False, use_cache=True, verbose=False):
         if slug is None or slug == '':
-            raise ModelRunError('Cook needs to be initialized with a non-empty slug.')
+            raise ModelRunError('Chef needs to be initialized with a non-empty slug.')
         self._cache_file = os.path.join('tmp', f'chain_id_{context.chain_id}_{slug}.cache.pkl')
         self._cache = {'__log__': [datetime.now()]}
         self._cache_hit = 0
@@ -71,7 +71,7 @@ class Cook:
             else:
                 self._load_cache()
         if self._verbose:
-            self._context.logger.info(f'=== Created cook {self} on {self._cache_file} ====')
+            self._context.logger.info(f'=== Dispatched Chef {self} on {self._cache_file} ====')
 
     def __del__(self):
         if self._use_cache:
@@ -80,7 +80,7 @@ class Cook:
             if not self._cache_saved:
                 self._save_cache()
         if self._verbose:
-            self._context.logger.info(f'=== Closing cook {self} on {self._cache_file} ===')
+            self._context.logger.info(f'=== Released Chef {self} on {self._cache_file} ===')
 
     def _load_cache(self):
         try:
@@ -178,7 +178,7 @@ class Plan:
                  target: MarketTarget,
                  slug: Union[str, None] = None,
                  context=None,
-                 cook=None,
+                 chef=None,
                  return_type=None,
                  reset_cache: bool = False,
                  verbose: bool = False,
@@ -187,56 +187,55 @@ class Plan:
         self._target = target
         self._data = data
         self._return_type = return_type
-        self._executed = False
         self._result = None
         self._verbose = verbose
 
-        self._cook = None
-        self._cook_internal = None
-        self._acquire_cook(cook, context, slug=slug, reset_cache=reset_cache, verbose=verbose)
+        self._chef = None
+        self._chef_internal = None
+        self._acquire_chef(chef, context, slug=slug, reset_cache=reset_cache, verbose=verbose)
 
     def __del__(self):
-        self._release_cook()
+        self._release_chef()
 
-    def _acquire_cook(self, cook, context, slug, reset_cache, verbose):
-        if context is None and cook is not None:
-            self._cook = cook
-            self._cook_internal = False
-        elif context is not None and cook is None:
-            self._cook = Cook(context, slug, reset_cache, verbose=verbose)
-            self._cook_internal = True
+    def _acquire_chef(self, chef, context, slug, reset_cache, verbose):
+        if context is None and chef is not None:
+            self._chef = chef
+            self._chef_internal = False
+        elif context is not None and chef is None:
+            self._chef = Chef(context, slug, reset_cache, verbose=verbose)
+            self._chef_internal = True
         else:
-            raise ModelRunError(f'Missing either context or cook to '
+            raise ModelRunError(f'Missing either context or chef to '
                                 f'execute a {self.__class__.__name__}')
 
-    def _release_cook(self):
-        if self._cook is not None:
+    def _release_chef(self):
+        if self._chef is not None:
             if self._verbose:
-                self._cook.context.logger.info(f'Finished executing {self._target.key}')
-                self._cook.cache_status()
-            if self._cook_internal:
-                del self._cook
-            self._cook = None
+                self._chef.context.logger.info(f'Finished executing {self._target.key}')
+                self._chef.cache_status()
+            if self._chef_internal:
+                del self._chef
+            self._chef = None
 
     def post_proc(self, _context, data):
         return data
 
     def execute(self):
-        if self._executed and self._cook is None and self._result is not None:
-            return self._result  # type: ignore
+        if self._chef is None:
+            return self._result
 
-        self._result = self.define(self._cook)
-        self._executed = True
-        self._release_cook()
+        self._chef.context.logger.info(f'Started executing {self._target.key}')
+        self._result = self.define(self._chef)
+        self._release_chef()
         return self._result  # type: ignore
 
     @abstractmethod
-    def define(self, cook):
+    def define(self, chef):
         ...
 
 
 class BlockFromTimestampPlan(Plan):
-    def define(self, cook) -> int:
+    def define(self, chef) -> int:
         method = 'block_number.from_timestamp'
         timestamp = self._data['timestamp']
 
@@ -244,7 +243,7 @@ class BlockFromTimestampPlan(Plan):
                         target_key=self._target.key,
                         method=method,
                         input={'timestamp': timestamp})
-        result = cook.cook(recipe)
+        result = chef.cook(recipe)
         return result
 
 
@@ -264,7 +263,7 @@ class HistoricalBlockPlan(Plan):
         return {'block_numbers': block_numbers,
                 'block_table': df_blocks}
 
-    def define(self, cook) -> dict:
+    def define(self, chef) -> dict:
         method = 'run_model_historical'
         slug = 'example.echo'
         as_of = self._data['as_of']
@@ -284,7 +283,7 @@ class HistoricalBlockPlan(Plan):
         block_plan = BlockFromTimestampPlan(self._tag,
                                             target,
                                             slug='BlockFromTimestampPlan',
-                                            cook=self._cook,
+                                            chef=self._chef,
                                             timestamp=as_of_timestamp)
         __as_of_block = block_plan.execute()
 
@@ -300,12 +299,12 @@ class HistoricalBlockPlan(Plan):
                         return_type=self._return_type
                         )
 
-        result = cook.cook(recipe)
+        result = chef.cook(recipe)
         return result
 
 
 class EODPlan(Plan):
-    def define(self, cook) -> dict:
+    def define(self, chef) -> dict:
         if self._tag == 'eod':
             as_of = self._data['as_of']
             window = '1 day'
@@ -322,7 +321,7 @@ class EODPlan(Plan):
         pre_plan = HistoricalBlockPlan(self._tag,
                                        target,
                                        slug='HistoricalBlockPlan',
-                                       cook=self._cook,
+                                       chef=self._chef,
                                        as_of=as_of,
                                        window=window,
                                        interval=interval)
@@ -351,8 +350,8 @@ class EODPlan(Plan):
                                 'block_number': block_number},
                          )
 
-            rec_result = cook.cook(rec)
-            for k, v in rec_result.items():  # type: ignore
+            rec_result = chef.cook(rec)
+            for k, v in rec_result.items():
                 dish.loc[dish.blockNumber == rec.input['block_number'],
                          f'{rec.target_key}.{k}'] = v
 
@@ -471,20 +470,33 @@ class Market(dict):
 
 
 class PortfolioManager:
-    def __init__(self, trades: List[Tradeable], as_of, slug, reset_cache, context=None, cook=None, verbose=False):
+    def __init__(self,
+                 trades: List[Tradeable],
+                 as_of,
+                 slug,
+                 reset_cache,
+                 context=None,
+                 chef=None,
+                 verbose=False):
         self._trades = trades
         self._as_of = as_of
         self._verbose = verbose
-        if context is None and cook is not None:
-            self._cook = cook
-        elif context is not None and cook is None:
-            self._cook = Cook(context, slug, reset_cache=reset_cache, verbose=verbose)
+        if context is None and chef is not None:
+            self._chef = chef
+        elif context is not None and chef is None:
+            self._chef = Chef(context, slug, reset_cache=reset_cache, verbose=verbose)
         else:
-            raise ModelRunError(f'Missing either context or cook to '
+            raise ModelRunError(f'Missing either context or chef to '
                                 f'initialize a {self.__class__.__name__}')
 
     @ classmethod
-    def from_portfolio(cls, as_of, portfolio: Portfolio, context, slug, reset_cache=False, verbose=False):
+    def from_portfolio(cls,
+                       as_of,
+                       portfolio: Portfolio,
+                       context,
+                       slug,
+                       reset_cache=False,
+                       verbose=False):
         trades = []
         for (pos_n, pos) in enumerate(portfolio.positions):
             if not pos.asset.address:
@@ -506,9 +518,16 @@ class PortfolioManager:
     def prepare_market(self, tag, **data):
         mkt_target = dict(self.requires())
         if self._verbose:
-            self._cook.context.logger.info(f'Preparing market with {len(mkt_target)=}')
-        mkt = Market({key: EODPlan(tag, target, cook=self._cook, **data).execute()
+            self._chef.context.logger.info(f'Preparing market with {len(mkt_target)=} for {tag}')
+        mkt = Market({key: EODPlan(tag,
+                                   target,
+                                   chef=self._chef,
+                                   verbose=self._verbose,
+                                   **data).execute()
                       for key, target in mkt_target.items()})
+        if self._verbose:
+            self._chef.context.logger.info(
+                f'Finished preparing for market with {len(mkt_target)=} for {tag}')
         return mkt
 
     def value(self, mkt: Market, as_df=True, **data):

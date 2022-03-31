@@ -27,11 +27,11 @@ class VaRParameters(DTO):
     VaRParameters contains only the VaR model parameters
     """
     as_ofs: Optional[List[date]]
-    as_of_is_range: Optional[bool] = DTOField(False)
+    as_of_is_range: bool = DTOField(False)
     window: str
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
-    dev_mode: Optional[bool] = DTOField(False)
+    dev_mode: bool = DTOField(False)
 
     class Config:
         validate_assignment = True
@@ -56,7 +56,7 @@ class VaRPortfolioAndPriceInput(DTO):
     n_window: int
     n_intervals: List[int] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
-    dev_mode: Optional[bool] = DTOField(False)
+    dev_mode: bool = DTOField(False)
 
     class Config:
         validate_assignment = True

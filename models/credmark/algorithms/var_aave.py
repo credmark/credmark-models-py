@@ -46,7 +46,7 @@ class AaveDebtHistorical(Plan):
             positions.append(Position(amount=net_amt, asset=dbt.token))
         return Portfolio(positions=positions)
 
-    def define(self, cook):
+    def define(self, chef):
         method = 'run_model'
         slug = 'aave.lending-pool-assets'
         block_number = self._data['block_number']
@@ -59,7 +59,7 @@ class AaveDebtHistorical(Plan):
                         post_proc=self.post_proc,
                         return_type=self._return_type,
                         )
-        return cook.cook(recipe)
+        return chef.cook(recipe)
 
 
 @credmark.model.describe(slug='finance.var-aave',
@@ -93,6 +93,7 @@ class ValueAtRiskAave(ValueAtRiskBase):
                                                  aave_tgt,
                                                  slug='AaveDebtHistorical',
                                                  context=self.context,
+                                                 verbose=True,
                                                  return_type=Portfolio,
                                                  block_number=eod['block'])
             portfolio = aave_debts_plan.execute()

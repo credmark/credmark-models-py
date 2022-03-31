@@ -6,7 +6,7 @@ from models.credmark.algorithms.tradeable import (
     ContractTradeable,
     Market,
     PortfolioManager,
-    Cook,
+    Chef,
     EODPlan,
     Plan,
     Recipe,
