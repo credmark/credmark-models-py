@@ -60,7 +60,7 @@ run_model () {
         echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
     else
         if [ $gen_cmd -eq 1 ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}" >> $cmd_file
+            echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}" >> $cmd_file
         else
             echo "Running: ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
             ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}${other_opts}

@@ -79,11 +79,11 @@ echo_cmd ""
 echo_cmd "Run Historical Examples:"
 echo_cmd ""
 test_model 0 example.historical '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}'
+test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}'
 test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' # series.time-window-interval
 test_model 0 example.historical-snap '{}' series.time-start-end-interval
-test_model 0 example.historical-block '{}' # series.block-window-interval
+test_model 0 example.historical-block '{}' # series.block-window-intervaluni
 test_model 0 example.historical-block-snap '{}' # series.block-start-end-interval
-
 
 echo_cmd ""
 echo_cmd "Run Ledger Examples:"
@@ -187,6 +187,7 @@ test_model 0 uniswap-v3.get-average-price '{"symbol": "CMK"}'
 # TODO: USDC price wrong from USDC/DAI pool
 test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
 test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}'
+
 
 echo_cmd ""
 echo_cmd "Run SushiSwap Examples:"
