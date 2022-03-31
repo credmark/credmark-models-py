@@ -70,13 +70,12 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         weth_price = None
         for pool in pools:
             reserves = pool.functions.getReserves().call()
+            if reserves == [0, 0, 0]:
+                continue
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
                 reserve = reserves[0]
-                try:
-                    price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
-                except:
-                    breakpoint()
+                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
 
                 if token1.symbol == 'WETH':
                     if weth_price is None:
