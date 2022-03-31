@@ -11,15 +11,15 @@
 #     date,
 # )
 
-# import credmark.model
-# from credmark.model import ModelRunError
+# from credmark.cfm.model import Model
+# from credmark.cmf.model.errors import ModelRunError
 
 # from credmark.dto import (
 #     DTO,
 #     DTOField,
 # )
 
-# from credmark.types import (
+# from credmark.cmf.types import (
 #     Portfolio,
 #     Price,
 #     Address,
@@ -56,13 +56,13 @@
 #     var: Dict[str, Dict[str, Dict[float, float]]]
 
 
-# @credmark.model.describe(slug='finance.var',
+# @Model.describe(slug='finance.var',
 #                          version='1.0',
 #                          display_name='Value at Risk',
 #                          description='Value at Risk',
 #                          input=VaRInput,
 #                          output=VaROutput)
-# class ValueAtRisk(credmark.model.Model):
+# class ValueAtRisk(Model):
 #     def get_block_index(self):
 #         data = []
 #         for x in range(int(12e6), 14378699):

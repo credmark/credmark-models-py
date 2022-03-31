@@ -108,27 +108,27 @@ A model is essentially a python code file which implements the model class by su
 
 1. Create a folder in the [models/contrib folder](https://github.com/credmark/credmark-models-py/tree/main/models) that will hold all of your models, for example `models/contrib/my_models`. You can add models directly there or create subfolders as desired. Do not work in another contributer's folder.
 2. Create a python file, for example `model_foo.py` (again it can have any name as long as it ends in .py) in the folder you created in step 1.
-3. Ensure your model class inherits from the base Model class `credmark.model.Model`. Also, use decorator `@credmark.model.describe` to define the metadata for your model.
+3. Ensure your model class inherits from the base Model class `credmark.cmf.model.Model`. Also, use decorator `@Model.describe` to define the metadata for your model.
    Example:
 
 ```py
-import credmark.model
+from credmark.cmf.model import Model
 
-@credmark.model.describe(slug='contrib.echo',
+@Model.describe(slug='contrib.echo',
                    version='1.0',
                    display_name='Echo',
                    description="A test model to echo the message property sent in input.",
                    developer='Credmark',
                    input=EchoDto,
                    output=EchoDto)
-class EchoModel(credmark.model.Model):
+class EchoModel(Model):
     def run(self, input: EchoDto) -> EchoDto:
         return input
 ```
 
 The model class implements a `run(self, input)` method, which takes input data (as a dict or DTO (Data Transfer Object)) and returns a result dict or DTO (see later section DTO), with various properties and values, potentially nested with other JSON-compatible data structures.
 
-A special DTO `EmptyInput`, which is an empty DTO, is created for model with no input required. The model input is EmptyInput by default if `input` is not specified in the decorator `@credmark.model.describe`. If the model takes non-empty input, modeller can specify `input=dict` or create a DTO for more structured data.
+A special DTO `EmptyInput`, which is an empty DTO, is created for model with no input required. The model input is EmptyInput by default if `input` is not specified in the decorator `@Model.describe`. If the model takes non-empty input, modeller can specify `input=dict` or create a DTO for more structured data.
 
 A model can optionally implement a `init(self)` method which will be called when the instance is initialized and the `self.context` is available.
 
@@ -153,34 +153,36 @@ For the DTOs (Data Transfer Objects) we use the python module `pydantic` to defi
 The DTO used in the example above, for both the input and output, looks like this:
 
 ```py
-from credmark.types.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField
 
 class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 ```
 
-The `credmark-model-framework` defines many common data objects as DTOs and fields such as Address, Contract, Token, Position, Portfolio etc. They can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types)
+The `credmark-model-framework` defines many common data objects as DTOs and fields such as Address, Contract, Token, Position, Portfolio etc. They can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/types)
 
 - Example 1: Use Address in input/ouput DTOs
 
 The input data, e.g. `{"poolAddress":"0x..."}`, is converted to `Address` type. The property `.checksum` to get its checksum address.
 
 ```py
-from credmark.types import Address
+from credmark.cmf.model import Model
+from credmark.cmf.types import Address
 
 class PoolAddress(DTO):
     poolAddress: Address = DTOField(..., description='Address of Pool')
 
-@credmark.model.describe(...
+@Model.describe(...
                          input=PoolAddress)
-def run(self, input: PoolAddress):
+class AModel(Model):
+  def run(self, input: PoolAddress):
     address = input.poolAddress.checksum
 ```
 
 - Example 2: Use Address to auto-convert to checksum address.
 
 ```py
-from credmark.types import Address
+from credmark.cmf.types import Address
 
 def run(self, input):
     address = Address(wallet_adress)
@@ -190,7 +192,8 @@ def run(self, input):
 - Example 3: Pre-defined financial DTO to define input. Use it as object in the `run(self, input)`
 
 ```py
-from credmark.types import Portfolio
+from credmark.cmf.model import Model
+from credmark.cmf.types import Portfolio
 
 """
 # Portfolio is defined in the framework
@@ -201,13 +204,13 @@ class PortfolioSummary(DTO):
     num_tokens: int = DTOField(..., description='Number of different tokens')
 """
 
-@credmark.model.describe(slug='contrib.type-test-1',
+@Model.describe(slug='contrib.type-test-1',
                          version='1.0',
                          display_name='Test Model',
                          description='A Test Model',
                          input=Portfolio,
                          output=PortfolioSummary)
-class TestModel(credmark.model.Model):
+class TestModel(Model):
 
     def run(self, input: Portfolio) -> PortfolioSummary:
         return PortfolioSummary(num_tokens=len(input.positions))
@@ -411,11 +414,11 @@ In the following you will find the key components of every model.
 
 ## Model Class
 
-Credmark uses a simple base class called ‘Model’ class to set up a model. The actual code can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/base.py).
+Credmark uses a simple base class called ‘Model’ class to set up a model. The actual code can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/model/__init__.py).
 
-All Models should import this class `import credmark.model` and can override the run() method. See examples [here](https://github.com/credmark/credmark-models-py/tree/main/models/examples).
+All Models should import this class `import credmark.cmf.model` and can override the run() method. See examples [here](https://github.com/credmark/credmark-models-py/tree/main/models/examples).
 
-The `@credmark.model.describe()` decorator provides a simple interface to define the model properties such as slug, version, display_name, description, developer, input, output etc so that it can be used easily by consumers and other models.
+The `@Model.describe()` decorator provides a simple interface to define the model properties such as slug, version, display_name, description, developer, input, output etc so that it can be used easily by consumers and other models.
 
 If description is not specified, the `__doc__` string of the model's class is used for the model description.
 
@@ -425,7 +428,7 @@ See example [here](https://github.com/credmark/credmark-models-py/blob/main/mode
 
 Each model runs with a particular context, including the name of the blockchain, block number, and a configured web3 instance (among other things). The context can be passed along when the model calls other models. The context’s web3 instance can be used to make RPC calls.
 The `ModelContext()` Class sets up the context for the model to run and can be accessed from a model as `self.context`.
-The base code can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/context.py). It provides an interface for models to run other models, call contracts, get ledger data, use a web3 instance etc.
+The base code can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/model/context.py). It provides an interface for models to run other models, call contracts, get ledger data, use a web3 instance etc.
 
 It also enforces deterministic behavior for Models. The key utilities in `ModelContext` are
 
@@ -501,7 +504,7 @@ price = Price(**self.context.run_model('price', token))
 
 # has the same effect as:
 
-price = self.context.run_model('price', token, return_type=credmark.types.Price)
+price = self.context.run_model('price', token, return_type=credmark.cmf.types.Price)
 ```
 
 ### Web3
@@ -515,7 +518,7 @@ Credmark simplified the process of getting web3 instances of any contract from a
 
 The model context exposes the `context.contracts` property which can be used to get contracts by metadata or address. The contracts are instances of the `Contract` class which are configured and use the web3 instance at specified block number and specified chain id along with additional data based on `constructor_args`.
 
-Example code for contact class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/contract.py).
+Example code for contact class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/types/contract.py).
 
 Currently below parameters as argument are supported to fetched using Contracts:
 
@@ -545,18 +548,18 @@ Credmark allows access to in-house blockchain ledger data via ledger interface (
 - get_erc20_tokens
 - get_erc20_transfers
 
-Please refer [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/ledger/ledger.py) for the code of the `Ledger` class.
+Please refer [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/model/ledger/__init__.py) for the code of the `Ledger` class.
 
 ### Block number
 
 The `context.block_number` holds the block number for which a model is running. Models only have access to data at (by default) or before this block number (by instantiating a new context). In other words models cannot see into the future and ledger queries etc. will restrict access to data by this block number.
 As a subclass of int, the `block_number` class allows the provided block numbers to be treated as integers and hence enables arithmetic operations on block numbers. It also allows you to fetch the corresponding datetime and timestamp properties for the block number. This can be super useful in case we want to run any model iteratively for a certain block-interval or time-interval backwards from the block number provided in the context.
 
-Example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/types/data/block_number.py).
+Example code for the block-number class can be found [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/types/block_number.py).
 
 ### Historical Utility
 
-The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval.
+The historical utility, available at `context.historical` (see [here](https://github.com/credmark/credmark-model-framework-py/blob/main/credmark/cmf/model/utils/historical_util.py)), allows you to run a model over a series of blocks for any defined range and interval.
 
 Block ranges can be specified by blocks (either a window from current block or a start and end block) or by time (a window from the current block’s time or start and end time.) Times can be specified different units, i.e. year, month, week, day, hour, minute and second.
 
@@ -570,7 +573,7 @@ Models can raise a `ModelRunError` (or other Exception) to terminate a run.
 
 When a model calls `self.context.run_model()` to run another model, an exception can be raised by the called model which will be received by the caller. `run_model()` can raise `ModelDataError`, `ModelRunError`, `ModelInputError`, `ModelNotFoundError` and various other sublasses of `ModelBaseError`.
 
-The standard models are in `credmark.model.errors`.
+The standard models are in `credmark.cmf.model.errors`.
 
 In order for models to be consistently deterministic, the ONLY type of exception a model should catch and handle from a call to `run_model()` is a `ModelDataError`, which is considered a permanent error for the given context. All other errors are considered transient resource issues, coding errors, or conditions that may change in the future.
 
@@ -626,10 +629,9 @@ Some standard `code`s have been defined for `ModelDataError`s, available at `Mod
 If you want your model to raise ModelDataError errors, you should add a `ModelDataErrorDesc` to the `errors` arg of your model `describe()` decorator with a description of the codes you are using and what they mean. For example:
 
 ```python
-import credmark.model
-from credmark.model import EmptyInput, ModelDataErrorDesc
+from credmark.cmf.model import Model, EmptyInput, ModelDataErrorDesc
 
-@credmark.model.describe(slug='example.data-error',
+@Model.describe(slug='example.data-error',
                          version='1.0',
                          display_name='Data Error Example',
                          description="A test model to generate a ModelDataError.",
@@ -637,7 +639,7 @@ from credmark.model import EmptyInput, ModelDataErrorDesc
                          errors=ModelDataErrorDesc(
                              code=ModelDataError.Codes.NO_DATA,
                              code_desc='Data does not exist'))
-class ExampleModel(credmark.model.Model):
+class ExampleModel(Model):
 ```
 
 If you're using multiple codes, `ModelDataErrorDesc` also lets you pass in `codes` as a list of `(code, code_description)` tuples.
@@ -720,7 +722,7 @@ error = TokenAddressNotFoundError(message='Bad address',
 
 ## Additional Useful Modules
 
-We also have some built-in reusable type classes available under [Credmark.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/types).
+We also have some built-in reusable type classes available under [Credmark.cmf.types](https://github.com/credmark/credmark-model-framework-py/tree/main/credmark/cmf/types).
 
 We have created and grouped together different classes to manage input and output types to be used by models. These types include some standard blockchain and financial data structures as well as some standard input and output objects for Credmark models.
 
@@ -743,7 +745,7 @@ We have created and grouped together different classes to manage input and outpu
 
 Example:
 
-        from credmark.types import (Address, Contract)
+        from credmark.cmf.types import (Address, Contract)
 
         contract = Contract(
             # lending pool address
