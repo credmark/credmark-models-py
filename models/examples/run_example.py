@@ -1,4 +1,4 @@
-import credmark.model
+from credmark.cmf.model import Model
 
 from credmark.dto import DTO
 
@@ -13,7 +13,7 @@ class RunTestOut(DTO):
     output: dict
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='example.run-test',
     version='1.0',
     display_name='Runner test model',
@@ -21,7 +21,7 @@ class RunTestOut(DTO):
     developer='Credmark',
     input=RunTestIn,
     output=RunTestOut)
-class RunnerTestModel(credmark.model.Model):
+class RunnerTestModel(Model):
     """A test model that runs another model that's specified
     in the input. For example: {"model":"example.echo"}
     """

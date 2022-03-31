@@ -1,6 +1,6 @@
 # pylint: disable=locally-disabled, line-too-long
-import credmark.model
-from credmark.types import (
+from credmark.cmf.model import Model
+from credmark.cmf.types import (
     Address,
     Contract,
     Token
@@ -22,12 +22,12 @@ class UniswapQuoterPriceUsd(DTO):
     tokenAddress: Address
 
 
-@credmark.model.describe(slug='uniswap.quoter-price-usd',
-                         version='1.0',
-                         display_name='The Price of a Token on Uniswap in USD',
-                         description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
-                         input=UniswapQuoterPriceUsd)
-class UniswapRouterPricePair(credmark.model.Model):
+@Model.describe(slug='uniswap.quoter-price-usd',
+                version='1.0',
+                display_name='The Price of a Token on Uniswap in USD',
+                description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
+                input=UniswapQuoterPriceUsd)
+class UniswapRouterPricePair(Model):
 
     def run(self, input: UniswapQuoterPriceUsd) -> dict:
         """
@@ -57,11 +57,11 @@ class UniswapRouterPricePair(credmark.model.Model):
         return result
 
 
-@credmark.model.describe(slug='uniswap.router-price-usd',
-                         version='1.0',
-                         display_name='The Price of a Token on Uniswap with respect to another Token',
-                         description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
-class UniswapRouterPriceUsd(credmark.model.Model):
+@Model.describe(slug='uniswap.router-price-usd',
+                version='1.0',
+                display_name='The Price of a Token on Uniswap with respect to another Token',
+                description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
+class UniswapRouterPriceUsd(Model):
 
     def run(self, input) -> dict:
         """
@@ -75,11 +75,11 @@ class UniswapRouterPriceUsd(credmark.model.Model):
         return {}
 
 
-@credmark.model.describe(slug='uniswap.tokens',
-                         version='1.0',
-                         display_name='uniswap tokens',
-                         description='uniswap tokens')
-class UniswapTokens(credmark.model.Model):
+@Model.describe(slug='uniswap.tokens',
+                version='1.0',
+                display_name='uniswap tokens',
+                description='uniswap tokens')
+class UniswapTokens(Model):
 
     def run(self, input) -> dict:
         uniswap_factory_contract = Contract(
@@ -92,11 +92,11 @@ class UniswapTokens(credmark.model.Model):
         return {'value': allPairsLength}
 
 
-@credmark.model.describe(slug='uniswap.exchange',
-                         version='1.0',
-                         display_name='uniswap.exchange',
-                         description='uniswap.exchange')
-class UniswapExchange(credmark.model.Model):
+@Model.describe(slug='uniswap.exchange',
+                version='1.0',
+                display_name='uniswap.exchange',
+                description='uniswap.exchange')
+class UniswapExchange(Model):
 
     def run(self, input) -> dict:
         exchange_contract = Contract(

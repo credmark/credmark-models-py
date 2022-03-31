@@ -1,9 +1,8 @@
-import credmark.model
-from credmark.model import EmptyInput
-from credmark.types import Address
+from credmark.cmf.model import Model, EmptyInput
+from credmark.cmf.types import Address
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='example.address',
     version='1.0',
     display_name='Address Usage Examples',
@@ -11,9 +10,8 @@ from credmark.types import Address
     developer='Credmark',
     input=EmptyInput,
     output=dict)
-class ExampleAddress(credmark.model.Model):
+class ExampleAddress(Model):
     def run(self, input) -> dict:
-
         """
             This model demonstrates the functionality of the Address class
         """
@@ -47,4 +45,4 @@ class ExampleAddress(credmark.model.Model):
             f"{Address.valid('0xThIsIsNoTaVaLiDaDdReSsItSGaRbaGeLeTtErSs')}")
 
         return {"message": "see https://github.com/credmark/credmark-models-py"
-        "/blob/main/models/examples/address_examples.py for examples of Address usage"}
+                "/blob/main/models/examples/address_examples.py for examples of Address usage"}

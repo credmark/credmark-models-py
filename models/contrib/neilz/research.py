@@ -1,14 +1,13 @@
-from credmark.types import Address, Token
-from credmark.model.errors import ModelDataError
-from credmark.types.models.ledger import TokenTransferTable
-from credmark.types.data.block_number import BlockNumber
-import credmark.model
+from credmark.cmf.model import Model
+from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import EmptyInput
 
 from models.tmp_abi_lookup import ERC_20_ABI
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='contrib.neilz-redacted-votium-cashflow',
     version='1.1',
     display_name='Redacted Cartel Votium Cashflow',
@@ -16,7 +15,7 @@ from models.tmp_abi_lookup import ERC_20_ABI
     input=EmptyInput,
     output=dict
 )
-class RedactedVotiumCashflow(credmark.model.Model):
+class RedactedVotiumCashflow(Model):
     def run(self, input: None) -> dict:
         votium_claim_address = Address("0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A")
         redacted_multisig_address = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
@@ -46,7 +45,7 @@ class RedactedVotiumCashflow(credmark.model.Model):
         return transfers.dict()
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='contrib.neilz-redacted-convex-cashflow',
     version='1.1',
     display_name='Redacted Cartel Convex Cashflow',
@@ -54,7 +53,7 @@ class RedactedVotiumCashflow(credmark.model.Model):
     input=EmptyInput,
     output=dict
 )
-class RedactedConvexCashflow(credmark.model.Model):
+class RedactedConvexCashflow(Model):
     def run(self, input: None) -> dict:
         convex_addresses = [
             Address("0x72a19342e8F1838460eBFCCEf09F6585e32db86E"),

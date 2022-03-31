@@ -1,5 +1,5 @@
 from typing import List
-from credmark.types import Token
+from credmark.cmf.types import Token
 from credmark.dto import DTO, IterableListGenericDTO
 
 

@@ -1,19 +1,14 @@
-from typing import (
-    Optional,
-    Union,
-)
-
-import credmark.model
-from credmark.model.errors import ModelDataError
-from credmark.types import (
+from typing import Optional, Union
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import (
     Price,
     Token,
     Address,
     Contract,
     Contracts,
-    BlockSeries,
 )
-
+from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
@@ -39,13 +34,13 @@ class UniswapV3PoolInfo(DTO):
     token1: Token
 
 
-@credmark.model.describe(slug='uniswap-v3.get-pools',
-                         version='1.1',
-                         display_name='Uniswap v3 Token Pools',
-                         description='The Uniswap v3 pools that support a token contract',
-                         input=Token,
-                         output=Contracts)
-class UniswapV3GetPoolsForToken(credmark.model.Model):
+@Model.describe(slug='uniswap-v3.get-pools',
+                version='1.1',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                input=Token,
+                output=Contracts)
+class UniswapV3GetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
 
@@ -73,13 +68,13 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
         return Contracts(contracts=pools)
 
 
-@credmark.model.describe(slug='uniswap-v3.get-pool-info',
-                         version='1.1',
-                         display_name='Uniswap v3 Token Pools',
-                         description='The Uniswap v3 pools that support a token contract',
-                         input=Contract,
-                         output=UniswapV3PoolInfo)
-class UniswapV3GetPoolInfo(credmark.model.Model):
+@Model.describe(slug='uniswap-v3.get-pool-info',
+                version='1.1',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                input=Contract,
+                output=UniswapV3PoolInfo)
+class UniswapV3GetPoolInfo(Model):
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         try:
             input.abi
@@ -111,13 +106,13 @@ class UniswapV3GetPoolInfo(credmark.model.Model):
         return UniswapV3PoolInfo(**res)
 
 
-@credmark.model.describe(slug='uniswap-v3.get-average-price',
-                         version='1.0',
-                         display_name='Uniswap v3 Token Pools',
-                         description='The Uniswap v3 pools that support a token contract',
-                         input=Token,
-                         output=Price)
-class UniswapV3GetAveragePrice(credmark.model.Model):
+@Model.describe(slug='uniswap-v3.get-average-price',
+                version='1.0',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                input=Token,
+                output=Price)
+class UniswapV3GetAveragePrice(Model):
     def run(self, input: Token) -> Price:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
@@ -162,11 +157,11 @@ class HistoricalPriceDTO(DTO):
     interval: Optional[str]
 
 
-@credmark.model.describe(slug='uniswap-v3.get-historical-price',
-                         version='1.0',
-                         input=HistoricalPriceDTO,
-                         output=BlockSeries[Price])
-class UniswapV3GetAveragePrice30Day(credmark.model.Model):
+@Model.describe(slug='uniswap-v3.get-historical-price',
+                version='1.0',
+                input=HistoricalPriceDTO,
+                output=BlockSeries[Price])
+class UniswapV3GetAveragePrice30Day(Model):
 
     def run(self, input: HistoricalPriceDTO) -> BlockSeries[Price]:
 

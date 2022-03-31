@@ -1,14 +1,13 @@
-import credmark.model
-from credmark.types import (
+from credmark.cmf.model import Model
+from credmark.cmf.types import (
     Address,
     Contract,
     Token,
     Contracts,
     Price
 )
-from credmark.dto import (
-    DTO
-)
+from credmark.dto import DTO
+
 
 from models.tmp_abi_lookup import (
     SUSHISWAP_FACTORY_ADDRESS,
@@ -19,11 +18,11 @@ from models.tmp_abi_lookup import (
 )
 
 
-@credmark.model.describe(slug="sushiswap.all-pools",
-                         version="1.0",
-                         display_name="Sushiswap all pairs",
-                         description="Returns the addresses of all pairs on Suhsiswap protocol")
-class SushiswapAllPairs(credmark.model.Model):
+@Model.describe(slug="sushiswap.all-pools",
+                version="1.0",
+                display_name="Sushiswap all pairs",
+                description="Returns the addresses of all pairs on Suhsiswap protocol")
+class SushiswapAllPairs(Model):
     def run(self, input) -> dict:
 
         contract = Contract(
@@ -52,13 +51,13 @@ class SushiSwapPool(DTO):
     token1: Token
 
 
-@credmark.model.describe(slug="sushiswap.get-pool",
-                         version="1.0",
-                         display_name="Sushiswap get pool for a pair of tokens",
-                         description=("Returns the addresses of the pool of "
-                                      "both tokens on Suhsiswap protocol"),
-                         input=SushiSwapPool)
-class SushiswapGetPair(credmark.model.Model):
+@Model.describe(slug="sushiswap.get-pool",
+                version="1.0",
+                display_name="Sushiswap get pool for a pair of tokens",
+                description=("Returns the addresses of the pool of "
+                             "both tokens on Suhsiswap protocol"),
+                input=SushiSwapPool)
+class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
         contract = Contract(
@@ -76,12 +75,12 @@ class SushiswapGetPair(credmark.model.Model):
             return {}
 
 
-@credmark.model.describe(slug="sushiswap.get-pool-info",
-                         version="1.0",
-                         display_name="Sushiswap get details for a pool",
-                         description="Returns the token details of the pool",
-                         input=Contract)
-class SushiswapGetPairDetails(credmark.model.Model):
+@Model.describe(slug="sushiswap.get-pool-info",
+                version="1.0",
+                display_name="Sushiswap get details for a pool",
+                description="Returns the token details of the pool",
+                input=Contract)
+class SushiswapGetPairDetails(Model):
     def try_or(self, func, default=None, expected_exc=(Exception,)):
         try:
             return func()
@@ -127,13 +126,13 @@ class SushiswapGetPairDetails(credmark.model.Model):
         return output
 
 
-@credmark.model.describe(slug='sushiswap.get-pools',
-                         version='1.1',
-                         display_name='Uniswap v2 Token Pools',
-                         description='The Uniswap v2 pools that support a token contract',
-                         input=Token,
-                         output=Contracts)
-class SushiswapGetPoolsForToken(credmark.model.Model):
+@Model.describe(slug='sushiswap.get-pools',
+                version='1.1',
+                display_name='Uniswap v2 Token Pools',
+                description='The Uniswap v2 pools that support a token contract',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
 
@@ -149,13 +148,13 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
         return Contracts(contracts=contracts)
 
 
-@credmark.model.describe(slug='sushiswap.get-average-price',
-                         version='1.0',
-                         display_name='Sushiswap Token Price',
-                         description='The Sushiswap price, averaged by liquidity',
-                         input=Token,
-                         output=Price)
-class SushiswapGetAveragePrice(credmark.model.Model):
+@Model.describe(slug='sushiswap.get-average-price',
+                version='1.0',
+                display_name='Sushiswap Token Price',
+                description='The Sushiswap price, averaged by liquidity',
+                input=Token,
+                output=Price)
+class SushiswapGetAveragePrice(Model):
     def run(self, input: Token) -> Price:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,

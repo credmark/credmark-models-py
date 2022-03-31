@@ -1,13 +1,13 @@
 
 # pylint: disable=locally-disabled, line-too-long
 
-import credmark.model
+from credmark.cmf.model import Model
 
-from credmark.types import (
+from credmark.cmf.types import (
     Account
 )
 
-from credmark.types.models.ledger import (
+from credmark.cmf.types.ledger import (
     BlockTable,
     TransactionTable,
     ReceiptTable,
@@ -19,11 +19,11 @@ from credmark.types.models.ledger import (
 )
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='example.ledger-blocks',
     version="1.0",
     developer="Credmark")
-class ExampleLedgerBlock(credmark.model.Model):
+class ExampleLedgerBlock(Model):
 
     """
     This model returns some information about the past 10 blocks
@@ -36,8 +36,8 @@ class ExampleLedgerBlock(credmark.model.Model):
                                               order_by=BlockTable.Columns.NUMBER + " desc")
 
 
-@credmark.model.describe(slug='example.ledger-transactions', version="1.0")
-class ExampleLedgerTransactions(credmark.model.Model):
+@Model.describe(slug='example.ledger-transactions', version="1.0")
+class ExampleLedgerTransactions(Model):
 
     """
     This model returns transactions hashes mined in the requested block.
@@ -49,8 +49,8 @@ class ExampleLedgerTransactions(credmark.model.Model):
                                                     order_by=TransactionTable.Columns.GAS)
 
 
-@credmark.model.describe(slug='example.ledger-receipts', version="1.0")
-class ExampleLedgerReceipts(credmark.model.Model):
+@Model.describe(slug='example.ledger-receipts', version="1.0")
+class ExampleLedgerReceipts(Model):
 
     """
     This model returns the library example for every day for the past 30 days
@@ -63,8 +63,8 @@ class ExampleLedgerReceipts(credmark.model.Model):
                                                 where=f'{ReceiptTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
-@credmark.model.describe(slug='example.ledger-token-transfers', version="1.0", input=Account)
-class ExampleLedgerTokenTransfers(credmark.model.Model):
+@Model.describe(slug='example.ledger-token-transfers', version="1.0", input=Account)
+class ExampleLedgerTokenTransfers(Model):
 
     """
     This model returns the 10 most recent ERC20 Token Transfers into or out of an address, with respect to blocknumber
@@ -78,8 +78,8 @@ class ExampleLedgerTokenTransfers(credmark.model.Model):
                                                        limit="10")
 
 
-@credmark.model.describe(slug='example.ledger-tokens', version="1.0")
-class ExampleLedgerTokens(credmark.model.Model):
+@Model.describe(slug='example.ledger-tokens', version="1.0")
+class ExampleLedgerTokens(Model):
 
     """
     This model returns 100 ERC20 Tokens
@@ -93,8 +93,8 @@ class ExampleLedgerTokens(credmark.model.Model):
                                                     order_by=TokenTable.Columns.BLOCK_NUMBER)
 
 
-@credmark.model.describe(slug='example.ledger-logs', version="1.0")
-class ExampleLedgerLogs(credmark.model.Model):
+@Model.describe(slug='example.ledger-logs', version="1.0")
+class ExampleLedgerLogs(Model):
 
     """
     This model returns current blocks logs
@@ -107,8 +107,8 @@ class ExampleLedgerLogs(credmark.model.Model):
                                             where=f'{LogTable.Columns.BLOCK_NUMBER}={self.context.block_number}')
 
 
-@credmark.model.describe(slug='example.ledger-contracts', version="1.0")
-class ExampleLedgerContracts(credmark.model.Model):
+@Model.describe(slug='example.ledger-contracts', version="1.0")
+class ExampleLedgerContracts(Model):
 
     """
     This model returns contracts.
@@ -120,8 +120,8 @@ class ExampleLedgerContracts(credmark.model.Model):
         return self.context.ledger.get_contracts(columns=list(ContractTable.columns()), limit="100", order_by=ContractTable.Columns.BLOCK_NUMBER)
 
 
-@credmark.model.describe(slug='example.ledger-traces', version="1.0")
-class ExampleLedgerTraces(credmark.model.Model):
+@Model.describe(slug='example.ledger-traces', version="1.0")
+class ExampleLedgerTraces(Model):
 
     """
     This model returns all traces mined in the current block

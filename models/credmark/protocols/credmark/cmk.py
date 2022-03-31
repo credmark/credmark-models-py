@@ -1,5 +1,5 @@
-import credmark.model
-from credmark.types import Token
+from credmark.cmf.model import Model
+from credmark.cmf.types import Token
 
 lockedAddresses = [
     "0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9",
@@ -15,12 +15,12 @@ lockedAddresses = [
 ]
 
 
-@credmark.model.describe(slug='cmk.total-supply',
-                         version='1.0',
-                         display_name='CMK Total Supply',
-                         description='This is the Total Supply of CMK',
-                         developer='Credmark')
-class TotalSupplyCMK(credmark.model.Model):
+@Model.describe(slug='cmk.total-supply',
+                version='1.0',
+                display_name='CMK Total Supply',
+                description='This is the Total Supply of CMK',
+                developer='Credmark')
+class TotalSupplyCMK(Model):
 
     def run(self, input) -> dict:
         cmk_token = Token(symbol='CMK')
@@ -28,12 +28,12 @@ class TotalSupplyCMK(credmark.model.Model):
         return {'total_supply': total_supply}
 
 
-@credmark.model.describe(slug='cmk.circulating-supply',
-                         version='1.0',
-                         display_name='CMK Circulating Supply',
-                         description='This is the Circulating Supply of CMK.',
-                         developer='Credmark')
-class CirculatingCMK(credmark.model.Model):
+@Model.describe(slug='cmk.circulating-supply',
+                version='1.0',
+                display_name='CMK Circulating Supply',
+                description='This is the Circulating Supply of CMK.',
+                developer='Credmark')
+class CirculatingCMK(Model):
 
     def run(self, input) -> dict:
 

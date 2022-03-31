@@ -1,28 +1,17 @@
-from typing import (
-    List
-)
-
-import credmark.model
-
-from credmark.model import ModelRunError
-
-from credmark.types.models.ledger import (
-    TransactionTable
-)
-
-from credmark.dto import (
-    DTO,
-)
-
-from credmark.types import (
+from typing import List
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types.ledger import TransactionTable
+from credmark.dto import DTO
+from credmark.cmf.types import (
     Address,
     Account,
     Accounts,
     Contract,
     Token,
-    Tokens,
-    BlockSeries
+    Tokens
 )
+from credmark.cmf.types.series import BlockSeries
 
 from models.tmp_abi_lookup import (
     CURVE_SWAP_ABI_1,
@@ -45,13 +34,13 @@ class CurveFiPoolInfos(DTO):
     pool_infos: List[CurveFiPoolInfo]
 
 
-@credmark.model.describe(slug='curve-fi.pool-historical-reserve',
-                         version='1.0',
-                         display_name='Curve Finance Pool Reserve Ratios',
-                         description="the historical reserve ratios for a curve pool",
-                         input=Contract,
-                         output=BlockSeries[CurveFiPoolInfo])
-class CurveFinanceReserveRatio(credmark.model.Model):
+@Model.describe(slug='curve-fi.pool-historical-reserve',
+                version='1.0',
+                display_name='Curve Finance Pool Reserve Ratios',
+                description="the historical reserve ratios for a curve pool",
+                input=Contract,
+                output=BlockSeries[CurveFiPoolInfo])
+class CurveFinanceReserveRatio(Model):
 
     def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
         # Verify input address can create a contract
@@ -68,13 +57,13 @@ class CurveFinanceReserveRatio(credmark.model.Model):
         return res
 
 
-@credmark.model.describe(slug="curve-fi.pool-info",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
-                         input=Contract,
-                         output=CurveFiPoolInfo)
-class CurveFinancePoolInfo(credmark.model.Model):
+@Model.describe(slug="curve-fi.pool-info",
+                version="1.0",
+                display_name="Curve Finance Pool Liqudity",
+                description="The amount of Liquidity for Each Token in a Curve Pool",
+                input=Contract,
+                output=CurveFiPoolInfo)
+class CurveFinancePoolInfo(Model):
 
     def run(self, input: Contract) -> CurveFiPoolInfo:
         tokens = Tokens()
@@ -119,12 +108,12 @@ class CurveFinancePoolInfo(credmark.model.Model):
                                name=name)
 
 
-@credmark.model.describe(slug="curve-fi.all-pools",
-                         version="1.0",
-                         display_name="Curve Finance Pool Liqudity",
-                         description="The amount of Liquidity for Each Token in a Curve Pool",
-                         output=CurveFiPoolInfos)
-class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
+@Model.describe(slug="curve-fi.all-pools",
+                version="1.0",
+                display_name="Curve Finance Pool Liqudity",
+                description="The amount of Liquidity for Each Token in a Curve Pool",
+                output=CurveFiPoolInfos)
+class CurveFinanceTotalTokenLiqudity(Model):
 
     def run(self, input) -> CurveFiPoolInfos:
         registry = Contract(
@@ -132,8 +121,8 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
             abi=CURVE_REGISTRY_ABI)
         total_pools = registry.functions.pool_count().call()
         pool_contracts = [
-                Contract(address=registry.functions.pool_list(i).call())
-                for i in range(0, total_pools)]
+            Contract(address=registry.functions.pool_list(i).call())
+            for i in range(0, total_pools)]
 
         pool_infos = [
             CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(
@@ -142,11 +131,12 @@ class CurveFinanceTotalTokenLiqudity(credmark.model.Model):
 
         return CurveFiPoolInfos(pool_infos=pool_infos)
 
-@credmark.model.describe(slug="curve-fi.all-gauges",
-                        version='1.0',
-                        display_name="Curve Finance Gauge List",
-                        description="All Gauge Contracts for Curve Finance Pools")
-class CurveFinanceAllGauges(credmark.model.Model):
+
+@Model.describe(slug="curve-fi.all-gauges",
+                version='1.0',
+                display_name="Curve Finance Gauge List",
+                description="All Gauge Contracts for Curve Finance Pools")
+class CurveFinanceAllGauges(Model):
     def run(self, input):
         gauge_controller = Contract(address='0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
         gauges = []
@@ -161,12 +151,11 @@ class CurveFinanceAllGauges(credmark.model.Model):
         return gauges
 
 
-
-@credmark.model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                         version='1.0',
-                         input=Contract,
-                         output=Accounts)
-class CurveFinanceAllGaugeAddresses(credmark.model.Model):
+@Model.describe(slug='curve-fi.all-gauge-claim-addresses',
+                version='1.0',
+                input=Contract,
+                output=Accounts)
+class CurveFinanceAllGaugeAddresses(Model):
 
     def run(self, input: Contract) -> Accounts:
         addrs = self.context.ledger.get_transactions(
@@ -175,16 +164,16 @@ class CurveFinanceAllGaugeAddresses(credmark.model.Model):
         return Accounts(accounts=[
             Account(address=address)
             for address in
-            list( dict.fromkeys([
+            list(dict.fromkeys([
                 a[TransactionTable.Columns.FROM_ADDRESS]
                 for a
                 in addrs]))])
 
 
-@credmark.model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                         version='1.0',
-                         input=Contract)
-class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
+@Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
+                version='1.0',
+                input=Contract)
+class CurveFinanceGaugeRewardsCRV(Model):
     def run(self, input: Contract) -> dict:
         yields = []
 
@@ -208,15 +197,14 @@ class CurveFinanceGaugeRewardsCRV(credmark.model.Model):
 CRV_PRICE = 3.0
 
 
-@credmark.model.describe(slug='curve-fi.gauge-yield',
-                         version='1.0',
-                         input=Contract)
-class CurveFinanceAverageGaugeYield(credmark.model.Model):
+@Model.describe(slug='curve-fi.gauge-yield',
+                version='1.0',
+                input=Contract)
+class CurveFinanceAverageGaugeYield(Model):
     def run(self, input: Contract) -> dict:
         """
         presuming that crv has a constant value of $3
         """
-
 
         pool_info = self.context.models.curve_fi.pool_info(
             Contract(address=input.functions.lp_token().call()))
@@ -272,8 +260,8 @@ class CurveFinanceAverageGaugeYield(credmark.model.Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@credmark.model.describe(slug='curve-fi.all-yield', version='1.0')
-class CurveFinanceAllYield(credmark.model.Model):
+@Model.describe(slug='curve-fi.all-yield', version='1.0')
+class CurveFinanceAllYield(Model):
     def run(self, input) -> dict:
         res = []
         # FRAX Liquidity Gauge

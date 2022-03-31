@@ -1,18 +1,7 @@
-from typing import (
-    List
-)
-
-import credmark.model
-
-from credmark.dto import (
-    DTO,
-    DTOField
-)
-
-from credmark.types import (
-    Address,
-    Token,
-)
+from typing import List
+from credmark.cmf.model import Model
+from credmark.dto import DTO, DTOField
+from credmark.cmf.types import Address, Token
 
 
 class LCRInput(DTO):
@@ -29,12 +18,12 @@ class LCRInput(DTO):
         }
 
 
-@ credmark.model.describe(slug='finance.lcr',
-                          version='1.0',
-                          display_name='Liquidity Coverage Ratio',
-                          description='A simple LCR model',
-                          input=LCRInput)
-class Var(credmark.model.Model):
+@Model.describe(slug='finance.lcr',
+                version='1.0',
+                display_name='Liquidity Coverage Ratio',
+                description='A simple LCR model',
+                input=LCRInput)
+class Var(Model):
 
     def run(self, input: LCRInput) -> dict:
         """
@@ -57,7 +46,9 @@ class Var(credmark.model.Model):
             sb_sum += bal
             sb_dict[ct.symbol] = bal
 
-        return {'account': account,
+        return {
+            'account': account,
             'holding': sb_dict,
             'total': sb_sum,
-            'lcr': sb_sum / input.cashflow_shock}
+            'lcr': sb_sum / input.cashflow_shock
+        }

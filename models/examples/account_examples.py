@@ -1,9 +1,8 @@
-import credmark.model
-from credmark.model import EmptyInput
-from credmark.types import Account, Accounts, Address
+from credmark.cmf.model import Model, EmptyInput
+from credmark.cmf.types import Account, Accounts, Address
 
 
-@credmark.model.describe(
+@Model.describe(
     slug='example.account',
     version='1.0',
     display_name='Account Usage Examples',
@@ -11,9 +10,8 @@ from credmark.types import Account, Accounts, Address
     developer='Credmark',
     input=EmptyInput,
     output=dict)
-class ExampleAccount(credmark.model.Model):
+class ExampleAccount(Model):
     def run(self, input) -> dict:
-
         """
             This model demonstrates the functionality of the Account class
         """
@@ -33,4 +31,4 @@ class ExampleAccount(credmark.model.Model):
             f"Accounts(accounts=[account_1, account_2]) : {accounts.dict()}")
 
         return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/model"
-        "s/examples/account_examples.py for examples of Account usage"}
+                "s/examples/account_examples.py for examples of Account usage"}

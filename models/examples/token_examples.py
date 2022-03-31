@@ -1,6 +1,6 @@
 
-import credmark.model
-from credmark.types import Token, NativeToken
+from credmark.cmf.model import Model
+from credmark.cmf.types import Token, NativeToken
 from credmark.dto import DTO
 
 
@@ -10,11 +10,11 @@ class ExampleTokenLoadingOutput(DTO):
     loadedNativeToken: NativeToken
 
 
-@credmark.model.describe(slug='example.token-loading',
-                         version='1.0',
-                         developer='credmark',
-                         output=ExampleTokenLoadingOutput)
-class ExampleTokenLoading(credmark.model.Model):
+@Model.describe(slug='example.token-loading',
+                version='1.0',
+                developer='credmark',
+                output=ExampleTokenLoadingOutput)
+class ExampleTokenLoading(Model):
     def run(self, input) -> ExampleTokenLoadingOutput:
         cmk = Token(symbol='CMK')
 

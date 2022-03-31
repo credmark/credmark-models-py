@@ -1,4 +1,4 @@
-import credmark.model
+from credmark.cmf.model import Model
 from credmark.dto import DTO
 from models.examples.library_examples import LibrariesDto
 
@@ -8,8 +8,8 @@ class RunModelHistorical(DTO):
     model_input: dict
 
 
-@credmark.model.describe(slug='example.historical', version="1.0", input=RunModelHistorical)
-class ExampleHistorical(credmark.model.Model):
+@Model.describe(slug='example.historical', version="1.0", input=RunModelHistorical)
+class ExampleHistorical(Model):
 
     """
     This model returns the library example for every day for the past 30 days
@@ -40,8 +40,8 @@ class ExampleHistorical(credmark.model.Model):
         return res.dict()
 
 
-@credmark.model.describe(slug='example.historical-snap', version="1.0")
-class ExampleHistoricalSnap(credmark.model.Model):
+@Model.describe(slug='example.historical-snap', version="1.0")
+class ExampleHistoricalSnap(Model):
 
     """
     This model returns the library example for every day for the past 30 days
@@ -57,8 +57,8 @@ class ExampleHistoricalSnap(credmark.model.Model):
         return blocks
 
 
-@credmark.model.describe(slug='example.historical-block-snap', version="1.0")
-class ExampleHistoricalBlockSnap(credmark.model.Model):
+@Model.describe(slug='example.historical-block-snap', version="1.0")
+class ExampleHistoricalBlockSnap(Model):
 
     """
     This model returns the library example for every day for the past 30 days
@@ -72,8 +72,8 @@ class ExampleHistoricalBlockSnap(credmark.model.Model):
             window=500, interval=100, snap_block=100)
 
 
-@credmark.model.describe(slug='example.historical-block', version="1.0")
-class ExampleHistoricalBlock(credmark.model.Model):
+@Model.describe(slug='example.historical-block', version="1.0")
+class ExampleHistoricalBlock(Model):
 
     """
     This model returns the library example for every day for the past 30 days
