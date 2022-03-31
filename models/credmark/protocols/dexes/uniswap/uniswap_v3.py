@@ -1,5 +1,5 @@
-from eth_abi.exceptions import (
-    InsufficientDataBytes
+from web3.exceptions import (
+    BadFunctionCallOutput,
 )
 
 from typing import (
@@ -75,17 +75,17 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
                             pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
 
             return Contracts(contracts=pools)
-        except InsufficientDataBytes:
+        except BadFunctionCallOutput:
             # Or use this condition: if self.context.block_number < 12369621:
             return Contracts(contracts=[])
 
 
-@credmark.model.describe(slug='uniswap-v3.get-pool-info',
-                         version='1.1',
-                         display_name='Uniswap v3 Token Pools',
-                         description='The Uniswap v3 pools that support a token contract',
-                         input=Contract,
-                         output=UniswapV3PoolInfo)
+@ credmark.model.describe(slug='uniswap-v3.get-pool-info',
+                          version='1.1',
+                          display_name='Uniswap v3 Token Pools',
+                          description='The Uniswap v3 pools that support a token contract',
+                          input=Contract,
+                          output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(credmark.model.Model):
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         try:

@@ -1,3 +1,7 @@
+from web3.exceptions import (
+    BadFunctionCallOutput
+)
+
 # TODO: to be merged in framework
 from web3._utils.filters import construct_event_filter_params
 from web3._utils.events import get_event_data
@@ -10,11 +14,16 @@ from credmark.types import (
     Contract,
     Contracts
 )
-from models.dtos.volume import TradingVolume, TokenTradingVolume
+
+from models.dtos.volume import (
+    TradingVolume,
+    TokenTradingVolume,
+)
+
 from models.tmp_abi_lookup import (
     UNISWAP_V2_SWAP_ABI,
+    UNISWAP_V2_FACTORY_ADDRESS,
 )
-UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 
 
 @credmark.model.describe(slug='uniswap-v2.get-pools',
@@ -32,11 +41,15 @@ class UniswapV2GetPoolsForToken(credmark.model.Model):
                   Token(symbol="WETH"),
                   Token(symbol="DAI")]
         contracts = []
-        for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
-            if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address))
-        return Contracts(contracts=contracts)
+        try:
+            for token in tokens:
+                pair_address = factory.functions.getPair(input.address, token.address).call()
+                if not pair_address == Address.null():
+                    contracts.append(Contract(address=pair_address))
+            return Contracts(contracts=contracts)
+        except BadFunctionCallOutput:
+            # Or use this condition: if self.context.block_number < 10000835
+            return Contracts(contracts=[])
 
 
 @credmark.model.describe(slug='uniswap-v2.get-average-price',
@@ -60,7 +73,10 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
                 reserve = reserves[0]
-                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
+                try:
+                    price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
+                except:
+                    breakpoint()
 
                 if token1.symbol == 'WETH':
                     if weth_price is None:

@@ -1,4 +1,9 @@
+from web3.exceptions import (
+    BadFunctionCallOutput,
+)
+
 import credmark.model
+
 from credmark.types import (
     Address,
     Contract,
@@ -6,6 +11,7 @@ from credmark.types import (
     Contracts,
     Price
 )
+
 from credmark.dto import (
     DTO
 )
@@ -131,11 +137,15 @@ class SushiswapGetPoolsForToken(credmark.model.Model):
                   Token(symbol="WETH"),
                   Token(symbol="DAI")]
         contracts = []
-        for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
-            if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address))
-        return Contracts(contracts=contracts)
+        try:
+            for token in tokens:
+                pair_address = factory.functions.getPair(input.address, token.address).call()
+                if not pair_address == Address.null():
+                    contracts.append(Contract(address=pair_address))
+            return Contracts(contracts=contracts)
+        except BadFunctionCallOutput:
+            # Or use this condition: if self.context.block_number < 10794229
+            return Contracts(contracts=[])
 
 
 @credmark.model.describe(slug='sushiswap.get-average-price',

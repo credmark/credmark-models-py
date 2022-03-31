@@ -43,7 +43,7 @@ class MarketTarget(DTO):
 
 
 class Recipe(DTO):
-    key: str  # ensure unique in global cache
+    cache_key: str  # ensure unique in global cache
     target_key: str  # key for MarketTarget
     method: str
     input: dict
@@ -55,23 +55,24 @@ class Chef:
     def __init__(self, context, slug, reset_cache=False, use_cache=True, verbose=False):
         if slug is None or slug == '':
             raise ModelRunError('Chef needs to be initialized with a non-empty slug.')
-        self._cache_file = os.path.join('tmp', f'chain_id_{context.chain_id}_{slug}.cache.pkl')
+        self._cache_file = os.path.join('tmp', f'chef_cache_chain_id_{context.chain_id}_{slug}.pkl')
         self._cache = {'__log__': [datetime.now()]}
         self._cache_hit = 0
         self._total_hit = 0
         self._context = context
         self._use_cache = use_cache
         self._cache_saved = False
+        self._reset_cache = reset_cache
         self._verbose = verbose
 
         if self._use_cache:
-            if reset_cache:
-                self._context.logger.warning('Local cache is hard reset.')
-                self._save_cache()
-            else:
-                self._load_cache()
+            self._load_cache()
         if self._verbose:
-            self._context.logger.info(f'=== Dispatched Chef {self} on {self._cache_file} ====')
+            if self._reset_cache:
+                self._context.logger.info(
+                    '=== Cache is in reset mode, overwriting existing ====')
+            self._context.logger.info(
+                f'=== Dispatched Chef {self} on {self._cache_file} ====')
 
     def __del__(self):
         if self._use_cache:
@@ -88,7 +89,7 @@ class Chef:
                 with open(self._cache_file, 'rb') as handle:
                     self._cache = pickle.load(handle)
                     self._cache_saved = True
-                    self.cache_info()
+                    self.cache_info(' opened')
         except EOFError:
             self._context.logger.warning(
                 f'Local cache from {self._cache_file} is corrupted. Reset.')
@@ -103,18 +104,18 @@ class Chef:
                 self._cache['__log__'].append(datetime.now())
                 pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
                 self._cache_saved = True
-                self.cache_info()
+                self.cache_info(' closed')
 
-    def cache_info(self):
+    def cache_info(self, message=''):
         if self._verbose:
             cache_log = self._cache.get('__log__', [datetime.now()])
             cache_log_info = (f'[{min(cache_log):%Y-%m-%d %H:%M:%S}] to '
                               f'[{max(cache_log):%Y-%m-%d %H:%M:%S}] '
                               f'for saved {len(cache_log)} times '
                               f'with {len(self._cache)} entries.')
-            self._context.logger.info(
-                f'Local cache from {self._cache_file} '
-                f'with {cache_log_info}')
+            self._context.logger.info(f'Local cache from {self._cache_file} '
+                                      f'with {cache_log_info}'
+                                      f'{message}')
 
     @ property
     def context(self):
@@ -136,16 +137,19 @@ class Chef:
 
     def cook(self, rec: Recipe):
         result = None
-        if self._use_cache and rec.key in self._cache:
-            result = self._cache[rec.key]
+        if self._use_cache and not self._reset_cache and rec.cache_key in self._cache:
+            if self._verbose:
+                self.context.logger.info(f'=== Chef fetches {rec.cache_key} ===')
+            result = self._cache[rec.cache_key]
             self._cache_hit += 1
             self._total_hit += 1
             if rec.return_type is not None and issubclass(rec.return_type, DTO):
                 return rec.return_type(**result)
             else:
                 return result
-
         else:
+            self.context.logger.info(f'=== Chef cooks {rec.cache_key} ===')
+
             if rec.method == 'run_model':
                 result = self._context.run_model(**rec.input)
             elif rec.method == 'run_model_historical':
@@ -161,7 +165,7 @@ class Chef:
                 untyped_result = result.dict()
             else:
                 untyped_result = result
-            self._cache[rec.key] = untyped_result
+            self._cache[rec.cache_key] = untyped_result
             self._cache_saved = False
             self._total_hit += 1
 
@@ -194,6 +198,13 @@ class Plan:
         self._chef_internal = None
         self._acquire_chef(chef, context, slug=slug, reset_cache=reset_cache, verbose=verbose)
 
+    @property
+    def chef(self):
+        if self._chef is not None:
+            return self._chef
+        else:
+            raise ModelRunError('Chef is not around')
+
     def __del__(self):
         self._release_chef()
 
@@ -225,25 +236,25 @@ class Plan:
             return self._result
 
         self._chef.context.logger.info(f'Started executing {self._target.key}')
-        self._result = self.define(self._chef)
+        self._result = self.define()
         self._release_chef()
         return self._result  # type: ignore
 
     @abstractmethod
-    def define(self, chef):
+    def define(self):
         ...
 
 
 class BlockFromTimestampPlan(Plan):
-    def define(self, chef) -> int:
+    def define(self) -> int:
         method = 'block_number.from_timestamp'
         timestamp = self._data['timestamp']
 
-        recipe = Recipe(key=f'{method}.{timestamp}',
+        recipe = Recipe(cache_key=f'{method}.{timestamp}',
                         target_key=self._target.key,
                         method=method,
                         input={'timestamp': timestamp})
-        result = chef.cook(recipe)
+        result = self.chef.cook(recipe)
         return result
 
 
@@ -252,7 +263,8 @@ class HistoricalBlockPlan(Plan):
         blocks = data.dict()
         df_blocks = (pd.DataFrame(blocks['series'])
                      .drop(columns=['output'])
-                     .sort_values(['blockNumber'], ascending=False))
+                     .sort_values(['blockNumber'], ascending=False)
+                     .reset_index(drop=True))
 
         df_blocks.loc[:, 'blockTime'] = df_blocks.blockTimestamp.apply(
             lambda x: datetime.fromtimestamp(x, timezone.utc))
@@ -263,7 +275,7 @@ class HistoricalBlockPlan(Plan):
         return {'block_numbers': block_numbers,
                 'block_table': df_blocks}
 
-    def define(self, chef) -> dict:
+    def define(self) -> dict:
         method = 'run_model_historical'
         slug = 'example.echo'
         as_of = self._data['as_of']
@@ -283,11 +295,12 @@ class HistoricalBlockPlan(Plan):
         block_plan = BlockFromTimestampPlan(self._tag,
                                             target,
                                             slug='BlockFromTimestampPlan',
-                                            chef=self._chef,
+                                            context=self.chef.context,
+                                            verbose=self._verbose,
                                             timestamp=as_of_timestamp)
         __as_of_block = block_plan.execute()
 
-        recipe = Recipe(key=f'{method}.{slug}.{window}.{interval}.{as_of_timestamp}',
+        recipe = Recipe(cache_key=f'{method}.{slug}.{window}.{interval}.{as_of_timestamp}',
                         target_key=self._target.key,
                         method=method,
                         input={'model_input': '',
@@ -299,12 +312,12 @@ class HistoricalBlockPlan(Plan):
                         return_type=self._return_type
                         )
 
-        result = chef.cook(recipe)
+        result = self.chef.cook(recipe)
         return result
 
 
 class EODPlan(Plan):
-    def define(self, chef) -> dict:
+    def define(self) -> dict:
         if self._tag == 'eod':
             as_of = self._data['as_of']
             window = '1 day'
@@ -321,7 +334,8 @@ class EODPlan(Plan):
         pre_plan = HistoricalBlockPlan(self._tag,
                                        target,
                                        slug='HistoricalBlockPlan',
-                                       chef=self._chef,
+                                       context=self.chef.context,
+                                       verbose=self._verbose,
                                        as_of=as_of,
                                        window=window,
                                        interval=interval)
@@ -342,22 +356,24 @@ class EODPlan(Plan):
             # - 'token.price-ext',
             # - 'uniswap-v3.get-average-price',
             # - 'token.price',
-            rec = Recipe(key=f'{self._target.key}.{method}.{block_number}',
+            slug = 'token.price-ext'
+            rec = Recipe(cache_key=f'{method}.{slug}.{self._target.key}.{block_number}',
                          target_key=self._target.key,
                          method=method,
-                         input={'slug': 'token.price-ext',
+                         input={'slug': slug,
                                 'input': self._target.artifact,
                                 'block_number': block_number},
                          )
 
-            rec_result = chef.cook(rec)
-            for k, v in rec_result.items():
+            rec_result = self.chef.cook(rec)
+            for k, v in rec_result.items():  # type: ignore
                 dish.loc[dish.blockNumber == rec.input['block_number'],
                          f'{rec.target_key}.{k}'] = v
 
         if self._tag == 'eod':
             return {'raw': dish,
                     'extracted': dish[f'{self._target.key}.price'][0]}
+
         elif self._tag == 'eod_var_scenario':
             price_series = dish[f'{self._target.key}.price']
             rolling_interval = self._data['rolling_interval']
@@ -369,6 +385,7 @@ class EODPlan(Plan):
                 raise ModelRunError('rolling_interval undefined for VaR scenario generation.')
             return {'raw': dish,
                     'extracted': ret_series}
+
         raise ModelRunError(f'Unknown {self._tag=}')
 
 

@@ -157,6 +157,9 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
 
         minimal_interval = f'1 {unique_ivl_key}'
 
+        fp_ts = int(datetime.now().timestamp())
+        fp_pre = f'{self.slug}_{fp_ts}'
+
         var_result = {}
         for as_of in as_ofs:
             as_of_str = as_of.strftime('%Y-%m-%d')
@@ -167,6 +170,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
             pm = PortfolioManager.from_portfolio(as_of_dt,
                                                  input.portfolio,
                                                  context=self.context,
+                                                 reset_cache=False,
                                                  verbose=input.dev_mode,
                                                  slug=self.slug)
             base_mkt = pm.prepare_market('eod', as_of=as_of_dt)
@@ -179,11 +183,29 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                                   window=[input.window, minimal_interval],
                                                   interval=minimal_interval,
                                                   rolling_interval=ivl_n)
+                if input.dev_mode:
+                    self.save_mkt(mkt_scenarios,
+                                  os.path.join('tmp',
+                                               f'{fp_pre}_{as_of}_{ivl}_mkt_scenario_{fp_ts}.xlsx'))
 
-                value_scen_df = pm.value_scenarios(base_mkt, mkt_scenarios)
+                ppl_scen_trade = pm.value_scenarios(base_mkt, mkt_scenarios)
 
-                ppl = (value_scen_df.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
+                ppl_scen_trade_nan = ppl_scen_trade.loc[  # type: ignore
+                    ppl_scen_trade.VALUE.isna(), :]  # type: ignore
+                if ppl_scen_trade_nan.shape[0] > 0:
+                    a, b = ppl_scen_trade_nan.shape[0], ppl_scen_trade.shape[0]  # type: ignore
+                    self.logger.warning(
+                        f'There are NaN in ppls {a}/{b}'
+                        f'{a/b*100:.2f}%')  # type: ignore
+
+                if input.dev_mode:
+                    ppl_scen_trade.to_csv(  # type: ignore
+                        os.path.join('tmp',
+                                     f'{fp_pre}_{as_of}_{ivl}_ppl_scen_trade.csv'), index=False)
+
+                ppl = (ppl_scen_trade.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
                        .agg({'VALUE': ['sum']}))
+
                 var_result[as_of_str][ivl] = {
                     conf: calc_var(ppl[('VALUE', 'sum')].to_numpy(), conf)
                     for conf in input.confidences

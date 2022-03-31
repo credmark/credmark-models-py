@@ -16,6 +16,7 @@ from credmark.dto import (
 )
 
 import pandas as pd
+import numpy as np
 
 
 class ValueAtRiskBase(credmark.model.Model):
@@ -25,6 +26,27 @@ class ValueAtRiskBase(credmark.model.Model):
         eod_block = self.context.block_number.from_timestamp(eod_time_stamp)
         return {'block': eod_block,
                 'timestamp': eod_time_stamp, }
+
+    def save_mkt(self, mkt, fp_out):
+        with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
+            for k, v in mkt.items():
+                if isinstance(v, dict):
+                    for vk, vv in v.items():
+                        s_name = f'{k[:31-len(vk)-1]}_{vk}'
+                        if isinstance(vv, pd.DataFrame):
+                            dt_cols = vv.select_dtypes(include=['datetime64[ns, UTC]']).columns
+                            for dt_col in dt_cols:
+                                vv[dt_col] = (pd.to_datetime(vv[dt_col], unit='ms')
+                                              .dt.tz_localize(None))
+                            vv.to_excel(writer, sheet_name=s_name, index=False)
+                        elif isinstance(vv, pd.Series):
+                            vv.to_excel(writer, sheet_name=s_name, index=False)
+                        elif isinstance(vv, np.ndarray):
+                            pd.DataFrame(vv).to_excel(writer, sheet_name=s_name, index=False)
+                        else:
+                            raise ModelRunError(f'Unknown sub-type {type(vv)=} {vv=}')
+                else:
+                    raise ModelRunError(f'Unknown type {type(v)=} {v=}')
 
     def set_window(self, input):
         current_block = self.context.block_number

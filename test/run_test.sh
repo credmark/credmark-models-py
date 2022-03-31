@@ -205,13 +205,13 @@ echo_cmd ""
 echo_cmd "Run Aave V2 Examples:"
 echo_cmd ""
 test_model 0 aave.lending-pool-assets '{}'
+# 0xE41d2489571d322189246DaFA5ebDe1F4699F498: ZRX
 test_model 0 aave.token-liability '{"address":"0xE41d2489571d322189246DaFA5ebDe1F4699F498"}'
 test_model 0 aave.token-liability '{"symbol":"USDC"}'
-test_model 0 aave.token-liability '{"address":"0x019ff0619e1d8cd2d550940ec743fde6d268afe2"}'
 test_model 0 aave.overall-liabilities-portfolio '{}'
-
+# 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48: USDC
 test_model 0 aave.token-asset-historical '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
-test_model 0 aave.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' # USDC
+test_model 0 aave.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
 test_model 0 aave.token-asset '{"symbol":"USDC"}'
 test_model 0 aave.token-asset '{"symbol":"DAI"}'
 

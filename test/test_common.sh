@@ -32,6 +32,8 @@ else
     echo Using installed credmark-dev and gateway api.
 fi
 
+other_opts=' --format_json'
+
 if ([ $# -eq 2 ] && [ $2 == 'gen' ]) || ([ $# -eq 1 ] && [ $1 == 'gen' ])
 then
     gen_cmd=1
@@ -55,13 +57,13 @@ run_model () {
     input=$2
     if [ $# -eq 3 ] && [ $3 == 'print-command' ]
     then
-        echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}"
+        echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
     else
         if [ $gen_cmd -eq 1 ]; then
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}" >> $cmd_file
         else
-            echo "Running: ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}"
-            ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}
+            echo "Running: ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
+            ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}${other_opts}
         fi
     fi
 }

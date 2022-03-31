@@ -46,12 +46,12 @@ class AaveDebtHistorical(Plan):
             positions.append(Position(amount=net_amt, asset=dbt.token))
         return Portfolio(positions=positions)
 
-    def define(self, chef):
+    def define(self):
         method = 'run_model'
         slug = 'aave.lending-pool-assets'
         block_number = self._data['block_number']
 
-        recipe = Recipe(key=f'{method}.{slug}.{block_number}',
+        recipe = Recipe(cache_key=f'{method}.{slug}.{block_number}',
                         target_key=self._target.key,
                         method=method,
                         input={'slug': slug,
@@ -59,7 +59,7 @@ class AaveDebtHistorical(Plan):
                         post_proc=self.post_proc,
                         return_type=self._return_type,
                         )
-        return chef.cook(recipe)
+        return self.chef.cook(recipe)
 
 
 @credmark.model.describe(slug='finance.var-aave',
