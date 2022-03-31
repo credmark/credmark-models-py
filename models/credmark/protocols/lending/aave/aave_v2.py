@@ -62,18 +62,23 @@ class AaveV2GetLiability(credmark.model.Model):
 
         aave_assets = contract.functions.getReservesList().call()
 
-        return Portfolio(positions=[self.context.run_model(
-            slug='aave.token-liability',
-            input=Token(address=asset),
-            return_type=Position) for asset in aave_assets])
+        positions = []
+        for asset in aave_assets:
+            # self.logger.info(f'getting info for {asset=}')
+            pos = self.context.run_model(slug='aave.token-liability',
+                                         input=Token(address=asset),
+                                         return_type=Position)
+            positions.append(pos)
+
+        return Portfolio(positions=positions)
 
 
-@credmark.model.describe(slug="aave.token-liability",
-                         version="1.0",
-                         display_name="Aave V2 token liability",
-                         description="Aave V2 token liability at a given block number",
-                         input=Token,
-                         output=Position)
+@ credmark.model.describe(slug="aave.token-liability",
+                          version="1.0",
+                          display_name="Aave V2 token liability",
+                          description="Aave V2 token liability at a given block number",
+                          input=Token,
+                          output=Position)
 class AaveV2GetTokenLiability(credmark.model.Model):
 
     def run(self, input: Contract) -> Position:
@@ -81,24 +86,19 @@ class AaveV2GetTokenLiability(credmark.model.Model):
             address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
-
         getReservesData = contract.functions.getReserveData(input.address).call()
+        # self.logger.info(f'info {getReservesData}, {getReservesData[7]}')
 
-        aToken = Token(
-            address=getReservesData[7],
-            abi=ERC_20_TOKEN_CONTRACT_ABI)
+        aToken = Token(address=getReservesData[7])
 
-        if aToken.total_supply is not None:
-            return Position(asset=aToken, amount=aToken.total_supply)
-        else:
-            raise ModelRunError('Unable to obtain total_supply for {aToken.address=}')
+        return Position(asset=aToken, amount=aToken.total_supply)
 
 
-@credmark.model.describe(slug="aave.lending-pool-assets",
-                         version="1.0",
-                         display_name="Aave V2 Lending Pool Assets",
-                         description="Aave V2 assets for the main lending pool",
-                         output=AaveDebtInfos)
+@ credmark.model.describe(slug="aave.lending-pool-assets",
+                          version="1.0",
+                          display_name="Aave V2 Lending Pool Assets",
+                          description="Aave V2 assets for the main lending pool",
+                          output=AaveDebtInfos)
 class AaveV2GetAssets(credmark.model.Model):
     def run(self, input) -> IterableListGenericDTO[AaveDebtInfo]:
         contract = Contract(
@@ -109,11 +109,13 @@ class AaveV2GetAssets(credmark.model.Model):
 
         aave_assets_address = contract.functions.getReservesList().call()
 
-        aave_debts = AaveDebtInfos(aaveDebtInfos=[self.context.run_model(
-            'aave.token-asset',
-            input=Token(address=asset_address),
-            return_type=AaveDebtInfo) for asset_address in aave_assets_address])
-        return aave_debts
+        aave_debts_infos = []
+        for asset_address in aave_assets_address:
+            info = self.context.run_model('aave.token-asset',
+                                          input=Token(address=asset_address),
+                                          return_type=AaveDebtInfo)
+            aave_debts_infos.append(info)
+        return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
 @credmark.model.describe(slug="aave.token-asset",
