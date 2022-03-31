@@ -83,7 +83,8 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
             pm = PortfolioManager.from_portfolio(as_of_dt,
                                                  input.portfolio,
                                                  context=self.context,
-                                                 verbose=input.dev_mode,
+                                                 reset_cache=input.reset_cache,
+                                                 verbose=input.verbose,
                                                  slug=self.slug)
             base_mkt = {}
             for pl in input.priceList:
@@ -157,8 +158,8 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
 
         minimal_interval = f'1 {unique_ivl_key}'
 
-        fp_ts = int(datetime.now().timestamp())
-        fp_pre = f'{self.slug}_{fp_ts}'
+        __fp_ts = int(datetime.now().timestamp())
+        fp_pre = f'{self.slug}'
 
         var_result = {}
         for as_of in as_ofs:
@@ -170,8 +171,8 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
             pm = PortfolioManager.from_portfolio(as_of_dt,
                                                  input.portfolio,
                                                  context=self.context,
-                                                 reset_cache=False,
-                                                 verbose=input.dev_mode,
+                                                 reset_cache=input.reset_cache,
+                                                 verbose=input.verbose,
                                                  slug=self.slug)
             base_mkt = pm.prepare_market('eod', as_of=as_of_dt)
             _ = pm.value(base_mkt)
@@ -186,7 +187,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                 if input.dev_mode:
                     self.save_mkt(mkt_scenarios,
                                   os.path.join('tmp',
-                                               f'{fp_pre}_{as_of}_{ivl}_mkt_scenario_{fp_ts}.xlsx'))
+                                               f'{fp_pre}_{as_of}_{ivl}_mkt_scenario.xlsx'))
 
                 ppl_scen_trade = pm.value_scenarios(base_mkt, mkt_scenarios)
 

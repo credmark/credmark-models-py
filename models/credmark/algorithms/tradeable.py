@@ -54,7 +54,7 @@ class Recipe(DTO):
 class Chef:
     def __init__(self, context, slug, reset_cache=False, use_cache=True, verbose=False):
         if slug is None or slug == '':
-            raise ModelRunError('Chef needs to be initialized with a non-empty slug.')
+            raise ModelRunError('! Chef needs to be initialized with a non-empty slug.')
         self._cache_file = os.path.join('tmp', f'chef_cache_chain_id_{context.chain_id}_{slug}.pkl')
         self._cache = {'__log__': [datetime.now()]}
         self._cache_hit = 0
@@ -65,14 +65,15 @@ class Chef:
         self._reset_cache = reset_cache
         self._verbose = verbose
 
-        if self._use_cache:
-            self._load_cache()
         if self._verbose:
             if self._reset_cache:
                 self._context.logger.info(
-                    '=== Cache is in reset mode, overwriting existing ====')
-            self._context.logger.info(
-                f'=== Dispatched Chef {self} on {self._cache_file} ====')
+                    f'=== Dispatched Chef({hex(id(self))}) on {self._cache_file} in reset mode overwriting existing')
+            else:
+                self._context.logger.info(
+                    f'=== Dispatched Chef({hex(id(self))}) on {self._cache_file}')
+        if self._use_cache:
+            self._load_cache()
 
     def __del__(self):
         if self._use_cache:
@@ -81,7 +82,7 @@ class Chef:
             if not self._cache_saved:
                 self._save_cache()
         if self._verbose:
-            self._context.logger.info(f'=== Released Chef {self} on {self._cache_file} ===')
+            self._context.logger.info(f'=== Released Chef({hex(id(self))}) on {self._cache_file}')
 
     def _load_cache(self):
         try:
@@ -92,7 +93,7 @@ class Chef:
                     self.cache_info(' opened')
         except EOFError:
             self._context.logger.warning(
-                f'Local cache from {self._cache_file} is corrupted. Reset.')
+                f'* Local cache from {self._cache_file} is corrupted. Reset.')
             self._save_cache()
 
     def _save_cache(self):
@@ -113,7 +114,7 @@ class Chef:
                               f'[{max(cache_log):%Y-%m-%d %H:%M:%S}] '
                               f'for saved {len(cache_log)} times '
                               f'with {len(self._cache)} entries.')
-            self._context.logger.info(f'Local cache from {self._cache_file} '
+            self._context.logger.info(f'* Local cache from {self._cache_file} '
                                       f'with {cache_log_info}'
                                       f'{message}')
 
@@ -132,14 +133,14 @@ class Chef:
     def cache_status(self):
         if self.total_hit != 0:
             self._context.logger.info(
-                f'Local cache hit {self.cache_hit} for {self.total_hit} requests '
+                f'* Local cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
     def cook(self, rec: Recipe):
         result = None
         if self._use_cache and not self._reset_cache and rec.cache_key in self._cache:
             if self._verbose:
-                self.context.logger.info(f'=== Chef fetches {rec.cache_key} ===')
+                self.context.logger.info(f'> Chef({hex(id(self))}) takes {rec.cache_key}')
             result = self._cache[rec.cache_key]
             self._cache_hit += 1
             self._total_hit += 1
@@ -148,7 +149,8 @@ class Chef:
             else:
                 return result
         else:
-            self.context.logger.info(f'=== Chef cooks {rec.cache_key} ===')
+            if self._verbose:
+                self.context.logger.info(f'> Chef({hex(id(self))}) cooks {rec.cache_key}')
 
             if rec.method == 'run_model':
                 result = self._context.run_model(**rec.input)
@@ -158,7 +160,7 @@ class Chef:
             elif rec.method == 'block_number.from_timestamp':
                 result = self._context.block_number.from_timestamp(**rec.input)
             else:
-                raise ModelRunError(f'Unknown {rec.method=}')
+                raise ModelRunError(f'! Unknown {rec.method=}')
             result = rec.post_proc(self._context, result)
             if (isinstance(result, DTO) and
                     rec.return_type is not None and issubclass(rec.return_type, DTO)):
@@ -203,7 +205,7 @@ class Plan:
         if self._chef is not None:
             return self._chef
         else:
-            raise ModelRunError('Chef is not around')
+            raise ModelRunError('! Chef is not around')
 
     def __del__(self):
         self._release_chef()
@@ -216,16 +218,18 @@ class Plan:
             self._chef = Chef(context, slug, reset_cache, verbose=verbose)
             self._chef_internal = True
         else:
-            raise ModelRunError(f'Missing either context or chef to '
+            raise ModelRunError(f'! Missing either context or chef to '
                                 f'execute a {self.__class__.__name__}')
 
     def _release_chef(self):
         if self._chef is not None:
             if self._verbose:
-                self._chef.context.logger.info(f'Finished executing {self._target.key}')
-                self._chef.cache_status()
+                self._chef.context.logger.info(f'| Finished executing {self._target.key}')
             if self._chef_internal:
                 del self._chef
+            else:
+                if self._verbose:
+                    self._chef.cache_status()
             self._chef = None
 
     def post_proc(self, _context, data):
@@ -235,7 +239,8 @@ class Plan:
         if self._chef is None:
             return self._result
 
-        self._chef.context.logger.info(f'Started executing {self._target.key}')
+        if self._verbose:
+            self._chef.context.logger.info(f'| Started executing {self._target.key}')
         self._result = self.define()
         self._release_chef()
         return self._result  # type: ignore
@@ -288,7 +293,7 @@ class HistoricalBlockPlan(Plan):
             dt_from_date = datetime.combine(as_of, datetime.max.time(), tzinfo=timezone.utc)
             as_of_timestamp = int(dt_from_date.timestamp())
         else:
-            raise ModelRunError(f'Unsupported {as_of=}')
+            raise ModelRunError(f'! Unsupported {as_of=}')
 
         tgt_key = f'BlockFromTimestamp.{self._tag}.{as_of_timestamp}'
         target = MarketTarget(key=tgt_key, artifact=None)
@@ -327,7 +332,7 @@ class EODPlan(Plan):
             as_of = self._data['as_of']
             interval = self._data['interval']
         else:
-            raise ModelRunError(f'Unknown {self._tag=}')
+            raise ModelRunError(f'! Unknown {self._tag=}')
 
         tgt_key = f'HistoricalBlock.{self._tag}.{as_of}.{window}.{interval}'
         target = MarketTarget(key=tgt_key, artifact=None)
@@ -350,7 +355,7 @@ class EODPlan(Plan):
             if isinstance(self._target.artifact, Token):
                 method = 'run_model'
             else:
-                raise ModelRunError(f'Unsupported artifact {self._target.artifact=}')
+                raise ModelRunError(f'! Unsupported artifact {self._target.artifact=}')
 
             # other choices for slug:
             # - 'token.price-ext',
@@ -382,11 +387,11 @@ class EODPlan(Plan):
                 val_lagging = price_series[rolling_interval:].to_numpy()
                 ret_series = val_leading / val_lagging
             else:
-                raise ModelRunError('rolling_interval undefined for VaR scenario generation.')
+                raise ModelRunError('! rolling_interval undefined for VaR scenario generation.')
             return {'raw': dish,
                     'extracted': ret_series}
 
-        raise ModelRunError(f'Unknown {self._tag=}')
+        raise ModelRunError(f'! Unknown {self._tag=}')
 
 
 class Tradeable:
@@ -503,7 +508,7 @@ class PortfolioManager:
         elif context is not None and chef is None:
             self._chef = Chef(context, slug, reset_cache=reset_cache, verbose=verbose)
         else:
-            raise ModelRunError(f'Missing either context or chef to '
+            raise ModelRunError(f'! Missing either context or chef to '
                                 f'initialize a {self.__class__.__name__}')
 
     @ classmethod
@@ -517,7 +522,7 @@ class PortfolioManager:
         trades = []
         for (pos_n, pos) in enumerate(portfolio.positions):
             if not pos.asset.address:
-                raise ModelRunError(f'Input position is invalid, {input}')
+                raise ModelRunError(f'! Input position is invalid, {input}')
 
             tid = f'{pos_n}.{pos.asset.address}'
             t = TokenTradeable(tid, [], as_of, pos.asset, pos.amount, init_price=0)
@@ -535,7 +540,7 @@ class PortfolioManager:
     def prepare_market(self, tag, **data):
         mkt_target = dict(self.requires())
         if self._verbose:
-            self._chef.context.logger.info(f'Preparing market with {len(mkt_target)=} for {tag}')
+            self._chef.context.logger.info(f'# Preparing market with {len(mkt_target)=} for {tag}')
         mkt = Market({key: EODPlan(tag,
                                    target,
                                    chef=self._chef,
@@ -544,7 +549,7 @@ class PortfolioManager:
                       for key, target in mkt_target.items()})
         if self._verbose:
             self._chef.context.logger.info(
-                f'Finished preparing for market with {len(mkt_target)=} for {tag}')
+                f'# Finished preparing for market with {len(mkt_target)=} for {tag}')
         return mkt
 
     def value(self, mkt: Market, as_df=True, **data):

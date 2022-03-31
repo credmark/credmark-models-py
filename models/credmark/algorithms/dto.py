@@ -32,6 +32,8 @@ class VaRParameters(DTO):
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
     dev_mode: bool = DTOField(False)
+    reset_cache: bool = DTOField(False)
+    verbose: bool = DTOField(False)
 
     class Config:
         validate_assignment = True
@@ -57,6 +59,8 @@ class VaRPortfolioAndPriceInput(DTO):
     n_intervals: List[int] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
     dev_mode: bool = DTOField(False)
+    reset_cache: bool = DTOField(False)
+    verbose: bool = DTOField(False)
 
     class Config:
         validate_assignment = True

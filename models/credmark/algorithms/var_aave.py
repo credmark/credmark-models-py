@@ -93,7 +93,7 @@ class ValueAtRiskAave(ValueAtRiskBase):
                                                  aave_tgt,
                                                  slug='AaveDebtHistorical',
                                                  context=self.context,
-                                                 verbose=True,
+                                                 verbose=input.verbose,
                                                  return_type=Portfolio,
                                                  block_number=eod['block'])
             portfolio = aave_debts_plan.execute()
@@ -112,7 +112,9 @@ class ValueAtRiskAave(ValueAtRiskBase):
                                           confidences=input.confidences,
                                           as_ofs=[as_of_str],
                                           as_of_is_range=False,
-                                          dev_mode=True)
+                                          dev_mode=True,
+                                          reset_cache=input.reset_cache,
+                                          verbose=input.verbose)
 
             var_out = self.context.run_model(
                 # 'finance.var-reference',
