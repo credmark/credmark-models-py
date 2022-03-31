@@ -1,5 +1,5 @@
-import credmark.model
-from credmark.types import (
+from credmark.cmf.model import Model
+from credmark.cmf.types import (
     Price,
     Token,
     Address,
@@ -11,13 +11,13 @@ from models.tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
 UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 
 
-@credmark.model.describe(slug='uniswap-v2.get-pools',
-                         version='1.0',
-                         display_name='Uniswap v2 Token Pools',
-                         description='The Uniswap v2 pools that support a token contract',
-                         input=Token,
-                         output=Contracts)
-class UniswapV2GetPoolsForToken(credmark.model.Model):
+@Model.describe(slug='uniswap-v2.get-pools',
+                version='1.0',
+                display_name='Uniswap v2 Token Pools',
+                description='The Uniswap v2 pools that support a token contract',
+                input=Token,
+                output=Contracts)
+class UniswapV2GetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
 
@@ -33,13 +33,13 @@ class UniswapV2GetPoolsForToken(credmark.model.Model):
         return Contracts(contracts=contracts)
 
 
-@credmark.model.describe(slug='uniswap-v2.get-average-price',
-                         version='1.0',
-                         display_name='Uniswap v2 Token Price',
-                         description='The Uniswap v2 price, averaged by liquidity',
-                         input=Token,
-                         output=Price)
-class UniswapV2GetAveragePrice(credmark.model.Model):
+@Model.describe(slug='uniswap-v2.get-average-price',
+                version='1.0',
+                display_name='Uniswap v2 Token Price',
+                description='The Uniswap v2 price, averaged by liquidity',
+                input=Token,
+                output=Price)
+class UniswapV2GetAveragePrice(Model):
     def run(self, input: Token) -> Price:
         pools = self.context.run_model('uniswap-v2.get-pools',
                                        input,
@@ -77,18 +77,18 @@ class UniswapV2GetAveragePrice(credmark.model.Model):
         return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
 
 
-@credmark.model.describe(slug='uniswap-v2.pool-volume',
-                         version='1.0',
-                         display_name='Uniswap v2 Pool Swap Volumes',
-                         description='The volume of each token swapped in a pool in a window',
-                         input=Contract,
-                         output=TradingVolume)
-class UniswapV2PoolSwapVolume(credmark.model.Model):
+@Model.describe(slug='uniswap-v2.pool-volume',
+                version='1.0',
+                display_name='Uniswap v2 Pool Swap Volumes',
+                description='The volume of each token swapped in a pool in a window',
+                input=Contract,
+                output=TradingVolume)
+class UniswapV2PoolSwapVolume(Model):
     def run(self, input: Contract) -> TradingVolume:
         input = Contract(address=input.address, abi=UNISWAP_V2_SWAP_ABI)
         swaps = input.events.Swap.createFilter(
-                fromBlock=self.context.block_number - int(86400 / 14),
-                toBlock=self.context.block_number).get_all_entries()
+            fromBlock=self.context.block_number - int(86400 / 14),
+            toBlock=self.context.block_number).get_all_entries()
         token0 = Token(address=input.functions.token0().call())
         token1 = Token(address=input.functions.token1().call())
         return TradingVolume(
@@ -101,4 +101,4 @@ class UniswapV2PoolSwapVolume(credmark.model.Model):
                     token=token1,
                     sellAmount=sum([s['args']['amount1In'] for s in swaps]),
                     buyAmount=sum([s['args']['amount1Out'] for s in swaps]))
-                    ])
+            ])

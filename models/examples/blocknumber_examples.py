@@ -1,21 +1,20 @@
 #pylint: disable=pointless-string-statement, pointless-statement
 
-import credmark.model
-from credmark.types.data.block_number import BlockNumberOutOfRangeError, BlockNumber
-from credmark.model.errors import ModelRunError
+from credmark.cmf.model import Model
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError, BlockNumber
+from credmark.cmf.model.errors import ModelRunError
 
 
-@credmark.model.describe(slug='example.block-number',
-                         version='1.0',
-                         display_name='BlockNumber Usage Examples',
-                         description='This model gives examples of \
+@Model.describe(slug='example.block-number',
+                version='1.0',
+                display_name='BlockNumber Usage Examples',
+                description='This model gives examples of \
                              the functionality available on \the BlockNumber class',
-                         developer='Credmark',
-                         output=dict)
-class ExampleBlockNumber(credmark.model.Model):
+                developer='Credmark',
+                output=dict)
+class ExampleBlockNumber(Model):
 
     def run(self, input) -> dict:
-
         """
             This model demonstrates the functionality of the BlockNumber class
         """
@@ -66,4 +65,4 @@ class ExampleBlockNumber(credmark.model.Model):
                 "Attempting to create a BlockNumber object with a negative block number "
                 "raises BlockNumberOutOfRangeError")
 
-        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"} # pylint: disable=line-too-long
+        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"}  # pylint: disable=line-too-long

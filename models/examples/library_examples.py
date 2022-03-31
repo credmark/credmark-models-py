@@ -1,5 +1,5 @@
 from typing import Any, List
-import credmark.model
+from credmark.cmf.model import Model
 from credmark.dto import DTO
 import pandas
 import numpy
@@ -17,13 +17,13 @@ class LibrariesDto(DTO):
     libraries: List[Any]
 
 
-@credmark.model.describe(slug='example.libraries',
-                         version='1.0',
-                         display_name='Libraries',
-                         description=("A list of the math/data science libraries that are "
-                                      "included in the Credmark Framework."),
-                         output=LibrariesDto)
-class ExampleLibraries(credmark.model.Model):
+@Model.describe(slug='example.libraries',
+                version='1.0',
+                display_name='Libraries',
+                description=("A list of the math/data science libraries that are "
+                             "included in the Credmark Framework."),
+                output=LibrariesDto)
+class ExampleLibraries(Model):
     def run(self, input) -> LibrariesDto:
         return LibrariesDto(
             **{

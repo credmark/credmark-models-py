@@ -1,6 +1,5 @@
-
-import credmark.model
-from credmark.types import (
+from credmark.cmf.model import Model
+from credmark.cmf.types import (
     Token,
     Account,
     Portfolio,
@@ -8,12 +7,10 @@ from credmark.types import (
     NativePosition,
     TokenPosition
 )
-from credmark.types.models.ledger import (
-    TokenTransferTable
-)
+from credmark.cmf.types.ledger import TokenTransferTable
 
 
-@credmark.model.describe(
+@Model.describe(
     slug="account.portfolio",
     version="1.0",
     display_name="Account Portfolio",
@@ -21,7 +18,7 @@ from credmark.types.models.ledger import (
     developer="Credmark",
     input=Account,
     output=Portfolio)
-class WalletInfoModel(credmark.model.Model):
+class WalletInfoModel(Model):
     def run(self, input: Account) -> Portfolio:
         token_addresses = self.context.ledger.get_erc20_transfers(
             columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],

@@ -1,17 +1,17 @@
-import credmark.model
-from credmark.types import (
+from credmark.cmf.model import Model
+from credmark.cmf.types import (
     Account,
     Accounts,
     Address,
 )
 
 
-@credmark.model.describe(slug='example.iteration',
-                         version='1.0',
-                         display_name='Example Iteration',
-                         description="A test model for iteration",
-                         output=Accounts)
-class IterationExample(credmark.model.Model):
+@Model.describe(slug='example.iteration',
+                version='1.0',
+                display_name='Example Iteration',
+                description="A test model for iteration",
+                output=Accounts)
+class IterationExample(Model):
     """
     """
 

@@ -1,7 +1,7 @@
-import credmark.model
-from credmark.model import ModelRunError
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
 
-from credmark.types import (
+from credmark.cmf.types import (
     Address,
     Token,
     Contract,
@@ -33,12 +33,12 @@ COMPOUND_ASSETS = {"REP": "0x1985365e9f78359a9B6AD760e32412f4a445E862",
                    "COMP": "0xc00e94Cb662C3520282E6f5717214004A7f26888"}
 
 
-@credmark.model.describe(slug="compound.test",
-                         version="1.0",
-                         display_name="Compound Lending Pool Assets",
-                         description="Compound assets for the main lending pool",
-                         input=Token)
-class CompoundGetAssets(credmark.model.Model):
+@Model.describe(slug="compound.test",
+                version="1.0",
+                display_name="Compound Lending Pool Assets",
+                description="Compound assets for the main lending pool",
+                input=Token)
+class CompoundGetAssets(Model):
     def try_or(self, func, default=None, expected_exc=(Exception,)):
         try:
             return func()
@@ -70,12 +70,12 @@ class CompoundGetAssets(credmark.model.Model):
         return output
 
 
-@credmark.model.describe(slug="compound-token-liability",
-                         version="1.0",
-                         display_name="Compound V2 token liability",
-                         description="Compound V2 token liability at a given block number",
-                         input=Token)
-class CompoundV2GetTokenLiability(credmark.model.Model):
+@Model.describe(slug="compound-token-liability",
+                version="1.0",
+                display_name="Compound V2 token liability",
+                description="Compound V2 token liability at a given block number",
+                input=Token)
+class CompoundV2GetTokenLiability(Model):
     def run(self, input: Token) -> dict:
         if not input.address:
             raise ModelRunError(f'Input token is invalid, {input}')
@@ -103,12 +103,12 @@ class CompoundV2GetTokenLiability(credmark.model.Model):
         return output
 
 
-@credmark.model.describe(slug="compound-token-asset",
-                         version="1.0",
-                         display_name="Compound V2 token liquidity",
-                         description="Compound V2 token liquidity at a given block number",
-                         input=Token)
-class CompoundV2GetTokenAsset(credmark.model.Model):
+@Model.describe(slug="compound-token-asset",
+                version="1.0",
+                display_name="Compound V2 token liquidity",
+                description="Compound V2 token liquidity at a given block number",
+                input=Token)
+class CompoundV2GetTokenAsset(Model):
     def run(self, input: Token) -> dict:
         if not input.address:
             raise ModelRunError(f'Input token is invalid, {input}')
