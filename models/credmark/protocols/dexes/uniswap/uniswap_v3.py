@@ -1,3 +1,5 @@
+from eth_abi.exceptions import InsufficientDataBytes
+from ast import Add
 from typing import (
     Optional,
     Union,
@@ -46,7 +48,6 @@ class UniswapV3PoolInfo(DTO):
                          input=Token,
                          output=Contracts)
 class UniswapV3GetPoolsForToken(credmark.model.Model):
-
     def run(self, input: Token) -> Contracts:
 
         fees = [3000, 10000]
@@ -57,20 +58,24 @@ class UniswapV3GetPoolsForToken(credmark.model.Model):
         if self.context.chain_id != 1:
             return Contracts(contracts=[])
 
-        uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
-                                   abi=UNISWAP_V3_FACTORY_ABI)
+        try:
+            uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
+                                       abi=UNISWAP_V3_FACTORY_ABI)
 
-        pools = []
+            pools = []
 
-        for fee in fees:
-            for primary_token in primary_tokens:
-                if input.address and primary_token.address:
-                    pool = uniswap_factory.functions.getPool(
-                        input.address.checksum, primary_token.address.checksum, fee).call()
-                    if pool != "0x0000000000000000000000000000000000000000":
-                        pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
+            for fee in fees:
+                for primary_token in primary_tokens:
+                    if input.address and primary_token.address:
+                        pool = uniswap_factory.functions.getPool(
+                            input.address.checksum, primary_token.address.checksum, fee).call()
+                        if pool != Address.null():
+                            pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
 
-        return Contracts(contracts=pools)
+            return Contracts(contracts=pools)
+        except InsufficientDataBytes:
+            # if self.context.block_number < 12369621:
+            return Contracts(contracts=[])
 
 
 @credmark.model.describe(slug='uniswap-v3.get-pool-info',
