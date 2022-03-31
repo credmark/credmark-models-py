@@ -11,7 +11,7 @@
 #     date,
 # )
 
-# from credmark.cfm.model import Model
+# from credmark.cmf.model import Model
 # from credmark.cmf.model.errors import ModelRunError
 
 # from credmark.dto import (
