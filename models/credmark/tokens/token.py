@@ -38,6 +38,7 @@ from typing import List, Union
 )
 class TokenInfoModel(credmark.model.Model):
     def run(self, input: Token) -> Token:
+        self.logger.info(f'{input.symbol=} {input.name=} {input.decimals=} {input.total_supply=}')
         return input.info
 
 
