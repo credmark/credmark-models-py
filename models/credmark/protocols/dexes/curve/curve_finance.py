@@ -47,7 +47,7 @@ class CurveFinanceReserveRatio(Model):
         _pool_address = input.address
         _pool_contract = Contract(address=_pool_address.checksum, abi=CURVE_SWAP_ABI_1)
 
-        res = self.context.historical.run_model_historical('curve-fi-pool-info',
+        res = self.context.historical.run_model_historical('curve-fi.pool-info',
                                                            window='60 days',
                                                            interval='7 days',
                                                            model_input={
@@ -217,7 +217,7 @@ class CurveFinanceAverageGaugeYield(Model):
         }
 
         res = self.context.historical.run_model_historical(
-            'curve-fi-get-gauge-stake-and-claimable-rewards',
+            'curve-fi.get-gauge-stake-and-claimable-rewards',
             window='60 days',
             interval='7 days',
             model_input=gauge_input)
@@ -280,7 +280,7 @@ class CurveFinanceAllYield(Model):
         #          "0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1", "0x8101E6760130be2C8Ace79643AB73500571b7162"]
 
         for gauge in gauges:
-            yields = self.context.run_model('curve-fi-avg-gauge-yield', Token(address=gauge))
+            yields = self.context.run_model('curve-fi.avg-gauge-yield', Token(address=gauge))
             self.logger.info(yields)
             res.append(yields)
 
