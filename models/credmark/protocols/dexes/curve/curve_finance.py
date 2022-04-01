@@ -280,7 +280,7 @@ class CurveFinanceAllYield(Model):
         #          "0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1", "0x8101E6760130be2C8Ace79643AB73500571b7162"]
 
         for gauge in gauges:
-            yields = self.context.run_model('curve-fi.avg-gauge-yield', Token(address=gauge))
+            yields = self.context.run_model('curve-fi.gauge-yield', Token(address=gauge))
             self.logger.info(yields)
             res.append(yields)
 
