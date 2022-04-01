@@ -7,8 +7,12 @@ from datetime import (
 import credmark.model
 from credmark.model import ModelRunError
 
+from credmark.dto import (
+    EmptyInput,
+)
+
 from credmark.types import (
-    Address
+    Address,
 )
 
 from models.credmark.algorithms.risk import (
@@ -30,6 +34,23 @@ from models.credmark.algorithms.dto import (
 import os
 
 import numpy as np
+
+
+@credmark.model.describe(slug='finance.get-one',
+                         version='1.0',
+                         display_name='finance.get-one',
+                         description="To get historical block series",
+                         input=EmptyInput,
+                         output=dict)
+class FinanceGetOne(credmark.model.Model):
+    """
+    This test simply echos back the input.
+    The DTO message field defines a default value so that is
+    used if no input is sent.
+    """
+
+    def run(self, input: EmptyInput) -> dict:
+        return {'x': 1}
 
 
 @credmark.model.describe(slug='finance.ppl-aggregation',
@@ -84,8 +105,7 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
                                                  input.portfolio,
                                                  context=self.context,
                                                  reset_cache=input.reset_cache,
-                                                 verbose=input.verbose,
-                                                 slug=self.slug)
+                                                 verbose=input.verbose)
             base_mkt = {}
             for pl in input.priceList:
                 key_col = f'Token.{Address(pl.tokenAddress)}'
@@ -172,8 +192,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                                  input.portfolio,
                                                  context=self.context,
                                                  reset_cache=input.reset_cache,
-                                                 verbose=input.verbose,
-                                                 slug=self.slug)
+                                                 verbose=input.verbose)
             base_mkt = pm.prepare_market('eod', as_of=as_of_dt)
             _ = pm.value(base_mkt)
 
@@ -187,7 +206,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                 if input.dev_mode:
                     self.save_mkt(mkt_scenarios,
                                   os.path.join('tmp',
-                                               f'{fp_pre}_{as_of}_{ivl}_mkt_scenario.xlsx'))
+                                               f'{fp_pre}_{as_of_str}_{ivl}_mkt_scenario.xlsx'))
 
                 ppl_scen_trade = pm.value_scenarios(base_mkt, mkt_scenarios)
 
@@ -202,7 +221,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                 if input.dev_mode:
                     ppl_scen_trade.to_csv(  # type: ignore
                         os.path.join('tmp',
-                                     f'{fp_pre}_{as_of}_{ivl}_ppl_scen_trade.csv'), index=False)
+                                     f'{fp_pre}_{as_of_str}_{ivl}_ppl_scen_trade.csv'), index=False)
 
                 ppl = (ppl_scen_trade.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
                        .agg({'VALUE': ['sum']}))

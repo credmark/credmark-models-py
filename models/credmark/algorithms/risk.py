@@ -7,9 +7,9 @@ from models.credmark.algorithms.tradeable import (
     Market,
     PortfolioManager,
     Chef,
-    EODPlan,
+    TokenEODPlan,
+    BlockFromTimePlan,
     Plan,
-    Recipe,
     MarketTarget,
 )
 

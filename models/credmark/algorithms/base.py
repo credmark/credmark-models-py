@@ -18,14 +18,20 @@ from credmark.dto import (
 import pandas as pd
 import numpy as np
 
+from models.credmark.algorithms.tradeable import (
+    BlockFromTimePlan,
+)
+
 
 class ValueAtRiskBase(credmark.model.Model):
-    def eod_block(self, dt_input):
-        dt_eod = datetime.combine(dt_input, datetime.max.time(), tzinfo=timezone.utc)
-        eod_time_stamp = int(dt_eod.timestamp())
-        eod_block = self.context.block_number.from_timestamp(eod_time_stamp)
-        return {'block': eod_block,
-                'timestamp': eod_time_stamp, }
+    def eod_block(self, dt_input: datetime, verbose=False) -> dict:
+        block_plan = BlockFromTimePlan('eod',
+                                       f'BlockFromEODPlan.{dt_input}',
+                                       context=self.context,
+                                       verbose=verbose,
+                                       date=dt_input)
+        result = block_plan.execute()
+        return result
 
     def save_mkt(self, mkt, fp_out):
         with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
@@ -81,15 +87,15 @@ class ValueAtRiskBase(credmark.model.Model):
             as_of_range = f'{(max_date - min_date).days} days'
             window_from_max_as_of = [window, as_of_range]
 
-        max_as_of_eod = self.eod_block(max_date)
+        max_as_of_eod = self.eod_block(max_date, input.verbose)
         self.logger.info(
             f'{min_date=:%Y-%m-%d} {max_date=:%Y-%m-%d} {input.as_ofs=} '
             f'{current_block_date=:%Y-%m-%d} {window_from_max_as_of=} '
-            f'{max_as_of_eod["block"]=}/{max_as_of_eod["timestamp"]=}')
+            f'{max_as_of_eod["block_number"]=}/{max_as_of_eod["timestamp"]=}')
 
         return {
             'as_ofs': as_ofs,
-            'block_max_as_of': max_as_of_eod['block'],
+            'block_max_as_of': max_as_of_eod['block_number'],
             'timestamp_max_as_of': max_as_of_eod['timestamp'],
             'window_from_max_as_of': window_from_max_as_of,
             'min_date': min_date,

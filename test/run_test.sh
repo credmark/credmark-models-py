@@ -109,6 +109,8 @@ test_model 0 example.token-loading '{}'
 test_model 0 token.price '{"symbol": "WETH"}'
 test_model 0 token.price '{"symbol": "CMK"}'
 test_model 0 token.price '{"symbol": "AAVE"}'
+# AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
+test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}'
 test_model 0 token.price '{"symbol": "USDC"}'
 test_model 0 token.price '{"symbol": "MKR"}'
 # Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
@@ -238,12 +240,12 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 
-test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}'
 
 test_model 0 finance.var-regtest '{}'
+
 exit

@@ -22,17 +22,23 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.risk import (
     ValueAtRiskBase,
     Plan,
-    Recipe,
-    MarketTarget,
 )
 
 
-class AaveDebtHistorical(Plan):
-    def post_proc(self, context, data):
-        debts = AaveDebtInfos(**data)
+class AaveDebtHistorical(Plan[AaveDebtInfos, Portfolio]):
+    def __init__(self, *args, **kwargs):
+        self.check_kwargs(**kwargs)
+        super().__init__(*args,
+                         **kwargs,
+                         chef_return_type=AaveDebtInfos,
+                         plan_return_type=Portfolio)
+
+    def post_proc(self, context, output_from_chef: AaveDebtInfos) -> Portfolio:
+        debts = output_from_chef
+        n_debts = len(debts.aaveDebtInfos)
+
         positions = []
         context.logger.info('Aave net asset = Asset - liability')
-        n_debts = len(data['aaveDebtInfos'])  # type: ignore
         for n_dbt, dbt in enumerate(debts):
             context.logger.info(f'{n_dbt+1}/{n_debts} '
                                 f'Token info: {dbt.token.symbol=} {dbt.token.address=} '
@@ -46,19 +52,16 @@ class AaveDebtHistorical(Plan):
             positions.append(Position(amount=net_amt, asset=dbt.token))
         return Portfolio(positions=positions)
 
-    def define(self):
+    def define(self) -> Portfolio:
         method = 'run_model'
         slug = 'aave.lending-pool-assets'
-        block_number = self._data['block_number']
+        block_number = self._input_to_plan['block_number']
 
-        recipe = Recipe(cache_key=f'{method}.{slug}.{block_number}',
-                        target_key=self._target.key,
-                        method=method,
-                        input={'slug': slug,
-                               'block_number': block_number},
-                        post_proc=self.post_proc,
-                        return_type=self._return_type,
-                        )
+        recipe = self.create_recipe(
+            cache_keywords=[method, slug, block_number],
+            method=method,
+            input={'slug': slug,
+                   'block_number': block_number})
         return self.chef.cook(recipe)
 
 
@@ -84,29 +87,26 @@ class ValueAtRiskAave(ValueAtRiskBase):
         var_result = {}
         for as_of in as_ofs:
             as_of_str = as_of.strftime('%Y-%m-%d')
-            eod = self.eod_block(as_of)
+            eod = self.eod_block(as_of, verbose=input.verbose)
 
             tag = 'eod'
-            aave_tgt = MarketTarget(key=f'AaveDebtHistorical.{tag}.{eod["block"]}', artifact=None)
-
             aave_debts_plan = AaveDebtHistorical(tag,
-                                                 aave_tgt,
-                                                 slug='AaveDebtHistorical',
+                                                 f'AaveDebtHistorical.{eod["block_number"]}',
                                                  context=self.context,
                                                  verbose=input.verbose,
-                                                 return_type=Portfolio,
-                                                 block_number=eod['block'])
+                                                 block_number=eod['block_number'])
             portfolio = aave_debts_plan.execute()
+            del aave_debts_plan
 
             self.logger.info(
-                f'Loaded Aave portfolio of {len(portfolio.positions)} '  # type: ignore
+                f'Loaded Aave portfolio of {len(portfolio.positions)} '
                 f'assets as of {as_of_str}')
 
             # For DEBUG on certain type of token
             # portfolio = [p for p in portfolio
             # if p.asset.address == '0x0000000000085d4780B73119b644AE5ecd22b376']
 
-            var_input = VaRPortfolioInput(portfolio=portfolio,  # type: ignore
+            var_input = VaRPortfolioInput(portfolio=portfolio,
                                           window=input.window,
                                           intervals=input.intervals,
                                           confidences=input.confidences,
