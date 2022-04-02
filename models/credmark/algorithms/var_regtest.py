@@ -106,6 +106,7 @@ class ValueAtRiskRegressionTest(credmark.model.Model):
 
     def run(self, input: dict) -> dict:
         dev_mode = input.get('dev_mode', False)
+        verbose = input.get('verbose', True)
 
         dev_mode = True
 
@@ -117,7 +118,8 @@ class ValueAtRiskRegressionTest(credmark.model.Model):
                     continue
                 test_case = f'{model_slug}.{case_name}'
                 self.logger.info(f'Testing {case_name} with {model_slug}')
-                res = self.context.run_model(model_slug, input=case_detail['input'] | {'dev_mode': dev_mode})
+                res = self.context.run_model(model_slug, input=case_detail['input'] | {
+                                             'dev_mode': dev_mode, 'verbose': verbose})
 
                 if dev_mode:
                     os.rename(os.path.join('tmp', 'df_res.csv'),

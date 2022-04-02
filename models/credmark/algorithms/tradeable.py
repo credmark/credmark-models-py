@@ -87,6 +87,9 @@ class Recipe(GenericDTO, Generic[C, P]):
 
 class Chef(Generic[C, P]):
     __SEP__ = '|#|'
+    __RETRY__ = 3
+    __CACHE_UNSAVE_LIMIT__ = 1000  # entries before cache is saved
+    __CACHE_UNSAVE_TIME__ = 100  # seconds before cache is saved
 
     def __init__(self,
                  context,
@@ -102,7 +105,8 @@ class Chef(Generic[C, P]):
         self._total_hit = 0
         self._context = context
         self._use_cache = use_cache
-        self._cache_saved = False
+        self._cache_unsaved = 0
+        self._cache_last_saved = datetime.now().timestamp()
         self._reset_cache = reset_cache
         self._verbose = verbose
 
@@ -118,11 +122,9 @@ class Chef(Generic[C, P]):
             self._load_cache()
 
     def __del__(self):
-        if self._use_cache:
-            if self._verbose:
-                self.cache_status()
-            if not self._cache_saved:
-                self._save_cache()
+        if self._verbose:
+            self.cache_status()
+        self.save_cache()
         if self._verbose:
             self._context.logger.info(f'+- Free Chef({hex(id(self))}) on {self._cache_file}')
 
@@ -131,26 +133,29 @@ class Chef(Generic[C, P]):
             if os.path.isfile(self._cache_file):
                 with open(self._cache_file, 'rb') as handle:
                     self._cache = pickle.load(handle)
-                    self._cache_saved = True
+                    self._cache_unsaved = 0
+                    self._cache_last_saved = datetime.now().timestamp()
                     self.cache_info(' Opened')
         except EOFError:
             self._context.logger.warning(
                 f'* Cache from {self._cache_file} is corrupted. Reset.')
-            self._save_cache()
+            self.save_cache()
 
-    def _save_cache(self):
-        if not self._cache_saved:
-            cache_dir = os.path.dirname(self._cache_file)
-            if not os.path.isdir(cache_dir):
-                os.mkdir(cache_dir)
-            with open(self._cache_file, 'wb') as handle:
-                if '__log__' in self._cache:
-                    self._cache['__log__'].append(datetime.now())
-                else:
-                    self._cache['__log__'] = [datetime.now()]
-                pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
-                self._cache_saved = True
-                self.cache_info(' Closed')
+    def save_cache(self):
+        if self._use_cache:
+            if self._cache_unsaved > 0:
+                cache_dir = os.path.dirname(self._cache_file)
+                if not os.path.isdir(cache_dir):
+                    os.mkdir(cache_dir)
+                with open(self._cache_file, 'wb') as handle:
+                    if '__log__' in self._cache:
+                        self._cache['__log__'].append(datetime.now())
+                    else:
+                        self._cache['__log__'] = [datetime.now()]
+                    pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    self._cache_unsaved = 0
+                    self._cache_last_saved = datetime.now().timestamp()
+                    self.cache_info(' Closed')
 
     def cache_info(self, message=''):
         if self._verbose:
@@ -219,40 +224,18 @@ class Chef(Generic[C, P]):
                 f'* Cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
-    def cook(self, rec: Recipe[C, P]) -> P:
-        result = None
-        cache_key = self.create_cache_key(rec.cache_keywords)
-
-        if self._use_cache and not self._reset_cache:
-            cache_find_status, cache_result = self.find_cache_entry(
-                int(self._context.chain_id), cache_key, rec)
-
-            if cache_find_status and cache_result is not None:
-                if self._verbose:
-                    self.context.logger.info(f'< Chef({hex(id(self))}) grabs: {cache_key}')
-                self._cache_hit += 1
-                self._total_hit += 1
-
-                if issubclass(rec.plan_return_type, DTO) and isinstance(cache_result, str):
-                    return rec.plan_return_type(**json.loads(cache_result))
-                elif isinstance(cache_result, rec.plan_return_type):
-                    return cache_result
-                else:
-                    return cache_result
-
-        if self._verbose:
-            self.context.logger.info(f'> Chef({hex(id(self))}) cooks: {cache_key}')
-
+    def perform(self, rec: Recipe[C, P]) -> C:
         try:
             if rec.method == 'block_number.from_timestamp':
                 assert self.verify_input_and_key('timestamp', rec)
                 result = self._context.block_number.from_timestamp(**rec.input)
+                return result
 
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('block_number', rec)
                 result = self._context.run_model(**rec.input,
                                                  return_type=rec.chef_return_type)
-
+                return result
             elif rec.method == 'run_model_historical':
                 # cond1: snap_clock and timestamp
                 # cond2: snap_clock and end_timestamp
@@ -268,7 +251,7 @@ class Chef(Generic[C, P]):
                 result = self._context.historical.run_model_historical(
                     **rec.input,
                     model_return_type=rec.chef_return_type)
-
+                return result
             else:
                 raise ModelRunError(f'! Unknown {rec.method=}')
         except AssertionError:
@@ -276,29 +259,78 @@ class Chef(Generic[C, P]):
                 f'cache_key may not be unique for {rec.method=} with {rec.input=} '
                 f'in {rec.cache_keywords=}')
 
-        post_result = rec.post_proc(self._context, result)
+    def cook(self, rec: Recipe[C, P]) -> P:
+        result = None
+        cache_key = self.create_cache_key(rec.cache_keywords)
 
-        if isinstance(post_result, DTO) and issubclass(rec.chef_return_type, DTO):
-            untyped_post_result = post_result.json()
-        else:
-            untyped_post_result = post_result
+        if self._use_cache and not self._reset_cache:
+            cache_find_status, cache_result = self.find_cache_entry(
+                int(self._context.chain_id), cache_key, rec)
 
-        cache_entry = self.get_cache_entry(int(self._context.chain_id), cache_key, rec)
-        cache_entry['untyped'] = untyped_post_result
-        cache_entry['method'] = rec.method
-        cache_entry['input'] = json.dumps(rec.input, cls=PydanticJSONEncoder)
-        cache_entry['chain_id'] = int(self._context.chain_id)
+            if cache_find_status and cache_result is not None:
+                if self._verbose:
+                    self.context.logger.info(f'< Chef({hex(id(self))}) grabs < {cache_key}')
+                self._cache_hit += 1
+                self._total_hit += 1
 
-        self._cache_saved = False
-        self._total_hit += 1
+                if issubclass(rec.plan_return_type, DTO) and isinstance(cache_result, str):
+                    return rec.plan_return_type(**json.loads(cache_result))
+                elif isinstance(cache_result, rec.plan_return_type):
+                    return cache_result
+                else:
+                    return cache_result
 
-        return post_result
+        if self._verbose:
+            self.context.logger.info(f'> Chef({hex(id(self))}) cooks > {cache_key}')
+
+        retry_c = 0
+        result = None
+        while retry_c < self.__RETRY__:
+            try:
+                result = self.perform(rec)
+                break
+            except Exception as err:
+                if retry_c == self.__RETRY__ - 1:
+                    raise
+                self.context.logger.error(
+                    f'Met exception with .perform() {err=}. '
+                    f'Re-trying {retry_c+1} of {self.__RETRY__}.')
+                retry_c += 1
+
+        if result is not None:
+            post_result = rec.post_proc(self._context, result)
+
+            if isinstance(post_result, DTO) and issubclass(rec.chef_return_type, DTO):
+                untyped_post_result = post_result.json()
+            else:
+                untyped_post_result = post_result
+
+            if self._use_cache:
+                cache_entry = self.get_cache_entry(int(self._context.chain_id), cache_key, rec)
+                cache_entry['untyped'] = untyped_post_result
+                cache_entry['method'] = rec.method
+                cache_entry['input'] = json.dumps(rec.input, cls=PydanticJSONEncoder)
+                cache_entry['chain_id'] = int(self._context.chain_id)
+
+                # Leave this in the end so wrong data doesn't not corrupt cache
+                self._cache_unsaved += 1
+
+                if (self._cache_unsaved >= self.__CACHE_UNSAVE_LIMIT__ or
+                        datetime.now().timestamp() >=
+                        self._cache_last_saved + self.__CACHE_UNSAVE_TIME__):
+                    self.save_cache()
+
+            self._total_hit += 1
+
+            return post_result
+
+        raise ModelRunError('Result is None')
 
 
 class Kitchen(Singleton):
     _pool: Dict[Tuple[Any, str, bool, bool, bool], Chef] = {}
 
-    def get(self,  context, name, reset_cache, use_cache, verbose):
+    def get(self, context, name, reset_cache, use_cache, verbose):
         key = (context, name, reset_cache, use_cache, verbose)
         if key not in self._pool:
             self._pool[key] = Chef(context,
@@ -308,10 +340,16 @@ class Kitchen(Singleton):
                                    verbose=verbose)
         return self._pool[key]
 
+    def save_cache(self):
+        """
+        Call during catch an error.
+        """
+        for chef in self._pool.values():
+            chef.save_cache()
+
     def __del__(self):
-        all_keys = list(self._pool.keys())
-        for k in all_keys:
-            del self._pool[k]
+        for chef in self._pool.values():
+            del chef
 
 
 def validate_as_of(as_of):
@@ -384,7 +422,6 @@ class Plan(Generic[C, P]):
                                            use_cache=use_cache,
                                            verbose=verbose)
                 self._chef_internal = False
-                breakpoint()
             else:
                 self._chef = Chef(context,
                                   name,
@@ -400,11 +437,9 @@ class Plan(Generic[C, P]):
         if self._chef is not None:
             if self._verbose:
                 self._chef.context.logger.info(f'| Finished executing {self._target_key}')
+                self._chef.cache_status()
             if self._chef_internal:
                 del self._chef
-            else:
-                if self._verbose:
-                    self._chef.cache_status()
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: C) -> P:
@@ -433,18 +468,17 @@ class Plan(Generic[C, P]):
         try:
             self._result = self.define()
         except Exception:
-            # Force release the chef
+            self._chef.context.logger.error(
+                f'Exception during executing {self._target_key}. Force releasing Chef.')
             if self._use_kitchen:
-                Kitchen().__del__()
+                Kitchen().save_cache()
             else:
-                self._chef_internal = True
-                self._chef.context.logger.error(
-                    f'Exception during executing {self._target_key}. Force releasing Chef.')
-                self._release_chef()
+                self._chef.save_cache()
             raise
-
-        self._release_chef()
-        return self._result
+        else:
+            return self._result
+        finally:
+            self._release_chef()
 
     @ abstractmethod
     def define(self) -> P:
@@ -766,7 +800,7 @@ class PortfolioManager:
                               verbose=verbose)
 
     def __del__(self):
-        if self._chef is not None:
+        if self._chef is not None and not self._use_kitchen:
             del self._chef
 
     @ classmethod
