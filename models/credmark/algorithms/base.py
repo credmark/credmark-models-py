@@ -31,6 +31,7 @@ class ValueAtRiskBase(credmark.model.Model):
                                        verbose=verbose,
                                        date=dt_input)
         result = block_plan.execute()
+        result['datetime'] = datetime.fromtimestamp(result['timestamp'], tz=timezone.utc)
         return result
 
     def save_mkt(self, mkt, fp_out):

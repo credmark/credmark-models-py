@@ -3,6 +3,7 @@ import pickle
 import os
 from credmark.model import (
     ModelRunError,
+    ModelDataError,
 )
 
 from credmark.types import (
@@ -32,6 +33,7 @@ from typing import (
     Optional,
     Dict,
     Tuple,
+    Union,
 )
 from datetime import (
     date,
@@ -81,6 +83,7 @@ class Recipe(GenericDTO, Generic[C, P]):
     method: str
     input: dict
     post_proc: Callable[[Any, C], P]
+    error_handle: Callable[[Any, Exception], Tuple[str, P]]
     chef_return_type: Type[C]
     plan_return_type: Type[P]
 
@@ -155,7 +158,7 @@ class Chef(Generic[C, P]):
                     pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
                     self._cache_unsaved = 0
                     self._cache_last_saved = datetime.now().timestamp()
-                    self.cache_info(' Closed')
+                    self.cache_info(' Saved')
 
     def cache_info(self, message=''):
         if self._verbose:
@@ -224,18 +227,18 @@ class Chef(Generic[C, P]):
                 f'* Cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
-    def perform(self, rec: Recipe[C, P]) -> C:
+    def perform(self, rec: Recipe[C, P], catch_runtime_error) -> Tuple[str, Union[C, P]]:
         try:
             if rec.method == 'block_number.from_timestamp':
                 assert self.verify_input_and_key('timestamp', rec)
                 result = self._context.block_number.from_timestamp(**rec.input)
-                return result
+                return 'P', result
 
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('block_number', rec)
                 result = self._context.run_model(**rec.input,
                                                  return_type=rec.chef_return_type)
-                return result
+                return 'P', result
             elif rec.method == 'run_model_historical':
                 # cond1: snap_clock and timestamp
                 # cond2: snap_clock and end_timestamp
@@ -248,16 +251,30 @@ class Chef(Generic[C, P]):
                 cond3 = self.verify_input_and_key('end_timestamp', rec)
                 cond4 = self.context.block_number.timestamp in rec.cache_keywords
                 assert cond1 | cond2 | cond3 | cond4
+
+                # For run_model_historical, we ensure plan_return_type is used in the BlockSeries[]
                 result = self._context.historical.run_model_historical(
                     **rec.input,
-                    model_return_type=rec.chef_return_type)
-                return result
+                    model_return_type=rec.plan_return_type)
+                return 'P', result
             else:
                 raise ModelRunError(f'! Unknown {rec.method=}')
         except AssertionError:
             raise ModelRunError(
                 f'cache_key may not be unique for {rec.method=} with {rec.input=} '
                 f'in {rec.cache_keywords=}')
+        except (ModelDataError, ModelRunError) as err:
+            if catch_runtime_error:
+                status_code, result = rec.error_handle(self._context, err)
+
+                if status_code == 'E':
+                    raise err
+
+                if status_code in ['S', 'C']:
+                    return status_code, result
+
+                raise ModelRunError(f'Unknown status code {status_code} while handling {err}')
+            raise err
 
     def cook(self, rec: Recipe[C, P]) -> P:
         result = None
@@ -285,19 +302,24 @@ class Chef(Generic[C, P]):
 
         retry_c = 0
         result = None
+        status_code = ''
         while retry_c < self.__RETRY__:
             try:
-                result = self.perform(rec)
+                # catch_runtime_error = retry_c == self.__RETRY__ - 1
+                status_code, result = self.perform(rec, True)
                 break
             except Exception as err:
                 if retry_c == self.__RETRY__ - 1:
                     raise
                 self.context.logger.error(
                     f'Met exception with .perform() {err=}. '
-                    f'Re-trying {retry_c+1} of {self.__RETRY__}.')
+                    f'Re-trying {retry_c+2} of {self.__RETRY__}.')
                 retry_c += 1
 
-        if result is not None:
+        if status_code == 'S' and isinstance(result, rec.plan_return_type):
+            return result
+
+        elif status_code in ['P', 'C'] and isinstance(result, rec.chef_return_type):
             post_result = rec.post_proc(self._context, result)
 
             if isinstance(post_result, DTO) and issubclass(rec.chef_return_type, DTO):
@@ -323,8 +345,8 @@ class Chef(Generic[C, P]):
             self._total_hit += 1
 
             return post_result
-
-        raise ModelRunError('Result is None')
+        else:
+            raise ModelRunError('Result is None')
 
 
 class Kitchen(Singleton):
@@ -359,9 +381,6 @@ def validate_as_of(as_of):
 
 
 class Plan(Generic[C, P]):
-    _chef_return_type: Type[C]
-    _plan_return_type: Type[P]
-
     def check_kwargs(self, **kwargs):
         assert 'chef_return_type' not in kwargs and 'plan_return_type' not in kwargs
 
@@ -399,7 +418,7 @@ class Plan(Generic[C, P]):
         self._acquire_chef(chef, context, name=self._name, reset_cache=reset_cache,
                            use_cache=use_cache, verbose=verbose)
 
-    @property
+    @ property
     def chef(self):
         if self._chef is not None:
             return self._chef
@@ -445,12 +464,22 @@ class Plan(Generic[C, P]):
     def post_proc(self, _context, output_from_chef: C) -> P:
         return self._plan_return_type(output_from_chef)
 
+    def error_handle(self, _context, err: Exception) -> Tuple[str, P]:
+        """
+        status code to return
+        1. E: trigger the error.
+        2. S: Skip with plan result
+        3. C: Continue with chef result (to be post-proc and cached)
+        """
+        raise err
+
     def create_recipe(self, cache_keywords, method, input):
         recipe = Recipe(cache_keywords=cache_keywords,
                         target_key=self._target_key,
                         method=method,
                         input=input,
                         post_proc=self.post_proc,
+                        error_handle=self.error_handle,
                         chef_return_type=self._chef_return_type,
                         plan_return_type=self._plan_return_type)
         return recipe
@@ -467,6 +496,7 @@ class Plan(Generic[C, P]):
 
         try:
             self._result = self.define()
+
         except Exception:
             self._chef.context.logger.error(
                 f'Exception during executing {self._target_key}. Force releasing Chef.')
@@ -487,7 +517,6 @@ class Plan(Generic[C, P]):
 
 class BlockFromTimePlan(Plan[BlockNumber, dict]):
     def __init__(self, *args, **kwargs):
-        self.check_kwargs(**kwargs)
         super().__init__(*args, **kwargs, chef_return_type=BlockNumber, plan_return_type=dict)
 
     def post_proc(self, _context, output_from_chef: BlockNumber) -> dict:
@@ -535,7 +564,6 @@ class BlockFromTimePlan(Plan[BlockNumber, dict]):
 
 class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
     def __init__(self, *args, **kwargs):
-        self.check_kwargs(**kwargs)
         super().__init__(*args,
                          **kwargs,
                          chef_return_type=BlockSeries[dict],
@@ -593,7 +621,6 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
 
 class TokenEODPlan(Plan[Price, dict]):
     def __init__(self, *args, **kwargs):
-        self.check_kwargs(**kwargs)
         super().__init__(*args,
                          **kwargs,
                          chef_return_type=Price,
@@ -619,7 +646,7 @@ class TokenEODPlan(Plan[Price, dict]):
         model_slug = 'token.price-ext'
 
         block_plan = HistoricalBlockPlan(self._tag,
-                                         f'HistoricalBlock.{self._tag}.{as_of}.{window}.{interval}',
+                                         f'HistoricalBlock.{as_of}.{window}.{interval}',
                                          context=self.chef.context,
                                          verbose=self._verbose,
                                          as_of=as_of,

@@ -1,7 +1,10 @@
 import os
 
 import credmark.model
-from credmark.model import ModelRunError
+from credmark.model import (
+    ModelRunError,
+    ModelDataError,
+)
 
 from credmark.types import (
     Position,
@@ -27,11 +30,21 @@ from models.credmark.algorithms.risk import (
 
 class AaveDebtHistorical(Plan[AaveDebtInfos, Portfolio]):
     def __init__(self, *args, **kwargs):
-        self.check_kwargs(**kwargs)
         super().__init__(*args,
                          **kwargs,
                          chef_return_type=AaveDebtInfos,
                          plan_return_type=Portfolio)
+
+    def error_handle(self, _context, err):
+        if err.args == \
+                ModelDataError('Unable to retrieve abi for proxy for '
+                               '0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9').args:
+            _context.logger.warning(
+                f'Aave V2 contract was not live on block {_context.block_number}. '
+                'Return empty portfolio.')
+            return 'S', Portfolio(positions=[])
+        else:
+            raise err
 
     def post_proc(self, context, output_from_chef: AaveDebtInfos) -> Portfolio:
         debts = output_from_chef
@@ -101,6 +114,9 @@ class ValueAtRiskAave(ValueAtRiskBase):
             self.logger.info(
                 f'Loaded Aave portfolio of {len(portfolio.positions)} '
                 f'assets as of {as_of_str}')
+
+            if portfolio.positions.__len__() == 0:
+                continue
 
             if input.aave_history:
                 continue
