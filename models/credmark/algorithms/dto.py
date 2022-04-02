@@ -66,6 +66,10 @@ class VaRPortfolioAndPriceInput(DTO):
         validate_assignment = True
 
 
+class AaveVaR(VaRParameters):
+    aave_history: bool = DTOField(False)
+
+
 class VaRPortfolioAndPriceOutput(DTO):
     n_window: int
     # n_shifted/n_interval/confidence -> var

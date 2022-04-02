@@ -68,7 +68,7 @@ class ValueAtRiskBase(credmark.model.Model):
 
             if input.as_of_is_range:
                 as_ofs = [dt.to_pydatetime().replace(tzinfo=timezone.utc)
-                          for dt in pd.date_range(min_date, max_date)][::-1]
+                          for dt in pd.date_range(min_date, max_date)]
             else:
                 as_ofs = input.as_ofs
         else:

@@ -14,7 +14,7 @@ from models.credmark.protocols.lending.aave.aave_v2 import (
 )
 
 from models.credmark.algorithms.dto import (
-    VaRParameters,
+    AaveVaR,
     VaRPortfolioInput,
     VaROutput,
 )
@@ -69,11 +69,11 @@ class AaveDebtHistorical(Plan[AaveDebtInfos, Portfolio]):
                          version='1.0',
                          display_name='Value at Risk for Aave',
                          description='Value at Risk for Aave',
-                         input=VaRParameters,
+                         input=AaveVaR,
                          output=VaROutput)
 class ValueAtRiskAave(ValueAtRiskBase):
 
-    def run(self, input: VaRParameters) -> VaROutput:
+    def run(self, input: AaveVaR) -> VaROutput:
         """
         ValueAtRiskAave evaluates the risk of the assets that Aave holds as_of a day
         """
@@ -101,6 +101,9 @@ class ValueAtRiskAave(ValueAtRiskBase):
             self.logger.info(
                 f'Loaded Aave portfolio of {len(portfolio.positions)} '
                 f'assets as of {as_of_str}')
+
+            if input.aave_history:
+                continue
 
             # For DEBUG on certain type of token
             # portfolio = [p for p in portfolio
