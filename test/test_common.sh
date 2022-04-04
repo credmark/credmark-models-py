@@ -34,11 +34,15 @@ fi
 
 other_opts=' --format_json'
 
-# echo "${@: -1: 1} | ${@: -2: 1}"
+# echo "${@: -1: 1} | ${@: -2: 1} $#"
 
 if [ "${@: -1: 1}" == 'gen' ]
 then
-    start_n=${@: -2: 1}
+    if [ $# -eq 1 ]; then
+        start_n=0
+    else
+        start_n=${@: -2: 1}
+    fi
     gen_cmd=1
 else
     start_n=${@: -1: 1}
@@ -46,7 +50,7 @@ else
 fi
 
 start_n=`expr $start_n + 1 - 1`
-echo Skip: $start_n
+echo Start from: $start_n
 
 if [ $gen_cmd -eq 1 ]; then
     echo "Sending commands to ${cmd_file}"
