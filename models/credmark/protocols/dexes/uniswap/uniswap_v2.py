@@ -1,3 +1,11 @@
+from web3.exceptions import (
+    BadFunctionCallOutput
+)
+
+# TODO: to be merged in framework
+from web3._utils.filters import construct_event_filter_params
+from web3._utils.events import get_event_data
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import (
     Price,
@@ -6,9 +14,16 @@ from credmark.cmf.types import (
     Contract,
     Contracts
 )
-from models.dtos.volume import TradingVolume, TokenTradingVolume
-from models.tmp_abi_lookup import UNISWAP_V2_SWAP_ABI
-UNISWAP_V2_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+from models.dtos.volume import (
+    TradingVolume,
+    TokenTradingVolume,
+)
+
+from models.tmp_abi_lookup import (
+    UNISWAP_V2_SWAP_ABI,
+    UNISWAP_V2_FACTORY_ADDRESS,
+)
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
@@ -26,11 +41,15 @@ class UniswapV2GetPoolsForToken(Model):
                   Token(symbol="WETH"),
                   Token(symbol="DAI")]
         contracts = []
-        for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
-            if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
-        return Contracts(contracts=contracts)
+        try:
+            for token in tokens:
+                pair_address = factory.functions.getPair(input.address, token.address).call()
+                if not pair_address == Address.null():
+                    contracts.append(Contract(address=pair_address))
+            return Contracts(contracts=contracts)
+        except BadFunctionCallOutput:
+            # Or use this condition: if self.context.block_number < 10000835
+            return Contracts(contracts=[])
 
 
 @Model.describe(slug='uniswap-v2.get-average-price',
@@ -45,11 +64,17 @@ class UniswapV2GetAveragePrice(Model):
                                        input,
                                        return_type=Contracts)
 
+        # TODO: remove abi
+        pools = [Contract(address=p.address, abi=UNISWAP_V2_SWAP_ABI)
+                 for p in pools]
+
         prices = []
         reserves = []
         weth_price = None
         for pool in pools:
             reserves = pool.functions.getReserves().call()
+            if reserves == [0, 0, 0]:
+                continue
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
                 reserve = reserves[0]
@@ -73,8 +98,9 @@ class UniswapV2GetAveragePrice(Model):
                     price = price * weth_price
             prices.append((price, reserve))
         if len(prices) == 0:
-            return Price(price=None)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+            return Price(price=None, src='uniswap_v2')
+        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+                     src='uniswap_v2')
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',
@@ -86,11 +112,32 @@ class UniswapV2GetAveragePrice(Model):
 class UniswapV2PoolSwapVolume(Model):
     def run(self, input: Contract) -> TradingVolume:
         input = Contract(address=input.address, abi=UNISWAP_V2_SWAP_ABI)
-        swaps = input.events.Swap.createFilter(
-            fromBlock=self.context.block_number - int(86400 / 14),
-            toBlock=self.context.block_number).get_all_entries()
+
         token0 = Token(address=input.functions.token0().call())
         token1 = Token(address=input.functions.token1().call())
+
+        try:
+            swaps = input.events.Swap.createFilter(
+                fromBlock=self.context.block_number - int(86400 / 14),
+                toBlock=self.context.block_number).get_all_entries()
+        except ValueError:
+            # Some node server does not support newer eth_newFilter method
+            # Alternatively, use protected method
+            # input.events._get_event_abi()
+            swap_event_abi = [x for x in input.events.abi
+                              if 'name' in x and x['name'] == 'Swap' and
+                                 'type' in x and x['type'] == 'event'][0]
+
+            __data_filter_set, event_filter_params = construct_event_filter_params(
+                abi_codec=self.context.web3.codec,
+                event_abi=swap_event_abi,
+                address=input.address.checksum,
+                fromBlock=self.context.block_number - int(86400 * 10 / 14),
+                toBlock=self.context.block_number
+            )
+            swaps = self.context.web3.eth.get_logs(event_filter_params)
+            swaps = [get_event_data(self.context.web3.codec, swap_event_abi, s) for s in swaps]
+
         return TradingVolume(
             tokenVolumes=[
                 TokenTradingVolume(

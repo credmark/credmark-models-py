@@ -1,4 +1,9 @@
+from web3.exceptions import (
+    BadFunctionCallOutput,
+)
+
 from credmark.cmf.model import Model
+
 from credmark.cmf.types import (
     Address,
     Contract,
@@ -6,15 +11,16 @@ from credmark.cmf.types import (
     Contracts,
     Price
 )
-from credmark.dto import DTO
 
+from credmark.dto import (
+    DTO
+)
 
 from models.tmp_abi_lookup import (
     SUSHISWAP_FACTORY_ADDRESS,
     SUSHISWAP_FACTORY_ABI,
     SUSHISWAP_PAIRS_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
-    UNISWAP_V2_SWAP_ABI
+    UNISWAP_V2_SWAP_ABI,
 )
 
 
@@ -81,12 +87,6 @@ class SushiswapGetPair(Model):
                 description="Returns the token details of the pool",
                 input=Contract)
 class SushiswapGetPairDetails(Model):
-    def try_or(self, func, default=None, expected_exc=(Exception,)):
-        try:
-            return func()
-        except expected_exc:
-            return default
-
     def run(self, input: Contract):
         output = {}
         self.logger.info(f'{input=}')
@@ -94,21 +94,17 @@ class SushiswapGetPairDetails(Model):
             address=input.address.checksum,
             abi=SUSHISWAP_PAIRS_ABI
         )
-        token0 = contract.functions.token0().call()
-        token1 = contract.functions.token1().call()
+        token0 = Token(address=contract.functions.token0().call())
+        token1 = Token(address=contract.functions.token1().call())
         getReserves = contract.functions.getReserves().call()
 
-        token0_instance = Contract(
-            address=token0, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token0_name = self.try_or(lambda: token0_instance.functions.name().call())
-        _token0_symbol = self.try_or(lambda: token0_instance.functions.symbol().call())
-        _token0_decimals = token0_instance.functions.decimals().call()
+        _token0_name = token0.name
+        _token0_symbol = token0.symbol
+        _token0_decimals = token0.decimals
 
-        token1_instance = Contract(
-            address=token1, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token1_name = self.try_or(lambda: token1_instance.functions.name().call())
-        _token1_symbol = self.try_or(lambda: token1_instance.functions.symbol().call())
-        _token1_decimals = token1_instance.functions.decimals().call()
+        _token1_name = token1.name
+        _token1_symbol = token1.symbol
+        _token1_decimals = token1.decimals
 
         token0_reserve = getReserves[0]/pow(10, _token0_decimals)
         token1_reserve = getReserves[1]/pow(10, _token1_decimals)
@@ -141,11 +137,15 @@ class SushiswapGetPoolsForToken(Model):
                   Token(symbol="WETH"),
                   Token(symbol="DAI")]
         contracts = []
-        for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
-            if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI).info)
-        return Contracts(contracts=contracts)
+        try:
+            for token in tokens:
+                pair_address = factory.functions.getPair(input.address, token.address).call()
+                if not pair_address == Address.null():
+                    contracts.append(Contract(address=pair_address))
+            return Contracts(contracts=contracts)
+        except BadFunctionCallOutput:
+            # Or use this condition: if self.context.block_number < 10794229
+            return Contracts(contracts=[])
 
 
 @Model.describe(slug='sushiswap.get-average-price',
@@ -159,6 +159,8 @@ class SushiswapGetAveragePrice(Model):
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts)
+        # TODO: remove ABI
+        pools = [Contract(address=p.address, abi=UNISWAP_V2_SWAP_ABI) for p in pools]
 
         prices = []
         reserves = []
@@ -167,6 +169,7 @@ class SushiswapGetAveragePrice(Model):
             reserves = pool.functions.getReserves().call()
             if input.address == pool.functions.token0().call():
                 token1 = Token(address=pool.functions.token1().call())
+
                 reserve = reserves[0]
                 price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
 
@@ -188,5 +191,6 @@ class SushiswapGetAveragePrice(Model):
                     price = price * weth_price
             prices.append((price, reserve))
         if len(prices) == 0:
-            return Price(price=None)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+            return Price(price=None, src='sushiswap')
+        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+                     src='sushiswap')

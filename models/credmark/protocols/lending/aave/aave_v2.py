@@ -1,5 +1,14 @@
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
+
 from credmark.cmf.model import Model
+
+from credmark.cmf.model import (
+    ModelRunError
+)
+
 from credmark.cmf.types import (
     Address,
     Contract,
@@ -7,8 +16,13 @@ from credmark.cmf.types import (
     Position,
     Portfolio,
 )
+
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, IterableListGenericDTO
+
+from credmark.dto import (
+    DTO,
+    IterableListGenericDTO,
+)
 
 from models.tmp_abi_lookup import (
     AAVE_V2_TOKEN_CONTRACT_ABI,
@@ -50,10 +64,15 @@ class AaveV2GetLiability(Model):
 
         aave_assets = contract.functions.getReservesList().call()
 
-        return Portfolio(positions=[self.context.run_model(
-            slug='aave.token-liability',
-            input=Token(address=asset),
-            return_type=Position) for asset in aave_assets])
+        positions = []
+        for asset in aave_assets:
+            # self.logger.info(f'getting info for {asset=}')
+            pos = self.context.run_model(slug='aave.token-liability',
+                                         input=Token(address=asset),
+                                         return_type=Position)
+            positions.append(pos)
+
+        return Portfolio(positions=positions)
 
 
 @Model.describe(slug="aave.token-liability",
@@ -69,12 +88,10 @@ class AaveV2GetTokenLiability(Model):
             address=Address(AAVE_LENDING_POOL_V2).checksum,
             abi=AAVE_V2_TOKEN_CONTRACT_ABI
         )
-
         getReservesData = contract.functions.getReserveData(input.address).call()
+        # self.logger.info(f'info {getReservesData}, {getReservesData[7]}')
 
-        aToken = Token(
-            address=getReservesData[7],
-            abi=ERC_20_TOKEN_CONTRACT_ABI)
+        aToken = Token(address=getReservesData[7])
 
         return Position(asset=aToken, amount=aToken.total_supply)
 
@@ -94,12 +111,13 @@ class AaveV2GetAssets(Model):
 
         aave_assets_address = contract.functions.getReservesList().call()
 
-        aave_debts = AaveDebtInfos(aaveDebtInfos=[self.context.run_model(
-            'aave.token-asset',
-            input=Token(address=asset_address),
-            return_type=AaveDebtInfo) for asset_address in aave_assets_address])
-
-        return aave_debts
+        aave_debts_infos = []
+        for asset_address in aave_assets_address:
+            info = self.context.run_model('aave.token-asset',
+                                          input=Token(address=asset_address),
+                                          return_type=AaveDebtInfo)
+            aave_debts_infos.append(info)
+        return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
 @Model.describe(slug="aave.token-asset",
@@ -127,30 +145,33 @@ class AaveV2GetTokenAsset(Model):
 
         totalStableDebt = stableDebtToken.total_supply
         totalVariableDebt = variableDebtToken.total_supply
-        totalDebt = totalStableDebt + totalVariableDebt
+        if totalStableDebt is not None and totalVariableDebt is not None:
+            totalDebt = totalStableDebt + totalVariableDebt
 
-        return AaveDebtInfo(
-            token=input,
-            aToken=aToken,
-            stableDebtToken=stableDebtToken,
-            variableDebtToken=variableDebtToken,
-            interestRateStrategyContract=interestRateStrategyContract,
-            totalStableDebt=totalStableDebt,
-            totalVariableDebt=totalVariableDebt,
-            totalDebt=totalDebt)
+            return AaveDebtInfo(
+                token=input,
+                aToken=aToken,
+                stableDebtToken=stableDebtToken,
+                variableDebtToken=variableDebtToken,
+                interestRateStrategyContract=interestRateStrategyContract,
+                totalStableDebt=totalStableDebt,
+                totalVariableDebt=totalVariableDebt,
+                totalDebt=totalDebt)
+        else:
+            raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
+                                f'for {aToken.address=}')
 
 
-@ Model.describe(slug="aave.token-asset-historical",
-                 version="1.0",
-                 display_name="Aave V2 token liquidity",
-                 description="Aave V2 token liquidity at a given block number",
-                 input=Token,
-                 output=BlockSeries[AaveDebtInfo])
+@Model.describe(slug="aave.token-asset-historical",
+                version="1.0",
+                display_name="Aave V2 token liquidity",
+                description="Aave V2 token liquidity at a given block number",
+                input=Token,
+                output=BlockSeries)
 class AaveV2GetTokenAssetHistorical(Model):
-    def run(self, input: Token) -> BlockSeries[AaveDebtInfo]:
+    def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
             'aave.token-asset',
             model_input=input,
             window='5 days',
-            interval='1 day',
-            model_version='1.0')
+            interval='1 day')

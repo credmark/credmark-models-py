@@ -209,18 +209,18 @@ class CurveFinanceAverageGaugeYield(Model):
         pool_info = self.context.models.curve_fi.pool_info(
             Contract(address=input.functions.lp_token().call()))
 
-        addrs = self.context.run_model('curve-fi.all-gauge-addresses', input)
+        # addrs = self.context.run_model('curve-fi.all-gauge-addresses', input)
 
-        gauge_input = {
-            "gaugeAddress": input.address,
-            "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
-        }
+        # gauge_input = {
+        #     "gaugeAddress": input.address,
+        #     "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
+        # }
 
         res = self.context.historical.run_model_historical(
             'curve-fi.get-gauge-stake-and-claimable-rewards',
             window='60 days',
             interval='7 days',
-            model_input=gauge_input)
+            model_input=input)
 
         yields = []
         for idx in range(0, len(res.series) - 1):

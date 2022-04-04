@@ -60,7 +60,35 @@ class TokenPriceModel(Model):
         average_price = 0
         if len(prices) > 0:
             average_price = sum([p.price for p in prices]) / len(prices)
-        return Price(price=average_price)
+            return Price(price=average_price, src='token.price')
+        else:
+            return Price(price=None, src='token.price')
+
+
+@Model.describe(slug='token.price-ext',
+                version='1.0',
+                display_name='Token Price',
+                description='The Current Credmark Supported Price Algorithm (fast)',
+                developer='Credmark',
+                input=Token,
+                output=Price)
+class TokenPriceModelExt(Model):
+    def run(self, input: Token) -> Price:
+        # Token initialization test
+        # _ = input.proxy_for
+        # _ = input.decimals
+        # _ = input.functions.implementation.call()
+
+        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
+        if uniswap_v2.price is not None:
+            return uniswap_v2
+        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
+        if uniswap_v3.price is not None:
+            return uniswap_v3
+        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
+        if sushiswap.price is not None:
+            return sushiswap
+        return Price(price=None, src='token.price-ext')
 
 
 @Model.describe(slug='token.holders',
@@ -70,7 +98,7 @@ class TokenPriceModel(Model):
                 input=Token,
                 output=dict)
 class TokenHolders(Model):
-    def run(self, input: Token) -> dict:
+    def run(self, _input: Token) -> dict:
         # TODO: Get Holders
         return {"result": 0}
 
