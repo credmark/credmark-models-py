@@ -5,7 +5,7 @@ from typing import (
 
 from credmark.cmf.model import Model
 
-from credmark.cmf.model import (
+from credmark.cmf.model.errors import (
     ModelRunError
 )
 
@@ -21,6 +21,7 @@ from credmark.cmf.types.series import BlockSeries
 
 from credmark.dto import (
     DTO,
+    EmptyInput,
     IterableListGenericDTO,
 )
 
@@ -102,7 +103,7 @@ class AaveV2GetTokenLiability(Model):
                 description="Aave V2 assets for the main lending pool",
                 output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
-    def run(self, input) -> IterableListGenericDTO[AaveDebtInfo]:
+    def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
         contract = Contract(
             # AAVE Lending Pool V2
             address=Address(AAVE_LENDING_POOL_V2).checksum,

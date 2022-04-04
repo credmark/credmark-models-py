@@ -23,6 +23,10 @@ from credmark.dto import DTO, IterableListGenericDTO
     output=Token
 )
 class TokenInfoModel(Model):
+    """
+    Return token's information
+    """
+
     def run(self, input: Token) -> Token:
         return input.info
 
@@ -34,6 +38,10 @@ class TokenInfoModel(Model):
                 input=Token,
                 output=Price)
 class PriceModel(Model):
+    """
+    Return token's price (DEPRECATED) - use token.price
+    """
+
     def run(self, input: Token) -> Price:
         return self.context.run_model('token.price', input, return_type=Price)
 
@@ -46,6 +54,10 @@ class PriceModel(Model):
                 input=Token,
                 output=Price)
 class TokenPriceModel(Model):
+    """
+    Return token's price
+    """
+
     def run(self, input: Token) -> Price:
         prices = []
         uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
@@ -73,6 +85,10 @@ class TokenPriceModel(Model):
                 input=Token,
                 output=Price)
 class TokenPriceModelExt(Model):
+    """
+    Return token's price with immediate available source.
+    """
+
     def run(self, input: Token) -> Price:
         # Token initialization test
         # _ = input.proxy_for
@@ -137,7 +153,7 @@ class TokenSwapPoolVolume(Model):
                 input=Token,
                 output=dict)
 class TokenVolume(Model):
-    def run(self, input: Token) -> dict:
+    def run(self, input) -> dict:
         # TODO: Get Overall Volume
         return {"result": 0}
 
@@ -179,8 +195,8 @@ class TokenCirculatingSupply(Model):
             raise ModelDataError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
-                c.amountScaled += response.token.scaled(
-                    response.token.functions.balanceOf(account.address))
+                bal = response.token.functions.balanceOf(account.address).call()
+                c.amountScaled += response.token.scaled(bal)
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
         response.categories.append(CategorizedSupplyResponse.CategorizedSupplyCategory(

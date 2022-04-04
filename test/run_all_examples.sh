@@ -4,18 +4,9 @@ credmark-dev list
 echo ""
 echo "Neil's example:"
 echo ""
-credmark-dev run contrib.neilz --input '{}' -b 14234904 --format_json
 echo ""
 echo "echo Examples"
 echo ""
-credmark-dev run example.all --input '{}' -b 14234904 --format_json
-credmark-dev run example.echo --input '{"message":"hello world"}' -b 14234904 --format_json
-credmark-dev run example.contract --input '{}' -b 14234904 --format_json
-credmark-dev run example.data-error --input '{}' -b 14234904 --format_json
-credmark-dev run example.data-error-2 --input '{}' -b 14234904 --format_json
-credmark-dev run example.block-time --input '{}' -b 14234904 --format_json
-credmark-dev run example.block-number --input '{}' -b 14234904 --format_json
-credmark-dev run example.address --input '{}' -b 14234904 --format_json
 credmark-dev run example.type-test-1 --input '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}' -b 14234904 --format_json
 credmark-dev run example.type-test-2 --input '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}' -b 14234904 --format_json
 credmark-dev run example.account --input '{}' -b 14234904 --format_json
@@ -34,12 +25,12 @@ credmark-dev run account.portfolio --input '{"address": "0xCE017A1dcE5A15668C429
 echo ""
 echo "Run Historical Examples:"
 echo ""
-credmark-dev run example.historical --input '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}' -b 14234904 --format_json
-credmark-dev run example.historical --input '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' -b 14234904 --format_json
-credmark-dev run example.historical --input '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' -b 14234904 --format_json
-credmark-dev run example.historical-snap --input '{}' -b 14234904 --format_json
-credmark-dev run example.historical-block --input '{}' -b 14234904 --format_json
-credmark-dev run example.historical-block-snap --input '{}' -b 14234904 --format_json
+credmark-dev run example.historical --input '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}' -l token.price-ext -b 14234904 --format_json
+credmark-dev run example.historical --input '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' -l token.price -b 14234904 --format_json
+credmark-dev run example.historical --input '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' -l token.overall-volume -b 14234904 --format_json
+credmark-dev run example.historical-snap --input '{}' -l example.libraries -b 14234904 --format_json
+credmark-dev run example.historical-block-snap --input '{}' -l example.echo -b 14234904 --format_json
+credmark-dev run example.historical-block --input '{}' -l example.libraries -b 14234904 --format_json
 echo ""
 echo "Run Ledger Examples:"
 echo ""
@@ -59,14 +50,15 @@ echo ""
 echo "Run Token Examples:"
 echo ""
 credmark-dev run example.token-loading --input '{}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "WETH"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "CMK"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "AAVE"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "USDC"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "MKR"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -b 14234904 --format_json
-credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "WETH"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "CMK"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "AAVE"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "USDC"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "MKR"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
 credmark-dev run token.holders --input '{"symbol": "CMK"}' -b 14234904 --format_json
 credmark-dev run token.swap-pools --input '{"symbol":"CMK"}' -b 14234904 --format_json
 credmark-dev run token.info --input '{"symbol":"CMK"}' -b 14234904 --format_json

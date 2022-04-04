@@ -78,12 +78,13 @@ test_model 0 account.portfolio '{"address": "0xCE017A1dcE5A15668C4299263019c0171
 echo_cmd ""
 echo_cmd "Run Historical Examples:"
 echo_cmd ""
-test_model 0 example.historical '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}'
-test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}'
-test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' # series.time-window-interval
-test_model 0 example.historical-snap '{}' series.time-start-end-interval
-test_model 0 example.historical-block '{}' # series.block-window-intervaluni
-test_model 0 example.historical-block-snap '{}' # series.block-start-end-interval
+test_model 0 example.historical '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}' token.price-ext
+test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' token.price
+test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' token.overall-volume # series.time-window-interval
+test_model 0 example.historical-snap '{}' example.libraries # series.time-start-end-interval
+test_model 0 example.historical-block-snap '{}' example.echo # series.block-start-end-interval
+test_model 0 example.historical-block '{}' example.libraries # series.block-window-intervaluni
+
 
 echo_cmd ""
 echo_cmd "Run Ledger Examples:"
@@ -106,19 +107,19 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 test_model 0 example.token-loading '{}'
-test_model 0 token.price '{"symbol": "WETH"}'
-test_model 0 token.price '{"symbol": "CMK"}'
-test_model 0 token.price '{"symbol": "AAVE"}'
+test_model 0 token.price '{"symbol": "WETH"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+test_model 0 token.price '{"symbol": "CMK"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+test_model 0 token.price '{"symbol": "AAVE"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 # AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
-test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}'
-test_model 0 token.price '{"symbol": "USDC"}'
-test_model 0 token.price '{"symbol": "MKR"}'
+test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+test_model 0 token.price '{"symbol": "USDC"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+test_model 0 token.price '{"symbol": "MKR"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 # Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
-test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}'
+test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 # RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
-test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}'
+test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 
-test_model 0 token.price-ext '{"symbol": "CMK"}'
+test_model 0 token.price-ext '{"symbol": "CMK"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
@@ -187,8 +188,8 @@ test_model 0 uniswap-v3.get-pools '{"symbol": "MKR"}'
 test_model 0 uniswap-v3.get-pool-info '{"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"}'
 test_model 0 uniswap-v3.get-average-price '{"symbol": "CMK"}'
 # TODO: USDC price wrong from USDC/DAI pool
-test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}'
-test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}'
+test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "USDC"}, "window": "10 days"}' uniswap-v3.get-average-price
+test_model 0 uniswap-v3.get-historical-price '{"token": {"symbol": "CMK"}, "window": "10 days", "interval":"5 days"}' uniswap-v3.get-average-price
 
 
 echo_cmd ""
@@ -207,30 +208,30 @@ test_model 0 sushiswap.get-pools '{"address":"0x68CFb82Eacb9f198d508B514d898a403
 echo_cmd ""
 echo_cmd "Run Aave V2 Examples:"
 echo_cmd ""
-test_model 0 aave.lending-pool-assets '{}'
-# 0xE41d2489571d322189246DaFA5ebDe1F4699F498: ZRX
-test_model 0 aave.token-liability '{"address":"0xE41d2489571d322189246DaFA5ebDe1F4699F498"}'
-test_model 0 aave.token-liability '{"symbol":"USDC"}'
-test_model 0 aave.overall-liabilities-portfolio '{}'
-# 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48: USDC
-test_model 0 aave.token-asset-historical '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
 test_model 0 aave.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
 test_model 0 aave.token-asset '{"symbol":"USDC"}'
 test_model 0 aave.token-asset '{"symbol":"DAI"}'
+test_model 0 aave.lending-pool-assets '{}' aave.token-asset
+# 0xE41d2489571d322189246DaFA5ebDe1F4699F498: ZRX
+test_model 0 aave.token-liability '{"address":"0xE41d2489571d322189246DaFA5ebDe1F4699F498"}'
+test_model 0 aave.token-liability '{"symbol":"USDC"}'
+test_model 0 aave.overall-liabilities-portfolio '{}' aave.token-liability
+# 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48: USDC
+test_model 0 aave.token-asset-historical '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' aave.token-asset
 
 echo_cmd ""
 echo_cmd "Run Curve Examples"
 echo_cmd ""
 
-test_model 0 curve-fi.all-pools '{}'
+test_model 0 curve-fi.all-pools '{}' curve-fi.pool-info
 test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
-test_model 0 curve-fi.pool-historical-reserve '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
+test_model 0 curve-fi.pool-historical-reserve '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}' curve-fi.pool-info
 
-test_model 0 curve-fi.all-yield '{}'
+test_model 0 curve-fi.all-yield '{}' curve-fi.gauge-yield,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.all-gauge-claim-addresses
 
 test_model 0 curve-fi.all-gauges '{}'
 test_model 0 curve-fi.get-gauge-stake-and-claimable-rewards '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}'
-test_model 0 curve-fi.gauge-yield '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}'
+test_model 0 curve-fi.gauge-yield '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' curve-fi.get-gauge-stake-and-claimable-rewards
 # 0x824F13f1a2F29cFEEa81154b46C0fc820677A637 is Curve.fi rCRV Gauge Deposit (rCRV-gauge)
 test_model 0 curve-fi.all-gauge-claim-addresses '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}'
 # 0x72E158d38dbd50A483501c24f792bDAAA3e7D55C is Curve.fi FRAX3CRV-f Gauge Deposit (FRAX3CRV-...)
@@ -240,12 +241,12 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}'
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}'
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}' finance.var-engine
 
-test_model 0 finance.var-regtest '{}'
+test_model 0 finance.var-regtest '{}' finance.var-engine,finance.var-reference
 
 exit

@@ -177,7 +177,8 @@ class CurveFinanceGaugeRewardsCRV(Model):
     def run(self, input: Contract) -> dict:
         yields = []
 
-        for addr in self.context.models.curve_fi.all_gauge_claim_addresses(input):
+        all_addrs = Accounts(**self.context.models.curve_fi.all_gauge_claim_addresses(input))
+        for addr in all_addrs.accounts:
             if not addr.address:
                 raise ModelRunError(f'Input is invalid, {input}')
 
@@ -197,9 +198,9 @@ class CurveFinanceGaugeRewardsCRV(Model):
 CRV_PRICE = 3.0
 
 
-@Model.describe(slug='curve-fi.gauge-yield',
-                version='1.0',
-                input=Contract)
+@ Model.describe(slug='curve-fi.gauge-yield',
+                 version='1.0',
+                 input=Contract)
 class CurveFinanceAverageGaugeYield(Model):
     def run(self, input: Contract) -> dict:
         """
@@ -240,13 +241,11 @@ class CurveFinanceAverageGaugeYield(Model):
                         if y2['claimable_tokens'] == 0:
                             continue
                         if y1['balanceOf'] == y2['balanceOf']:
-
                             y2_rewards_value = y2["claimable_tokens"] * CRV_PRICE / (10**18)
                             y1_rewards_value = y1["claimable_tokens"] * CRV_PRICE / (10**18)
-                            y2_liquidity_value = y2["balanceOf"] * \
-                                pool_info['virtualPrice'] / (10**18) / (10**18)
-                            y1_liquidity_value = y1["balanceOf"] * \
-                                pool_info['virtualPrice'] / (10**18) / (10**18)
+                            virtual_price = pool_info['virtualPrice'] / (10**18) / (10**18)
+                            y2_liquidity_value = y2["balanceOf"] * virtual_price
+                            y1_liquidity_value = y1["balanceOf"] * virtual_price
                             new_portfolio_value = y2_rewards_value + y2_liquidity_value
                             old_portfolio_value = y1_rewards_value + y1_liquidity_value
                             if old_portfolio_value > new_portfolio_value:
@@ -260,7 +259,7 @@ class CurveFinanceAverageGaugeYield(Model):
         return {"pool_info": pool_info, "crv_yield": avg_yield}
 
 
-@Model.describe(slug='curve-fi.all-yield', version='1.0')
+@ Model.describe(slug='curve-fi.all-yield', version='1.0')
 class CurveFinanceAllYield(Model):
     def run(self, input) -> dict:
         res = []
