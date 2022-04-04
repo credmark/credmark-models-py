@@ -148,10 +148,9 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 test_model 0 compound.test '{"symbol":"DAI"}'
-# TODO: fix the model
-test_model 1 compound-token-asset '{"symbol":"DAI"}'
-# TODO: fix the model
-test_model 1 compound-token-liability '{"symbol":"DAI"}'
+test_model 0 compound.token-asset '{"symbol":"DAI"}'
+test_model 0 compound.token-liability '{"symbol":"DAI"}'
+test_model 0 compound.all-liability '{}' compound.token-liability
 
 
 echo_cmd ""
@@ -241,12 +240,14 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' finance.var-engine
-test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}' finance.var-engine
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 
-test_model 0 finance.var-regtest '{}' finance.var-engine,finance.var-reference
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
+test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}' ${var_deps}
+
+test_model 0 finance.var-regtest '{}' finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${var_deps}
 
 exit
