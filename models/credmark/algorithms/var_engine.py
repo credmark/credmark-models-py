@@ -137,7 +137,8 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
 
         if input.dev_mode:
             df_res_p = self.res_to_df(var_result)
-            df_res_p.to_csv(os.path.join('tmp', 'df_res.csv'), index=False)
+            fn_res = os.path.join('tmp', f'{self.slug}_{input.run_name}_res.csv')
+            df_res_p.to_csv(os.path.join('tmp', fn_res), index=False)
 
         var_output = VaRPortfolioAndPriceOutput(n_window=input.n_window,
                                                 var=var_result)
@@ -179,7 +180,7 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
         minimal_interval = f'1 {unique_ivl_key}'
 
         __fp_ts = int(datetime.now().timestamp())
-        fp_pre = f'{self.slug}'
+        fp_pre = f'{self.slug}_{input.run_name}'
 
         var_result = {}
         for as_of in as_ofs:
@@ -233,7 +234,8 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
 
         if input.dev_mode:
             df_res_p = self.res_to_df(var_result)
-            df_res_p.to_csv(os.path.join('tmp', 'df_res.csv'), index=False)
+            fn_res = os.path.join('tmp', f'{self.slug}_{input.run_name}_res.csv')
+            df_res_p.to_csv(fn_res, index=False)
 
         var_output = VaROutput(window=input.window, var=var_result)
 

@@ -25,8 +25,9 @@ from models.credmark.algorithms.tradeable import (
 
 class ValueAtRiskBase(credmark.model.Model):
     def eod_block(self, dt_input: datetime, verbose=False) -> dict:
-        block_plan = BlockFromTimePlan('eod',
-                                       f'BlockFromEODPlan.{dt_input}',
+        block_plan = BlockFromTimePlan(tag='eod',
+                                       target_key=f'BlockFromEODPlan.{dt_input}',
+                                       use_kitchen=False,
                                        context=self.context,
                                        verbose=verbose,
                                        date=dt_input)

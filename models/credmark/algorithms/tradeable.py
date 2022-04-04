@@ -88,7 +88,13 @@ class Recipe(GenericDTO, Generic[C, P]):
     plan_return_type: Type[P]
 
 
-class Chef(Generic[C, P]):
+class RiskObject:
+    @property
+    def name_id(self):
+        return f'{self.__class__.__name__}({hex(id(self))})'
+
+
+class Chef(Generic[C, P], RiskObject):
     __SEP__ = '|#|'
     __RETRY__ = 3
     __CACHE_UNSAVE_LIMIT__ = 1000  # entries before cache is saved
@@ -116,11 +122,11 @@ class Chef(Generic[C, P]):
         if self._verbose:
             if self._reset_cache:
                 self._context.logger.info(
-                    f'+- Call Chef({hex(id(self))}) on {self._cache_file} '
+                    f'/- Call {self.name_id}) on {self._cache_file} '
                     f'in reset mode overwriting existing')
             else:
                 self._context.logger.info(
-                    f'+- Call Chef({hex(id(self))}) on {self._cache_file}')
+                    f'/- Call {self.name_id} on {self._cache_file}')
         if self._use_cache:
             self._load_cache()
 
@@ -129,7 +135,7 @@ class Chef(Generic[C, P]):
             self.cache_status()
         self.save_cache()
         if self._verbose:
-            self._context.logger.info(f'+- Free Chef({hex(id(self))}) on {self._cache_file}')
+            self._context.logger.info(f'\\- Free {self.name_id} on {self._cache_file}')
 
     def _load_cache(self):
         try:
@@ -141,7 +147,7 @@ class Chef(Generic[C, P]):
                     self.cache_info(' Opened')
         except EOFError:
             self._context.logger.warning(
-                f'* Cache from {self._cache_file} is corrupted. Reset.')
+                f'* {self.name_id} cache from {self._cache_file} is corrupted. Reset.')
             self.save_cache()
 
     def save_cache(self):
@@ -155,6 +161,11 @@ class Chef(Generic[C, P]):
                         self._cache['__log__'].append(datetime.now())
                     else:
                         self._cache['__log__'] = [datetime.now()]
+                    if '__count__' in self._cache:
+                        self._cache['__count__'] += self._cache_unsaved
+                    else:
+                        self._cache['__count__'] = self._cache_unsaved
+
                     pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
                     self._cache_unsaved = 0
                     self._cache_last_saved = datetime.now().timestamp()
@@ -163,11 +174,12 @@ class Chef(Generic[C, P]):
     def cache_info(self, message=''):
         if self._verbose:
             cache_log = self._cache.get('__log__', [datetime.now()])
+            cache_count = self._cache.get('__count__', 0)
             cache_log_info = (f'[{min(cache_log):%Y-%m-%d %H:%M:%S}] to '
                               f'[{max(cache_log):%Y-%m-%d %H:%M:%S}] '
                               f'for saved {len(cache_log)} times '
-                              f'with {len(self._cache)} entries.')
-            self._context.logger.info(f'* Cache from {self._cache_file} '
+                              f'with {cache_count} entries.')
+            self._context.logger.info(f'* {self.name_id} cache from {self._cache_file} '
                                       f'with {cache_log_info}'
                                       f'{message}')
 
@@ -197,7 +209,10 @@ class Chef(Generic[C, P]):
             self._cache[chain_id][method][cache_key] = {}
         return self._cache[chain_id][method][cache_key]
 
-    def find_cache_entry(self, chain_id, cache_key, rec):
+    def find_cache_entry(self,
+                         chain_id,
+                         cache_key,
+                         rec: Recipe[C, P]) -> Tuple[bool, Optional[Any]]:
         method = rec.method
         input = rec.input
         if chain_id not in self._cache:
@@ -214,7 +229,8 @@ class Chef(Generic[C, P]):
             if cache_entry['chain_id'] == chain_id:
                 if cache_entry['input'] == json.dumps(input, cls=PydanticJSONEncoder):
                     return True, cache_entry['untyped']
-
+        if self._verbose:
+            self.context.logger.warn(f'? Chef tried to grab but needs re-cook {cache_key}>')
         return False, None
 
     def verify_input_and_key(self, input_key, rec):
@@ -224,7 +240,7 @@ class Chef(Generic[C, P]):
     def cache_status(self):
         if self.total_hit != 0:
             self._context.logger.info(
-                f'* Cache hit {self.cache_hit} for {self.total_hit} requests '
+                f'*  cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
     def perform(self, rec: Recipe[C, P], catch_runtime_error) -> Tuple[str, Union[C, P]]:
@@ -286,7 +302,7 @@ class Chef(Generic[C, P]):
 
             if cache_find_status and cache_result is not None:
                 if self._verbose:
-                    self.context.logger.info(f'< Chef({hex(id(self))}) grabs < {cache_key}')
+                    self.context.logger.info(f'< {self.name_id} grabs < {cache_key}')
                 self._cache_hit += 1
                 self._total_hit += 1
 
@@ -298,7 +314,7 @@ class Chef(Generic[C, P]):
                     return cache_result
 
         if self._verbose:
-            self.context.logger.info(f'> Chef({hex(id(self))}) cooks > {cache_key}')
+            self.context.logger.info(f'> {self.name_id} cooks > {cache_key}')
 
         retry_c = 0
         result = None
@@ -370,8 +386,13 @@ class Kitchen(Singleton):
             chef.save_cache()
 
     def __del__(self):
-        for chef in self._pool.values():
-            del chef
+        print('Kitchen closed')
+        self.save_cache()
+        for key, _value in self._pool.items():
+            del self._pool[key]
+
+
+kitchen = Kitchen()
 
 
 def validate_as_of(as_of):
@@ -387,16 +408,23 @@ class Plan(Generic[C, P]):
     def __init__(self,
                  tag,
                  target_key: str,
+                 use_kitchen: bool,
                  plan_return_type: Type[P],
                  chef_return_type: Type[C],
                  name: Optional[str] = None,
                  chef=None,
                  context=None,
-                 use_kitchen: bool = True,
                  reset_cache: bool = False,
                  use_cache: bool = True,
                  verbose: bool = False,
                  **input_to_plan):
+        """
+        Plan can be initialized with
+        1) use_kitchen = True and context
+        2) use_kitchen = False and context: create own chef
+        3) use_kitchen = False and chef: use the chef
+        """
+
         self._chef = None
         self._chef_internal = None
         self._result = None
@@ -426,39 +454,42 @@ class Plan(Generic[C, P]):
             raise ModelRunError('! Chef is not around')
 
     def __del__(self):
-        # when initialization is not complete, chef may not be ready
         self._release_chef()
 
     def _acquire_chef(self, chef, context, name, reset_cache, use_cache, verbose):
-        if context is None and chef is not None:
-            self._chef = chef
+        if self._use_kitchen:
+            self._chef = kitchen.get(context,
+                                     name,
+                                     reset_cache=reset_cache,
+                                     use_cache=use_cache,
+                                     verbose=verbose)
             self._chef_internal = False
-        elif context is not None and chef is None:
-            if self._use_kitchen:
-                self._chef = Kitchen().get(context,
-                                           name,
-                                           reset_cache=reset_cache,
-                                           use_cache=use_cache,
-                                           verbose=verbose)
+        else:
+            if context is None and chef is not None:
+                self._chef = chef
                 self._chef_internal = False
-            else:
+            elif context is not None and chef is None:
                 self._chef = Chef(context,
                                   name,
                                   reset_cache=reset_cache,
                                   use_cache=use_cache,
                                   verbose=verbose)
                 self._chef_internal = True
-        else:
-            raise ModelRunError(f'! Missing either context or chef to '
-                                f'execute a {self.__class__.__name__}')
+            else:
+                raise ModelRunError(f'! Missing either context or chef to '
+                                    f'execute a {self.__class__.__name__}')
 
     def _release_chef(self):
+        # When initialization is not complete, chef may not be ready.
+        # in __init__(), set self._chef = None before potential initialization problems.
         if self._chef is not None:
             if self._verbose:
                 self._chef.context.logger.info(f'| Finished executing {self._target_key}')
                 self._chef.cache_status()
             if self._chef_internal:
-                del self._chef
+                self._chef.save_cache()
+            if self._use_kitchen:
+                kitchen.save_cache()
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: C) -> P:
@@ -501,7 +532,7 @@ class Plan(Generic[C, P]):
             self._chef.context.logger.error(
                 f'Exception during executing {self._target_key}. Force releasing Chef.')
             if self._use_kitchen:
-                Kitchen().save_cache()
+                kitchen.save_cache()
             else:
                 self._chef.save_cache()
             raise
@@ -516,8 +547,10 @@ class Plan(Generic[C, P]):
 
 
 class BlockFromTimePlan(Plan[BlockNumber, dict]):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, chef_return_type=BlockNumber, plan_return_type=dict)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs,
+                         chef_return_type=BlockNumber,
+                         plan_return_type=dict)
 
     def post_proc(self, _context, output_from_chef: BlockNumber) -> dict:
         eod_block = int(output_from_chef)
@@ -563,9 +596,8 @@ class BlockFromTimePlan(Plan[BlockNumber, dict]):
 
 
 class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args,
-                         **kwargs,
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs,
                          chef_return_type=BlockSeries[dict],
                          plan_return_type=dict)
 
@@ -580,7 +612,6 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
             lambda x: datetime.fromtimestamp(x, timezone.utc))
         df_blocks.loc[:, 'sampleTime'] = df_blocks.sampleTimestamp.apply(
             lambda x: datetime.fromtimestamp(x, timezone.utc))
-
         block_numbers = df_blocks.blockNumber.to_list()
         return {'block_numbers': block_numbers,
                 'block_table': df_blocks}
@@ -600,11 +631,13 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
         else:
             raise ModelRunError(f'! Unsupported {as_of=}')
 
-        block_plan = BlockFromTimePlan(self._tag,
-                                       f'BlockFromTimestamp.{self._tag}.{as_of_timestamp}',
-                                       context=self.chef.context,
-                                       verbose=self._verbose,
-                                       timestamp=as_of_timestamp)
+        block_plan = BlockFromTimePlan(
+            tag=self._tag,
+            target_key=f'BlockFromTimestamp.{self._tag}.{as_of_timestamp}',
+            use_kitchen=self._use_kitchen,
+            context=self.chef.context,
+            verbose=self._verbose,
+            timestamp=as_of_timestamp)
         __as_of_block = block_plan.execute()['block_number']
 
         recipe = self.create_recipe(
@@ -620,9 +653,8 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
 
 
 class TokenEODPlan(Plan[Price, dict]):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args,
-                         **kwargs,
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs,
                          chef_return_type=Price,
                          plan_return_type=dict)
 
@@ -645,8 +677,9 @@ class TokenEODPlan(Plan[Price, dict]):
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
         model_slug = 'token.price-ext'
 
-        block_plan = HistoricalBlockPlan(self._tag,
-                                         f'HistoricalBlock.{as_of}.{window}.{interval}',
+        block_plan = HistoricalBlockPlan(tag=self._tag,
+                                         target_key=f'HistoricalBlock.{as_of}.{window}.{interval}',
+                                         use_kitchen=self._use_kitchen,
                                          context=self.chef.context,
                                          verbose=self._verbose,
                                          as_of=as_of,
@@ -798,7 +831,7 @@ class Market(dict):
 # TODO: to be merged with framework's Portfolio
 
 
-class PortfolioManager:
+class PortfolioManager(RiskObject):
     def __init__(self,
                  trades: List[Tradeable],
                  as_of,
@@ -807,6 +840,13 @@ class PortfolioManager:
                  reset_cache,
                  verbose,
                  use_cache):
+        """
+        Initialize PortfolioManager with
+        1. use_kitchen = True and context: connect to a kitchen
+        2. use_kitchen = False and context: dispatch own chef
+        3. (not implementeed) use_kitchen = False and chef: call an existing chef
+        """
+
         self._chef = None
         self._trades = trades
         self._as_of = as_of
@@ -827,8 +867,12 @@ class PortfolioManager:
                               verbose=verbose)
 
     def __del__(self):
-        if self._chef is not None and not self._use_kitchen:
-            del self._chef
+        if self._use_kitchen:
+            kitchen.save_cache()
+        if self._chef is not None:
+            self._chef.save_cache()
+        if self._verbose:
+            self._context.logger.info(f'# {self.name_id} Closed.')
 
     @ classmethod
     def from_portfolio(cls,
@@ -867,7 +911,8 @@ class PortfolioManager:
         mkt_target = list(self.requires())
 
         if self._verbose:
-            self._context.logger.info(f'# Preparing market with {len(mkt_target)=} for {tag}')
+            self._context.logger.info(
+                f'# {self.name_id} Preparing market with {len(mkt_target)=} for {tag}')
 
         mkt = Market()
 
@@ -877,10 +922,10 @@ class PortfolioManager:
             context_or_chef = {'context': self._context}
 
         for target in mkt_target:
-            pl = TokenEODPlan(tag,
-                              target.key,
-                              **context_or_chef,
+            pl = TokenEODPlan(tag=tag,
+                              target_key=target.key,
                               use_kitchen=self._use_kitchen,
+                              **context_or_chef,
                               reset_cache=self._reset_cache,
                               verbose=self._verbose,
                               input_token=target.artifact,
@@ -889,7 +934,7 @@ class PortfolioManager:
 
         if self._verbose:
             self._context.logger.info(
-                f'# Finished preparing for market with {len(mkt_target)=} for {tag}')
+                f'# {self.name_id} Finished preparing for market with {len(mkt_target)=} for {tag}')
 
         return mkt
 

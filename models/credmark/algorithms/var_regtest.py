@@ -119,14 +119,15 @@ class ValueAtRiskRegressionTest(credmark.model.Model):
                 test_case = f'{model_slug}.{case_name}'
                 self.logger.info(f'Testing {case_name} with {model_slug}')
                 res = self.context.run_model(model_slug, input=case_detail['input'] | {
-                                             'dev_mode': dev_mode, 'verbose': verbose})
+                                             'dev_mode': dev_mode, 'verbose': verbose, 'run_name': case_name})
 
                 if dev_mode:
-                    os.rename(os.path.join('tmp', 'df_res.csv'),
-                              os.path.join('tmp', f'df_res_{test_case}.csv'))
                     if model_slug == 'finance.var-reference':
                         os.rename(os.path.join('tmp', 'df_hist.csv'),
                                   os.path.join('tmp', f'df_hist_{test_case}.csv'))
+                        os.rename(os.path.join('tmp', 'df_res.csv'),
+                                  os.path.join('tmp', f'df_res_{test_case}.csv'))
+
                     with open(os.path.join('tmp', f'{model_slug}.{case_name}.json'), 'w') as f:
                         f.write(res.__str__())
 

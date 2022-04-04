@@ -28,10 +28,9 @@ from models.credmark.algorithms.risk import (
 )
 
 
-class AaveDebtHistorical(Plan[AaveDebtInfos, Portfolio]):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args,
-                         **kwargs,
+class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs,
                          chef_return_type=AaveDebtInfos,
                          plan_return_type=Portfolio)
 
@@ -103,11 +102,13 @@ class ValueAtRiskAave(ValueAtRiskBase):
             eod = self.eod_block(as_of, verbose=input.verbose)
 
             tag = 'eod'
-            aave_debts_plan = AaveDebtHistorical(tag,
-                                                 f'AaveDebtHistorical.{eod["block_number"]}',
-                                                 context=self.context,
-                                                 verbose=input.verbose,
-                                                 block_number=eod['block_number'])
+            aave_debts_plan = AaveDebtHistoricalPlan(
+                tag=tag,
+                target_key=f'AaveDebtHistorical.{eod["block_number"]}',
+                use_kitchen=input.use_kitchen,
+                context=self.context,
+                verbose=input.verbose,
+                block_number=eod['block_number'])
             portfolio = aave_debts_plan.execute()
             del aave_debts_plan
 
@@ -151,10 +152,10 @@ class ValueAtRiskAave(ValueAtRiskBase):
 
         if input.dev_mode:
             df_res_p = self.res_to_df(var_result)
-            df_res_p.to_csv(os.path.join(
-                'tmp',
-                f'df_var_aave_{window}_{input.intervals}'
-                f'_{min_date:%Y-%m-%d}_{max_date:%Y-%m-%d}.csv'), index=False)
+            fn_res = os.path.join('tmp',
+                                  f'{self.slug}_{input.run_name}_{window}_{input.intervals}'
+                                  f'_{min_date:%Y-%m-%d}_{max_date:%Y-%m-%d}.csv')
+            df_res_p.to_csv(fn_res, index=False)
 
         return VaROutput(window=window,
                          var=var_result)
