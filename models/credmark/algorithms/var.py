@@ -55,11 +55,15 @@ class HistoricalPriceInput(DTO):
                 input=HistoricalPriceInput,
                 output=PriceList)
 class VaRPriceHistorical(Model):
+    """
+    Generate example historical prices uses dummy data of range of 1 to window + 1.
+    The priceList is assumed to be sorted in descending order in time.
+    """
+
     def run(self, input: HistoricalPriceInput) -> PriceList:
         token = input.token
         _w_k, w_i = self.context.historical.parse_timerangestr(input.window)
 
-        # Example historical prices uses dummy data of range of 1 to window + 1.
         return PriceList(
             prices=list(range(1, w_i+2)),
             token=token,
@@ -85,6 +89,7 @@ class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices
     to calculate VaR(s) according to the VaR parameters.
+    The prices in priceLists is asssumed be sorted in descending order in time.
     """
 
     def run(self, input: VaRHistoricalInput) -> dict:
@@ -97,7 +102,7 @@ class VaREngineHistorical(Model):
             priceLists = [pl for pl in input.priceLists if pl.token.address == token.address]
 
             if len(priceLists) != 1:
-                raise ModelRunError(f'There is no pricelist for {token.address=}')
+                raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
 
             np_priceList = np.array(priceLists[0].prices)
 
