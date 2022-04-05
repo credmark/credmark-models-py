@@ -168,11 +168,12 @@ class AaveV2GetTokenAsset(Model):
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 input=Token,
-                output=BlockSeries)
+                output=BlockSeries[AaveDebtInfo])
 class AaveV2GetTokenAssetHistorical(Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
             'aave.token-asset',
             model_input=input,
             window='5 days',
-            interval='1 day')
+            interval='1 day',
+            model_return_type=AaveDebtInfo)
