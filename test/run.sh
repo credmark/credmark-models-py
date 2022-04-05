@@ -151,7 +151,8 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 test_model 0 compound.test '{"symbol":"DAI"}'
-test_model 0 compound.get-pools '{}' compound.get-pool-info,${deps_token_price}
+test_model 0 compound.get-pools '{}' ${deps_token_price},compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools
+test_model 0 compound.all-pools-values-historical '{}' ${deps_token_price},compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools,compound.all-pools-values
 
 
 echo_cmd ""
