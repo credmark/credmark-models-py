@@ -44,7 +44,7 @@ class VaRPriceHistorical(Model):
         token = input.token
         _w_k, w_i = self.context.historical.parse_timerangestr(input.window)
 
-        # TODO: dummy data now, pending on server-side historical data implementation.
+        # Example historical prices uses dummy data of range of 1 to window + 1.
         return PriceList(
             prices=list(range(1, w_i+2)),
             tokenAddress=token.address,
