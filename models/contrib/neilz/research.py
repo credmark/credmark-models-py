@@ -27,10 +27,7 @@ class RedactedVotiumCashflow(Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
         and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
         for transfer in transfers:
-            try:
-                token = Token(address=transfer['token_address']).info
-            except ModelDataError:
-                token = Token(address=transfer['token_address'], abi=ERC_20_ABI)
+            token = Token(address=transfer['token_address']).info
             try:
                 transfer['price'] = self.context.run_model(
                     'token.price', input=token, block_number=transfer['block_number'])['price']
