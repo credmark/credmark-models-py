@@ -107,7 +107,7 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 
-deps_token_price='uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
 
 test_model 0 example.token-loading '{}'
 test_model 0 token.price '{"symbol": "WETH"}' ${deps_token_price}
