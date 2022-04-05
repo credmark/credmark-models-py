@@ -1,4 +1,12 @@
-from typing import Optional, Union
+from web3.exceptions import (
+    BadFunctionCallOutput,
+)
+
+from typing import (
+    Optional,
+    Union,
+)
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (
@@ -8,7 +16,9 @@ from credmark.cmf.types import (
     Contract,
     Contracts,
 )
+
 from credmark.cmf.types.series import BlockSeries
+
 from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
@@ -41,7 +51,6 @@ class UniswapV3PoolInfo(DTO):
                 input=Token,
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
-
     def run(self, input: Token) -> Contracts:
 
         fees = [3000, 10000]
@@ -52,20 +61,24 @@ class UniswapV3GetPoolsForToken(Model):
         if self.context.chain_id != 1:
             return Contracts(contracts=[])
 
-        uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
-                                   abi=UNISWAP_V3_FACTORY_ABI).instance
+        try:
+            uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS,
+                                       abi=UNISWAP_V3_FACTORY_ABI)
 
-        pools = []
+            pools = []
 
-        for fee in fees:
-            for primary_token in primary_tokens:
-                if input.address and primary_token.address:
-                    pool = uniswap_factory.functions.getPool(
-                        input.address.checksum, primary_token.address.checksum, fee).call()
-                    if pool != "0x0000000000000000000000000000000000000000":
-                        pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
+            for fee in fees:
+                for primary_token in primary_tokens:
+                    if input.address and primary_token.address:
+                        pool = uniswap_factory.functions.getPool(
+                            input.address.checksum, primary_token.address.checksum, fee).call()
+                        if pool != Address.null():
+                            pools.append(Contract(address=pool, abi=UNISWAP_V3_POOL_ABI).info)
 
-        return Contracts(contracts=pools)
+            return Contracts(contracts=pools)
+        except BadFunctionCallOutput:
+            # Or use this condition: if self.context.block_number < 12369621:
+            return Contracts(contracts=[])
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
@@ -81,7 +94,7 @@ class UniswapV3GetPoolInfo(Model):
         except ModelDataError:
             input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
 
-        pool = input.instance
+        pool = input
 
         slot0 = pool.functions.slot0().call()
         token0 = pool.functions.token0().call()
@@ -144,11 +157,12 @@ class UniswapV3GetAveragePrice(Model):
                         tick_price = tick_price * weth_prices
 
                 prices.append(tick_price)
-        if len(prices) == 0:
-            return Price(price=0)
-        price = sum(prices) / len(prices)
 
-        return Price(price=price)
+        if len(prices) == 0:
+            return Price(price=None, src='uniswap_v3')
+
+        price = sum(prices) / len(prices)
+        return Price(price=price, src='uniswap_v3')
 
 
 class HistoricalPriceDTO(DTO):

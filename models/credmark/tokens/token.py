@@ -23,6 +23,10 @@ from credmark.dto import DTO, IterableListGenericDTO
     output=Token
 )
 class TokenInfoModel(Model):
+    """
+    Return token's information
+    """
+
     def run(self, input: Token) -> Token:
         return input.info
 
@@ -34,6 +38,10 @@ class TokenInfoModel(Model):
                 input=Token,
                 output=Price)
 class PriceModel(Model):
+    """
+    Return token's price (DEPRECATED) - use token.price
+    """
+
     def run(self, input: Token) -> Price:
         return self.context.run_model('token.price', input, return_type=Price)
 
@@ -46,6 +54,10 @@ class PriceModel(Model):
                 input=Token,
                 output=Price)
 class TokenPriceModel(Model):
+    """
+    Return token's price
+    """
+
     def run(self, input: Token) -> Price:
         prices = []
         uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
@@ -60,7 +72,39 @@ class TokenPriceModel(Model):
         average_price = 0
         if len(prices) > 0:
             average_price = sum([p.price for p in prices]) / len(prices)
-        return Price(price=average_price)
+            return Price(price=average_price, src='token.price')
+        else:
+            return Price(price=None, src='token.price')
+
+
+@Model.describe(slug='token.price-ext',
+                version='1.0',
+                display_name='Token Price',
+                description='The Current Credmark Supported Price Algorithm (fast)',
+                developer='Credmark',
+                input=Token,
+                output=Price)
+class TokenPriceModelExt(Model):
+    """
+    Return token's price with immediate available source.
+    """
+
+    def run(self, input: Token) -> Price:
+        # Token initialization test
+        # _ = input.proxy_for
+        # _ = input.decimals
+        # _ = input.functions.implementation.call()
+
+        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
+        if uniswap_v2.price is not None:
+            return uniswap_v2
+        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
+        if uniswap_v3.price is not None:
+            return uniswap_v3
+        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
+        if sushiswap.price is not None:
+            return sushiswap
+        return Price(price=None, src='token.price-ext')
 
 
 @Model.describe(slug='token.holders',
@@ -70,7 +114,7 @@ class TokenPriceModel(Model):
                 input=Token,
                 output=dict)
 class TokenHolders(Model):
-    def run(self, input: Token) -> dict:
+    def run(self, _input: Token) -> dict:
         # TODO: Get Holders
         return {"result": 0}
 
@@ -109,7 +153,7 @@ class TokenSwapPoolVolume(Model):
                 input=Token,
                 output=dict)
 class TokenVolume(Model):
-    def run(self, input: Token) -> dict:
+    def run(self, input) -> dict:
         # TODO: Get Overall Volume
         return {"result": 0}
 
@@ -151,8 +195,8 @@ class TokenCirculatingSupply(Model):
             raise ModelDataError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
-                c.amountScaled += response.token.scaled(
-                    response.token.functions.balanceOf(account.address))
+                bal = response.token.functions.balanceOf(account.address).call()
+                c.amountScaled += response.token.scaled(bal)
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
         response.categories.append(CategorizedSupplyResponse.CategorizedSupplyCategory(
