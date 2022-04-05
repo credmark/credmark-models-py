@@ -67,6 +67,11 @@ class VaRHistoricalInput(IterableListGenericDTO[PriceList]):
                 input=VaRHistoricalInput,
                 output=dict)
 class VaREngineHistorical(Model):
+    """
+    This is the final step that consumes portfolio and the prices
+    to calculate VaR(s) according to the VaR parameters.
+    """
+
     def run(self, input: VaRHistoricalInput) -> dict:
 
         all_ppl_vec = None
