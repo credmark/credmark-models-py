@@ -33,7 +33,7 @@ class HistoricalPriceInput(DTO):
     asOf: date
 
 
-@Model.describe(slug='finance.var-price-historical',
+@Model.describe(slug='finance.example-historical-price',
                 version='1.0',
                 display_name='Value at Risk - Get Price Historical',
                 description='Value at Risk - Get Price Historical',
@@ -115,7 +115,7 @@ class DemoContractVaRInput(DTO):
     confidences: List[float]
 
 
-@Model.describe(slug='finance.var-for-demo-contract',
+@Model.describe(slug='finance.example-var-contract',
                 version='1.0',
                 display_name='Value at Risk',
                 description='Value at Risk',
@@ -131,11 +131,10 @@ class DemoContractVaR(Model):
     We shall have -142.6095 (0.01) -113.565 (0.05)
 
     # Demo command
-    credmark-dev run finance.var-for-demo-contract --input \
+    credmark-dev run finance.example-var-contract --input \
     '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
-    -l finance.var-for-demo-contract,finance.var-price-historical,finance.var-engine-historical \
+    -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
-
     """
 
     def run(self, input: DemoContractVaRInput) -> dict:
@@ -154,7 +153,7 @@ class DemoContractVaR(Model):
                 historical_price_input = HistoricalPriceInput(token=pos.asset,
                                                               window=input.window,
                                                               asOf=input.asOf)
-                pl = self.context.run_model('finance.var-price-historical',
+                pl = self.context.run_model(slug='finance.example-historical-price',
                                             input=historical_price_input,
                                             return_type=PriceList)
                 pls.append(pl)
