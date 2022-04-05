@@ -89,7 +89,7 @@ echo ""
 credmark-dev run compound.test --input '{"symbol":"DAI"}' -b 14234904 --format_json
 credmark-dev run compound.token-asset --input '{"symbol":"DAI"}' -b 14234904 --format_json
 credmark-dev run compound.token-liability --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run compound.all-liability --input '{}' -l compound.token-liability -b 14234904 --format_json
+credmark-dev run compound.get-pools --input '{}' -l compound.token-liability -b 14234904 --format_json
 echo ""
 echo "Run Uniswap Examples:"
 echo ""

@@ -148,9 +148,9 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 test_model 0 compound.test '{"symbol":"DAI"}'
-test_model 0 compound.token-asset '{"symbol":"DAI"}'
+test_model 0 compound.token-asset '{"symbol":"cDAI"}'
 test_model 0 compound.token-liability '{"symbol":"DAI"}'
-test_model 0 compound.all-liability '{}' compound.token-liability
+test_model 0 compound.get-pools '{}' compound.token-liability
 
 
 echo_cmd ""

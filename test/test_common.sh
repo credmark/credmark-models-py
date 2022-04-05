@@ -45,7 +45,11 @@ then
     fi
     gen_cmd=1
 else
-    start_n=${@: -1: 1}
+    if [ $# -eq 0 ]; then
+        start_n=0
+    else
+        start_n=${@: -1: 1}
+    fi
     gen_cmd=0
 fi
 

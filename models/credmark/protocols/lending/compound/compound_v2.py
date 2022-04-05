@@ -127,7 +127,7 @@ class CompoundDebtInfos(IterableListGenericDTO[CompoundDebtInfo]):
     _iterator: str = 'CompoundDebtInfos'
 
 
-@Model.describe(slug="compound.all-liability",
+@Model.describe(slug="compound.get-pools",
                 version="1.0",
                 display_name="Compound V2 token liability",
                 description="Compound V2 token liability at a given block number",
@@ -137,9 +137,15 @@ class CompoundV2TotalLiability(Model):
 
     def run(self, input: EmptyInput) -> CompoundDebtInfos:
 
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+
         debts = []
 
-        for _, tokenAddress in COMPOUND_CTOKEN.items():
+        cTokens = comptroller.functions.getAllMarkets().call()
+        assert sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) == sorted([Address(x) for x in cTokens])
+
+        breakpoint()
+        for tokenAddress in cTokens:
             debt = self.context.run_model(slug='compound.token-liability',
                                           input=Token(address=tokenAddress))
             debts.append(debt)
@@ -147,12 +153,12 @@ class CompoundV2TotalLiability(Model):
         return CompoundDebtInfos(compoundDebtInfos=debts)
 
 
-@Model.describe(slug="compound.token-liability",
-                version="1.0",
-                display_name="Compound V2 token liability",
-                description="Compound V2 token liability at a given block number",
-                input=Token,
-                output=CompoundDebtInfo)
+@ Model.describe(slug="compound.token-liability",
+                 version="1.0",
+                 display_name="Compound V2 token liability",
+                 description="Compound V2 token liability at a given block number",
+                 input=Token,
+                 output=CompoundDebtInfo)
 class CompoundV2GetTokenLiability(Model):
     def run(self, input: Token) -> CompoundDebtInfo:
         cToken = Token(address=input.address,
@@ -207,32 +213,55 @@ class CompoundV2GetTokenLiability(Model):
         return debt
 
 
+class CompoundAssetInfo(DTO):
+    tokenName: str
+    cTokenName: str
+    token: Token
+    cToken: Token
+    totalReserves: float
+    cash: float
+
+
 @Model.describe(slug="compound.token-asset",
                 version="1.0",
                 display_name="Compound V2 token liquidity",
                 description="Compound V2 token liquidity at a given block number",
-                input=Token)
+                input=dict,
+                output=CompoundAssetInfo)
 class CompoundV2GetTokenAsset(Model):
-    def run(self, input: Token) -> dict:
-        if not input.address:
-            raise ModelRunError(f'Input token is invalid, {input}')
-
+    def run(self, input: dict) -> CompoundAssetInfo:
         output = {}
-        tokenContract = Contract(
-            address=input.address.checksum,
-            abi=ERC_20_TOKEN_CONTRACT_ABI)
 
-        symbol = tokenContract.functions.symbol().call()
-        cTokenAddress = Address(COMPOUND_CTOKEN[symbol]).checksum
-        cToken = Token(address=cTokenAddress,
-                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+        cToken = Token(
+            address=Address(COMPOUND_CTOKEN[input['cTokenSymbol']]),
+            abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+
+        if input.symbol == 'cETH':
+            token = Token(address=COMPOUND_ASSETS['WETH'])
+        elif (input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and
+              input.symbol == 'cDAI'):
+            # When input = cSAI, it has been renamed to cDAI in the contract.
+            # We will still call up SAI
+            token = Token(address=COMPOUND_ASSETS['SAI'])
+        else:
+            token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
+
+        decimals = cToken.functions.decimals().call()
 
         getCash = cToken.functions.getCash().call()
-        totalReserves = cToken.functions.totalReserves().call()
-        decimals = cToken.functions.decimals().call()
-        getCash = float(getCash)/pow(10, decimals)
-        totalReserves = float(totalReserves)/pow(10, decimals)
+        getCash = cToken.scaled(getCash)
+        assert getCash == float(getCash) * pow(10, decimals)
 
-        output = {'result': {'token': symbol, 'totalReserves': totalReserves, 'cash': getCash}}
+        totalReserves = cToken.functions.totalReserves().call()
+        totalReserves = cToken.scaled(totalReserves)
+        assert totalReserves == float(totalReserves) * pow(10, decimals)
+
+        output = CompoundAssetInfo(
+            tokenName=token.name,
+            cTokenName=cToken.name,
+            token=token,
+            cToken=cToken,
+            totalReserves=totalReserves,
+            cash=getCash)
 
         return output
