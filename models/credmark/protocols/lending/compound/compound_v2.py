@@ -208,6 +208,7 @@ class CompoundV2AllPoolsInfo(Model):
 class CompoundV2AllPoolsValue(Model):
 
     def run(self, input: EmptyInput) -> CompoundPoolValues:
+        self.logger.info(f'Data as of {self.context.block_number=}')
         pool_infos = self.context.run_model(slug='compound.all-pools-info',
                                             input=EmptyInput(),
                                             return_type=CompoundPoolInfos)
@@ -219,7 +220,7 @@ class CompoundV2AllPoolsValue(Model):
                                                 return_type=CompoundPoolValue)
             pool_values.append(pool_value)
 
-        ts_str = f'{self.context.block_number.timestamp_datetime:%Y%m%d %H%M%S}'
+        ts_str = f'{self.context.block_number.timestamp_datetime:%Y%m%d_%H%M%S}'
         pd.DataFrame(CompoundPoolValues(values=pool_values).dict()[
                      'values']).to_excel(
                          f'compound_value_{ts_str}.xlsx')
@@ -237,7 +238,7 @@ class CompoundV2AllPoolsValueHistorical(Model):
         self.context.historical.run_model_historical(
             'compound.all-pools-values',
             model_input=EmptyInput(),
-            window='1 days',
+            window='200 days',
             interval='1 day',
             model_return_type=CompoundPoolValues)
 
