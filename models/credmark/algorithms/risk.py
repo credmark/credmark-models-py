@@ -9,6 +9,7 @@ from models.credmark.algorithms.tradeable import (
     Chef,
     TokenEODPlan,
     BlockFromTimePlan,
+    HistoricalBlockPlan,
     Plan,
     MarketTarget,
 )

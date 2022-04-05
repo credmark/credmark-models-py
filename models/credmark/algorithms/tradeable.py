@@ -337,7 +337,10 @@ class Chef(Generic[C, P], RiskObject):
             return result
 
         elif status_code in ['P', 'C'] and isinstance(result, rec.chef_return_type):
-            post_result = rec.post_proc(self._context, result)
+            if isinstance(result, rec.plan_return_type):
+                post_result = result
+            else:
+                post_result = rec.post_proc(self._context, result)
 
             if isinstance(post_result, DTO) and issubclass(rec.chef_return_type, DTO):
                 untyped_post_result = post_result.json()
