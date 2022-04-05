@@ -25,7 +25,7 @@ ${cmk_dev} list | awk -v test_script=$0 '{
     }
 }'
 
-if [ $gen_cmd -eq 1 ]; then
+if [ $gen_mode -eq 1 ]; then
     echo "${cmk_dev} list" >> $cmd_file
 fi
 

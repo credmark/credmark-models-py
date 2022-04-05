@@ -1,4 +1,3 @@
-import re
 from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
