@@ -1,3 +1,4 @@
+import re
 from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
@@ -6,6 +7,7 @@ from credmark.cmf.types import (
     Address,
     Token,
     Contract,
+    Price,
 )
 
 from credmark.dto import (
@@ -14,12 +16,12 @@ from credmark.dto import (
     IterableListGenericDTO,
 )
 
-
 from models.tmp_abi_lookup import (
     COMPOUND_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
     COMPOUND_CTOKEN_CONTRACT_ABI,
 )
+
+import pandas as pd
 
 COMPOUND_ASSETS = {
     "AAVE": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
@@ -112,14 +114,19 @@ class CompoundGetAssets(Model):
 
 
 class CompoundDebtInfo(DTO):
-    inputSymbol: str
-    tokenName: str
-    cTokenName: str
+    tokenSymbol: str
+    cTokenSymbol: str
     token: Token
     cToken: Token
-    totalLiquidity: float
+    tokenPrice: Price
+    cash: float
+    totalSupply: float
     totalBorrows: float
     totalReserves: float
+    exchangeRate: float
+    borrowRate: float
+    supplyRate: float
+    reserveFactor: float
 
 
 class CompoundDebtInfos(IterableListGenericDTO[CompoundDebtInfo]):
@@ -142,18 +149,22 @@ class CompoundV2TotalLiability(Model):
         debts = []
 
         cTokens = comptroller.functions.getAllMarkets().call()
-        assert sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) == sorted([Address(x) for x in cTokens])
 
-        breakpoint()
+        # Check whether our list is complete
+        # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
+        #          sorted([Address(x) for x in cTokens]) )
+
         for tokenAddress in cTokens:
-            debt = self.context.run_model(slug='compound.token-liability',
+            debt = self.context.run_model(slug='compound.get-pool-info',
                                           input=Token(address=tokenAddress))
             debts.append(debt)
 
+        breakpoint()
+        pd.DataFrame(debts).to_excel('debts.xlsx')
         return CompoundDebtInfos(compoundDebtInfos=debts)
 
 
-@ Model.describe(slug="compound.token-liability",
+@ Model.describe(slug="compound.get-pool-info",
                  version="1.0",
                  display_name="Compound V2 token liability",
                  description="Compound V2 token liability at a given block number",
@@ -164,6 +175,7 @@ class CompoundV2GetTokenLiability(Model):
         cToken = Token(address=input.address,
                        abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 
+        # From cToken to Token
         if input.symbol == 'cETH':
             token = Token(address=COMPOUND_ASSETS['WETH'])
         elif (input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and
@@ -178,90 +190,61 @@ class CompoundV2GetTokenLiability(Model):
 
         self.logger.info(f'{cToken.address, cToken.symbol}')
 
+        # Check for cToken to be matched with a Token
         assert cToken.functions.isCToken().call()
-        # ( assert cToken.proxy_for is not None and
-        #   cToken.functions.implementation().call() == cToken.proxy_for.address )
+        if cToken.proxy_for is not None:
+            assert cToken.functions.implementation().call() == cToken.proxy_for.address
         assert cToken.functions.admin().call() == Address(COMPOUND_TIMELOCK)
         assert cToken.functions.comptroller().call() == Address(COMPOUND_COMPTROLLER)
         assert cToken.functions.symbol().call()
         if cToken.name != 'Compound Ether':
             assert cToken.functions.underlying().call() == token.address
 
-        totalLiquidity = cToken.functions.totalSupply().call()
+        # Pool info
+
+        # 1. getCash: Cash is the amount of underlying balance owned by this cToken contract.
+        # 2. totalBorrows: the amount of underlying currently loaned out by the market, with interest
+        # 3. totalReserves: Reserves of set-aside cash
+        # 4. totalSupply: the number of tokens currently in circulation in this cToken market
+
+        # 1-4 do not need conversion
+        getCash = cToken.functions.getCash().call()
         totalBorrows = cToken.functions.totalBorrows().call()
         totalReserves = cToken.functions.totalReserves().call()
-        decimals = cToken.functions.decimals().call()
+        totalSupply = cToken.functions.totalSupply().call()
 
-        totalLiquidity = float(totalLiquidity)/pow(10, decimals)
-        totalBorrows = float(totalBorrows)/pow(10, decimals)
-        totalReserves = float(totalReserves)/pow(10, decimals)
-        if input.symbol is None:
-            raise ModelDataError("symbol cannot be None")
-        if token.name is None:
-            raise ModelDataError("Token name cannot be None")
-        if cToken.name is None:
-            raise ModelDataError("cToken name cannot be None")
-        debt = CompoundDebtInfo(inputSymbol=input.symbol,
-                                tokenName=token.name,
-                                cTokenName=cToken.name,
+        # 5-9 converted by 10e18
+        # 5. exchangeRate: The exchange rate between a cToken and the underlying asset
+        # exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
+        exchangeRate = cToken.functions.exchangeRateCurrent().call() / pow(10, 18)
+
+        # 6. reserverFactor: defines the portion of borrower interest that is converted into reserves.
+        # 7./8. borrowRatePerBlock()/supplyRatePerBlock()
+        reserveFactor = cToken.functions.reserveFactorMantissa().call() / pow(10, 18)
+        borrowRate = cToken.functions.borrowRatePerBlock().call() / pow(10, 18)
+        supplyRate = cToken.functions.supplyRatePerBlock().call() / pow(10, 18)
+
+        # 9. balanceOfUnderlying(): balance of cToken * exchangeRate.
+        # 10. borrowBalance(): balance of liability including interest
+
+        tokenprice = self.context.run_model(slug='token.price-ext', input=token, return_type=Price)
+
+        debt = CompoundDebtInfo(tokenSymbol=input.symbol,
+                                cTokenSymbol=cToken.symbol,
                                 token=token,
+                                tokenPrice=tokenprice,
                                 cToken=cToken,
-                                totalLiquidity=totalLiquidity,
+                                totalSupply=totalSupply,
+                                cash=getCash,
                                 totalBorrows=totalBorrows,
-                                totalReserves=totalReserves)
+                                totalReserves=totalReserves,
+                                exchangeRate=exchangeRate,
+                                borrowRate=borrowRate,
+                                supplyRate=supplyRate,
+                                reserveFactor=reserveFactor,
+                                )
+        # Asset = reserve + cash
+        # Liquidity = totalSupply
+        # Borrow = totalBorrow
 
         return debt
-
-
-class CompoundAssetInfo(DTO):
-    tokenName: str
-    cTokenName: str
-    token: Token
-    cToken: Token
-    totalReserves: float
-    cash: float
-
-
-@Model.describe(slug="compound.token-asset",
-                version="1.0",
-                display_name="Compound V2 token liquidity",
-                description="Compound V2 token liquidity at a given block number",
-                input=dict,
-                output=CompoundAssetInfo)
-class CompoundV2GetTokenAsset(Model):
-    def run(self, input: dict) -> CompoundAssetInfo:
-        output = {}
-
-        cToken = Token(
-            address=Address(COMPOUND_CTOKEN[input['cTokenSymbol']]),
-            abi=COMPOUND_CTOKEN_CONTRACT_ABI)
-
-        if input.symbol == 'cETH':
-            token = Token(address=COMPOUND_ASSETS['WETH'])
-        elif (input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and
-              input.symbol == 'cDAI'):
-            # When input = cSAI, it has been renamed to cDAI in the contract.
-            # We will still call up SAI
-            token = Token(address=COMPOUND_ASSETS['SAI'])
-        else:
-            token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
-
-        decimals = cToken.functions.decimals().call()
-
-        getCash = cToken.functions.getCash().call()
-        getCash = cToken.scaled(getCash)
-        assert getCash == float(getCash) * pow(10, decimals)
-
-        totalReserves = cToken.functions.totalReserves().call()
-        totalReserves = cToken.scaled(totalReserves)
-        assert totalReserves == float(totalReserves) * pow(10, decimals)
-
-        output = CompoundAssetInfo(
-            tokenName=token.name,
-            cTokenName=cToken.name,
-            token=token,
-            cToken=cToken,
-            totalReserves=totalReserves,
-            cash=getCash)
-
-        return output

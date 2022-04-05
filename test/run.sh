@@ -106,20 +106,23 @@ test_model 0 example.iteration '{}'
 echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
-test_model 0 example.token-loading '{}'
-test_model 0 token.price '{"symbol": "WETH"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-test_model 0 token.price '{"symbol": "CMK"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-test_model 0 token.price '{"symbol": "AAVE"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-# AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
-test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-test_model 0 token.price '{"symbol": "USDC"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-test_model 0 token.price '{"symbol": "MKR"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-# Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
-test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
-# RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
-test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 
-test_model 0 token.price-ext '{"symbol": "CMK"}' uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+deps_token_price='uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+
+test_model 0 example.token-loading '{}'
+test_model 0 token.price '{"symbol": "WETH"}' ${deps_token_price}
+test_model 0 token.price '{"symbol": "CMK"}' ${deps_token_price}
+test_model 0 token.price '{"symbol": "AAVE"}' ${deps_token_price}
+# AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
+test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' ${deps_token_price}
+test_model 0 token.price '{"symbol": "USDC"}' ${deps_token_price}
+test_model 0 token.price '{"symbol": "MKR"}' ${deps_token_price}
+# Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
+test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' ${deps_token_price}
+# RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
+test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' ${deps_token_price}
+
+test_model 0 token.price-ext '{"symbol": "CMK"}' ${deps_token_price}
 
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
@@ -148,9 +151,7 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 test_model 0 compound.test '{"symbol":"DAI"}'
-test_model 0 compound.token-asset '{"symbol":"cDAI"}'
-test_model 0 compound.token-liability '{"symbol":"DAI"}'
-test_model 0 compound.get-pools '{}' compound.token-liability
+test_model 0 compound.get-pools '{}' compound.get-pool-info,${deps_token_price}
 
 
 echo_cmd ""
@@ -196,9 +197,9 @@ echo_cmd "Run SushiSwap Examples:"
 echo_cmd ""
 test_model 0 sushiswap.get-average-price '{"symbol": "USDC"}'
 test_model 0 sushiswap.get-average-price '{"symbol": "AAVE"}'
-test_model 0 sushiswap.get-average-price '{"symbol":"DAI"}'
-test_model 0 sushiswap.get-average-price '{"symbol":"WETH"}'
-test_model 0 sushiswap.get-average-price '{"symbol":"MKR"}'
+test_model 0 sushiswap.get-average-price '{"symbol": "DAI"}'
+test_model 0 sushiswap.get-average-price '{"symbol": "WETH"}'
+test_model 0 sushiswap.get-average-price '{"symbol": "MKR"}'
 test_model 0 sushiswap.all-pools '{}'
 test_model 0 sushiswap.get-pool '{"token0":{"symbol":"DAI"}, "token1":{"symbol":"WETH"}}'
 test_model 0 sushiswap.get-pool-info '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}'
@@ -242,7 +243,8 @@ echo_cmd ""
 
 test_model 0 finance.example-var-contract '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical
 
-var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}
+
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
