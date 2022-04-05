@@ -497,7 +497,9 @@ class Plan(Generic[C, P]):
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: C) -> P:
-        return self._plan_return_type(output_from_chef)
+        # return self._plan_return_type(output_from_chef)
+        raise ModelRunError(
+            'Please add explicit post_proc to convert from {self._chef_return_type} to {self._plan_return_type}')
 
     def error_handle(self, _context, err: Exception) -> Tuple[str, P]:
         """
