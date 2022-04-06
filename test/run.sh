@@ -150,11 +150,15 @@ test_model 0 example.libraries '{}'
 echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
-test_model 0 compound.test '{"symbol":"DAI"}'
-test_model 0 compound.get-pools '{}' ${deps_token_price},compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools
 
-test_model 0 compound.all-pools-values-historical-plan '{}' \
-${deps_token_price},compound.get-pool-info,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools,compound.all-pools-values,finance.get-one,uniswap-v2.get-pools
+test_model 0 compound.test '{"symbol":"DAI"}'
+
+compound_deps=${deps_token_price},compound.get-pool-info,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools,compound.all-pools-values,finance.get-one,uniswap-v2.get-pools
+test_model 0 compound.get-pool-info '{"address":"0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"}' ${compound_deps}
+test_model 0 compound.get-pools '{}' ${compound_deps}
+test_model 0 compound.all-pools-info '{}' ${compound_deps}
+test_model 0 compound.all-pools-values-historical-plan '{}' ${compound_deps}
+
 
 echo_cmd ""
 echo_cmd "Run Uniswap Examples:"

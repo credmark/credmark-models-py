@@ -160,10 +160,10 @@ class UniswapV3GetAveragePrice(Model):
                 prices.append(tick_price)
 
         if len(prices) == 0:
-            return Price(price=None)
+            return Price(price=None, src=self.slug)
 
         price = sum(prices) / len(prices)
-        return Price(price=price)
+        return Price(price=price, src=self.slug)
 
 
 class HistoricalPriceDTO(DTO):

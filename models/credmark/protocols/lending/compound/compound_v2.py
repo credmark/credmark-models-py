@@ -230,8 +230,8 @@ class CompoundV2AllPoolsValue(Model):
 
 @ Model.describe(slug="compound.get-pool-info",
                  version="1.0",
-                 display_name="Compound V2 - market information",
-                 description="Compound V2 - market information",
+                 display_name="Compound V2 - pool/market information",
+                 description="Compound V2 - pool/market information",
                  input=Token,
                  output=CompoundPoolInfo)
 class CompoundV2PoolInfo(Model):
@@ -250,13 +250,19 @@ class CompoundV2PoolInfo(Model):
        Liabitliy = totalSupply * exchangeRate, or
                  = totalSupply / invExchangeRate
 
-    6. reserverFactor: defines the portion of borrower interest that is
+    6. reserveFactor: defines the portion of borrower interest that is
                        converted into reserves.
     7./8. borrowRatePerBlock()/supplyRatePerBlock()
 
     (Skip 9 and 10 because they need a user account)
     9. balanceOfUnderlying(): balance of cToken * exchangeRate.
     10. borrowBalance(): balance of liability including interest
+
+    # accuralBlockNumber
+    # exchangeRateStored
+    # initialExchangeRateMantissa
+    # interestRateModel
+
     """
 
     def run(self, input: Token) -> CompoundPoolInfo:
@@ -291,6 +297,15 @@ class CompoundV2PoolInfo(Model):
         assert cToken.functions.symbol().call()
         if cToken.name != 'Compound Ether':
             assert cToken.functions.underlying().call() == token.address
+
+        # Get/calcualte info
+
+        irModel = Contract(address=cToken.functions.interestRateModel().call())
+        assert irModel.functions.isInterestRateModel().call()
+        # WhitePaperInterestRateModel
+        # getBorrowRate/multiplier/baseRate/blocksPerYear
+        if irModel._meta is not None:
+            self.logger.info(f'{irModel.address=} {irModel._meta.contract_name=}')
 
         getCash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())

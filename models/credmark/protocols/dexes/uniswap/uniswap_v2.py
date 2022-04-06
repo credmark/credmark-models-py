@@ -98,8 +98,9 @@ class UniswapV2GetAveragePrice(Model):
                     price = price * weth_price
             prices.append((price, reserve))
         if len(prices) == 0:
-            return Price(price=None)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+            return Price(price=None, src=self.slug)
+        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+                     src=self.slug)
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',
