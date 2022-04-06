@@ -191,13 +191,10 @@ class CompoundV2GetTokenLiability(Model):
         totalReserves = float(totalReserves)/pow(10, decimals)
         if input.symbol is None:
             raise ModelDataError("symbol cannot be None")
-        
         if token.name is None:
             raise ModelDataError("Token name cannot be None")
-
         if cToken.name is None:
             raise ModelDataError("cToken name cannot be None")
-            
         debt = CompoundDebtInfo(inputSymbol=input.symbol,
                                 tokenName=token.name,
                                 cTokenName=cToken.name,
