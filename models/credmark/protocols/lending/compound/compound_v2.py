@@ -235,6 +235,30 @@ class CompoundV2AllPoolsValue(Model):
                  input=Token,
                  output=CompoundPoolInfo)
 class CompoundV2PoolInfo(Model):
+    """
+    # Pool info
+
+    1. getCash: Cash is the amount of underlying balance owned by this cToken contract.
+    2. totalBorrows: the amount of underlying currently loaned out by the market,
+                     with interest
+    3. totalReserves: Reserves of set-aside cash
+    4. totalSupply: the number of tokens currently in circulation in this cToken market
+
+    5. exchangeRate: The exchange rate between a cToken and the underlying asset
+       exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
+                    => cToken.scaled / pow(10, 2)
+       Liabitliy = totalSupply * exchangeRate, or
+                 = totalSupply / invExchangeRate
+
+    6. reserverFactor: defines the portion of borrower interest that is
+                       converted into reserves.
+    7./8. borrowRatePerBlock()/supplyRatePerBlock()
+
+    (Skip 9 and 10 because they need a user account)
+    9. balanceOfUnderlying(): balance of cToken * exchangeRate.
+    10. borrowBalance(): balance of liability including interest
+    """
+
     def run(self, input: Token) -> CompoundPoolInfo:
         comptroller = Contract(address=COMPOUND_COMPTROLLER)
 
@@ -268,40 +292,18 @@ class CompoundV2PoolInfo(Model):
         if cToken.name != 'Compound Ether':
             assert cToken.functions.underlying().call() == token.address
 
-        # Pool info
-
-        # 1. getCash: Cash is the amount of underlying balance owned by this cToken contract.
-        # 2. totalBorrows: the amount of underlying currently loaned out by the market,
-        #                  with interest
-        # 3. totalReserves: Reserves of set-aside cash
-        # 4. totalSupply: the number of tokens currently in circulation in this cToken market
-
         getCash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
         totalReserves = token.scaled(cToken.functions.totalReserves().call())
         totalSupply = cToken.scaled(cToken.functions.totalSupply().call())
 
-        # 5. exchangeRate: The exchange rate between a cToken and the underlying asset
-        # exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
-        #              => cToken.scaled / pow(10, 2)
-        # Liabitliy = totalSupply * exchangeRate, or
-        #           = totalSupply / invExchangeRate
-
         exchangeRate = token.scaled(cToken.functions.exchangeRateCurrent().call())
         invExchangeRate = 1 / exchangeRate * pow(10, 10)
         totalLiability = totalSupply / invExchangeRate
 
-        # 6. reserverFactor: defines the portion of borrower interest that is
-        #                    converted into reserves.
-        # 7./8. borrowRatePerBlock()/supplyRatePerBlock()
-
         reserveFactor = cToken.functions.reserveFactorMantissa().call() / pow(10, 18)
         borrowRate = cToken.functions.borrowRatePerBlock().call() / pow(10, 18)
         supplyRate = cToken.functions.supplyRatePerBlock().call() / pow(10, 18)
-
-        # 9. balanceOfUnderlying(): balance of cToken * exchangeRate.
-        # 10. borrowBalance(): balance of liability including interest
-        # 9 and 10 need a user account.
 
         tokenprice = self.context.run_model(slug='token.price-ext', input=token, return_type=Price)
 
