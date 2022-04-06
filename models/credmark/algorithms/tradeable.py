@@ -128,6 +128,9 @@ class Chef(Generic[C, P], RiskObject):
             else:
                 self._context.logger.info(
                     f'/- Call {self.name_id} on {self._cache_file}')
+        if self._reset_cache:
+            self._cache_unsaved = 1
+            self.save_cache()
         if self._use_cache:
             self._load_cache()
 
@@ -231,7 +234,8 @@ class Chef(Generic[C, P], RiskObject):
                 if cache_entry['input'] == json.dumps(input, cls=PydanticJSONEncoder):
                     return True, cache_entry['untyped']
         if self._verbose:
-            self.context.logger.warn(f'? Chef tried to grab but needs re-cook {cache_key}>')
+            self.context.logger.warn(f'? {self.name_id} Chef tried to grab but '
+                                     f'needs re-cook {cache_key}>')
         return False, None
 
     def verify_input_and_key(self, input_key, rec):
@@ -241,7 +245,7 @@ class Chef(Generic[C, P], RiskObject):
     def cache_status(self):
         if self.total_hit != 0:
             self._context.logger.info(
-                f'*  cache hit {self.cache_hit} for {self.total_hit} requests '
+                f'* {self.name_id} cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
     def perform(self, rec: Recipe[C, P], catch_runtime_error) -> Tuple[str, Union[C, P]]:
@@ -390,7 +394,6 @@ class Kitchen(Singleton):
             chef.save_cache()
 
     def __del__(self):
-        print('Kitchen closed')
         self.save_cache()
         for key, _value in self._pool.items():
             del self._pool[key]
@@ -499,7 +502,8 @@ class Plan(Generic[C, P]):
     def post_proc(self, _context, output_from_chef: C) -> P:
         # return self._plan_return_type(output_from_chef)
         raise ModelRunError(
-            'Please add explicit post_proc to convert from {self._chef_return_type} to {self._plan_return_type}')
+            'Please add explicit post_proc to convert from '
+            f'{self._chef_return_type} to {self._plan_return_type}')
 
     def error_handle(self, _context, err: Exception) -> Tuple[str, P]:
         """
