@@ -1,6 +1,7 @@
 from typing import (
     List,
 )
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
 
@@ -21,8 +22,6 @@ from models.tmp_abi_lookup import (
     COMPOUND_ABI,
     COMPOUND_CTOKEN_CONTRACT_ABI,
 )
-
-import pandas as pd
 
 COMPOUND_ASSETS = {
     "AAVE": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
@@ -140,6 +139,13 @@ class CompoundPoolInfo(DTO):
 
 class CompoundPoolValue(DTO):
     cTokenSymbol: str
+    cTokenAddress: Address
+    tokenPrice: float
+    qty_cash: float
+    qty_borrow: float
+    qty_liability: float
+    qty_reserve: float
+    qty_net: float
     cash: float
     borrow: float
     liability: float
@@ -196,22 +202,20 @@ class CompoundV2AllPoolsInfo(Model):
                                                input=Token(address=cTokenAddress))
             pool_infos.append(pool_info)
 
-        return CompoundPoolInfos(infos=pool_infos)
+        ret = CompoundPoolInfos(infos=pool_infos)
+        return ret
 
 
 @Model.describe(slug="compound.all-pools-values",
                 version="1.0",
                 display_name="Compound V2 - get cTokens/markets",
                 description="Compound V2 - get all cTokens/Markets",
-                input=EmptyInput,
+                input=CompoundPoolInfos,
                 output=CompoundPoolValues)
 class CompoundV2AllPoolsValue(Model):
-
-    def run(self, input: EmptyInput) -> CompoundPoolValues:
+    def run(self, input: CompoundPoolInfos) -> CompoundPoolValues:
         self.logger.info(f'Data as of {self.context.block_number=}')
-        pool_infos = self.context.run_model(slug='compound.all-pools-info',
-                                            input=EmptyInput(),
-                                            return_type=CompoundPoolInfos)
+        pool_infos = input
 
         pool_values = []
         for pool_info in pool_infos:
@@ -220,11 +224,8 @@ class CompoundV2AllPoolsValue(Model):
                                                 return_type=CompoundPoolValue)
             pool_values.append(pool_value)
 
-        ts_str = f'{self.context.block_number.timestamp_datetime:%Y%m%d_%H%M%S}'
-        pd.DataFrame(CompoundPoolValues(values=pool_values).dict()[
-                     'values']).to_excel(
-                         f'compound_value_{ts_str}.xlsx')
-        return CompoundPoolValues(values=pool_values)
+        ret = CompoundPoolValues(values=pool_values)
+        return ret
 
 
 @Model.describe(slug="compound.all-pools-values-historical",
@@ -256,8 +257,8 @@ class CompoundV2PoolInfo(Model):
         cToken = Token(address=input.address,
                        abi=COMPOUND_CTOKEN_CONTRACT_ABI)
 
-        (isListed, collateralFactorMantissa, isComped) = comptroller\
-            .functions.markets(cToken.address).call()
+        (isListed, collateralFactorMantissa, isComped) = \
+            comptroller.functions.markets(cToken.address).call()
         collateralFactorMantissa /= pow(10, 18)
 
         # From cToken to Token
@@ -366,6 +367,13 @@ class CompoundV2PoolValue(Model):
 
         return CompoundPoolValue(
             cTokenSymbol=input.cTokenSymbol,
+            cTokenAddress=input.token.address,
+            tokenPrice=input.tokenPrice,
+            qty_cash=input.cash,
+            qty_borrow=input.totalBorrows,
+            qty_liability=input.totalLiability,
+            qty_reserve=input.totalReserves,
+            qty_net=(input.cash + input.totalBorrows - input.totalLiability),
             cash=input.tokenPrice * input.cash,
             borrow=input.tokenPrice * input.totalBorrows,
             liability=input.tokenPrice * input.totalLiability,
