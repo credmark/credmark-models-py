@@ -68,20 +68,18 @@ COMPOUND_CTOKEN = {
     'cZRX': '0xb3319f5d18bc0d84dd1b4825dcde5d5f7266d407'
 }
 
-try:
-    assert sorted(COMPOUND_ASSETS.keys()) == sorted(
-        ['WETH' if t == 'cETH' else t[1:] for t, _ in COMPOUND_CTOKEN.items()])
-except:
-    print(sorted(COMPOUND_ASSETS.keys()),
-          ['WETH' if t == 'cETH' else t[1:] for t, _ in COMPOUND_CTOKEN.items()])
-    raise
-
+assert sorted(COMPOUND_ASSETS.keys()) == sorted(
+    ['WETH' if t == 'cETH' else t[1:] for t, _ in COMPOUND_CTOKEN.items()])
 
 COMPOUND_COMP = '0xc00e94cb662c3520282e6f5717214004a7f26888'
 
 COMPOUND_COMPTROLLER = '0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b'
 COMPOUND_GOVERNANCE = '0xc0da02939e1441f497fd74f78ce7decb17b66529'
 COMPOUND_TIMELOCK = '0x6d903f6003cca6255d85cca4d3b5e5146dc33925'
+
+# Pool(Contract)
+# LendingPool(Pool)
+# CompoundLendingPool(LendingPool)
 
 
 @ Model.describe(slug="compound.test",
@@ -142,7 +140,8 @@ class CompoundV2TotalLiability(Model):
         debts = []
 
         for _, tokenAddress in COMPOUND_CTOKEN.items():
-            debt = self.context.run_model(slug='compound.token-liability', input=Token(address=tokenAddress))
+            debt = self.context.run_model(slug='compound.token-liability',
+                                          input=Token(address=tokenAddress))
             debts.append(debt)
 
         return CompoundDebtInfos(compoundDebtInfos=debts)
@@ -161,7 +160,8 @@ class CompoundV2GetTokenLiability(Model):
 
         if input.symbol == 'cETH':
             token = Token(address=COMPOUND_ASSETS['WETH'])
-        elif input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and input.symbol == 'cDAI':
+        elif (input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and
+              input.symbol == 'cDAI'):
             # When input = cSAI, it has been renamed to cDAI in the contract.
             # We will still call up SAI
             token = Token(address=COMPOUND_ASSETS['SAI'])
@@ -171,7 +171,8 @@ class CompoundV2GetTokenLiability(Model):
         self.logger.info(f'{cToken.address, cToken.symbol}')
 
         assert cToken.functions.isCToken().call()
-        # assert cToken.proxy_for is not None and cToken.functions.implementation().call() == cToken.proxy_for.address
+        # ( assert cToken.proxy_for is not None and
+        #   cToken.functions.implementation().call() == cToken.proxy_for.address )
         assert cToken.functions.admin().call() == Address(COMPOUND_TIMELOCK)
         assert cToken.functions.comptroller().call() == Address(COMPOUND_COMPTROLLER)
         assert cToken.functions.symbol().call()

@@ -25,7 +25,7 @@ class BlockTimeExample(Model):
     It is better to run this model with -b 14234904.
     """
 
-    def run(self, input) -> None:
+    def run(self, _input) -> None:
 
         if self.context.block_number != 14234904:
             self.logger.info(
