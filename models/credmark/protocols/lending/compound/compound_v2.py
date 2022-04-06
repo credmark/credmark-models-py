@@ -1,6 +1,6 @@
 from typing import List
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
 
 from credmark.cmf.types import (
     Address,
@@ -166,6 +166,8 @@ class CompoundV2GetTokenLiability(Model):
             # We will still call up SAI
             token = Token(address=COMPOUND_ASSETS['SAI'])
         else:
+            if input.symbol is None:
+                raise ModelDataError("Symbol cannot be none")
             token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
 
         self.logger.info(f'{cToken.address, cToken.symbol}')
@@ -187,7 +189,15 @@ class CompoundV2GetTokenLiability(Model):
         totalLiquidity = float(totalLiquidity)/pow(10, decimals)
         totalBorrows = float(totalBorrows)/pow(10, decimals)
         totalReserves = float(totalReserves)/pow(10, decimals)
+        if input.symbol is None:
+            raise ModelDataError("symbol cannot be None")
+        
+        if token.name is None:
+            raise ModelDataError("Token name cannot be None")
 
+        if cToken.name is None:
+            raise ModelDataError("cToken name cannot be None")
+            
         debt = CompoundDebtInfo(inputSymbol=input.symbol,
                                 tokenName=token.name,
                                 cTokenName=cToken.name,

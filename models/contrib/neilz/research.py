@@ -1,10 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Token, BlockNumber
-from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import EmptyInput
-
-from models.tmp_abi_lookup import ERC_20_ABI
 
 
 @Model.describe(

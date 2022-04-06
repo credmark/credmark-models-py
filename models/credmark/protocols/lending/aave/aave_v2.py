@@ -6,7 +6,8 @@ from typing import (
 from credmark.cmf.model import Model
 
 from credmark.cmf.model.errors import (
-    ModelRunError
+    ModelRunError,
+    ModelDataError
 )
 
 from credmark.cmf.types import (
@@ -93,8 +94,9 @@ class AaveV2GetTokenLiability(Model):
         # self.logger.info(f'info {getReservesData}, {getReservesData[7]}')
 
         aToken = Token(address=getReservesData[7])
-
-        return Position(asset=aToken, amount=aToken.total_supply)
+        if aToken.total_supply is None:
+            raise ModelDataError("total supply cannot be None")
+        return Position(asset=aToken, amount=float(aToken.total_supply))
 
 
 @Model.describe(slug="aave.lending-pool-assets",
