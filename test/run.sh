@@ -240,8 +240,9 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 
-var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
+test_model 0 finance.example-var-contract '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical
 
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
