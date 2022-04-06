@@ -17,6 +17,11 @@ from models.credmark.algorithms.risk import (
 )
 
 import os
+from datetime import (
+    date,
+    datetime,
+    timezone,
+)
 import pandas as pd
 import numpy as np
 
@@ -70,7 +75,12 @@ class CompoundInfoHistoricalPlan(Plan[CompoundV2PoolInfos, CompoundV2PoolInfos])
                 output=None)
 class CompoundV2AllPoolsValueHistoricalPlan(Model):
     def run(self, input: EmptyInput) -> None:
-        window = '659 days'
+        start_dt_of_compound = datetime.combine(date(2020, 6, 15),
+                                                datetime.max.time(),
+                                                tzinfo=timezone.utc)
+        current_dt = self.context.block_number.timestamp_datetime
+        interval = (current_dt - start_dt_of_compound).days
+        window = f'{interval} days'
         interval = '1 day'
         use_kitchen = True
         verbose = False
