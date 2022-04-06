@@ -100,7 +100,7 @@ class ValueAtRiskRegressionTest(Model):
                 else:
                     raise ModelRunError('')
             except:  # AssertionError as _err:
-                print(f'Unequal value {dict_a[k_a]} != {dict_b[k_b]} at {new_key_path}')
+                self.logger.error(f'Unequal value {dict_a[k_a]} != {dict_b[k_b]} at {new_key_path}')
                 raise
         return True
 
