@@ -3,7 +3,7 @@ from typing import (
 )
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
+from credmark.cmf.model.errors import ModelRunError
 
 from credmark.cmf.types import (
     Address,
@@ -228,28 +228,12 @@ class CompoundV2AllPoolsValue(Model):
         return ret
 
 
-@Model.describe(slug="compound.all-pools-values-historical",
-                version="1.0",
-                display_name="Aave V2 token liquidity",
-                description="Aave V2 token liquidity at a given block number",
-                input=EmptyInput,
-                output=None)
-class CompoundV2AllPoolsValueHistorical(Model):
-    def run(self, input: EmptyInput) -> None:
-        self.context.historical.run_model_historical(
-            'compound.all-pools-values',
-            model_input=EmptyInput(),
-            window='200 days',
-            interval='1 day',
-            model_return_type=CompoundPoolValues)
-
-
-@Model.describe(slug="compound.get-pool-info",
-                version="1.0",
-                display_name="Compound V2 - market information",
-                description="Compound V2 - market information",
-                input=Token,
-                output=CompoundPoolInfo)
+@ Model.describe(slug="compound.get-pool-info",
+                 version="1.0",
+                 display_name="Compound V2 - market information",
+                 description="Compound V2 - market information",
+                 input=Token,
+                 output=CompoundPoolInfo)
 class CompoundV2PoolInfo(Model):
     def run(self, input: Token) -> CompoundPoolInfo:
         comptroller = Contract(address=COMPOUND_COMPTROLLER)
@@ -270,8 +254,6 @@ class CompoundV2PoolInfo(Model):
             # We will still call up SAI
             token = Token(address=COMPOUND_ASSETS['SAI'])
         else:
-            if input.symbol is None:
-                raise ModelDataError("Symbol cannot be none")
             token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
 
         self.logger.info(f'{cToken.address, cToken.symbol}')

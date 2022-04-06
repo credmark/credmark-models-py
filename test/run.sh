@@ -152,8 +152,9 @@ echo_cmd "Run Compound Examples:"
 echo_cmd ""
 test_model 0 compound.test '{"symbol":"DAI"}'
 test_model 0 compound.get-pools '{}' ${deps_token_price},compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools
-test_model 0 compound.all-pools-values-historical '{}' ${deps_token_price},compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools,compound.all-pools-values
 
+test_model 0 compound.all-pools-values-historical-plan '{}' \
+${deps_token_price},compound.get-pool-info,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound.all-pools-info,compound.pool-value,compound.get-pool-info,compound.get-pools,compound.all-pools-values,finance.get-one,uniswap-v2.get-pools
 
 echo_cmd ""
 echo_cmd "Run Uniswap Examples:"
