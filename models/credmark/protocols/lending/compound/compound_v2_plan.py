@@ -69,8 +69,8 @@ class CompoundInfoHistoricalPlan(Plan[CompoundV2PoolInfos, CompoundV2PoolInfos])
 
 @Model.describe(slug="compound.all-pools-values-historical-plan",
                 version="1.0",
-                display_name="Aave V2 token liquidity",
-                description="Aave V2 token liquidity at a given block number",
+                display_name="Compound pools value history",
+                description="Compound pools value history",
                 input=EmptyInput,
                 output=None)
 class CompoundV2AllPoolsValueHistoricalPlan(Model):
