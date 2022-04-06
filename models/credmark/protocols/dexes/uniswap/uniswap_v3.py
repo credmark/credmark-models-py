@@ -1,3 +1,4 @@
+
 from web3.exceptions import (
     BadFunctionCallOutput,
 )
@@ -159,10 +160,10 @@ class UniswapV3GetAveragePrice(Model):
                 prices.append(tick_price)
 
         if len(prices) == 0:
-            return Price(price=None, src='uniswap_v3')
+            return Price(price=None)
 
         price = sum(prices) / len(prices)
-        return Price(price=price, src='uniswap_v3')
+        return Price(price=price)
 
 
 class HistoricalPriceDTO(DTO):

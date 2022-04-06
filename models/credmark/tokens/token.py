@@ -72,9 +72,9 @@ class TokenPriceModel(Model):
         average_price = 0
         if len(prices) > 0:
             average_price = sum([p.price for p in prices]) / len(prices)
-            return Price(price=average_price, src='token.price')
+            return Price(price=average_price)
         else:
-            return Price(price=None, src='token.price')
+            return Price(price=None)
 
 
 @Model.describe(slug='token.price-ext',
@@ -104,7 +104,7 @@ class TokenPriceModelExt(Model):
         sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
         if sushiswap.price is not None:
             return sushiswap
-        return Price(price=None, src='token.price-ext')
+        return Price(price=None)
 
 
 @Model.describe(slug='token.holders',

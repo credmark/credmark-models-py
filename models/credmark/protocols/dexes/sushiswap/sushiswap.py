@@ -191,6 +191,5 @@ class SushiswapGetAveragePrice(Model):
                     price = price * weth_price
             prices.append((price, reserve))
         if len(prices) == 0:
-            return Price(price=None, src='sushiswap')
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
-                     src='sushiswap')
+            return Price(price=None)
+        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
