@@ -195,6 +195,21 @@ class CompoundV2AllPools(Model):
         return {'cTokens': cTokens}
 
 
+# TODO: work-around before proxy can be queried with past block number
+@Model.describe(slug="compound.get-comptroller",
+                version="1.0",
+                display_name="Compound V2 - comptroller",
+                description="Compound V2 - comptroller",
+                input=EmptyInput,
+                output=dict)
+class CompoundV2Comptroller(Model):
+    def run(self, input: EmptyInput) -> dict:
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
+
+        return {'proxy_address': proxy_address}
+
+
 @ Model.describe(slug="compound.get-pool-info",
                  version="1.0",
                  display_name="Compound V2 - pool/market information",
@@ -235,10 +250,8 @@ class CompoundV2PoolInfo(Model):
     """
 
     def run(self, input: Token) -> CompoundPoolInfo:
-        comptroller = Contract(address=COMPOUND_COMPTROLLER)
-        _ = comptroller.instance
-        print(f'{comptroller._meta.proxy_implementation=}')
-        # print(f'{comptroller.proxy_for.address=}')
+        comptroller_proxy = self.context.run_model('compound.get-comptroller', return_type=dict)
+        comptroller = Contract(address=comptroller_proxy['proxy_address'])
 
         cToken = Token(address=input.address,
                        abi=COMPOUND_CTOKEN_CONTRACT_ABI)
@@ -276,8 +289,9 @@ class CompoundV2PoolInfo(Model):
 
         # Get/calcualte info
 
-        irModel = Contract(address=cToken.functions.interestRateModel().call())
-        assert irModel.functions.isInterestRateModel().call()
+        # TODO: some ABI loading problem
+        # irModel = Contract(address=cToken.functions.interestRateModel().call())
+        # assert irModel.functions.isInterestRateModel().call()
 
         getCash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
