@@ -55,7 +55,7 @@ else
         test_mode='test'
     else
         start_n=${@: -1: 1}
-        if [ $# -eq 2 ] && [ "$1" -eq "test" ]; then
+        if [ $# -eq 2 ] && [ "$1" == "test" ]; then
             test_mode='test'
         else
             test_mode='prod'
