@@ -86,8 +86,8 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             if 'comptroller' not in token_series:
                 token_series['comptroller'] = block_table.copy()
             table_to_fill = token_series['comptroller']
-            table_to_fill[table_to_fill.blockNumber ==
-                          block_number, 'comptroller'] = comptroller['proxy_address']
+            table_to_fill.loc[table_to_fill.blockNumber == block_number,
+                              'comptroller'] = comptroller['proxy_address']
 
             value_plan = GeneralHistoricalPlan(
                 tag='eod',
