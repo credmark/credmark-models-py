@@ -107,8 +107,6 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 
-deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
-
 test_model 0 example.token-loading '{}'
 test_model 0 token.price '{"symbol": "WETH"}' ${deps_token_price}
 test_model 0 token.price '{"symbol": "CMK"}' ${deps_token_price}
@@ -151,18 +149,15 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 
-${deps_token_price},${compound_deps}
-compound_deps=compound-v2.get-pool-info,compound-v2.all-pools-info,compound-v2.pool-value,compound-v2.get-pool-info,compound-v2.get-pools,compound-v2.all-pools-values,finance.get-one
-test_model 0 compound-v2.get-pool-info '{"address":"0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"}' ${deps_token_price},compound-v2.get-comptroller
 # test_model 0 compound-v2.get-pool-info '{"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}' ${deps_token_price},${compound_deps} -b 13233403
+test_model 0 compound-v2.get-pool-info '{"address":"0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"}' ${deps_token_price},compound-v2.get-comptroller
 
-test_model 0 compound-v2.get-pools '{}' compound-v2.get-comptroller
-test_model 0 compound-v2.all-pools-info '{}' compound-v2.get-comptroller,compound-v2.get-pools
-# test_model 0 compound-v2.all-pools-values-historical-plan '{}' ${compound_deps}
-test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-12-15", "2021-12-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${compound_deps}
-test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-09-15", "2021-10-15"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${compound_deps}
-test_model 0 compound-v2.pool-value-historical '{"date_range": ["2022-01-15", "2022-01-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${compound_deps}
-
+test_model 0 compound-v2.get-comptroller '{}'
+test_model 0 compound-v2.get-pools '{}' compound-v2.get-pool-info
+test_model 0 compound-v2.all-pools-info '{}' compound-v2.get-pool-info,compound-v2.get-pools,${deps_token_price}
+test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-12-15", "2021-12-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${deps_token_price},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value
+test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-09-15", "2021-09-20"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${deps_token_price},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value
+test_model 0 compound-v2.pool-value-historical '{"date_range": ["2022-01-15", "2022-01-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${deps_token_price},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value
 
 echo_cmd ""
 echo_cmd "Run Uniswap Examples:"
@@ -252,8 +247,6 @@ echo_cmd "Run Finance Examples"
 echo_cmd ""
 
 test_model 0 finance.example-var-contract '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical
-
-var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}
 
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
 test_model 0 finance.var-engine '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' ${var_deps}
