@@ -27,10 +27,6 @@ from credmark.dto import (
     IterableListGenericDTO,
 )
 
-from models.tmp_abi_lookup import (
-    COMPOUND_CTOKEN_CONTRACT_ABI,
-)
-
 COMPOUND_ASSETS = {
     "AAVE": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
     "BAT": "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
@@ -145,8 +141,6 @@ class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
     values: List[CompoundV2PoolValue]
     _iterator: str = 'values'
 
-# TODO: work-around before proxy can be queried with past block number
-
 
 @Model.describe(slug="compound-v2.get-comptroller",
                 version="1.0",
@@ -155,6 +149,7 @@ class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
                 input=EmptyInput,
                 output=Contract)
 class CompoundV2Comptroller(Model):
+    # TODO: work-around before proxy can be queried with past block number
     def run(self, input: EmptyInput) -> Contract:
         comptroller = Contract(address=COMPOUND_COMPTROLLER)
         proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
@@ -169,10 +164,8 @@ class CompoundV2Comptroller(Model):
                 output=dict)
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
-        # TODO: before we can load proxy on a past date
         comptroller = Contract(address=COMPOUND_COMPTROLLER)
         cTokens = comptroller.functions.getAllMarkets().call()
-        breakpoint()
 
         # Check whether our list is complete
         # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
@@ -190,7 +183,7 @@ class CompoundV2AllPoolsInfo(Model):
     def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
         pool_infos = []
         pools = self.context.run_model(slug='compound-v2.get-pools')
-        breakpoint()
+
         for cTokenAddress in pools['cTokens']:
             pool_info = self.context.run_model(
                 slug='compound-v2.get-pool-info',
@@ -213,9 +206,10 @@ class CompoundV2AllPoolsValue(Model):
 
         pool_values = []
         for pool_info in pool_infos:
-            pool_value = self.context.run_model(slug='compound-v2.pool-value',
-                                                input=pool_info,
-                                                return_type=CompoundV2PoolValue)
+            pool_value = self.context.run_model(
+                slug='compound-v2.pool-value',
+                input=pool_info,
+                return_type=CompoundV2PoolValue)
             pool_values.append(pool_value)
 
         ret = CompoundV2PoolValues(values=pool_values)
@@ -262,17 +256,12 @@ class CompoundV2GetPoolInfo(Model):
     """
 
     def run(self, input: Token) -> CompoundV2PoolInfo:
-        # TODO: before we can load proxy on a past date
-        # comptroller = Contract(address=COMPOUND_COMPTROLLER)
-        comptroller = self.context.run_model(slug='compound-v2.get-comptroller',
-                                             input=EmptyInput(),
-                                             return_type=Contract)
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
 
         cToken = Token(address=input.address)
 
-        # print(f'{cToken._meta.is_transparent_proxy}')
-        # print(f'{cToken.is_transparent_proxy}')
-        # breakpoint()
+        # self.logger.info(f'{cToken._meta.is_transparent_proxy}')
+        # self.logger.info(f'{cToken.is_transparent_proxy}')
 
         (isListed, collateralFactorMantissa, isComped) = \
             comptroller.functions.markets(cToken.address).call()
@@ -325,6 +314,7 @@ class CompoundV2GetPoolInfo(Model):
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
 
+        block_dt = self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat()
         pool_info = CompoundV2PoolInfo(
             tokenSymbol=input.symbol,
             cTokenSymbol=cToken.symbol,
@@ -348,7 +338,7 @@ class CompoundV2GetPoolInfo(Model):
             collateralFactor=collateralFactorMantissa,
             isComped=isComped,
             block_number=int(self.context.block_number),
-            block_datetime=self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat(),
+            block_datetime=block_dt,
         )
 
         return pool_info

@@ -195,3 +195,7 @@ echo_cmd () {
         echo "echo \"$1\"" >> $cmd_file
     fi
 }
+
+
+deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}
