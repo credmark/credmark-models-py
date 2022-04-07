@@ -5,6 +5,10 @@ from credmark.dto import (
     EmptyInput,
 )
 
+from credmark.cmf.types import (
+    Contract,
+)
+
 
 from models.credmark.protocols.lending.compound.compound_v2 import (
     CompoundV2PoolValues,
@@ -26,7 +30,7 @@ import pandas as pd
 import numpy as np
 
 
-@Model.describe(slug="compound.all-pools-values-historical-plan",
+@Model.describe(slug="compound-v2.all-pools-values-historical-plan",
                 version="1.0",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
@@ -71,13 +75,14 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             comptroller_plan = GeneralHistoricalPlan(
                 tag='eod',
                 target_key=f'CompoundComptrollerHistoricalPlan.{block_number}',
+                name='compound-v2.get-comptroller',
                 use_kitchen=use_kitchen,
-                chef_return_type=dict,
-                plan_return_type=dict,
+                chef_return_type=Contract,
+                plan_return_type=Contract,
                 context=self.context,
                 verbose=verbose,
                 method='run_model',
-                slug='compound.get-comptroller',
+                slug='compound-v2.get-comptroller',
                 block_number=block_number,
                 input_keys=[],
             )
@@ -87,18 +92,19 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 token_series['comptroller'] = block_table.copy()
             table_to_fill = token_series['comptroller']
             table_to_fill.loc[table_to_fill.blockNumber == block_number,
-                              'comptroller'] = comptroller['proxy_address']
+                              'comptroller'] = comptroller.address
 
             value_plan = GeneralHistoricalPlan(
                 tag='eod',
                 target_key=f'CompoundInfoHistoricalPlan.{block_number}',
+                name='compound-v2.all-pools-info',
                 use_kitchen=use_kitchen,
-                chef_return_type=CompoundPoolInfos,
-                plan_return_type=CompoundPoolInfos,
+                chef_return_type=CompoundV2PoolInfos,
+                plan_return_type=CompoundV2PoolInfos,
                 context=self.context,
                 verbose=verbose,
                 method='run_model',
-                slug='compound.all-pools-info',
+                slug='compound-v2.all-pools-info',
                 block_number=block_number,
                 input_keys=[],
             )
@@ -112,14 +118,15 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             value_plan = GeneralHistoricalPlan(
                 tag='eod',
                 target_key=f'CompoundValueHistoricalPlan.{block_number}',
+                name='compound-v2.all-pools-values',
                 use_kitchen=use_kitchen,
-                chef_return_type=CompoundPoolValues,
-                plan_return_type=CompoundPoolValues,
+                chef_return_type=CompoundV2PoolValues,
+                plan_return_type=CompoundV2PoolValues,
                 context=self.context,
                 verbose=verbose,
                 reset_cache=reset_cache_value,
                 method='run_model',
-                slug='compound.all-pools-values',
+                slug='compound-v2.all-pools-values',
                 input=pool_infos,
                 block_number=block_number,
                 input_keys=[pl.cToken.address for pl in pool_infos]

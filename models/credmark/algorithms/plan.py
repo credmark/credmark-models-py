@@ -193,6 +193,12 @@ class Plan(Generic[C, P]):
 
 
 class GeneralHistoricalPlan(Plan[C, P]):
+    def __init__(self, **kwargs):
+        if 'name' not in kwargs:
+            raise ModelRunError('GeneralHistoricalPlan needs to be initialized with name=')
+        kwargs['name'] = f'{self.__class__.__name__}.{kwargs["name"]}'
+        super().__init__(**kwargs)
+
     def define(self) -> P:
         method = self._input_to_plan['method']
         slug = self._input_to_plan['slug']

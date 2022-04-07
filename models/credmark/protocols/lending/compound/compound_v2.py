@@ -263,9 +263,12 @@ class CompoundV2GetPoolInfo(Model):
         # self.logger.info(f'{cToken._meta.is_transparent_proxy}')
         # self.logger.info(f'{cToken.is_transparent_proxy}')
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         # breakpoint()
 >>>>>>> 6c3df7f (re-org tradeables)
+=======
+>>>>>>> 9d5eb9d (compound v2)
 
         (isListed, collateralFactorMantissa, isComped) = \
             comptroller.functions.markets(cToken.address).call()
