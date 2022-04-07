@@ -12,8 +12,8 @@ from models.credmark.protocols.lending.compound.compound_v2 import (
 )
 
 from models.credmark.algorithms.risk import (
-    Plan,
-    HistoricalBlockPlan
+    HistoricalBlockPlan,
+    GeneralHistoricalPlan,
 )
 
 import os
@@ -24,47 +24,6 @@ from datetime import (
 )
 import pandas as pd
 import numpy as np
-
-
-class CompoundValueHistoricalPlan(Plan[CompoundV2PoolValues, CompoundV2PoolValues]):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs,
-                         chef_return_type=CompoundV2PoolValues,
-                         plan_return_type=CompoundV2PoolValues)
-
-    def define(self) -> CompoundV2PoolValues:
-        method = 'run_model'
-        slug = 'compound.all-pools-values'
-        pool_infos = self._input_to_plan['pool_infos']
-        block_number = self._input_to_plan['block_number']
-
-        recipe = self.create_recipe(
-            cache_keywords=[method, slug, block_number],
-            method=method,
-            input={'slug': slug,
-                   'input': pool_infos,
-                   'block_number': block_number})
-
-        return self.chef.cook(recipe)
-
-
-class CompoundInfoHistoricalPlan(Plan[CompoundV2PoolInfos, CompoundV2PoolInfos]):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs,
-                         chef_return_type=CompoundV2PoolInfos,
-                         plan_return_type=CompoundV2PoolInfos)
-
-    def define(self) -> CompoundV2PoolInfos:
-        method = 'run_model'
-        slug = 'compound.all-pools-info'
-        block_number = self._input_to_plan['block_number']
-
-        recipe = self.create_recipe(
-            cache_keywords=[method, slug, block_number],
-            method=method,
-            input={'slug': slug,
-                   'block_number': block_number})
-        return self.chef.cook(recipe)
 
 
 @Model.describe(slug="compound.all-pools-values-historical-plan",
@@ -109,13 +68,39 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             block_time = block_table.query('blockNumber == @block_number')['blockTime'].to_list()[0]
             self.logger.info(f'{block_time=}')
 
-            value_plan = CompoundInfoHistoricalPlan(
+            comptroller_plan = GeneralHistoricalPlan(
+                tag='eod',
+                target_key=f'CompoundComptrollerHistoricalPlan.{block_number}',
+                use_kitchen=use_kitchen,
+                chef_return_type=dict,
+                plan_return_type=dict,
+                context=self.context,
+                verbose=verbose,
+                method='run_model',
+                slug='compound.get-comptroller',
+                block_number=block_number,
+                input_keys=[],
+            )
+            comptroller = comptroller_plan.execute()
+
+            if 'comptroller' not in token_series:
+                token_series['comptroller'] = block_table.copy()
+            table_to_fill = token_series['comptroller']
+            table_to_fill[table_to_fill.blockNumber ==
+                          block_number, 'comptroller'] = comptroller['proxy_address']
+
+            value_plan = GeneralHistoricalPlan(
                 tag='eod',
                 target_key=f'CompoundInfoHistoricalPlan.{block_number}',
                 use_kitchen=use_kitchen,
+                chef_return_type=CompoundPoolInfos,
+                plan_return_type=CompoundPoolInfos,
                 context=self.context,
                 verbose=verbose,
+                method='run_model',
+                slug='compound.all-pools-info',
                 block_number=block_number,
+                input_keys=[],
             )
             pool_infos = value_plan.execute()
 
@@ -124,15 +109,20 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 pd.DataFrame(pool_infos.dict()['infos']).to_excel(
                     f'compound_infos_{ts_str}.xlsx')
 
-            value_plan = CompoundValueHistoricalPlan(
+            value_plan = GeneralHistoricalPlan(
                 tag='eod',
                 target_key=f'CompoundValueHistoricalPlan.{block_number}',
                 use_kitchen=use_kitchen,
+                chef_return_type=CompoundPoolValues,
+                plan_return_type=CompoundPoolValues,
                 context=self.context,
                 verbose=verbose,
                 reset_cache=reset_cache_value,
-                pool_infos=pool_infos,
+                method='run_model',
+                slug='compound.all-pools-values',
+                input=pool_infos,
                 block_number=block_number,
+                input_keys=[pl.cToken.address for pl in pool_infos]
             )
             reset_cache_value = False
             pool_values = value_plan.execute()
@@ -141,6 +131,9 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 ts_str = f'{self.context.block_number.timestamp_datetime:%Y%m%d_%H%M%S}'
                 pd.DataFrame(pool_infos.dict()['values']).to_excel(
                     f'compound_value_{ts_str}.xlsx')
+
+            if 'total' not in token_series:
+                token_series['total'] = block_table.copy()
 
             df_values = pd.DataFrame(pool_values.dict()['values'])
             df_values.cTokenAddress = df_values.cTokenAddress.str[:5]
@@ -160,8 +153,7 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                         if k not in summary:
                             summary[k] = 0
                         summary[k] += v
-            if 'total' not in token_series:
-                token_series['total'] = block_table
+
             table_to_fill = token_series['total']
             for k, v in summary.items():
                 table_to_fill.loc[table_to_fill.blockNumber == block_number, k] = v
