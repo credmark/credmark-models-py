@@ -28,7 +28,6 @@ from credmark.dto import (
 )
 
 from models.tmp_abi_lookup import (
-    COMPOUND_ABI,
     COMPOUND_CTOKEN_CONTRACT_ABI,
 )
 
@@ -70,7 +69,7 @@ COMPOUND_CTOKEN = {
     'cSUSHI': '0x4b0181102a0112a2ef11abee5563bb4a3176c9d7',
     'cTUSD': '0x12392f67bdf24fae0af363c24ac620a2f67dad86',
     'cUNI': '0x35a18000230da775cac24873d00ff85bccded550',
-    'cUSDC':  '0x39aa39c021dfbae8fac545936693ac917d5e7563',
+    'cUSDC': '0x39aa39c021dfbae8fac545936693ac917d5e7563',
     'cUSDP': '0x041171993284df560249b57358f931d9eb7b925d',
     'cUSDT': '0xf650c3d88d12db855b8bf7d11be6c55a4e07dcc9',
     'cWBTC': '0xc11b1268c1a384e55c48c2391d8d480264a3a7f4',
@@ -93,36 +92,7 @@ COMPOUND_TIMELOCK = '0x6d903f6003cca6255d85cca4d3b5e5146dc33925'
 # CompoundLendingPool(LendingPool)
 
 
-@ Model.describe(slug="compound.test",
-                 version="1.0",
-                 display_name="Compound Lending Pool Assets",
-                 description="Compound assets for the main lending pool",
-                 input=Token)
-class CompoundGetAssets(Model):
-    def run(self, input: Token) -> dict:
-        if not input.address:
-            raise ModelRunError(f'Input token is invalid, {input}')
-
-        output = {}
-        contract = Contract(
-            # lending pool address for Compound
-            address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
-            abi=COMPOUND_ABI
-        )
-
-        # converting the address to 'Address' type for safety
-        comp_asset = contract.functions.markets(input.address.checksum).call()
-        token = Token(address=input.address.checksum)
-        symbol = token.symbol
-        decimals = token.decimals
-        totalSupply = comp_asset[3]/pow(10, decimals)
-        totalBorrows = comp_asset[6]/pow(10, decimals)
-        output[symbol] = {'totalsupply': totalSupply, 'totalborrow': totalBorrows}
-
-        return output
-
-
-class CompoundPoolInfo(DTO):
+class CompoundV2PoolInfo(DTO):
     tokenSymbol: str
     cTokenSymbol: str
     token: Token
@@ -145,9 +115,10 @@ class CompoundPoolInfo(DTO):
     collateralFactor: float
     isComped: bool
     block_number: int
+    block_datetime: str
 
 
-class CompoundPoolValue(DTO):
+class CompoundV2PoolValue(DTO):
     cTokenSymbol: str
     cTokenAddress: Address
     tokenPrice: float
@@ -162,61 +133,102 @@ class CompoundPoolValue(DTO):
     reserve: float
     net: float
     block_number: int
+    block_datetime: str
 
 
-class CompoundPoolInfos(IterableListGenericDTO[CompoundPoolInfo]):
-    infos: List[CompoundPoolInfo]
+class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
+    infos: List[CompoundV2PoolInfo]
     _iterator: str = 'infos'
 
 
-class CompoundPoolValues(IterableListGenericDTO[CompoundPoolValue]):
-    values: List[CompoundPoolValue]
+class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
+    values: List[CompoundV2PoolValue]
     _iterator: str = 'values'
 
+# TODO: work-around before proxy can be queried with past block number
 
-@Model.describe(slug="compound.get-pools",
+
+@Model.describe(slug="compound-v2.get-comptroller",
+                version="1.0",
+                display_name="Compound V2 - comptroller",
+                description="Compound V2 - comptroller",
+                input=EmptyInput,
+                output=Contract)
+class CompoundV2Comptroller(Model):
+    def run(self, input: EmptyInput) -> Contract:
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
+        return Contract(address=proxy_address)
+
+
+@Model.describe(slug="compound-v2.get-pools",
                 version="1.0",
                 display_name="Compound V2 - get cTokens/markets",
                 description="Compound V2 - get all cTokens/Markets",
                 input=EmptyInput,
                 output=dict)
-class CompoundV2AllPools(Model):
-
+class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
-
+        # TODO: before we can load proxy on a past date
         comptroller = Contract(address=COMPOUND_COMPTROLLER)
-
         cTokens = comptroller.functions.getAllMarkets().call()
+        breakpoint()
 
-    # Check whether our list is complete
-    # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
-    #          sorted([Address(x) for x in cTokens]) )
-
+        # Check whether our list is complete
+        # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
+        #          sorted([Address(x) for x in cTokens]) )
         return {'cTokens': cTokens}
 
 
-# TODO: work-around before proxy can be queried with past block number
-@Model.describe(slug="compound.get-comptroller",
+@Model.describe(slug="compound-v2.all-pools-info",
                 version="1.0",
-                display_name="Compound V2 - comptroller",
-                description="Compound V2 - comptroller",
+                display_name="Compound V2 - get cTokens/markets",
+                description="Compound V2 - get all cTokens/Markets",
                 input=EmptyInput,
-                output=dict)
-class CompoundV2Comptroller(Model):
-    def run(self, input: EmptyInput) -> dict:
-        comptroller = Contract(address=COMPOUND_COMPTROLLER)
-        proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
+                output=CompoundV2PoolInfos)
+class CompoundV2AllPoolsInfo(Model):
+    def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
+        pool_infos = []
+        pools = self.context.run_model(slug='compound-v2.get-pools')
+        breakpoint()
+        for cTokenAddress in pools['cTokens']:
+            pool_info = self.context.run_model(
+                slug='compound-v2.get-pool-info',
+                input=Token(address=cTokenAddress))
+            pool_infos.append(pool_info)
+        ret = CompoundV2PoolInfos(infos=pool_infos)
+        return ret
 
-        return {'proxy_address': proxy_address}
+
+@Model.describe(slug="compound-v2.all-pools-values",
+                version="1.0",
+                display_name="Compound V2 - get cTokens/markets",
+                description="Compound V2 - get all cTokens/Markets",
+                input=CompoundV2PoolInfos,
+                output=CompoundV2PoolValues)
+class CompoundV2AllPoolsValue(Model):
+    def run(self, input: CompoundV2PoolInfos) -> CompoundV2PoolValues:
+        self.logger.info(f'Data as of {self.context.block_number=}')
+        pool_infos = input
+
+        pool_values = []
+        for pool_info in pool_infos:
+            pool_value = self.context.run_model(slug='compound-v2.pool-value',
+                                                input=pool_info,
+                                                return_type=CompoundV2PoolValue)
+            pool_values.append(pool_value)
+
+        ret = CompoundV2PoolValues(values=pool_values)
+        return ret
 
 
-@ Model.describe(slug="compound.get-pool-info",
+@ Model.describe(slug="compound-v2.get-pool-info",
                  version="1.0",
                  display_name="Compound V2 - pool/market information",
                  description="Compound V2 - pool/market information",
                  input=Token,
-                 output=CompoundPoolInfo)
-class CompoundV2PoolInfo(Model):
+                 output=CompoundV2PoolInfo)
+class CompoundV2GetPoolInfo(Model):
     """
     # Pool info
 
@@ -249,12 +261,14 @@ class CompoundV2PoolInfo(Model):
         - getBorrowRate/multiplier/baseRate/blocksPerYear
     """
 
-    def run(self, input: Token) -> CompoundPoolInfo:
-        comptroller_proxy = self.context.run_model('compound.get-comptroller', return_type=dict)
-        comptroller = Contract(address=comptroller_proxy['proxy_address'])
+    def run(self, input: Token) -> CompoundV2PoolInfo:
+        # TODO: before we can load proxy on a past date
+        # comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        comptroller = self.context.run_model(slug='compound-v2.get-comptroller',
+                                             input=EmptyInput(),
+                                             return_type=Contract)
 
-        cToken = Token(address=input.address,
-                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+        cToken = Token(address=input.address)
 
         # print(f'{cToken._meta.is_transparent_proxy}')
         # print(f'{cToken.is_transparent_proxy}')
@@ -273,7 +287,7 @@ class CompoundV2PoolInfo(Model):
             # We will still call up SAI
             token = Token(address=COMPOUND_ASSETS['SAI'])
         else:
-            token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
+            token = Token(address=cToken.functions.underlying().call())
 
         self.logger.info(f'{cToken.address, cToken.symbol}')
 
@@ -311,7 +325,7 @@ class CompoundV2PoolInfo(Model):
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
 
-        pool_info = CompoundPoolInfo(
+        pool_info = CompoundV2PoolInfo(
             tokenSymbol=input.symbol,
             cTokenSymbol=cToken.symbol,
             tokenDecimal=token.decimals,
@@ -333,26 +347,27 @@ class CompoundV2PoolInfo(Model):
             isListed=isListed,
             collateralFactor=collateralFactorMantissa,
             isComped=isComped,
-            block_number=int(self.context.block_number)
+            block_number=int(self.context.block_number),
+            block_datetime=self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat(),
         )
 
         return pool_info
 
 
-@ Model.describe(slug="compound.pool-value",
+@ Model.describe(slug="compound-v2.pool-value",
                  version="1.0",
                  display_name="Compound V2 - value of a market",
                  description="Compound V2 - value of a market",
-                 input=CompoundPoolInfo,
-                 output=CompoundPoolValue)
-class CompoundV2PoolValue(Model):
-    def run(self, input: CompoundPoolInfo) -> CompoundPoolValue:
+                 input=CompoundV2PoolInfo,
+                 output=CompoundV2PoolValue)
+class CompoundV2GetPoolValue(Model):
+    def run(self, input: CompoundV2PoolInfo) -> CompoundV2PoolValue:
         # Liquidity = cash (reserve is part of it)
         # Asset = cash + totalBorrow
         # Liability = from totalSupply
         # Net = Asset - Liability
 
-        return CompoundPoolValue(
+        return CompoundV2PoolValue(
             cTokenSymbol=input.cTokenSymbol,
             cTokenAddress=input.token.address,
             tokenPrice=input.tokenPrice,
@@ -367,51 +382,8 @@ class CompoundV2PoolValue(Model):
             reserve=input.tokenPrice * input.totalReserves,
             net=input.tokenPrice * (input.cash + input.totalBorrows - input.totalLiability),
             block_number=input.block_number,
+            block_datetime=input.block_datetime,
         )
-
-
-@Model.describe(slug="compound.all-pools-info",
-                version="1.0",
-                display_name="Compound V2 - get cTokens/markets",
-                description="Compound V2 - get all cTokens/Markets",
-                input=EmptyInput,
-                output=CompoundPoolInfos)
-class CompoundV2AllPoolsInfo(Model):
-
-    def run(self, input: EmptyInput) -> CompoundPoolInfos:
-        pool_infos = []
-
-        pools = self.context.run_model(slug='compound.get-pools')
-
-        for cTokenAddress in pools['cTokens']:
-            pool_info = self.context.run_model(slug='compound.get-pool-info',
-                                               input=Token(address=cTokenAddress))
-            pool_infos.append(pool_info)
-
-        ret = CompoundPoolInfos(infos=pool_infos)
-        return ret
-
-
-@Model.describe(slug="compound.all-pools-values",
-                version="1.0",
-                display_name="Compound V2 - get cTokens/markets",
-                description="Compound V2 - get all cTokens/Markets",
-                input=CompoundPoolInfos,
-                output=CompoundPoolValues)
-class CompoundV2AllPoolsValue(Model):
-    def run(self, input: CompoundPoolInfos) -> CompoundPoolValues:
-        self.logger.info(f'Data as of {self.context.block_number=}')
-        pool_infos = input
-
-        pool_values = []
-        for pool_info in pool_infos:
-            pool_value = self.context.run_model(slug='compound.pool-value',
-                                                input=pool_info,
-                                                return_type=CompoundPoolValue)
-            pool_values.append(pool_value)
-
-        ret = CompoundPoolValues(values=pool_values)
-        return ret
 
 
 class CompoundV2PoolsValueHistoricalInput(DTO):
@@ -419,14 +391,14 @@ class CompoundV2PoolsValueHistoricalInput(DTO):
     token: Token
 
 
-@Model.describe(slug="compound.pool-value-historical",
+@Model.describe(slug="compound-v2.pool-value-historical",
                 version="1.0",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
                 input=CompoundV2PoolsValueHistoricalInput,
-                output=CompoundPoolValues)
+                output=CompoundV2PoolValues)
 class CompoundV2PoolsValueHistorical(Model):
-    def run(self, input: CompoundV2PoolsValueHistoricalInput) -> CompoundPoolValues:
+    def run(self, input: CompoundV2PoolsValueHistoricalInput) -> CompoundV2PoolValues:
         d_start, d_end = input.date_range
         if d_start > d_end:
             d_start, d_end = d_end, d_start
@@ -443,9 +415,9 @@ class CompoundV2PoolsValueHistorical(Model):
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
 
         pool_infos = self.context.historical.run_model_historical(
-            model_slug='compound.get-pool-info',
+            model_slug='compound-v2.get-pool-info',
             model_input=input.token,
-            model_return_type=CompoundPoolInfo,
+            model_return_type=CompoundV2PoolInfo,
             window=window,
             interval=interval,
             end_timestamp=ts_as_of_end_dt)
@@ -454,11 +426,12 @@ class CompoundV2PoolsValueHistorical(Model):
 
         for pl in pool_infos:
             pl_output = pl.output
-            self.logger.info(f'{pl_output.block_number=}:{BlockNumber(pl_output.block_number).timestamp_datetime}')
+            self.logger.info(f'{pl_output.block_number=}:'
+                             f'{BlockNumber(pl_output.block_number).timestamp_datetime}')
             pool_value = self.context.run_model(
-                slug='compound.pool-value',
+                slug='compound-v2.pool-value',
                 input=pl_output,
-                return_type=CompoundPoolValue)
+                return_type=CompoundV2PoolValue)
             pool_values.append(pool_value)
 
-        return CompoundPoolValues(values=pool_values)
+        return CompoundV2PoolValues(values=pool_values)

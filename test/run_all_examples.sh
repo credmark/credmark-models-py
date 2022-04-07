@@ -86,8 +86,7 @@ credmark-dev run example.libraries --input '{}' -b 14234904 --format_json
 echo ""
 echo "Run Compound Examples:"
 echo ""
-credmark-dev run compound.test --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run compound.get-pools --input '{}' -l compound.get-pool-info,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run compound-v2.get-pools --input '{}' -l compound-v2.get-pool-info,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
 echo ""
 echo "Run Uniswap Examples:"
 echo ""
