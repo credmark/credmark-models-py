@@ -11,7 +11,6 @@ from credmark.cmf.model.errors import (
 )
 
 from credmark.cmf.types import (
-    Address,
     Contract,
     Token,
     Position,
@@ -24,11 +23,6 @@ from credmark.dto import (
     DTO,
     EmptyInput,
     IterableListGenericDTO,
-)
-
-from models.tmp_abi_lookup import (
-    AAVE_V2_TOKEN_CONTRACT_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
 )
 
 
@@ -51,6 +45,27 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
 AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 
 
+def get_eip1967_implementation(context, token_address):
+    """
+    eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
+    """
+    default_proxy_address = ''.join(['0'] * 40)
+
+    token = Token(address=token_address)
+    if token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy':
+        proxy_address = context.web3.eth.get_storage_at(
+            token.address,
+            '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
+        if proxy_address[-40:] != default_proxy_address:
+            token_implemenation = Token(address='0x' + proxy_address[-40:])
+            # TODO: Work around before we can load proxy in the past based on block number.
+            token._meta.is_transparent_proxy = True
+            token._meta.proxy_implementation = token_implemenation
+        else:
+            raise ModelDataError(f'Unable to retrieve proxy implementation for {token_address}')
+    return token
+
+
 @Model.describe(slug="aave.overall-liabilities-portfolio",
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
@@ -59,12 +74,8 @@ AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 class AaveV2GetLiability(Model):
 
     def run(self, input) -> Portfolio:
-        contract = Contract(
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
-
-        aave_assets = contract.functions.getReservesList().call()
+        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_assets = aave_lending_pool.functions.getReservesList().call()
 
         positions = []
         for asset in aave_assets:
@@ -86,33 +97,29 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
-        contract = Contract(
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
-        getReservesData = contract.functions.getReserveData(input.address).call()
-        # self.logger.info(f'info {getReservesData}, {getReservesData[7]}')
+        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
 
-        aToken = Token(address=getReservesData[7])
-        if aToken.total_supply is None:
-            raise ModelDataError("total supply cannot be None")
+        reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
+        self.logger.info(f'info {reservesData}, {reservesData[7]}')
+
+        aToken = get_eip1967_implementation(self.context, reservesData[7])
+        try:
+            aToken.total_supply
+        except ModelDataError:
+            self.logger.error(f"total supply cannot be None for {aToken.address}")
+            raise
         return Position(asset=aToken, amount=float(aToken.total_supply))
 
 
-@Model.describe(slug="aave.lending-pool-assets",
-                version="1.0",
-                display_name="Aave V2 Lending Pool Assets",
-                description="Aave V2 assets for the main lending pool",
-                output=AaveDebtInfos)
+@ Model.describe(slug="aave.lending-pool-assets",
+                 version="1.0",
+                 display_name="Aave V2 Lending Pool Assets",
+                 description="Aave V2 assets for the main lending pool",
+                 output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
-        contract = Contract(
-            # AAVE Lending Pool V2
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
-
-        aave_assets_address = contract.functions.getReservesList().call()
+        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         aave_debts_infos = []
         for asset_address in aave_assets_address:
@@ -123,31 +130,28 @@ class AaveV2GetAssets(Model):
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
-@Model.describe(slug="aave.token-asset",
-                version="1.0",
-                display_name="Aave V2 token liquidity",
-                description="Aave V2 token liquidity at a given block number",
-                input=Token,
-                output=AaveDebtInfo)
+@ Model.describe(slug="aave.token-asset",
+                 version="1.0",
+                 display_name="Aave V2 token liquidity",
+                 description="Aave V2 token liquidity at a given block number",
+                 input=Token,
+                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
-
     def run(self, input: Token) -> AaveDebtInfo:
+        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
-        contract = Contract(
-            # AAVE Lending Pool V2
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
+        aToken = get_eip1967_implementation(self.context, reservesData[7])
+        self.logger.info(f'{aToken.address=}')
 
-        reservesData = contract.functions.getReserveData(input.address).call()
-
-        aToken = Token(address=reservesData[7], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        stableDebtToken = Token(address=reservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        variableDebtToken = Token(address=reservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
         interestRateStrategyContract = Contract(address=reservesData[10])
 
+        stableDebtToken = get_eip1967_implementation(self.context, reservesData[8])
         totalStableDebt = stableDebtToken.total_supply
+
+        variableDebtToken = get_eip1967_implementation(self.context, reservesData[9])
         totalVariableDebt = variableDebtToken.total_supply
+
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
 
@@ -165,12 +169,12 @@ class AaveV2GetTokenAsset(Model):
                                 f'for {aToken.address=}')
 
 
-@Model.describe(slug="aave.token-asset-historical",
-                version="1.0",
-                display_name="Aave V2 token liquidity",
-                description="Aave V2 token liquidity at a given block number",
-                input=Token,
-                output=BlockSeries[AaveDebtInfo])
+@ Model.describe(slug="aave.token-asset-historical",
+                 version="1.0",
+                 display_name="Aave V2 token liquidity",
+                 description="Aave V2 token liquidity at a given block number",
+                 input=Token,
+                 output=BlockSeries[AaveDebtInfo])
 class AaveV2GetTokenAssetHistorical(Model):
     def run(self, input: Token) -> BlockSeries:
         return self.context.historical.run_model_historical(
