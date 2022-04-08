@@ -1,24 +1,30 @@
-from typing import List
+from typing import (
+    List,
+    Tuple,
+)
+
+from datetime import (
+    datetime,
+    date,
+    timezone,
+    timedelta,
+)
+
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
+from credmark.cmf.model.errors import ModelRunError
 
 from credmark.cmf.types import (
     Address,
     Token,
     Contract,
+    Price,
+    BlockNumber,
 )
 
 from credmark.dto import (
     DTO,
     EmptyInput,
     IterableListGenericDTO,
-)
-
-
-from models.tmp_abi_lookup import (
-    COMPOUND_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
-    COMPOUND_CTOKEN_CONTRACT_ABI,
 )
 
 COMPOUND_ASSETS = {
@@ -59,7 +65,7 @@ COMPOUND_CTOKEN = {
     'cSUSHI': '0x4b0181102a0112a2ef11abee5563bb4a3176c9d7',
     'cTUSD': '0x12392f67bdf24fae0af363c24ac620a2f67dad86',
     'cUNI': '0x35a18000230da775cac24873d00ff85bccded550',
-    'cUSDC':  '0x39aa39c021dfbae8fac545936693ac917d5e7563',
+    'cUSDC': '0x39aa39c021dfbae8fac545936693ac917d5e7563',
     'cUSDP': '0x041171993284df560249b57358f931d9eb7b925d',
     'cUSDT': '0xf650c3d88d12db855b8bf7d11be6c55a4e07dcc9',
     'cWBTC': '0xc11b1268c1a384e55c48c2391d8d480264a3a7f4',
@@ -82,82 +88,186 @@ COMPOUND_TIMELOCK = '0x6d903f6003cca6255d85cca4d3b5e5146dc33925'
 # CompoundLendingPool(LendingPool)
 
 
-@ Model.describe(slug="compound.test",
-                 version="1.0",
-                 display_name="Compound Lending Pool Assets",
-                 description="Compound assets for the main lending pool",
-                 input=Token)
-class CompoundGetAssets(Model):
-    def run(self, input: Token) -> dict:
-        if not input.address:
-            raise ModelRunError(f'Input token is invalid, {input}')
-
-        output = {}
-        contract = Contract(
-            # lending pool address for Compound
-            address=Address("0x3FDA67f7583380E67ef93072294a7fAc882FD7E7").checksum,
-            abi=COMPOUND_ABI
-        )
-
-        # converting the address to 'Address' type for safety
-        comp_asset = contract.functions.markets(input.address.checksum).call()
-        token = Token(address=input.address.checksum)
-        symbol = token.symbol
-        decimals = token.decimals
-        totalSupply = comp_asset[3]/pow(10, decimals)
-        totalBorrows = comp_asset[6]/pow(10, decimals)
-        output[symbol] = {'totalsupply': totalSupply, 'totalborrow': totalBorrows}
-
-        return output
-
-
-class CompoundDebtInfo(DTO):
-    inputSymbol: str
-    tokenName: str
-    cTokenName: str
+class CompoundV2PoolInfo(DTO):
+    tokenSymbol: str
+    cTokenSymbol: str
     token: Token
     cToken: Token
-    totalLiquidity: float
+    tokenDecimal: int
+    cTokenDecimal: int
+    tokenPrice: float
+    tokenPriceSrc: str
+    cash: float
     totalBorrows: float
     totalReserves: float
+    totalSupply: float
+    exchangeRate: float
+    invExchangeRate: float
+    totalLiability: float
+    borrowRate: float
+    supplyRate: float
+    reserveFactor: float
+    isListed: bool
+    collateralFactor: float
+    isComped: bool
+    block_number: int
+    block_datetime: str
 
 
-class CompoundDebtInfos(IterableListGenericDTO[CompoundDebtInfo]):
-    compoundDebtInfos: List[CompoundDebtInfo]
-    _iterator: str = 'CompoundDebtInfos'
+class CompoundV2PoolValue(DTO):
+    cTokenSymbol: str
+    cTokenAddress: Address
+    tokenPrice: float
+    qty_cash: float
+    qty_borrow: float
+    qty_liability: float
+    qty_reserve: float
+    qty_net: float
+    cash: float
+    borrow: float
+    liability: float
+    reserve: float
+    net: float
+    block_number: int
+    block_datetime: str
 
 
-@Model.describe(slug="compound.all-liability",
+class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
+    infos: List[CompoundV2PoolInfo]
+    _iterator: str = 'infos'
+
+
+class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
+    values: List[CompoundV2PoolValue]
+    _iterator: str = 'values'
+
+
+@Model.describe(slug="compound-v2.get-comptroller",
                 version="1.0",
-                display_name="Compound V2 token liability",
-                description="Compound V2 token liability at a given block number",
+                display_name="Compound V2 - comptroller",
+                description="Compound V2 - comptroller",
                 input=EmptyInput,
-                output=CompoundDebtInfos)
-class CompoundV2TotalLiability(Model):
-
-    def run(self, input: EmptyInput) -> CompoundDebtInfos:
-
-        debts = []
-
-        for _, tokenAddress in COMPOUND_CTOKEN.items():
-            debt = self.context.run_model(slug='compound.token-liability',
-                                          input=Token(address=tokenAddress))
-            debts.append(debt)
-
-        return CompoundDebtInfos(compoundDebtInfos=debts)
+                output=Contract)
+class CompoundV2Comptroller(Model):
+    # TODO: work-around before proxy can be queried with past block number
+    def run(self, input: EmptyInput) -> Contract:
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
+        return Contract(address=proxy_address)
 
 
-@Model.describe(slug="compound.token-liability",
+@Model.describe(slug="compound-v2.get-pools",
                 version="1.0",
-                display_name="Compound V2 token liability",
-                description="Compound V2 token liability at a given block number",
-                input=Token,
-                output=CompoundDebtInfo)
-class CompoundV2GetTokenLiability(Model):
-    def run(self, input: Token) -> CompoundDebtInfo:
-        cToken = Token(address=input.address,
-                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+                display_name="Compound V2 - get cTokens/markets",
+                description="Compound V2 - get all cTokens/Markets",
+                input=EmptyInput,
+                output=dict)
+class CompoundV2GetAllPools(Model):
+    def run(self, input: EmptyInput) -> dict:
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        cTokens = comptroller.functions.getAllMarkets().call()
 
+        # Check whether our list is complete
+        # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
+        #          sorted([Address(x) for x in cTokens]) )
+        return {'cTokens': cTokens}
+
+
+@Model.describe(slug="compound-v2.all-pools-info",
+                version="1.0",
+                display_name="Compound V2 - get cTokens/markets",
+                description="Compound V2 - get all cTokens/Markets",
+                input=EmptyInput,
+                output=CompoundV2PoolInfos)
+class CompoundV2AllPoolsInfo(Model):
+    def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
+        pool_infos = []
+        pools = self.context.run_model(slug='compound-v2.get-pools')
+
+        for cTokenAddress in pools['cTokens']:
+            pool_info = self.context.run_model(
+                slug='compound-v2.get-pool-info',
+                input=Token(address=cTokenAddress))
+            pool_infos.append(pool_info)
+        ret = CompoundV2PoolInfos(infos=pool_infos)
+        return ret
+
+
+@Model.describe(slug="compound-v2.all-pools-values",
+                version="1.0",
+                display_name="Compound V2 - get cTokens/markets",
+                description="Compound V2 - get all cTokens/Markets",
+                input=CompoundV2PoolInfos,
+                output=CompoundV2PoolValues)
+class CompoundV2AllPoolsValue(Model):
+    def run(self, input: CompoundV2PoolInfos) -> CompoundV2PoolValues:
+        self.logger.info(f'Data as of {self.context.block_number=}')
+        pool_infos = input
+
+        pool_values = []
+        for pool_info in pool_infos:
+            pool_value = self.context.run_model(
+                slug='compound-v2.pool-value',
+                input=pool_info,
+                return_type=CompoundV2PoolValue)
+            pool_values.append(pool_value)
+
+        ret = CompoundV2PoolValues(values=pool_values)
+        return ret
+
+
+@ Model.describe(slug="compound-v2.get-pool-info",
+                 version="1.0",
+                 display_name="Compound V2 - pool/market information",
+                 description="Compound V2 - pool/market information",
+                 input=Token,
+                 output=CompoundV2PoolInfo)
+class CompoundV2GetPoolInfo(Model):
+    """
+    # Pool info
+
+    1. getCash: Cash is the amount of underlying balance owned by this cToken contract.
+    2. totalBorrows: the amount of underlying currently loaned out by the market,
+                     with interest
+    3. totalReserves: Reserves of set-aside cash
+    4. totalSupply: the number of tokens currently in circulation in this cToken market
+
+    5. exchangeRate: The exchange rate between a cToken and the underlying asset
+       exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
+                    => cToken.scaled / pow(10, 2)
+       Liabitliy = totalSupply * exchangeRate, or
+                 = totalSupply / invExchangeRate
+
+    6. reserveFactor: defines the portion of borrower interest that is
+                       converted into reserves.
+    7./8. borrowRatePerBlock()/supplyRatePerBlock()
+
+    (Skip 9 and 10 because they need a user account)
+    9. balanceOfUnderlying(): balance of cToken * exchangeRate.
+    10. borrowBalance(): balance of liability including interest
+
+    # TODO
+    11. accuralBlockNumber
+    12. exchangeRateStored
+    13. initialExchangeRateMantissa
+    14. interestRateModel
+        - WhitePaperInterestRateModel
+        - getBorrowRate/multiplier/baseRate/blocksPerYear
+    """
+
+    def run(self, input: Token) -> CompoundV2PoolInfo:
+        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+
+        cToken = Token(address=input.address)
+
+        # self.logger.info(f'{cToken._meta.is_transparent_proxy}')
+        # self.logger.info(f'{cToken.is_transparent_proxy}')
+
+        (isListed, collateralFactorMantissa, isComped) = \
+            comptroller.functions.markets(cToken.address).call()
+        collateralFactorMantissa /= pow(10, 18)
+
+        # From cToken to Token
         if input.symbol == 'cETH':
             token = Token(address=COMPOUND_ASSETS['WETH'])
         elif (input.address == '0xf5dce57282a584d2746faf1593d3121fcac444dc' and
@@ -166,73 +276,152 @@ class CompoundV2GetTokenLiability(Model):
             # We will still call up SAI
             token = Token(address=COMPOUND_ASSETS['SAI'])
         else:
-            if input.symbol is None:
-                raise ModelDataError("Symbol cannot be none")
-            token = Token(address=COMPOUND_ASSETS[input.symbol[1:]])
+            token = Token(address=cToken.functions.underlying().call())
 
         self.logger.info(f'{cToken.address, cToken.symbol}')
 
+        # Check for cToken to be matched with a Token
         assert cToken.functions.isCToken().call()
-        # ( assert cToken.proxy_for is not None and
-        #   cToken.functions.implementation().call() == cToken.proxy_for.address )
+        if cToken.proxy_for is not None:
+            assert cToken.functions.implementation().call() == cToken.proxy_for.address
         assert cToken.functions.admin().call() == Address(COMPOUND_TIMELOCK)
         assert cToken.functions.comptroller().call() == Address(COMPOUND_COMPTROLLER)
         assert cToken.functions.symbol().call()
         if cToken.name != 'Compound Ether':
             assert cToken.functions.underlying().call() == token.address
 
-        totalLiquidity = cToken.functions.totalSupply().call()
-        totalBorrows = cToken.functions.totalBorrows().call()
-        totalReserves = cToken.functions.totalReserves().call()
-        decimals = cToken.functions.decimals().call()
+        # Get/calcualte info
 
-        totalLiquidity = float(totalLiquidity)/pow(10, decimals)
-        totalBorrows = float(totalBorrows)/pow(10, decimals)
-        totalReserves = float(totalReserves)/pow(10, decimals)
-        if input.symbol is None:
-            raise ModelDataError("symbol cannot be None")
-        if token.name is None:
-            raise ModelDataError("Token name cannot be None")
-        if cToken.name is None:
-            raise ModelDataError("cToken name cannot be None")
-        debt = CompoundDebtInfo(inputSymbol=input.symbol,
-                                tokenName=token.name,
-                                cTokenName=cToken.name,
-                                token=token,
-                                cToken=cToken,
-                                totalLiquidity=totalLiquidity,
-                                totalBorrows=totalBorrows,
-                                totalReserves=totalReserves)
+        # TODO: some ABI loading problem
+        # irModel = Contract(address=cToken.functions.interestRateModel().call())
+        # assert irModel.functions.isInterestRateModel().call()
 
-        return debt
+        getCash = token.scaled(cToken.functions.getCash().call())
+        totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
+        totalReserves = token.scaled(cToken.functions.totalReserves().call())
+        totalSupply = cToken.scaled(cToken.functions.totalSupply().call())
+
+        exchangeRate = token.scaled(cToken.functions.exchangeRateCurrent().call())
+        invExchangeRate = 1 / exchangeRate * pow(10, 10)
+        totalLiability = totalSupply / invExchangeRate
+
+        reserveFactor = cToken.functions.reserveFactorMantissa().call() / pow(10, 18)
+        borrowRate = cToken.functions.borrowRatePerBlock().call() / pow(10, 18)
+        supplyRate = cToken.functions.supplyRatePerBlock().call() / pow(10, 18)
+
+        tokenprice = self.context.run_model(slug='token.price-ext', input=token, return_type=Price)
+
+        if tokenprice.price is None or tokenprice.src is None:
+            raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
+
+        block_dt = self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat()
+        pool_info = CompoundV2PoolInfo(
+            tokenSymbol=input.symbol,
+            cTokenSymbol=cToken.symbol,
+            tokenDecimal=token.decimals,
+            cTokenDecimal=cToken.decimals,
+            token=token,
+            tokenPrice=tokenprice.price,
+            tokenPriceSrc=tokenprice.src,
+            cToken=cToken,
+            cash=getCash,
+            totalReserves=totalReserves,
+            totalBorrows=totalBorrows,
+            totalSupply=totalSupply,
+            totalLiability=totalLiability,
+            exchangeRate=exchangeRate,
+            invExchangeRate=invExchangeRate,
+            borrowRate=borrowRate,
+            supplyRate=supplyRate,
+            reserveFactor=reserveFactor,
+            isListed=isListed,
+            collateralFactor=collateralFactorMantissa,
+            isComped=isComped,
+            block_number=int(self.context.block_number),
+            block_datetime=block_dt,
+        )
+
+        return pool_info
 
 
-@Model.describe(slug="compound.token-asset",
+@ Model.describe(slug="compound-v2.pool-value",
+                 version="1.0",
+                 display_name="Compound V2 - value of a market",
+                 description="Compound V2 - value of a market",
+                 input=CompoundV2PoolInfo,
+                 output=CompoundV2PoolValue)
+class CompoundV2GetPoolValue(Model):
+    def run(self, input: CompoundV2PoolInfo) -> CompoundV2PoolValue:
+        # Liquidity = cash (reserve is part of it)
+        # Asset = cash + totalBorrow
+        # Liability = from totalSupply
+        # Net = Asset - Liability
+
+        return CompoundV2PoolValue(
+            cTokenSymbol=input.cTokenSymbol,
+            cTokenAddress=input.token.address,
+            tokenPrice=input.tokenPrice,
+            qty_cash=input.cash,
+            qty_borrow=input.totalBorrows,
+            qty_liability=input.totalLiability,
+            qty_reserve=input.totalReserves,
+            qty_net=(input.cash + input.totalBorrows - input.totalLiability),
+            cash=input.tokenPrice * input.cash,
+            borrow=input.tokenPrice * input.totalBorrows,
+            liability=input.tokenPrice * input.totalLiability,
+            reserve=input.tokenPrice * input.totalReserves,
+            net=input.tokenPrice * (input.cash + input.totalBorrows - input.totalLiability),
+            block_number=input.block_number,
+            block_datetime=input.block_datetime,
+        )
+
+
+class CompoundV2PoolsValueHistoricalInput(DTO):
+    date_range: Tuple[date, date]
+    token: Token
+
+
+@Model.describe(slug="compound-v2.pool-value-historical",
                 version="1.0",
-                display_name="Compound V2 token liquidity",
-                description="Compound V2 token liquidity at a given block number",
-                input=Token)
-class CompoundV2GetTokenAsset(Model):
-    def run(self, input: Token) -> dict:
-        if not input.address:
-            raise ModelRunError(f'Input token is invalid, {input}')
+                display_name="Compound pools value history",
+                description="Compound pools value history",
+                input=CompoundV2PoolsValueHistoricalInput,
+                output=CompoundV2PoolValues)
+class CompoundV2PoolsValueHistorical(Model):
+    def run(self, input: CompoundV2PoolsValueHistoricalInput) -> CompoundV2PoolValues:
+        d_start, d_end = input.date_range
+        if d_start > d_end:
+            d_start, d_end = d_end, d_start
 
-        output = {}
-        tokenContract = Contract(
-            address=input.address.checksum,
-            abi=ERC_20_TOKEN_CONTRACT_ABI)
+        dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
+        dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
 
-        symbol = tokenContract.functions.symbol().call()
-        cTokenAddress = Address(COMPOUND_CTOKEN[symbol]).checksum
-        cToken = Token(address=cTokenAddress,
-                       abi=COMPOUND_CTOKEN_CONTRACT_ABI)
+        interval = (dt_end - dt_start).days + 1
+        window = f'{interval} days'
+        interval = '1 day'
 
-        getCash = cToken.functions.getCash().call()
-        totalReserves = cToken.functions.totalReserves().call()
-        decimals = cToken.functions.decimals().call()
-        getCash = float(getCash)/pow(10, decimals)
-        totalReserves = float(totalReserves)/pow(10, decimals)
+        # TODO: add two days to the end as work-around to current start-end-window
+        ts_as_of_end_dt = self.context.block_number.from_timestamp(
+            ((dt_end + timedelta(days=2)).timestamp())).timestamp
 
-        output = {'result': {'token': symbol, 'totalReserves': totalReserves, 'cash': getCash}}
+        pool_infos = self.context.historical.run_model_historical(
+            model_slug='compound-v2.get-pool-info',
+            model_input=input.token,
+            model_return_type=CompoundV2PoolInfo,
+            window=window,
+            interval=interval,
+            end_timestamp=ts_as_of_end_dt)
 
-        return output
+        pool_values = []
+
+        for pl in pool_infos:
+            pl_output = pl.output
+            self.logger.info(f'{pl_output.block_number=}:'
+                             f'{BlockNumber(pl_output.block_number).timestamp_datetime}')
+            pool_value = self.context.run_model(
+                slug='compound-v2.pool-value',
+                input=pl_output,
+                return_type=CompoundV2PoolValue)
+            pool_values.append(pool_value)
+
+        return CompoundV2PoolValues(values=pool_values)

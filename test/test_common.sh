@@ -13,9 +13,61 @@ then
     exit 0
 fi
 
-if [ $# -ge 1 ] && [ $1 == 'test' ]
+other_opts=' --format_json'
+
+# echo "${@: -1: 1} | ${@: -2: 1} $#"
+
+# test/run.sh test 10 gen
+# test/run.sh 10 gen
+# test/run.sh gen
+# test/run.sh test gen
+
+# test/run.sh
+# test/run.sh test
+# test/run.sh 0
+# test/run.sh test 0
+
+
+if [ "${@: -1: 1}" == 'gen' ]
 then
-    test_mode='test'
+    gen_mode=1
+    if [ $# -eq 1 ]; then
+        start_n=0
+        test_mode='prod'
+    elif [ "${@: -2: 1}" == "test" ]; then
+        start_n=0
+        test_mode='test'
+    else
+        start_n=${@: -2: 1}
+        if [ $# -eq 3 ] && [ "$1" -eq "test" ]; then
+            test_mode='test'
+        else
+            test_mode='prod'
+        fi
+    fi
+else
+    gen_mode=0
+    if [ $# -eq 0 ]; then
+        start_n=0
+        test_mode='prod'
+    elif [ "${@: -1: 1}" == "test" ]; then
+        start_n=0
+        test_mode='test'
+    else
+        start_n=${@: -1: 1}
+        if [ $# -eq 2 ] && [ "$1" == "test" ]; then
+            test_mode='test'
+        else
+            test_mode='prod'
+        fi
+    fi
+fi
+
+start_n=`expr $start_n + 1 - 1`
+echo Start from: $start_n
+
+
+if [ "${test_mode}" == 'test' ]; then
     cmk_dev='python test/test.py'
     # Use prod for test:
     # api_url=' --api_url=http://localhost:8700'
@@ -23,36 +75,18 @@ then
     block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
-else
-    test_mode='prod'
+elif [ "${test_mode}" == 'prod' ];
+then
     cmk_dev='credmark-dev'
     api_url=''  # no api url param uses the gateway api
     block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
-fi
-
-other_opts=' --format_json'
-
-# echo "${@: -1: 1} | ${@: -2: 1} $#"
-
-if [ "${@: -1: 1}" == 'gen' ]
-then
-    if [ $# -eq 1 ]; then
-        start_n=0
-    else
-        start_n=${@: -2: 1}
-    fi
-    gen_cmd=1
 else
-    start_n=${@: -1: 1}
-    gen_cmd=0
+    exit
 fi
 
-start_n=`expr $start_n + 1 - 1`
-echo Start from: $start_n
-
-if [ $gen_cmd -eq 1 ]; then
+if [ $gen_mode -eq 1 ]; then
     echo "Sending commands to ${cmd_file}"
     echo -e "#!/bin/bash\n" > $cmd_file
     if [ `which chmod` != '' ]
@@ -68,9 +102,10 @@ count_pass=0
 run_model () {
     model=$1
     input=$2
+    local_models=$3
 
     if [ $# -eq 2 ]; then
-        if [ $gen_cmd -eq 1 ]; then
+        if [ $gen_mode -eq 1 ]; then
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}" >> $cmd_file
         else
             echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
@@ -80,8 +115,7 @@ run_model () {
         if [ "$3" == 'print-command' ]; then
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
         else
-            local_models=$3
-            if [ $gen_cmd -eq 1 ]; then
+            if [ $gen_mode -eq 1 ]; then
                 echo "${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}" >> $cmd_file
             else
                 echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}"
@@ -140,7 +174,7 @@ test_model () {
     run_model $model "$input" $local_models
     exit_code=$?
 
-    if [ $gen_cmd -eq 0 ];
+    if [ $gen_mode -eq 0 ];
     then
         if [ $exit_code -ne $expected ];
         then
@@ -157,7 +191,11 @@ test_model () {
 
 echo_cmd () {
     echo $1
-    if [ $gen_cmd -eq 1 ]; then
+    if [ $gen_mode -eq 1 ]; then
         echo "echo \"$1\"" >> $cmd_file
     fi
 }
+
+
+deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}

@@ -59,15 +59,15 @@ echo ""
 echo "Run Token Examples:"
 echo ""
 credmark-dev run example.token-loading --input '{}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "WETH"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "CMK"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "AAVE"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "USDC"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "MKR"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -l uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "WETH"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "CMK"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "AAVE"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "USDC"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "MKR"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
 credmark-dev run token.holders --input '{"symbol": "CMK"}' -b 14234904 --format_json
 credmark-dev run token.swap-pools --input '{"symbol":"CMK"}' -b 14234904 --format_json
 credmark-dev run token.info --input '{"symbol":"CMK"}' -b 14234904 --format_json
@@ -86,10 +86,13 @@ credmark-dev run example.libraries --input '{}' -b 14234904 --format_json
 echo ""
 echo "Run Compound Examples:"
 echo ""
-credmark-dev run compound.test --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run compound.token-asset --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run compound.token-liability --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run compound.all-liability --input '{}' -l compound.token-liability -b 14234904 --format_json
+credmark-dev run compound-v2.get-pool-info --input '{"address":"0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound-v2.get-comptroller -b 14234904 --format_json
+credmark-dev run compound-v2.get-comptroller --input '{}' -b 14234904 --format_json
+credmark-dev run compound-v2.get-pools --input '{}' -l compound-v2.get-pool-info -b 14234904 --format_json
+credmark-dev run compound-v2.all-pools-info --input '{}' -l compound-v2.get-pool-info,compound-v2.get-pools,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run compound-v2.pool-value-historical --input '{"date_range": ["2021-12-15", "2021-12-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value -b 14234904 --format_json
+credmark-dev run compound-v2.pool-value-historical --input '{"date_range": ["2021-09-15", "2021-09-20"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value -b 14234904 --format_json
+credmark-dev run compound-v2.pool-value-historical --input '{"date_range": ["2022-01-15", "2022-01-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price,compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value -b 14234904 --format_json
 echo ""
 echo "Run Uniswap Examples:"
 echo ""
@@ -125,9 +128,9 @@ echo "Run SushiSwap Examples:"
 echo ""
 credmark-dev run sushiswap.get-average-price --input '{"symbol": "USDC"}' -b 14234904 --format_json
 credmark-dev run sushiswap.get-average-price --input '{"symbol": "AAVE"}' -b 14234904 --format_json
-credmark-dev run sushiswap.get-average-price --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run sushiswap.get-average-price --input '{"symbol":"WETH"}' -b 14234904 --format_json
-credmark-dev run sushiswap.get-average-price --input '{"symbol":"MKR"}' -b 14234904 --format_json
+credmark-dev run sushiswap.get-average-price --input '{"symbol": "DAI"}' -b 14234904 --format_json
+credmark-dev run sushiswap.get-average-price --input '{"symbol": "WETH"}' -b 14234904 --format_json
+credmark-dev run sushiswap.get-average-price --input '{"symbol": "MKR"}' -b 14234904 --format_json
 credmark-dev run sushiswap.all-pools --input '{}' -b 14234904 --format_json
 credmark-dev run sushiswap.get-pool --input '{"token0":{"symbol":"DAI"}, "token1":{"symbol":"WETH"}}' -b 14234904 --format_json
 credmark-dev run sushiswap.get-pool-info --input '{"address":"0x397FF1542f962076d0BFE58eA045FfA2d347ACa0"}' -b 14234904 --format_json
@@ -158,9 +161,10 @@ credmark-dev run curve-fi.all-gauge-claim-addresses --input '{"address":"0x72E15
 echo ""
 echo "Run Finance Examples"
 echo ""
-credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
-credmark-dev run finance.var-regtest --input '{}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.example-var-contract --input '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical -b 14234904 --format_json
+credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount": -0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  0.5, "asset": {"symbol": "WETH"}}, {"amount": 0.5, "asset": {"symbol": "WETH"}}]}, "window": "30 days","intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount": -1, "asset": {"symbol": "WETH"}}]}, "window": "30 days", "intervals": ["1 day"], "confidences": [0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.var-engine --input '{"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": ["1 day","10 days"], "confidences": [0.01,0.05], "dev_mode":false, "verbose":true}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run finance.var-regtest --input '{}' -l finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
