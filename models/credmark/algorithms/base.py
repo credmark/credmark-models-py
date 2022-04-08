@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from telnetlib import SE
 from typing import (
     Union
 )
@@ -35,12 +36,32 @@ class ValueAtRiskBase(Model):
         result['datetime'] = datetime.fromtimestamp(result['timestamp'], tz=timezone.utc)
         return result
 
+    def save_dict(self, dict_of_df, fp_out):
+        with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
+            for vk, vv in dict_of_df.items():
+                s_name = vk[:31]
+                if isinstance(vv, pd.DataFrame):
+                    dt_cols = vv.select_dtypes(include=['datetime64[ns, UTC]']).columns
+                    for dt_col in dt_cols:
+                        vv[dt_col] = (pd.to_datetime(vv[dt_col], unit='ms')
+                                        .dt.tz_localize(None))
+                    if isinstance(vv.columns, pd.MultiIndex):
+                        vv.to_excel(writer, sheet_name=s_name)
+                    else:
+                        vv.to_excel(writer, sheet_name=s_name, index=False)
+                elif isinstance(vv, pd.Series):
+                    vv.to_excel(writer, sheet_name=s_name, index=False)
+                elif isinstance(vv, np.ndarray):
+                    pd.DataFrame(vv).to_excel(writer, sheet_name=s_name, index=False)
+                else:
+                    raise ModelRunError(f'Unknown sub-type {type(vv)=} {vv=}')
+
     def save_mkt(self, mkt, fp_out):
         with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
-            for k, v in mkt.items():
+            for (tag, k), v in mkt.items():
                 if isinstance(v, dict):
                     for vk, vv in v.items():
-                        s_name = f'{k[:31-len(vk)-1]}_{vk}'
+                        s_name = f'{tag}.{k[:31-len(tag)-1-len(vk)-1]}_{vk}'
                         if isinstance(vv, pd.DataFrame):
                             dt_cols = vv.select_dtypes(include=['datetime64[ns, UTC]']).columns
                             for dt_col in dt_cols:

@@ -11,6 +11,10 @@ from credmark.dto import (
     DTO,
 )
 
+from datetime import (
+    datetime
+)
+
 import pandas as pd
 import itertools
 from typing import (
@@ -40,6 +44,10 @@ class MarketTarget(DTO):
     artifact: Any
 
 
+class Market(dict):
+    pass
+
+
 class Tradeable:
     def __init__(self, tid, traces):
         """
@@ -61,12 +69,21 @@ class Tradeable:
         pass
 
     @ abstractmethod
-    def value(self, new_as_of, mkt, mkt_adj=lambda x: x) -> float:
-        pass
+    def value(self,
+              as_of: datetime,
+              tag: str,
+              mkt: Market,
+              mkt_adj=lambda x: x) -> float:
+        ...
 
     @ abstractmethod
-    def value_scenarios(self, new_as_of, mkt, mkt_scenarios) -> pd.Series:
-        pass
+    def value_scenarios(self,
+                        as_of: datetime,
+                        tag: str,
+                        tag_scenario: str,
+                        mkt: Market,
+                        mkt_scenarios: Market) -> pd.Series:
+        ...
 
 
 class TokenTradeable(Tradeable):
@@ -88,28 +105,37 @@ class TokenTradeable(Tradeable):
                                   artifact=self._token)
         yield mkt_target
 
-    def value(self, new_as_of, mkt, mkt_adj=lambda x: x) -> float:
+    def value(self,
+              as_of: datetime,
+              tag: str,
+              mkt: Market,
+              mkt_adj=lambda x: x) -> float:
         """
-        TokenTrade's value does not change with the new_as_of to the Tradeable's own as_of
+        TokenTrade's value does not change with the as_of to the Tradeable's own as_of
         Other type of trade could have time value.
         """
 
         # DEPRECATED Code of retriving price
         # idx_last = mkt_piece.index.get_loc(
-        #   mkt_piece.index[mkt_piece['blockTime'] <= new_as_of][0])
+        #   mkt_piece.index[mkt_piece['blockTime'] <= as_of][0])
         # curent_price = mkt_piece[f'{self.key}.price'].iloc[idx_last]
 
-        curent_price = mkt_adj(mkt[self.key]['extracted'])
+        curent_price = mkt_adj(mkt[(tag, self.key)]['extracted'])
         pnl = curent_price - self._init_price
         pnl *= self._amount
         return pnl
 
-    def value_scenarios(self, new_as_of, mkt, mkt_scenarios) -> pd.Series:
-        base_pnl = self.value(new_as_of, mkt)
+    def value_scenarios(self,
+                        as_of: datetime,
+                        tag: str,
+                        tag_scenario: str,
+                        mkt: Market,
+                        mkt_scenarios: Market) -> pd.Series:
+        base_pnl = self.value(as_of, tag, mkt)
         scen_pnl = []
-        scenarios = mkt_scenarios[self.key]['extracted']
+        scenarios = mkt_scenarios[(tag_scenario, self.key)]['extracted']
         for scen in scenarios:
-            new_pnl = self.value(new_as_of, mkt, lambda x, scen=scen: x * scen)
+            new_pnl = self.value(as_of, tag, mkt, lambda x, scen=scen: x * scen)
             scen_pnl.append(new_pnl)
         return pd.Series(scen_pnl) - base_pnl
 
@@ -121,18 +147,23 @@ class ContractTradeable(Tradeable):
     def requires(self) -> Generator[MarketTarget, None, None]:
         yield from []
 
-    def value(self, new_as_of, mkt, mkt_adj=lambda x: x) -> float:
+    def value(self,
+              as_of: datetime,
+              tag: str,
+              mkt: Market,
+              mkt_adj=lambda x: x) -> float:
         return 0
 
-    def value_scenarios(self, new_as_of, mkt, mkt_scenarios) -> pd.Series:
+    def value_scenarios(self,
+                        as_of: datetime,
+                        tag: str,
+                        tag_scenario: str,
+                        mkt: Market,
+                        mkt_scenarios: Market) -> pd.Series:
         return pd.Series([0 for _ in mkt_scenarios])
 
 
 # PortfolioManage shall request to Market to build the market information
-
-
-class Market(dict):
-    pass
 
 # TODO: to be merged with framework's Portfolio
 
@@ -236,7 +267,7 @@ class PortfolioManager(RiskObject):
                               verbose=self._verbose,
                               input_token=target.artifact,
                               **input_to_plan)
-            mkt[target.key] = pl.execute()
+            mkt[(tag, target.key)] = pl.execute()
 
         if self._verbose:
             self._context.logger.info(
@@ -244,24 +275,34 @@ class PortfolioManager(RiskObject):
 
         return mkt
 
-    def value(self, mkt: Market, as_df=True, **input_to_value):
+    def value(self,
+              tag: str,
+              mkt: Market,
+              as_df=True,
+              **input_to_value):
         values = []
-        new_as_of = input_to_value.get('as_of', self._as_of)
+        as_of = input_to_value.get('as_of', self._as_of)
 
         for t in self._trades:
-            v = t.value(new_as_of, mkt)
+            v = t.value(as_of, tag, mkt)
             values.append((t.tid, v))
         df_res = pd.DataFrame(values, columns=['TRADE_ID', 'VALUE'])
         if as_df:
             return df_res
         return df_res.loc[:, ['TRADE_ID', 'VALUE']].to_dict()
 
-    def value_scenarios(self, mkt: Market, mkt_scenarios: Market, as_df=True, **input_to_value):
+    def value_scenarios(self,
+                        tag: str,
+                        tag_scenario: str,
+                        mkt: Market,
+                        mkt_scenarios: Market,
+                        as_df=True,
+                        **input_to_value):
         values = []
-        new_as_of = input_to_value.get('as_of', self._as_of)
+        as_of = input_to_value.get('as_of', self._as_of)
 
         for t in self._trades:
-            v = t.value_scenarios(new_as_of, mkt, mkt_scenarios)
+            v = t.value_scenarios(as_of, tag, tag_scenario, mkt, mkt_scenarios)
             values.extend(zip(itertools.count(1), itertools.repeat(t.tid), v))
         df_res = (pd.DataFrame(values, columns=['SCEN_ID', 'TRADE_ID', 'VALUE'])
                   .sort_values(['SCEN_ID', 'TRADE_ID'])

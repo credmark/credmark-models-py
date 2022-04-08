@@ -10,6 +10,8 @@ from credmark.dto import (
 )
 
 import json
+import copy
+
 from typing import (
     Any,
     TypeVar,
@@ -18,6 +20,7 @@ from typing import (
     Dict,
     Tuple,
     Union,
+    get_type_hints,
 )
 from datetime import (
     datetime,
@@ -185,11 +188,19 @@ class Chef(Generic[C, P], RiskObject):
                 if cache_entry['input'] == json.dumps(input, cls=PydanticJSONEncoder):
                     return True, cache_entry['untyped']
         if self._verbose:
+            print(cache_entry['method'], method)
+            print(cache_entry['chain_id'], chain_id)
+            print(cache_entry['input'], json.dumps(input, cls=PydanticJSONEncoder))
             self.context.logger.warn(f'? {self.name_id} Chef tried to grab but '
                                      f'needs re-cook {cache_key}>')
         return False, None
 
     def verify_input_and_key(self, input_key, rec):
+        if rec.cache_keywords[0] != rec.method:
+            raise ModelRunError(
+                f'First keyword {rec.cache_keywords=} needs to '
+                f'be the method of Recipe {rec.method=}')
+
         return (input_key in rec.input and rec.input[input_key] is not None and
                 rec.input[input_key] in rec.cache_keywords)
 
@@ -211,6 +222,44 @@ class Chef(Generic[C, P], RiskObject):
                 result = self._context.run_model(**rec.input,
                                                  return_type=rec.chef_return_type)
                 return 'P', result
+            elif rec.method == 'run_model[blocks]':
+                if 'block_numbers' not in rec.input:
+                    raise ModelRunError(f'Missing "block_numbers" in Recipe\'s '
+                                        f'input for {rec.method=}')
+
+                rec_input_copy = copy.deepcopy(rec.input)
+                block_numbers = rec_input_copy.pop('block_numbers')
+
+                # rec.cache_keywords += block_numbers
+
+                rec_cache_keywords = copy.deepcopy(rec.cache_keywords)
+                rec_cache_keywords[0] = 'run_model'
+                if block_numbers not in rec_cache_keywords[-1]:
+                    raise ModelDataError(f'The last of {rec.cache_keywords=} must contain the {block_numbers=}')
+                del rec_cache_keywords[-1]
+
+                type_hints = get_type_hints(rec.chef_return_type)
+                sub_type = type_hints['data'].__args__[0].__args__[1]
+
+                rec_copy = Recipe[sub_type, sub_type](
+                    cache_keywords=rec_cache_keywords,
+                    target_key=rec.target_key,
+                    method='run_model',
+                    input=rec_input_copy,
+                    post_proc=lambda _context, output_from_chef: output_from_chef,
+                    error_handle=rec.error_handle,
+                    chef_return_type=sub_type,
+                    plan_return_type=sub_type
+                )
+
+                sub_results = []
+                for block_number in block_numbers:
+                    rec_copy.cache_keywords = rec_cache_keywords + [block_number]
+                    rec_copy.input['block_number'] = block_number
+                    result = self.cook(rec_copy)
+                    sub_results.append((block_number, result))
+                return 'P', rec.chef_return_type(data=sub_results)
+
             elif rec.method == 'run_model_historical':
                 # cond1: snap_clock and timestamp
                 # cond2: snap_clock and end_timestamp

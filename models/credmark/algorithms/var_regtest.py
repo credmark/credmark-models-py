@@ -43,18 +43,6 @@ TEST_CASE_REFERENCE = {
 
 
 TEST_CASE_ENGINE = {
-    'AAVE+WETH (39 days)': {
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
-    },
-    'AAVE+WETH (90 days)': {
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
-    },
-    'WETH (90 days)': {
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
-    },
     'WETH (39 days)': {
         'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days", "intervals": [
             "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
@@ -63,8 +51,20 @@ TEST_CASE_ENGINE = {
         'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
             "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
+    'WETH (90 days)': {
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": [
+            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+    },
     'AAVE (90 days)': {
         'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
+            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+    },
+    'AAVE+WETH (39 days)': {
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
+            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+    },
+    'AAVE+WETH (90 days)': {
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
             "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 }

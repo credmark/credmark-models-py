@@ -113,20 +113,23 @@ class ValueAtRiskEnginePortfolioAndPrice(ValueAtRiskBase):
                 base_mkt[key_col]['extracted'] = pl.prices[shift]
             base_mkt = Market(base_mkt)
 
-            _ = pm.value(base_mkt)
+            _ = pm.value('eod', base_mkt)
 
             for ivl_n in input.n_intervals:
                 var_result[shift][ivl_n] = {}
                 mkt_scenarios = {}
                 for pl in input.priceList:
-                    key_col = f'Token.{Address(pl.tokenAddress)}'
+                    key_col = ('eod.var', f'Token.{Address(pl.tokenAddress)}')
                     shifted = np.array(pl.prices[shift:(input.n_window+1)]).copy()
-                    mkt_scenarios[key_col] = {}
+                    mkt_scenarios[f'Token.{Address(pl.tokenAddress)}'] = {}
                     mkt_scenarios[key_col]['raw'] = shifted
                     mkt_scenarios[key_col]['extracted'] = shifted[:-ivl_n] / pl.prices[ivl_n:]
                 mkt_scenarios = Market(mkt_scenarios)
 
-                value_scen_df = pm.value_scenarios(base_mkt, mkt_scenarios)
+                value_scen_df = pm.value_scenarios('eod',
+                                                   'eod.var',
+                                                   base_mkt,
+                                                   mkt_scenarios)
 
                 ppl = (value_scen_df.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
                        .agg({'VALUE': ['sum']}))
@@ -195,11 +198,11 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                                  reset_cache=input.reset_cache,
                                                  verbose=input.verbose)
             base_mkt = pm.prepare_market('eod', as_of=as_of_dt)
-            _ = pm.value(base_mkt)
+            _ = pm.value('eod', base_mkt)
 
             for ((_, ivl_n), ivl) in zip(parsed_intervals, input.intervals):
                 var_result[as_of_str][ivl] = {}
-                mkt_scenarios = pm.prepare_market('eod_var_scenario',
+                mkt_scenarios = pm.prepare_market('eod.var',
                                                   as_of=as_of_dt,
                                                   window=[input.window, minimal_interval],
                                                   interval=minimal_interval,
@@ -209,7 +212,10 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                   os.path.join('tmp',
                                                f'{fp_pre}_{as_of_str}_{ivl}_mkt_scenario.xlsx'))
 
-                ppl_scen_trade = pm.value_scenarios(base_mkt, mkt_scenarios)
+                ppl_scen_trade = pm.value_scenarios('eod',
+                                                    'eod.var',
+                                                    base_mkt,
+                                                    mkt_scenarios)
 
                 ppl_scen_trade_nan = ppl_scen_trade.loc[  # type: ignore
                     ppl_scen_trade.VALUE.isna(), :]  # type: ignore
@@ -219,13 +225,13 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                         f'There are NaN in ppls {a}/{b}'
                         f'{a/b*100:.2f}%')  # type: ignore
 
-                if input.dev_mode:
-                    ppl_scen_trade.to_csv(  # type: ignore
-                        os.path.join('tmp',
-                                     f'{fp_pre}_{as_of_str}_{ivl}_ppl_scen_trade.csv'), index=False)
-
                 ppl = (ppl_scen_trade.groupby(by=['SCEN_ID'], as_index=False)  # type: ignore
                        .agg({'VALUE': ['sum']}))
+
+                if input.dev_mode:
+                    fp_ppl = os.path.join('tmp', f'{fp_pre}_{as_of_str}_{ivl}_ppl_scen_trade.xlsx')
+                    self.save_dict({'ppl': ppl, 'ppl_scen_trade': ppl_scen_trade},
+                                   fp_ppl)
 
                 var_result[as_of_str][ivl] = {
                     conf: calc_var(ppl[('VALUE', 'sum')].to_numpy(), conf)

@@ -14,8 +14,10 @@ from typing import (
 
 from credmark.dto import (
     GenericDTO,
+    DTOField,
+    IterableListGenericDTO,
+    PrivateAttr,
 )
-
 
 # pylint:disable=locally-disabled,too-many-instance-attributes
 
@@ -35,9 +37,18 @@ class Recipe(GenericDTO, Generic[C, P]):
 
 
 class RiskObject:
-    @property
+    @ property
     def name_id(self):
         return f'{self.__class__.__name__}({hex(id(self))})'
+
+
+DTOCLS = TypeVar('DTOCLS')
+
+
+class BlockData(IterableListGenericDTO[DTOCLS], Generic[DTOCLS]):
+    data: List[Tuple[int, DTOCLS]] = \
+        DTOField(default=[], description='List of series block outputs')
+    _iterator: str = PrivateAttr('block_data')
 
 
 def validate_as_of(as_of):

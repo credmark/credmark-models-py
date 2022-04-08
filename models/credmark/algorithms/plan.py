@@ -34,6 +34,7 @@ from models.credmark.algorithms.chef import (
 from models.credmark.algorithms.recipe import (
     Recipe,
     validate_as_of,
+    BlockData,
 )
 
 
@@ -136,10 +137,10 @@ class Plan(Generic[C, P]):
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: C) -> P:
-        # return self._plan_return_type(output_from_chef)
         raise ModelRunError(
             'Please add explicit post_proc to convert from '
-            f'{self._chef_return_type} to {self._plan_return_type}')
+            f'{self._chef_return_type} to {self._plan_return_type} '
+            f'in class={self.__class__.__name__}')
 
     def error_handle(self, _context, err: Exception) -> Tuple[str, P]:
         """
@@ -321,74 +322,25 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
         return result
 
 
-class TokenEODPlan(Plan[Price, dict]):
+class TokenEODPlan(Plan[BlockData[Price], dict]):
     def __init__(self, **kwargs):
         super().__init__(**kwargs,
-                         chef_return_type=Price,
+                         chef_return_type=BlockData[Price],
                          plan_return_type=dict)
 
-    def define(self) -> dict:
-        if self._tag == 'eod':
-            as_of = self._input_to_plan['as_of']
-            window = '1 day'
-            interval = '1 day'
-        elif self._tag == 'eod_var_scenario':
-            window = self._input_to_plan['window']
-            as_of = self._input_to_plan['as_of']
-            interval = self._input_to_plan['interval']
-        else:
-            raise ModelRunError(f'! Unknown {self._tag=}')
-
-        input_token = self._input_to_plan['input_token']
-        if isinstance(input_token, Token):
-            method = 'run_model'
-        else:
-            raise ModelRunError(f'! Unsupported artifact {input_token=}')
-        model_slug = 'token.price-ext'
-
-        block_plan = HistoricalBlockPlan(tag=self._tag,
-                                         target_key=f'HistoricalBlock.{as_of}.{window}.{interval}',
-                                         use_kitchen=self._use_kitchen,
-                                         context=self.chef.context,
-                                         verbose=self._verbose,
-                                         as_of=as_of,
-                                         window=window,
-                                         interval=interval)
-
-        pre_plan_results = block_plan.execute()
-
-        block_numbers = pre_plan_results['block_numbers']
-        block_table = pre_plan_results['block_table']
-
-        # Sort block from early to recent
-        # So we could
-        # 1) fail earlier when there was no data available, and
-        # 2) saving time of retrive contract.meta data once at the early block
-
+    def post_proc(self, _context, output_from_chef: BlockData[Price]) -> dict:
+        block_table = self._input_to_plan['block_table']
         dish = block_table.copy()
-        for block_number in sorted(block_numbers):
-            # other choices for slug:
-            # - 'token.price-ext',
-            # - 'uniswap-v3.get-average-price',
-            # - 'token.price',
-            rec = self.create_recipe(
-                cache_keywords=[method, model_slug, self._target_key, block_number],
-                method=method,
-                input={'slug': model_slug,
-                       'input': input_token,
-                       'block_number': block_number})
 
-            rec_result = self.chef.cook(rec)
-
-            for k, v in rec_result.items():
-                dish.loc[dish.blockNumber == rec.input['block_number'],
-                         f'{rec.target_key}.{k}'] = v
+        for (block_number, price_ret) in output_from_chef.data:
+            for k, v in price_ret.dict().items():
+                dish.loc[dish.blockNumber == block_number, f'{self._target_key}.{k}'] = v
 
         if self._tag == 'eod':
             return {'raw': dish,
                     'extracted': dish[f'{self._target_key}.price'][0]}
 
-        elif self._tag == 'eod_var_scenario':
+        elif self._tag == 'eod.var':
             price_series = dish[f'{self._target_key}.price']
             rolling_interval = self._input_to_plan['rolling_interval']
             if rolling_interval is not None:
@@ -401,3 +353,61 @@ class TokenEODPlan(Plan[Price, dict]):
                     'extracted': ret_series}
 
         raise ModelRunError(f'! Unknown {self._tag=}')
+
+    def define(self) -> dict:
+        if self._tag == 'eod':
+            as_of = self._input_to_plan['as_of']
+            window = '1 day'
+            interval = '1 day'
+            rolling_interval = 0
+        elif self._tag == 'eod.var':
+            as_of = self._input_to_plan['as_of']
+            window = self._input_to_plan['window']
+            interval = self._input_to_plan['interval']
+            rolling_interval = self._input_to_plan['rolling_interval']
+        else:
+            raise ModelRunError(f'! Unknown {self._tag=}')
+
+        block_plan = HistoricalBlockPlan(
+            tag=self._tag,
+            target_key=f'HistoricalBlock.{as_of}.{window}.{interval}',
+            use_kitchen=self._use_kitchen,
+            context=self.chef.context,
+            verbose=self._verbose,
+            as_of=as_of,
+            window=window,
+            interval=interval)
+
+        pre_plan_results = block_plan.execute()
+
+        block_numbers = pre_plan_results['block_numbers']
+        block_table = pre_plan_results['block_table']
+
+        self._input_to_plan['block_table'] = block_table
+
+        # Sort block from early to recent
+        # So we could
+        # 1) fail earlier when there was no data available, and
+        # 2) saving time of retrive contract.meta data once at the early block
+
+        input_token = self._input_to_plan['input_token']
+        if isinstance(input_token, Token):
+            method = 'run_model[blocks]'
+        else:
+            raise ModelRunError(f'! Unsupported artifact {input_token=}')
+        model_slug = 'token.price-ext'
+
+        # other choices for slug:
+        # - 'token.price-ext',
+        # - 'uniswap-v3.get-average-price',
+        # - 'token.price',
+        sorted_block_numbers = sorted(block_numbers)
+        rec = self.create_recipe(
+            cache_keywords=[method, model_slug, self._target_key, [rolling_interval, sorted_block_numbers]],
+            method=method,
+            input={'slug': model_slug,
+                   'input': input_token,
+                   'block_numbers': sorted_block_numbers})
+
+        rec_result = self.chef.cook(rec)
+        return rec_result
