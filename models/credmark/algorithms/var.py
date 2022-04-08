@@ -1,5 +1,4 @@
 from typing import (
-    Union,
     List,
 )
 
@@ -12,34 +11,20 @@ from credmark.cmf.model.errors import ModelRunError
 
 from credmark.dto import (
     DTO,
-    DTOField,
-    IterableListGenericDTO,
     PrivateAttr,
+    IterableListGenericDTO,
 )
 
 from credmark.cmf.types import (
     Portfolio,
     Token,
     Position,
+    PriceList,
 )
 
 from models.credmark.algorithms.risk_method import calc_var
 
 import numpy as np
-
-
-# TODO: to be merged to cmf
-class PriceList(IterableListGenericDTO[float]):
-    prices: List[float] = DTOField(default=[], description='List of prices')
-    token: Token
-    src: Union[str, None] = DTOField(None, description='Source')
-    _iterator: str = PrivateAttr('prices')
-
-    class Config:
-        schema_extra: dict = {
-            'examples': [{'prices': [4.2, 2.3],
-                          'token': {'address': '0x6B175474E89094C44Da98b954EedeAC495271d0F'}}]
-        }
 
 
 class HistoricalPriceInput(DTO):
@@ -66,7 +51,7 @@ class VaRPriceHistorical(Model):
 
         return PriceList(
             prices=list(range(1, w_i+2)),
-            token=token,
+            tokenAddress=token.address,
             src=self.slug
         )
 
@@ -99,7 +84,7 @@ class VaREngineHistorical(Model):
             token = pos.asset
             amount = pos.amount
 
-            priceLists = [pl for pl in input.priceLists if pl.token.address == token.address]
+            priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
 
             if len(priceLists) != 1:
                 raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
