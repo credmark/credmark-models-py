@@ -40,6 +40,9 @@ from models.credmark.algorithms.plan import (
 
 
 class MarketTarget(DTO):
+    """
+    Used by PortfolioManage to build the market
+    """
     key: str  # ensure unique in market oject
     artifact: Any
 
@@ -163,20 +166,15 @@ class ContractTradeable(Tradeable):
         return pd.Series([0 for _ in mkt_scenarios])
 
 
-# PortfolioManage shall request to Market to build the market information
-
-# TODO: to be merged with framework's Portfolio
-
-
 class PortfolioManager(RiskObject):
-    def __init__(self,
+    def __init__(self,  # pylint:disable=too-many-arguments
                  trades: List[Tradeable],
-                 as_of,
+                 as_of: datetime,
                  context,
-                 use_kitchen,
-                 reset_cache,
-                 verbose,
-                 use_cache):
+                 use_kitchen: bool,
+                 reset_cache: bool,
+                 verbose: bool,
+                 use_cache: bool):
         """
         Initialize PortfolioManager with
         1. use_kitchen = True and context: connect to a kitchen
@@ -212,14 +210,14 @@ class PortfolioManager(RiskObject):
             self._context.logger.info(f'# {self.name_id} Closed.')
 
     @ classmethod
-    def from_portfolio(cls,
-                       as_of,
+    def from_portfolio(cls,  # pylint:disable=too-many-arguments
+                       as_of: datetime,
                        portfolio: Portfolio,
                        context,
-                       use_kitchen=True,
-                       reset_cache=False,
-                       use_cache=True,
-                       verbose=False):
+                       use_kitchen: bool = True,
+                       reset_cache: bool = False,
+                       use_cache: bool = True,
+                       verbose: bool = False):
         trades = []
         for (pos_n, pos) in enumerate(portfolio.positions):
             if not pos.asset.address:
@@ -244,7 +242,7 @@ class PortfolioManager(RiskObject):
                     key_set.add(req.key)
                     yield req
 
-    def prepare_market(self, tag, **input_to_plan):
+    def prepare_market(self, tag: str, **input_to_plan):
         mkt_target = list(self.requires())
 
         if self._verbose:

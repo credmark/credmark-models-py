@@ -1,3 +1,5 @@
+
+
 from abc import abstractmethod
 from credmark.cmf.model.errors import (
     ModelRunError,
@@ -28,7 +30,9 @@ from datetime import (
 
 from models.credmark.algorithms.chef import (
     Chef,
-    kitchen
+    kitchen,
+    PlanT,
+    ChefT,
 )
 
 from models.credmark.algorithms.recipe import (
@@ -42,19 +46,16 @@ P = TypeVar('P')  # Plan return type
 C = TypeVar('C')  # Chef return type
 
 
-# pylint:disable=locally-disabled,too-many-arguments
-
-
-class Plan(Generic[C, P]):
+class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attributes
     def check_kwargs(self, **kwargs):
         assert 'chef_return_type' not in kwargs and 'plan_return_type' not in kwargs
 
-    def __init__(self,
-                 tag,
+    def __init__(self,  # pylint:disable=too-many-arguments
+                 tag: str,
                  target_key: str,
                  use_kitchen: bool,
-                 plan_return_type: Type[P],
-                 chef_return_type: Type[C],
+                 plan_return_type: Type[PlanT],
+                 chef_return_type: Type[ChefT],
                  name: Optional[str] = None,
                  chef=None,
                  context=None,
@@ -135,13 +136,13 @@ class Plan(Generic[C, P]):
                 kitchen.save_cache()
             self._chef = None
 
-    def post_proc(self, _context, output_from_chef: C) -> P:
+    def post_proc(self, _context, output_from_chef: ChefT) -> PlanT:
         raise ModelRunError(
             'Please add explicit post_proc to convert from '
             f'{self._chef_return_type} to {self._plan_return_type} '
             f'in class={self.__class__.__name__}')
 
-    def error_handle(self, _context, err: Exception) -> Tuple[str, P]:
+    def error_handle(self, _context, err: Exception) -> Tuple[str, PlanT]:
         """
         status code to return
         1. E: trigger the error.
@@ -161,7 +162,7 @@ class Plan(Generic[C, P]):
                         plan_return_type=self._plan_return_type)
         return recipe
 
-    def execute(self) -> P:
+    def execute(self) -> PlanT:
         if self._chef is None:
             if self._result is not None:
                 return self._result
@@ -189,18 +190,18 @@ class Plan(Generic[C, P]):
             self._release_chef()
 
     @ abstractmethod
-    def define(self) -> P:
+    def define(self) -> PlanT:
         ...
 
 
-class GeneralHistoricalPlan(Plan[C, P]):
+class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
     def __init__(self, **kwargs):
         if 'name' not in kwargs:
             raise ModelRunError('GeneralHistoricalPlan needs to be initialized with name=')
         kwargs['name'] = f'{self.__class__.__name__}.{kwargs["name"]}'
         super().__init__(**kwargs)
 
-    def define(self) -> P:
+    def define(self) -> PlanT:
         method = self._input_to_plan['method']
         slug = self._input_to_plan['slug']
         input = self._input_to_plan.get('input', {})
@@ -403,7 +404,10 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         # - 'token.price',
         sorted_block_numbers = sorted(block_numbers)
         rec = self.create_recipe(
-            cache_keywords=[method, model_slug, self._target_key, [rolling_interval, sorted_block_numbers]],
+            cache_keywords=[method,
+                            model_slug,
+                            self._target_key,
+                            [rolling_interval, sorted_block_numbers]],
             method=method,
             input={'slug': model_slug,
                    'input': input_token,

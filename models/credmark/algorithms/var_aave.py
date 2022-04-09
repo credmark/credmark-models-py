@@ -9,7 +9,6 @@ from credmark.cmf.model.errors import (
 from credmark.cmf.types import (
     Position,
     Portfolio,
-    Token,
 )
 
 from models.credmark.protocols.lending.aave.aave_v2 import (

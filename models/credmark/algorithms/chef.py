@@ -14,7 +14,6 @@ import copy
 
 from typing import (
     Any,
-    TypeVar,
     Generic,
     Optional,
     Dict,
@@ -27,11 +26,12 @@ from datetime import (
 
 )
 
-from models.credmark.algorithms.recipe import (Recipe, RiskObject)
-
-
-P = TypeVar('P')  # Plan return type
-C = TypeVar('C')  # Chef return type
+from models.credmark.algorithms.recipe import (
+    Recipe,
+    RiskObject,
+    PlanT,
+    ChefT,
+)
 
 
 class PydanticJSONEncoder(json.JSONEncoder):
@@ -49,7 +49,7 @@ class PydanticJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-class Chef(Generic[C, P], RiskObject):
+class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instance-attributes
     __SEP__ = '|#|'
     __RETRY__ = 3
     __CACHE_UNSAVE_LIMIT__ = 1000  # entries before cache is saved
@@ -169,7 +169,7 @@ class Chef(Generic[C, P], RiskObject):
     def find_cache_entry(self,
                          chain_id,
                          cache_key,
-                         rec: Recipe[C, P]) -> Tuple[bool, Optional[Any]]:
+                         rec: Recipe[ChefT, PlanT]) -> Tuple[bool, Optional[Any]]:
         method = rec.method
         input = rec.input
         if chain_id not in self._cache:
@@ -209,7 +209,9 @@ class Chef(Generic[C, P], RiskObject):
                 f'* {self.name_id} cache hit {self.cache_hit} for {self.total_hit} requests '
                 f'rate={self.cache_hit/self.total_hit*100:.1f}%')
 
-    def perform(self, rec: Recipe[C, P], catch_runtime_error) -> Tuple[str, Union[C, P]]:
+    def perform(self,
+                rec: Recipe[ChefT, PlanT],
+                is_catch_runtime_error: bool) -> Tuple[str, Union[ChefT, PlanT]]:
         try:
             if rec.method == 'block_number.from_timestamp':
                 assert self.verify_input_and_key('timestamp', rec)
@@ -232,7 +234,9 @@ class Chef(Generic[C, P], RiskObject):
                 rec_cache_keywords = copy.copy(rec.cache_keywords)
                 rec_cache_keywords[0] = 'run_model'
                 if block_numbers not in rec_cache_keywords[-1]:
-                    raise ModelDataError(f'The last item of {rec.cache_keywords=} must contain the {block_numbers=}')
+                    raise ModelDataError(
+                        f'The last item of {rec.cache_keywords=} '
+                        f'must contain the {block_numbers=}')
                 del rec_cache_keywords[-1]
 
                 type_hints = get_type_hints(rec.chef_return_type)
@@ -282,7 +286,7 @@ class Chef(Generic[C, P], RiskObject):
                 f'cache_key may not be unique for {rec.method=} with {rec.input=} '
                 f'in {rec.cache_keywords=}')
         except (ModelDataError, ModelRunError) as err:
-            if catch_runtime_error:
+            if is_catch_runtime_error:
                 status_code, result = rec.error_handle(self._context, err)
 
                 if status_code == 'E':
@@ -294,7 +298,7 @@ class Chef(Generic[C, P], RiskObject):
                 raise ModelRunError(f'Unknown status code {status_code} while handling {err}')
             raise err
 
-    def cook(self, rec: Recipe[C, P]) -> P:
+    def cook(self, rec: Recipe[ChefT, PlanT]) -> PlanT:
         result = None
         cache_key = self.create_cache_key(rec.cache_keywords)
 
@@ -323,7 +327,7 @@ class Chef(Generic[C, P], RiskObject):
         status_code = ''
         while retry_c < self.__RETRY__:
             try:
-                # catch_runtime_error = retry_c == self.__RETRY__ - 1
+                # is_catch_runtime_error = retry_c == self.__RETRY__ - 1
                 status_code, result = self.perform(rec, True)
                 break
             except Exception as err:

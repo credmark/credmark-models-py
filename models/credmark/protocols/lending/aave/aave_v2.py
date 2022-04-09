@@ -66,10 +66,12 @@ def get_eip1967_implementation(context, logger, token_address):
             if token._meta.is_transparent_proxy:
                 if token.proxy_for is not None and proxy_address != token.proxy_for.address:
                     logger.warning(
-                        f'token\'s implmentation is corrected to {proxy_address} from {token.proxy_for.address} for {token.address}')
+                        f'token\'s implmentation is corrected to '
+                        f'{proxy_address} from {token.proxy_for.address} for {token.address}')
             else:
                 logger.warning(
-                    f'token\'s implmentation is corrected to {proxy_address} from no-proxy for {token.address}')
+                    f'token\'s implmentation is corrected to '
+                    f'{proxy_address} from no-proxy for {token.address}')
 
             token._meta.is_transparent_proxy = True
             token._meta.proxy_implementation = token_implemenation
@@ -86,7 +88,9 @@ def get_eip1967_implementation(context, logger, token_address):
 class AaveV2GetLiability(Model):
 
     def run(self, input) -> Portfolio:
-        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       AAVE_LENDING_POOL_V2)
         aave_assets = aave_lending_pool.functions.getReservesList().call()
 
         positions = []
@@ -109,7 +113,9 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
-        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       AAVE_LENDING_POOL_V2)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
         self.logger.info(f'info {reservesData}, {reservesData[7]}')
@@ -130,7 +136,9 @@ class AaveV2GetTokenLiability(Model):
                  output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
-        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       AAVE_LENDING_POOL_V2)
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         aave_debts_infos = []
@@ -150,7 +158,9 @@ class AaveV2GetAssets(Model):
                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def run(self, input: Token) -> AaveDebtInfo:
-        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       AAVE_LENDING_POOL_V2)
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
         aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])

@@ -153,7 +153,8 @@ def get_comptroller(logger):
     contract_implementation = Contract(address=proxy_address)
     if proxy_address != comptroller.proxy_for.address:
         logger.warning(
-            f'Comptroller\'s implmentation is corrected to {proxy_address} from {comptroller.proxy_for.address}')
+            f'Comptroller\'s implmentation is corrected to {proxy_address} '
+            f'from {comptroller.proxy_for.address}')
     comptroller._meta.is_transparent_proxy = True
     comptroller._meta.proxy_implementation = contract_implementation
     return comptroller
@@ -281,7 +282,8 @@ class CompoundV2GetPoolInfo(Model):
         # self.logger.info(f'{cToken._meta.is_transparent_proxy}')
         # self.logger.info(f'{cToken.is_transparent_proxy}')
 
-        (isListed, collateralFactorMantissa, isComped) = comptroller.functions.markets(cToken.address).call()
+        market_info = comptroller.functions.markets(cToken.address).call()
+        (isListed, collateralFactorMantissa, isComped) = market_info
         collateralFactorMantissa /= pow(10, 18)
 
         # From cToken to Token
@@ -304,7 +306,8 @@ class CompoundV2GetPoolInfo(Model):
         #    try:
         #        assert cToken.functions.implementation().call() == cToken.proxy_for.address
         #    except AssertionError:
-        #        self.logger.error(f'{cToken.functions.implementation().call()}, {cToken.proxy_for.address=}')
+        #        self.logger.error(f'{cToken.functions.implementation().call()}, '
+        #                          f'{cToken.proxy_for.address=}')
         assert cToken.functions.admin().call() == Address(COMPOUND_TIMELOCK)
         assert cToken.functions.comptroller().call() == Address(COMPOUND_COMPTROLLER)
         assert cToken.functions.symbol().call()
