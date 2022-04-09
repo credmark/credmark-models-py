@@ -227,15 +227,13 @@ class Chef(Generic[C, P], RiskObject):
                     raise ModelRunError(f'Missing "block_numbers" in Recipe\'s '
                                         f'input for {rec.method=}')
 
-                rec_input_copy = copy.deepcopy(rec.input)
+                rec_input_copy = copy.copy(rec.input)
                 block_numbers = rec_input_copy.pop('block_numbers')
 
-                # rec.cache_keywords += block_numbers
-
-                rec_cache_keywords = copy.deepcopy(rec.cache_keywords)
+                rec_cache_keywords = copy.copy(rec.cache_keywords)
                 rec_cache_keywords[0] = 'run_model'
                 if block_numbers not in rec_cache_keywords[-1]:
-                    raise ModelDataError(f'The last of {rec.cache_keywords=} must contain the {block_numbers=}')
+                    raise ModelDataError(f'The last item of {rec.cache_keywords=} must contain the {block_numbers=}')
                 del rec_cache_keywords[-1]
 
                 type_hints = get_type_hints(rec.chef_return_type)

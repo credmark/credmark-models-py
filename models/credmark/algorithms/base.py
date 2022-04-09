@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from telnetlib import SE
 from typing import (
     Union
 )

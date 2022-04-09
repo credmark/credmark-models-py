@@ -128,7 +128,6 @@ class Plan(Generic[C, P]):
         # in __init__(), set self._chef = None before potential initialization problems.
         if self._chef is not None:
             if self._verbose:
-                self._chef.context.logger.info(f'| Finished executing {self._target_key}')
                 self._chef.cache_status()
             if self._chef_internal:
                 self._chef.save_cache()
@@ -169,15 +168,16 @@ class Plan(Generic[C, P]):
             else:
                 raise ValueError
 
-        if self._verbose:
-            self._chef.context.logger.info(f'| Started executing {self._target_key}')
-
         try:
+            if self._verbose:
+                self._chef.context.logger.info(f'| Started executing {self._target_key}')
             self._result = self.define()
+            if self._verbose:
+                self._chef.context.logger.info(f'| Finished executing {self._target_key}')
 
         except Exception:
             self._chef.context.logger.error(
-                f'Exception during executing {self._target_key}. Force releasing Chef.')
+                f'! Exception during executing {self._target_key}. Force releasing Chef.')
             if self._use_kitchen:
                 kitchen.save_cache()
             else:
