@@ -102,7 +102,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     self._cache = pickle.load(handle)
                     self._cache_unsaved = 0
                     self._cache_last_saved = datetime.now().timestamp()
-                    self.cache_info('Opened ')
+                    self.cache_info('loaded')
         except EOFError:
             self._context.logger.warning(
                 f'* {self.name_id} cache from {self._cache_file} is corrupted. Reset.')
@@ -127,7 +127,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     pickle.dump(self._cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
                     self._cache_unsaved = 0
                     self._cache_last_saved = datetime.now().timestamp()
-                    self.cache_info('Saved ')
+                    self.cache_info('saved')
 
     def cache_info(self, message=''):
         if self._verbose:
@@ -137,7 +137,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                               f'[{max(cache_log):%Y-%m-%d %H:%M:%S}] '
                               f'for saved {len(cache_log)} times '
                               f'with {cache_count} entries.')
-            self._context.logger.info(f'* {message}{self.name_id} cache from '
+            self._context.logger.info(f'* {self.name_id} {message} cache from '
                                       f'{self._cache_file} with {cache_log_info}')
 
     @ property
