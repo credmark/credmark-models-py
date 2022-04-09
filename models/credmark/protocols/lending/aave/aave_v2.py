@@ -45,20 +45,32 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
 AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 
 
-def get_eip1967_implementation(context, token_address):
+def get_eip1967_implementation(context, logger, token_address):
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
     default_proxy_address = ''.join(['0'] * 40)
 
     token = Token(address=token_address)
+    # Got 0xca823F78C2Dd38993284bb42Ba9b14152082F7BD unrecognized by etherscan
+    # assert token.proxy_for is not None
+
     if token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy':
         proxy_address = context.web3.eth.get_storage_at(
             token.address,
             '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
         if proxy_address[-40:] != default_proxy_address:
-            token_implemenation = Token(address='0x' + proxy_address[-40:])
+            proxy_address = '0x' + proxy_address[-40:]
+            token_implemenation = Token(address=proxy_address)
             # TODO: Work around before we can load proxy in the past based on block number.
+            if token._meta.is_transparent_proxy:
+                if token.proxy_for is not None and proxy_address != token.proxy_for.address:
+                    logger.warning(
+                        f'token\'s implmentation is corrected to {proxy_address} from {token.proxy_for.address} for {token.address}')
+            else:
+                logger.warning(
+                    f'token\'s implmentation is corrected to {proxy_address} from no-proxy for {token.address}')
+
             token._meta.is_transparent_proxy = True
             token._meta.proxy_implementation = token_implemenation
         else:
@@ -74,7 +86,7 @@ def get_eip1967_implementation(context, token_address):
 class AaveV2GetLiability(Model):
 
     def run(self, input) -> Portfolio:
-        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
         aave_assets = aave_lending_pool.functions.getReservesList().call()
 
         positions = []
@@ -97,12 +109,12 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
-        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
         self.logger.info(f'info {reservesData}, {reservesData[7]}')
 
-        aToken = get_eip1967_implementation(self.context, reservesData[7])
+        aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
         try:
             aToken.total_supply
         except ModelDataError:
@@ -118,7 +130,7 @@ class AaveV2GetTokenLiability(Model):
                  output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
-        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         aave_debts_infos = []
@@ -130,26 +142,26 @@ class AaveV2GetAssets(Model):
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
-@ Model.describe(slug="aave.token-asset",
-                 version="1.0",
-                 display_name="Aave V2 token liquidity",
-                 description="Aave V2 token liquidity at a given block number",
-                 input=Token,
-                 output=AaveDebtInfo)
+@Model.describe(slug="aave.token-asset",
+                version="1.0",
+                display_name="Aave V2 token liquidity",
+                description="Aave V2 token liquidity at a given block number",
+                input=Token,
+                output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def run(self, input: Token) -> AaveDebtInfo:
-        aave_lending_pool = get_eip1967_implementation(self.context, AAVE_LENDING_POOL_V2)
+        aave_lending_pool = get_eip1967_implementation(self.context, self.logger, AAVE_LENDING_POOL_V2)
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
-        aToken = get_eip1967_implementation(self.context, reservesData[7])
+        aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
         self.logger.info(f'{aToken.address=}')
 
         interestRateStrategyContract = Contract(address=reservesData[10])
 
-        stableDebtToken = get_eip1967_implementation(self.context, reservesData[8])
+        stableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[8])
         totalStableDebt = stableDebtToken.total_supply
 
-        variableDebtToken = get_eip1967_implementation(self.context, reservesData[9])
+        variableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[9])
         totalVariableDebt = variableDebtToken.total_supply
 
         if totalStableDebt is not None and totalVariableDebt is not None:
