@@ -118,7 +118,7 @@ class AaveV2GetTokenLiability(Model):
                                                        AAVE_LENDING_POOL_V2)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
-        self.logger.info(f'info {reservesData}, {reservesData[7]}')
+        # self.logger.info(f'info {reservesData}, {reservesData[7]}')
 
         aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
         try:
