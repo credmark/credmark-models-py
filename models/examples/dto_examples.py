@@ -11,6 +11,7 @@ class PortfolioSummary(DTO):
                 version='1.0',
                 display_name='Test Model',
                 description='Framework Test Model',
+                developer='Credmark',
                 input=Portfolio,
                 output=PortfolioSummary)
 class TestModel(Model):
@@ -23,6 +24,7 @@ class TestModel(Model):
                 version='1.0',
                 display_name='Test Model',
                 description='Framework Test Model',
+                developer='Credmark',
                 input=Portfolio,
                 output=PortfolioSummary)
 class TestModel2(Model):

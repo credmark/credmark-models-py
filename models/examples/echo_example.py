@@ -10,6 +10,7 @@ class EchoDto(DTO):
                 version='1.0',
                 display_name='Echo',
                 description="A test model to echo the message property sent in input.",
+                developer='Credmark',
                 input=EchoDto,
                 output=EchoDto)
 class EchoModel(Model):
