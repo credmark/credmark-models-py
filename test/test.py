@@ -3,7 +3,8 @@ if __name__ == '__main__':
     import sys
     sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
 
-    from credmark.cmf.model import Model, ModelContext
+    from credmark.cmf.model import Model
+    from credmark.cmf.model.context import ModelContext
 
     @Model.describe(slug='Foo',
                     version='1.0',
