@@ -7,11 +7,6 @@ from credmark.cmf.types import (
 )
 
 
-from models.tmp_abi_lookup import (
-    CURVE_POOL_ABI_1,
-    ERC_20_TOKEN_CONTRACT_ABI
-)
-
 # Get token balance of an address on ethereum chain
 
 
@@ -29,8 +24,7 @@ def ethereum_token_balance_of_address(_contractAddress, _accountAddress):
 
     _contractAddress = Address(_contractAddress).checksum
 
-    _contract = Token(address=_contractAddress,
-                      abi=ERC_20_TOKEN_CONTRACT_ABI)
+    _contract = Token(address=_contractAddress)
 
     _name = _contract.functions.name().call()
     _balance = _contract.functions.balanceOf(_accountAddress).call()
@@ -101,7 +95,7 @@ class CurveGetPeggingRatio(Model):
         ratio = float(0)
 
         # Initiating the contract instance
-        pool_contract_instance = Contract(address=pool, abi=CURVE_POOL_ABI_1)
+        pool_contract_instance = Contract(address=pool)
 
         # Fetching A for Pool
         A = pool_contract_instance.functions.A().call()
@@ -162,7 +156,7 @@ class CurveGetPeggingRatio(Model):
         chi = A * ratio
 
         return CurvePoolInfo(
-            address=pool,
+            address=Address(pool),
             name=pool_name,
             A=A,
             chi=chi,
