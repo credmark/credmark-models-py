@@ -28,7 +28,6 @@ from credmark.dto import (
 
 from models.tmp_abi_lookup import (
     AAVE_V2_TOKEN_CONTRACT_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
 )
 
 
@@ -38,9 +37,11 @@ class AaveDebtInfo(DTO):
     stableDebtToken: Token
     variableDebtToken: Token
     interestRateStrategyContract: Optional[Contract]
-    totalStableDebt: int
-    totalVariableDebt: int
-    totalDebt: int
+    aTokenSupply: float
+    totalStableDebt: float
+    totalVariableDebt: float
+    totalDebt: float
+    net: float
 
 
 class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
@@ -59,10 +60,7 @@ AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 class AaveV2GetLiability(Model):
 
     def run(self, input) -> Portfolio:
-        contract = Contract(
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
+        contract = Contract(address=Address(AAVE_LENDING_POOL_V2).checksum)
 
         aave_assets = contract.functions.getReservesList().call()
 
@@ -86,10 +84,8 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
-        contract = Contract(
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
+        contract = Contract(address=Address(AAVE_LENDING_POOL_V2).checksum)
+
         getReservesData = contract.functions.getReserveData(input.address).call()
         # self.logger.info(f'info {getReservesData}, {getReservesData[7]}')
 
@@ -106,11 +102,8 @@ class AaveV2GetTokenLiability(Model):
                 output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
-        contract = Contract(
-            # AAVE Lending Pool V2
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
+        # AAVE Lending Pool V2
+        contract = Contract(address=Address(AAVE_LENDING_POOL_V2).checksum)
 
         aave_assets_address = contract.functions.getReservesList().call()
 
@@ -141,15 +134,18 @@ class AaveV2GetTokenAsset(Model):
 
         reservesData = contract.functions.getReserveData(input.address).call()
 
-        aToken = Token(address=reservesData[7], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        stableDebtToken = Token(address=reservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
-        variableDebtToken = Token(address=reservesData[9], abi=ERC_20_TOKEN_CONTRACT_ABI)
+        aToken = Token(address=reservesData[7])
+        aTokenSupply = aToken.scaled(aToken.total_supply)
+
+        stableDebtToken = Token(address=reservesData[8])
+        variableDebtToken = Token(address=reservesData[9])
         interestRateStrategyContract = Contract(address=reservesData[10])
 
-        totalStableDebt = stableDebtToken.total_supply
-        totalVariableDebt = variableDebtToken.total_supply
+        totalStableDebt = stableDebtToken.scaled(stableDebtToken.total_supply)
+        totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
+            net = aTokenSupply - totalDebt
 
             return AaveDebtInfo(
                 token=input,
@@ -157,9 +153,11 @@ class AaveV2GetTokenAsset(Model):
                 stableDebtToken=stableDebtToken,
                 variableDebtToken=variableDebtToken,
                 interestRateStrategyContract=interestRateStrategyContract,
+                aTokenSupply=aTokenSupply,
                 totalStableDebt=totalStableDebt,
                 totalVariableDebt=totalVariableDebt,
-                totalDebt=totalDebt)
+                totalDebt=totalDebt,
+                net=net)
         else:
             raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
                                 f'for {aToken.address=}')
