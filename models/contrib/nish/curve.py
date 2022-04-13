@@ -1,9 +1,14 @@
-from typing import List, Optional
+from datetime import datetime, timedelta, timezone, date
+from typing import List, Optional, Tuple
 from credmark.cmf.model import Model
 from credmark.cmf.types import (
     Address,
     Contract,
     Token
+)
+from credmark.dto import (
+    EmptyInput,
+    DTO,
 )
 
 
@@ -161,3 +166,41 @@ class CurveGetPeggingRatio(Model):
             A=A,
             chi=chi,
             ratio=ratio)
+
+
+class CurvePoolsValueHistoricalInput(DTO):
+    date_range: Tuple[date, date]
+
+
+@Model.describe(slug="contrib.nish-curve-get-pegging-ratio-historical",
+                version="1.0",
+                display_name="Compound pools value history",
+                description="Compound pools value history",
+                input=CurvePoolsValueHistoricalInput,
+                output=dict)
+class CompoundV2PoolsValueHistorical(Model):
+    def run(self, input: CurvePoolsValueHistoricalInput) -> dict:
+        d_start, d_end = input.date_range
+        if d_start > d_end:
+            d_start, d_end = d_end, d_start
+
+        dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
+        dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
+
+        interval = (dt_end - dt_start).days + 1
+        window = f'{interval} days'
+        interval = '1 day'
+
+        # TODO: add two days to the end as work-around to current start-end-window
+        ts_as_of_end_dt = self.context.block_number.from_timestamp(
+            ((dt_end + timedelta(days=2)).timestamp())).timestamp
+
+        pool_infos = self.context.historical.run_model_historical(
+            model_slug='contrib.nish-curve-get-pegging-ratio',
+            model_input=EmptyInput(),
+            model_return_type=CurvePoolInfo,
+            window=window,
+            interval=interval,
+            end_timestamp=ts_as_of_end_dt)
+
+        return {'pool_infos': pool_infos}
