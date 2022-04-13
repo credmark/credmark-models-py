@@ -7,6 +7,7 @@ from credmark.cmf.model.errors import ModelDataError
     version='1.0',
     display_name='Data Error Example',
     description="A test model to generate a ModelDataError.",
+    developer='Credmark',
     input=EmptyInput,
     errors=ModelDataErrorDesc(code=ModelDataError.Codes.NO_DATA,
                               code_desc='Data does not exist'))
@@ -23,6 +24,7 @@ class Model1(Model):
     version='1.0',
     display_name='Data Error 2 Example',
     description="A test model to generate a ModelDataError with 2 codes defined.",
+    developer='Credmark',
     input=EmptyInput,
     errors=ModelDataErrorDesc(codes=[(ModelDataError.Codes.NO_DATA,
                                       'Data does not exist'),
