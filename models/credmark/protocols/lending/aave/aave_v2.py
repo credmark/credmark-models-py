@@ -32,9 +32,11 @@ class AaveDebtInfo(DTO):
     stableDebtToken: Token
     variableDebtToken: Token
     interestRateStrategyContract: Optional[Contract]
-    totalStableDebt: int
-    totalVariableDebt: int
-    totalDebt: int
+    aTokenSupply: float
+    totalStableDebt: float
+    totalVariableDebt: float
+    totalDebt: float
+    net: float
 
 
 class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
@@ -164,18 +166,18 @@ class AaveV2GetTokenAsset(Model):
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
         aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
-        self.logger.info(f'{aToken.address=}')
-
+        stableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[8])
+        variableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[9])
         interestRateStrategyContract = Contract(address=reservesData[10])
 
-        stableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[8])
-        totalStableDebt = stableDebtToken.total_supply
+        self.logger.info(f'{aToken.address=}')
 
-        variableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[9])
-        totalVariableDebt = variableDebtToken.total_supply
-
+        aTokenSupply = aToken.scaled(aToken.total_supply)
+        totalStableDebt = stableDebtToken.scaled(stableDebtToken.total_supply)
+        totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
+            net = aTokenSupply - totalDebt
 
             return AaveDebtInfo(
                 token=input,
@@ -183,9 +185,11 @@ class AaveV2GetTokenAsset(Model):
                 stableDebtToken=stableDebtToken,
                 variableDebtToken=variableDebtToken,
                 interestRateStrategyContract=interestRateStrategyContract,
+                aTokenSupply=aTokenSupply,
                 totalStableDebt=totalStableDebt,
                 totalVariableDebt=totalVariableDebt,
-                totalDebt=totalDebt)
+                totalDebt=totalDebt,
+                net=net)
         else:
             raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
                                 f'for {aToken.address=}')
