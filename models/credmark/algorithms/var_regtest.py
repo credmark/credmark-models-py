@@ -118,8 +118,11 @@ class ValueAtRiskRegressionTest(Model):
                     continue
                 test_case = f'{model_slug}.{case_name}'
                 self.logger.info(f'Testing {case_name} with {model_slug}')
-                res = self.context.run_model(model_slug, input=case_detail['input'] | {
-                                             'dev_mode': dev_mode, 'verbose': verbose, 'run_name': case_name})
+                res = self.context.run_model(model_slug,
+                                             input=case_detail['input'] |
+                                             {'dev_mode': dev_mode,
+                                              'verbose': verbose,
+                                              'run_name': case_name})
 
                 if dev_mode:
                     if model_slug == 'finance.var-reference':

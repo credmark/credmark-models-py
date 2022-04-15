@@ -1,4 +1,5 @@
 import pickle
+import hashlib
 import os
 from credmark.cmf.model.errors import (
     ModelRunError,
@@ -166,7 +167,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
             self._cache[chain_id] = {}
         if method not in self._cache[chain_id]:
             self._cache[chain_id][method] = {}
-        cache_key_hash = hash(cache_key)
+        cache_key_hash = hashlib.sha3_512(cache_key.encode('utf-8')).hexdigest()
         if cache_key_hash not in self._cache[chain_id][method]:
             self._cache[chain_id][method][cache_key_hash] = {}
         return self._cache[chain_id][method][cache_key_hash]
@@ -183,7 +184,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         if method not in self._cache[chain_id]:
             return False, None
 
-        cache_key_hash = hash(cache_key)
+        cache_key_hash = hashlib.sha3_512(cache_key.encode('utf-8')).hexdigest()
         if cache_key_hash not in self._cache[chain_id][method]:
             return False, None
 
