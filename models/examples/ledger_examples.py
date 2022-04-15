@@ -49,6 +49,23 @@ class ExampleLedgerTransactions(Model):
                                                     order_by=TransactionTable.Columns.GAS)
 
 
+@Model.describe(slug='example.ledger-transactions-gas-stats', version="1.0")
+class ExampleLedgerTransactionsMaxGas(Model):
+    """
+    This model uses aggregate functions to return min, max, and average gas used
+    in transactions up to the requested block.
+    """
+
+    def run(self, input):
+        ledger = self.context.ledger
+        return ledger.get_transactions(
+            aggregates=[
+                ledger.Aggregate(f'MIN({TransactionTable.Columns.GAS})', 'min_gas'),
+                ledger.Aggregate(f'MAX({TransactionTable.Columns.GAS})', 'max_gas'),
+                ledger.Aggregate(f'AVG({TransactionTable.Columns.GAS})', 'avg_gas')
+            ])
+
+
 @Model.describe(slug='example.ledger-receipts', version="1.0")
 class ExampleLedgerReceipts(Model):
 

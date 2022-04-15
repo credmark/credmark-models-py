@@ -20,12 +20,14 @@ class ExampleHistorical(Model):
         model_input = input.model_input
 
         res = self.context.historical.run_model_historical(
-            model_slug, window='5 hours', interval='45 minutes',
-            model_version='1.0', model_input=model_input)
+            model_slug,
+            window='5 hours',
+            interval='45 minutes',
+            model_input=model_input)
 
-        #   You can get historical elements by blocknumber,
-        #    You can get historical elements by time,
-        #   or you can iterate through them by index.
+        #  You can get historical elements by blocknumber,
+        #  You can get historical elements by time,
+        #  or you can iterate through them by index.
 
         block = res.get(timestamp=1646007299 + (45 * 60))
         if block is not None:
@@ -49,7 +51,10 @@ class ExampleHistoricalSnap(Model):
 
     def run(self, input):
         blocks = self.context.historical.run_model_historical(
-            'example.libraries', '5 days', snap_clock=None,
+            'example.libraries',
+            window='5 days',
+            interval='1 day',
+            snap_clock='1 day',
             model_return_type=LibrariesDto)
         for block in blocks:
             # block.output is type LibrariesDto
@@ -62,14 +67,15 @@ class ExampleHistoricalBlockSnap(Model):
 
     """
     This model returns the library example for every day for the past 30 days
+    with interval of 100, with end block snapped to the multiples of snap of 153
     """
 
     def run(self, input):
         return self.context.historical.run_model_historical_blocks(
             'example.echo',
-            model_input={
-                "message": "hello world"},
-            window=500, interval=100, snap_block=100)
+            window=500,
+            interval=100,
+            snap_block=153)
 
 
 @Model.describe(slug='example.historical-block', version="1.0")
@@ -81,5 +87,7 @@ class ExampleHistoricalBlock(Model):
 
     def run(self, input):
         return self.context.historical.run_model_historical_blocks(
-            'example.libraries', window=500, interval=100,
+            'example.libraries',
+            window=500,
+            interval=100,
             snap_block=None)
