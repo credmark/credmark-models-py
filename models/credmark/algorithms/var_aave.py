@@ -27,9 +27,6 @@ from models.credmark.algorithms.risk import (
 )
 
 
-from models.credmark.protocols.lending.aave.aave_v2 import get_eip1967_implementation
-
-
 class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
     def __init__(self, **kwargs):
         super().__init__(**kwargs,
@@ -58,11 +55,9 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
                                 f'Token info: {dbt.token.symbol=} {dbt.token.address=} '
                                 f'{dbt.token.name=} {dbt.token.total_supply=} '
                                 f'{dbt.token.decimals=}')
-            dbt.aToken = get_eip1967_implementation(context, context.logger, dbt.aToken.address)
-            aTokenSupply = dbt.aToken.functions.totalSupply().call()
-            net_amt = aTokenSupply - dbt.totalDebt
+            net_amt = dbt.totalSupply_qty - dbt.totalDebt_qty
             context.logger.info(f'{dbt.aToken.address=} {net_amt=} '
-                                f'from {aTokenSupply=}-{dbt.totalDebt=}')
+                                f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
             positions.append(Position(amount=net_amt, asset=dbt.token))
         return Portfolio(positions=positions)
 
