@@ -182,9 +182,11 @@ class AaveV2GetTokenAsset(Model):
         # | Name | Type | Description |
         # 0. configuration | uint256 | bitmark
         # 1. liquidityIndex | uint128 | liquidity index in ray (1e27) |
-        # reservesData[1] / 1e27 ~= aToken.functions.totalSupply().call() / aToken.functions.scaledTotalSupply().call()
+        # / 1e27 ~= aToken.functions.totalSupply().call() /
+        #           aToken.functions.scaledTotalSupply().call()
         # 2. variableBorrowIndex | uint128 | variable borrow index in ray |
-        # reservesData[2] / 1e27 ~= variableDebtToken.functions.totalSupply().call() / variableDebtToken.functions.scaledTotalSupply().call()
+        # / 1e27 ~= variableDebtToken.functions.totalSupply().call() /
+        #           variableDebtToken.functions.scaledTotalSupply().call()
 
         # 3. currentLiquidityRate | uint128 | current supply / liquidity / deposit rate in ray |
         # 4. currentVariableBorrowRate | uint128 | current variable borrow rate in ray |
@@ -194,7 +196,7 @@ class AaveV2GetTokenAsset(Model):
         # 7. aTokenAddress | address | address of associated aToken (tokenised deposit) |
         # 8. stableDebtTokenAddress | address | address of associated stable debt token |
         # 9. variableDebtTokenAddress | address | address of associated variable debt token |
-        # 10. interestRateStrategyAddress | address | address of interest rate strategy. See Risk docs for more info. |
+        # 10. interestRateStrategyAddress | address | address of interest rate strategy
         # 11. id | uint8 | the position in the list of active reserves |
 
         aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
@@ -207,15 +209,24 @@ class AaveV2GetTokenAsset(Model):
         currentStableBorrowRate = reservesData[5] / 1e27
 
         try:
-            # [total principle, total stable debt for the reserve (principle+interest), average stable rate]
-            totalStablePrincipleDebt, _totalStableDebt, _avgStableRate, _timestampLastUpdate = stableDebtToken.functions.getSupplyData().call()
+            # getSupplyData() returns
+            # 0. total principle,
+            # 1. total stable debt for the reserve (principle+interest),
+            # 2. average stable rate
+            # 3. last update timestamp
+            _ = stableDebtToken.functions.getSupplyData().call()
         except ABIFunctionNotFound:
-            if stableDebtToken.proxy_for._meta is not None:
-                stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI
-                totalStablePrincipleDebt, _totalStableDebt, _avgStableRate, _timestampLastUpdate = stableDebtToken.functions.getSupplyData().call()
+            if stableDebtToken.proxy_for is not None:
+                if stableDebtToken.proxy_for._meta is not None:
+                    stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI
             else:
                 raise
 
+        supplyData = stableDebtToken.functions.getSupplyData().call()
+        (totalStablePrincipleDebt,
+         _totalStableDebt,
+         _avgStableRate,
+         _timestampLastUpdate) = supplyData
         totalStablePrincipleDebt = stableDebtToken.scaled(totalStablePrincipleDebt)
 
         totalSupply = aToken.scaled(aToken.total_supply)
