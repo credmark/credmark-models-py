@@ -71,15 +71,20 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         """
 
         self._chef = None
-        self._chef_internal = None
+        self._is_chef_internal = None
         self._result = None
 
         self._tag = tag
         self._target_key = target_key
         self._input_to_plan = input_to_plan
-        self._use_kitchen = use_kitchen
-        self._verbose = verbose
+
         self._name = name if name is not None else self.__class__.__name__
+        self._chef_input = chef
+        self._context = context
+        self._reset_cache = reset_cache
+        self._use_kitchen = use_kitchen
+        self._use_cache = use_cache
+        self._verbose = verbose
 
         if plan_return_type is None:
             raise ModelRunError('! Missing return_type to initialize Plan')
@@ -108,18 +113,18 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
                                      reset_cache=reset_cache,
                                      use_cache=use_cache,
                                      verbose=verbose)
-            self._chef_internal = False
+            self._is_chef_internal = False
         else:
             if context is None and chef is not None:
                 self._chef = chef
-                self._chef_internal = False
+                self._is_chef_internal = False
             elif context is not None and chef is None:
                 self._chef = Chef(context,
                                   name,
                                   reset_cache=reset_cache,
                                   use_cache=use_cache,
                                   verbose=verbose)
-                self._chef_internal = True
+                self._is_chef_internal = True
             else:
                 raise ModelRunError(f'! Missing either context or chef to '
                                     f'execute a {self.__class__.__name__}')
@@ -130,7 +135,7 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         if self._chef is not None:
             if self._verbose:
                 self._chef.cache_status()
-            if self._chef_internal:
+            if self._is_chef_internal:
                 self._chef.save_cache()
             if self._use_kitchen:
                 kitchen.save_cache()
@@ -306,7 +311,10 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
             tag=self._tag,
             target_key=f'BlockFromTimestamp.{self._tag}.{as_of_timestamp}',
             use_kitchen=self._use_kitchen,
-            context=self.chef.context,
+            chef=self._chef_input,
+            context=self._context,
+            reset_cache=self._reset_cache,
+            use_cache=self._use_cache,
             verbose=self._verbose,
             timestamp=as_of_timestamp)
         __as_of_block = block_plan.execute()['block_number']
@@ -373,7 +381,10 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
             tag=self._tag,
             target_key=f'HistoricalBlock.{as_of}.{window}.{interval}',
             use_kitchen=self._use_kitchen,
-            context=self.chef.context,
+            chef=self._chef_input,
+            context=self._context,
+            reset_cache=self._reset_cache,
+            use_cache=self._use_cache,
             verbose=self._verbose,
             as_of=as_of,
             window=window,
