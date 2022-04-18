@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta, timezone, date
 from typing import List, Optional, Tuple
 from credmark.cmf.model import Model
@@ -13,8 +14,6 @@ from credmark.dto import (
 
 
 # Get token balance of an address on ethereum chain
-
-
 def ethereum_token_balance_of_address(_contractAddress, _accountAddress):
     '''
             Get token balance of an address method
@@ -41,22 +40,6 @@ def ethereum_token_balance_of_address(_contractAddress, _accountAddress):
     return (_name, _symbol, _balance)
 
 
-pool_addresses = ['0xD51a44d3FaE010294C616388b506AcdA1bfAAE46',
-                  '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
-                  '0xCEAF7747579696A2F0bb206a14210e3c9e6fB269',
-                  '0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B',
-                  '0x5a6A4D54456819380173272A5E8E9B9904BdF41B',
-                  '0x890f4e345B1dAED0367A877a1612f86A1f86985f',
-                  '0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA',
-                  '0x752eBeb79963cf0732E9c0fec72a49FD1DEfAEAC',
-                  '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511',
-                  '0x45F783CCE6B7FF23B2ab2D70e416cdb7D6055f51',
-                  '0x55A8a39bc9694714E2874c1ce77aa1E599461E18',
-                  '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD',
-                  '0x80466c64868E1ab14a1Ddf27A676C3fcBE638Fe5',
-                  '0x1c65bA665ce39cfe85639227eccf17Be2B167058',
-                  '0x52EA46506B9CC5Ef470C5bf89f17Dc28bB35D85C']
-
 
 # Function to catch naming error while fetching mandatory data
 def try_or(func, default=None, expected_exc=(Exception,)):
@@ -66,48 +49,51 @@ def try_or(func, default=None, expected_exc=(Exception,)):
         return default
 
 
-class CurvePoolInfo(Contract):
+class CurvePoolPeggingInfo(Contract):
     name: str
     address: Address
+    coin_balances : dict
     A: float
     chi: float
     ratio: float
+
 
 
 @Model.describe(slug="contrib.nish-curve-get-pegging-ratio",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
-                input=dict,
-                output=CurvePoolInfo)
+                input=Contract,
+                output=CurvePoolPeggingInfo)
 class CurveGetPeggingRatio(Model):
-    def run(self, input) -> CurvePoolInfo:
+    def run(self, input) -> CurvePoolPeggingInfo:
         # Converting to CheckSum Address
-        # pool = Address(input.address).checksum
-
-        pool = Address(pool_addresses[1]).checksum
+        pool = Address(input.address).checksum
 
         # Pool name
         pool_name = str('None')
+        
+        # Dict of coin balances
+        coin_balances = dict()
 
         # Amplification Coeffecient A
         A = float(0)
-
+        
         # Leverage X(chi)
         chi = float(0)
-
+        
         # Ratio of pegging
         ratio = float(0)
-
+        
         # Initiating the contract instance
         pool_contract_instance = Contract(address=pool)
-
+        
         # Fetching A for Pool
         A = pool_contract_instance.functions.A().call()
-
+        
         # Number of tokens in pool (Initial no. of tokens=2)
         n = 2
-
+        
         # initiating token counter and fetching balance of each asset in pool
         token0 = pool_contract_instance.functions.coins(0).call()
         token1 = pool_contract_instance.functions.coins(1).call()
@@ -116,22 +102,28 @@ class CurveGetPeggingRatio(Model):
         # If fourth token present
         token3 = try_or(lambda: pool_contract_instance.functions.coins(3).call())
 
+        # Fetching token0 and token1 details
         token0_name, token0_symbol, token0_balance = ethereum_token_balance_of_address(token0, pool)
+        coin_balances.update({token0_symbol : token0_balance})
         token1_name, token1_symbol, token1_balance = ethereum_token_balance_of_address(token1, pool)
+        coin_balances.update({token1_symbol : token1_balance})
 
         # Pool Name
         pool_name = 'Curve.fi : {}/{}'.format(str(token0_symbol), str(token1_symbol))
 
-        # Calculating D
+        # Calculating D for token0 and token1
         D = token0_balance + token1_balance
 
-        # Product of tokens' quantity
+        # Product of tokens' quantity for token0 and token1
         product = token0_balance * token1_balance
 
+        # Fetching token2 details if present in thee pool
         if token2 is None:
             pass
         else:
             token2_name, token2_symbol, token2_balance = ethereum_token_balance_of_address(token2, pool)
+            # Updating coins
+            coin_balances.update({token2_symbol : token2_balance})
             # Updating number of tokens present
             n += 1
             # Updating quantity product
@@ -141,10 +133,12 @@ class CurveGetPeggingRatio(Model):
             # Updating pool name
             pool_name = pool_name + '/{}'.format(str(token2_symbol))
 
+        # Fetching token3 details if present in thee pool
         if token3 is None:
             pass
         else:
             token3_name, token3_symbol, token3_balance = ethereum_token_balance_of_address(token3, pool)
+            coin_balances.update({token3_symbol : token3_balance})
             # Updating number of tokens present
             n += 1
             # Updating quantity product
@@ -160,15 +154,17 @@ class CurveGetPeggingRatio(Model):
         # Calculating 'chi'
         chi = A * ratio
 
-        return CurvePoolInfo(
-            address=Address(pool),
-            name=pool_name,
-            A=A,
-            chi=chi,
-            ratio=ratio)
+        return CurvePoolPeggingInfo(
+            address = Address(pool),
+            name = pool_name,
+            coin_balances = coin_balances,
+            A = A,
+            chi = chi,
+            ratio = ratio)
 
 
 class CurvePoolsValueHistoricalInput(DTO):
+    pool_address: Contract
     date_range: Tuple[date, date]
 
 
@@ -178,7 +174,7 @@ class CurvePoolsValueHistoricalInput(DTO):
                 description="Compound pools value history",
                 input=CurvePoolsValueHistoricalInput,
                 output=dict)
-class CompoundV2PoolsValueHistorical(Model):
+class CurveV2PoolsValueHistorical(Model):
     def run(self, input: CurvePoolsValueHistoricalInput) -> dict:
         d_start, d_end = input.date_range
         if d_start > d_end:
@@ -197,10 +193,60 @@ class CompoundV2PoolsValueHistorical(Model):
 
         pool_infos = self.context.historical.run_model_historical(
             model_slug='contrib.nish-curve-get-pegging-ratio',
-            model_input=EmptyInput(),
-            model_return_type=CurvePoolInfo,
+            model_input=input.pool_address,
+            model_return_type=CurvePoolPeggingInfo,
             window=window,
             interval=interval,
             end_timestamp=ts_as_of_end_dt)
 
         return {'pool_infos': pool_infos}
+
+
+
+class CurveDepeggingAmountInput(DTO):
+    pool_address: Contract
+    token: Token
+    desired_ratio: float
+
+class CurvePoolDepeggingAmount(DTO):
+    pool_info : CurvePoolPeggingInfo
+    token: Token
+    desired_ratio: float
+    amount_required: float
+
+
+@Model.describe(slug="contrib.nish-curve-get-depegging-amount",
+                version="1.0",
+                display_name="Get pegging ratio for all of Curve's pools",
+                description="Get pegging ratio for all of Curve's pools",
+                input=CurveDepeggingAmountInput,
+                output=CurvePoolDepeggingAmount)
+class CurveGetDepeggingAmount(Model):
+    def run(self, input) -> CurvePoolDepeggingAmount:
+        pool_info = self.context.run_model(
+            slug = 'contrib.nish-curve-get-pegging-ratio',
+            input = input.pool_address)
+
+        desired_ratio = input.desired_ratio
+        coins = list(pool_info['coin_balances'].keys())
+        n = len(coins)
+
+        token0_balance = pool_info['coin_balances'][coins[0]]
+        token1_balance = pool_info['coin_balances'][coins[1]]
+
+        amount_required = float(0)
+
+        if n==2:
+            if input.token.symbol == coins[0] :
+                amount_token0 = token1_balance * ( 2-desired_ratio + 2*math.sqrt(1-desired_ratio)) / desired_ratio
+                amount_required = amount_token0 - token0_balance
+            if input.token.symbol == coins[1] :
+                amount_token1 = token1_balance * ( 2-desired_ratio + 2*math.sqrt(1-desired_ratio)) / desired_ratio
+                amount_required = amount_token1 - token1_balance
+
+        return CurvePoolDepeggingAmount(
+            pool_info = pool_info,
+            token = input.token,
+            desired_ratio = input.desired_ratio,
+            amount_required = amount_required
+        )
