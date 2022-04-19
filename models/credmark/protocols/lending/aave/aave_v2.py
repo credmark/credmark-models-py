@@ -8,6 +8,7 @@ from credmark.dto import (
 )
 from credmark.cmf.types.series import BlockSeries
 from credmark.cmf.types import (
+    Address,
     Contract,
     Token,
     Position,
@@ -22,7 +23,7 @@ from typing import (
     List,
     Optional,
 )
-import pandas as pd
+
 from web3.exceptions import (
     ABIFunctionNotFound
 )
@@ -52,7 +53,47 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
     _iterator: str = 'aaveDebtInfos'
 
 
+# For different markets
+AAVE_LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413'
+
+# For main market
+AAVE_LENDING_POOL_ADDRESS_PROVIDER = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5'
+
 AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
+
+# PriceOracle
+# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
+# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
+# getSourceOfAsset()
+# getFallbackOracle()
+
+
+@Model.describe(slug="aave-v2.get-lending-pool",
+                version="1.0",
+                display_name="Aave V2 - Get lending pool for main market",
+                description="Aave V2 - Get lending pool for main market",
+                input=EmptyInput,
+                output=Contract)
+class AaveV2GetLendingPool(Model):
+    def run(self, input: EmptyInput) -> Contract:
+        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
+        lending_pool_address = address_provider.functions.getLendingPool().call()
+        lending_pool_contract = Contract(address=lending_pool_address)
+        return lending_pool_contract
+
+
+@Model.describe(slug="aave-v2.get-price-oracle",
+                version="1.0",
+                display_name="Aave V2 - Get price oracle for main market",
+                description="Aave V2 - Get price oracle for main market",
+                input=EmptyInput,
+                output=Contract)
+class AaveV2GetPriceOracle(Model):
+    def run(self, input: EmptyInput) -> Contract:
+        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
+        price_oracle_address = address_provider.functions.getPriceOracle().call()
+        price_oracle_contract = Contract(address=price_oracle_address)
+        return price_oracle_contract
 
 
 def get_eip1967_implementation(context, logger, token_address):
@@ -101,9 +142,13 @@ def get_eip1967_implementation(context, logger, token_address):
 class AaveV2GetLiability(Model):
 
     def run(self, input) -> Portfolio:
+        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
+                                                   input=EmptyInput(),
+                                                   return_type=Contract)
         aave_lending_pool = get_eip1967_implementation(self.context,
                                                        self.logger,
-                                                       AAVE_LENDING_POOL_V2)
+                                                       aave_lending_pool.address)
+
         aave_assets = aave_lending_pool.functions.getReservesList().call()
 
         positions = []
@@ -126,9 +171,12 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
+        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
+                                                   input=EmptyInput(),
+                                                   return_type=Contract)
         aave_lending_pool = get_eip1967_implementation(self.context,
                                                        self.logger,
-                                                       AAVE_LENDING_POOL_V2)
+                                                       aave_lending_pool.address)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
         # self.logger.info(f'info {reservesData}, {reservesData[7]}')
@@ -149,9 +197,13 @@ class AaveV2GetTokenLiability(Model):
                  output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
+        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
+                                                   input=EmptyInput(),
+                                                   return_type=Contract)
         aave_lending_pool = get_eip1967_implementation(self.context,
                                                        self.logger,
-                                                       AAVE_LENDING_POOL_V2)
+                                                       aave_lending_pool.address)
+
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         aave_debts_infos = []
@@ -160,8 +212,10 @@ class AaveV2GetAssets(Model):
                                           input=Token(address=asset_address),
                                           return_type=AaveDebtInfo)
             aave_debts_infos.append(info)
-        pd.DataFrame([x.dict() for x in aave_debts_infos]).to_excel(
-            f'tmp/aave_debts_infos_{self.context.block_number}.xlsx')
+
+        # TODO: if we would like to do alternative output to dataframe
+        # pd.DataFrame([x.dict() for x in aave_debts_infos]).to_excel(
+        #     os.path.join(f'aave_debts_infos_{self.context.block_number}.xlsx'))
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
@@ -173,9 +227,13 @@ class AaveV2GetAssets(Model):
                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def run(self, input: Token) -> AaveDebtInfo:
+        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
+                                                   input=EmptyInput(),
+                                                   return_type=Contract)
         aave_lending_pool = get_eip1967_implementation(self.context,
                                                        self.logger,
-                                                       AAVE_LENDING_POOL_V2)
+                                                       aave_lending_pool.address)
+
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
         # reservesData
