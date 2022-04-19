@@ -38,25 +38,32 @@ import numpy as np
                 output=None)
 class CompoundV2AllPoolsValueHistoricalPlan(Model):
     def run(self, input: EmptyInput) -> None:
-        start_dt_of_compound = datetime.combine(date(2020, 6, 15),
-                                                datetime.max.time(),
-                                                tzinfo=timezone.utc)
-        current_dt = self.context.block_number.timestamp_datetime
-        interval = (current_dt - start_dt_of_compound).days
+        start_dt = datetime.combine(date(2020, 6, 15),
+                                    datetime.max.time(),
+                                    tzinfo=timezone.utc)
+        end_dt = self.context.block_number.timestamp_datetime
+
+        start_dt = datetime.combine(date(2021, 9, 28),
+                                    datetime.max.time(),
+                                    tzinfo=timezone.utc)
+        end_dt = datetime.combine(date(2021, 10, 2),
+                                  datetime.max.time(),
+                                  tzinfo=timezone.utc)
+        interval = (end_dt - start_dt).days
+
         window = f'{interval} days'
         interval = '1 day'
         use_kitchen = True
         verbose = False
         dev_mode = False
-        as_of_dt = self.context.block_number.timestamp_datetime
 
         block_plan = HistoricalBlockPlan(
             tag='eod',
-            target_key=f'HistoricalBlock.{as_of_dt}.{window}.{interval}',
+            target_key=f'HistoricalBlock.{end_dt}.{window}.{interval}',
             use_kitchen=use_kitchen,
             context=self.context,
             verbose=verbose,
-            as_of=as_of_dt,
+            as_of=end_dt,
             window=window,
             interval=interval)
 
@@ -165,7 +172,7 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             for k, v in summary.items():
                 table_to_fill.loc[table_to_fill.blockNumber == block_number, k] = v
 
-        fp_out = os.path.join('tmp', 'compound_v2_assets_history.xlsx')
+        fp_out = os.path.join('tmp', f'compound_v2_assets_history_{start_dt:%Y%m%d}_{end_dt:%Y%m%d}.xlsx')
         with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
             for s_name, vv in token_series.items():
                 if isinstance(vv, pd.DataFrame):
