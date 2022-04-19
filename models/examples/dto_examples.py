@@ -17,6 +17,10 @@ class PortfolioSummary(DTO):
 class TestModel(Model):
 
     def run(self, input: Portfolio) -> PortfolioSummary:
+
+        self.logger.info("This model returns the correct type PortfolioSummary")
+        self.logger.info("as we set as \"output\"")
+        self.logger.info("in the describe() decorator above.")
         return PortfolioSummary(num_tokens=len(input.positions))
 
 
