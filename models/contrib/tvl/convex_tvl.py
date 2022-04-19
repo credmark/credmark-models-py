@@ -30,5 +30,5 @@ class TVL(Model):
                 cvx_token.functions.balanceOf(
                     addr).call()
 
-        tvl=circulating_supply*token_price.price / total_supply*token_price.price
+        tvl=(circulating_supply*token_price.price) / (total_supply*token_price.price)
         return {"total_value_locked":tvl}
