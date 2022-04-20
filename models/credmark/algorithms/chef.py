@@ -54,8 +54,8 @@ class PydanticJSONEncoder(json.JSONEncoder):
 class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instance-attributes
     __SEP__ = '|#|'
     __RETRY__ = 3
-    __CACHE_UNSAVE_LIMIT__ = 1000  # entries before cache is saved
-    __CACHE_UNSAVE_TIME__ = 100  # seconds before cache is saved
+    __CACHE_UNSAVE_LIMIT__ = 10000  # entries before cache is saved
+    __CACHE_UNSAVE_TIME__ = 1800  # seconds before cache is saved
 
     def __init__(self,
                  context,
