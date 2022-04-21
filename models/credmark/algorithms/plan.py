@@ -14,9 +14,9 @@ from credmark.cmf.types import (
 from credmark.cmf.types.series import BlockSeries
 
 import pandas as pd
+
 from typing import (
     Type,
-    TypeVar,
     Generic,
     Optional,
     Tuple,
@@ -30,7 +30,7 @@ from datetime import (
 
 from models.credmark.algorithms.chef import (
     Chef,
-    kitchen,
+    Kitchen,
     PlanT,
     ChefT,
 )
@@ -40,10 +40,6 @@ from models.credmark.algorithms.recipe import (
     validate_as_of,
     BlockData,
 )
-
-
-P = TypeVar('P')  # Plan return type
-C = TypeVar('C')  # Chef return type
 
 
 class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attributes
@@ -96,7 +92,7 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         self._acquire_chef(chef, context, name=self._name, reset_cache=reset_cache,
                            use_cache=use_cache, verbose=verbose)
 
-    @ property
+    @property
     def chef(self):
         if self._chef is not None:
             return self._chef
@@ -108,11 +104,11 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
 
     def _acquire_chef(self, chef, context, name, reset_cache, use_cache, verbose):
         if self._use_kitchen:
-            self._chef = kitchen.get(context,
-                                     name,
-                                     reset_cache=reset_cache,
-                                     use_cache=use_cache,
-                                     verbose=verbose)
+            self._chef = Kitchen().get(context,
+                                       name,
+                                       reset_cache=reset_cache,
+                                       use_cache=use_cache,
+                                       verbose=verbose)
             self._is_chef_internal = False
         else:
             if context is None and chef is not None:
@@ -135,10 +131,12 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         if self._chef is not None:
             if self._verbose:
                 self._chef.cache_status()
-            if self._is_chef_internal:
-                self._chef.save_cache()
-            if self._use_kitchen:
-                kitchen.save_cache()
+
+            # TODO: let Chef decide
+            # if self._is_chef_internal:
+            #     self._chef.save_cache()
+            # if self._use_kitchen:
+            #     kitchen.save_cache()
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: ChefT) -> PlanT:
@@ -184,10 +182,11 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         except Exception:
             self._chef.context.logger.error(
                 f'! Exception during executing {self._target_key}. Force releasing Chef.')
-            if self._use_kitchen:
-                kitchen.save_cache()
-            else:
-                self._chef.save_cache()
+            # TODO: Only save own chef.
+            # if self._use_kitchen:
+            #     kitchen.save_cache()
+            # else:
+            self.chef.save_cache()
             raise
         else:
             return self._result
@@ -334,6 +333,7 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
 class TokenEODPlan(Plan[BlockData[Price], dict]):
     def __init__(self, **kwargs):
         super().__init__(**kwargs,
+                         name=f'{self.__class__.__name__}.{kwargs["target_key"]}',
                          chef_return_type=BlockData[Price],
                          plan_return_type=dict)
 

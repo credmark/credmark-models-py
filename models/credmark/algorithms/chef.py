@@ -55,7 +55,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
     __SEP__ = '|#|'
     __RETRY__ = 3
     __CACHE_UNSAVE_LIMIT__ = 10000  # entries before cache is saved
-    __CACHE_UNSAVE_TIME__ = 1800  # seconds before cache is saved
+    __CACHE_UNSAVE_TIME__ = 3600  # seconds before cache is saved
 
     def __init__(self,
                  context,
@@ -415,6 +415,3 @@ class Kitchen(Singleton):
         self.save_cache()
         for key, _value in self._pool.items():
             del self._pool[key]
-
-
-kitchen = Kitchen()

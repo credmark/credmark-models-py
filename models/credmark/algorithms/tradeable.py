@@ -31,7 +31,7 @@ from models.credmark.algorithms.recipe import (
 
 from models.credmark.algorithms.chef import (
     Chef,
-    kitchen,
+    Kitchen,
 )
 
 from models.credmark.algorithms.plan import (
@@ -203,7 +203,7 @@ class PortfolioManager(RiskObject):
 
     def __del__(self):
         if self._use_kitchen:
-            kitchen.save_cache()
+            Kitchen().save_cache()
         if self._chef is not None:
             self._chef.save_cache()
         if self._verbose:
