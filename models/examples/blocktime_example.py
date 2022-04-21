@@ -1,83 +1,73 @@
-# pylint: disable=locally-disabled, line-too-long
+from datetime import datetime, timedelta, timezone
 
-from datetime import (
-    datetime,
-    timezone
-)
-from credmark.dto import EmptyInput
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelInputError, ModelRunError
+from credmark.cmf.types.block_number import BlockNumber
+from credmark.dto import DTO, DTOField
+from models.examples.example_dtos import ExampleModelOutput
 
-from credmark.cmf.types.block_number import BlockNumberOutOfRangeError, BlockNumber
+
+class _BlockTimeInput(DTO):
+    blockTime: datetime = DTOField(
+        title="Block time",
+        description="Unix time, i.e. seconds(if >= -2e10 or <= 2e10) or milliseconds "
+        "(if < -2e10 or > 2e10) since 1 January 1970 or string with format "
+        "YYYY-MM-DD[T]HH: MM[:SS[.ffffff]][Z or [±]HH[:]MM]]]",
+        default_factory=datetime.utcnow
+    )
 
 
-@Model.describe(slug='example.block-time',
-                version='1.0',
-                display_name='(Example) BlockNumber',
-                description='The Time of the block of the execution context',
-                input=EmptyInput)
+@ Model.describe(slug='example.block-time',
+                 version='1.0',
+                 display_name='(Example) BlockNumber',
+                 description='The Time of the block of the execution context',
+                 input=_BlockTimeInput,
+                 output=ExampleModelOutput)
 class BlockTimeExample(Model):
-
     """
     This example shows the query between block_number, timestamp and Python datetime/date.
-    - How to obtain a block from either one type of input timestamp, date or datetime.
-    - How to obtain the Python datetime for a block
-    It is better to run this model with -b 14234904.
+        - How to obtain a block from either one type of input timestamp, date or datetime.
+        - How to obtain the Python datetime for a block
     """
 
-    def run(self, _input) -> None:
+    def run(self, input: _BlockTimeInput) -> ExampleModelOutput:
+        output = ExampleModelOutput(
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocktime_example.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/_modules/credmark/cmf/types/block_number.html")
 
-        if self.context.block_number != 14234904:
-            self.logger.info(
-                'The example code in this model works with block number input, -b 14234904')
+        block_time = input.blockTime.replace(tzinfo=timezone.utc)
+        output.log_io(input="Input blockTime", output=block_time)
 
-        # We run the model as of block 14234904
-        # To obtan the datetime
-        res = BlockNumber(14234904).timestamp_datetime
-        assert res == datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc)
-        self.logger.info(f'Block 14234904\'s datetime is {res}')
+        output.log("CMF's BlockNumber is used to get Block Number from datetime or timestamp")
+        block_number = BlockNumber.from_timestamp(block_time)
+        output.log("BlockNumber's timestamp might be different from the input timestamp,")
+        output.log("as the last block before the datetime is returned")
+        output.log_io(input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
 
-        # To obtain the last block of the day, we provides an input of date.
-        res = self.context.block_number.from_timestamp(
-            int(datetime(2022, 2, 19, 6, 19, 56, tzinfo=timezone.utc).timestamp()))
-        assert res == 14234904
+        output.log_io(input="block_number.timestamp_datetime", output=block_number.timestamp_datetime)
 
-        # When we obtain a timestamp from a datetime, Python counts the local timezone if we do not provide a timezone.
-        # Below example converts the datetime using local timezone (UTC+8 for below case)
-        # We will get a different block number other than 14234904 and it's with another UTC time.
-        ts = int(datetime(2022, 2, 19, 6, 19, 56).timestamp())
-        res = self.context.block_number.from_timestamp(ts)
-        assert res == 14232694
-        self.logger.info(f'Block 14232694\'s timestamp is {ts}')
+        output.log("Block Number can also be obtained from unix timestamp.")
+        output.log("If timezone is not provided, python defaults to UTC timezone")
+        output.log(f"{block_time} = {block_time.timestamp()}s")
+        output.log_io(input=f"BlockNumber.from_timestamp({block_time.timestamp()})",
+                      output=BlockNumber.from_timestamp(block_time.timestamp()))
 
-        res = BlockNumber(14232694).timestamp_datetime
-        assert res == datetime(2022, 2, 18, 22, 19, 35, tzinfo=timezone.utc)
+        output.log("Querying block number for a future timestamp returns the latest block number")
+        future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
+        output.log_io(input="future_block_time", output=future_block_time)
+        output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
+                      output=BlockNumber.from_timestamp(future_block_time))
 
-        # Let's try with one day earlier. we shall obtain the last block of the day
-        ts = int(datetime(2022, 2, 18, 23, 59, 59, tzinfo=timezone.utc).timestamp())
-        res = self.context.block_number.from_timestamp(ts)
-        assert res == 14233162
-        self.logger.info(f'Block 14232694\'s timestamp is {ts}')
+        block_time_without_tz = block_time.replace(tzinfo=None)
+        output.log_io(input="block_time_without_tz", output=block_time_without_tz)
 
-        # Check the time of the block, it's the last of the day
-        res = BlockNumber(14233162).timestamp_datetime
-        assert res == datetime(2022, 2, 18, 23, 59, 54, tzinfo=timezone.utc)
-        self.logger.info(f'Block 14233162\'s datetime is {res}')
-
-        # We can not obtain information of a future block
         try:
-            res = BlockNumber(14239569).timestamp_datetime
+            BlockNumber.from_timestamp(block_time_without_tz)
             raise ModelRunError(
-                message="BlockNumbers cannot exceed the current context.block_number, an exception was NOT caught, and the example has FAILED")
-        except BlockNumberOutOfRangeError as _err:
-            _ = """
-                NOTE: THIS IS FOR DEMONSTRATION ONLY.
-                You should NOT catch BlockNumberOutOfRangeError or
-                other ModelRunErrors in your models!
-                """
-
-            self.logger.info(
-                f'You have caught the below error from querying 14239569\'s datetime because it\'s later than the currente block {self.context.block_number}')
-            self.logger.info(
-                f'Expected exception print out in the next line: `"ERROR - BlockNumber 14239569 is out of maximum range: {self.context.block_number}"')
-            self.logger.error(_err)
+                message='BlockNumber cannot be converted from a datetime without timezone, '
+                'an exception was NOT caught, and the example has FAILED')
+        except ModelInputError as _e:
+            output.log_error(_e)
+            output.log_error("Attempting to convert a datetime without timezone to BlockNumber "
+                             "raises ModelInputError")
+        return output
