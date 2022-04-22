@@ -158,6 +158,10 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         cache_key = self.__SEP__.join([str(w) for w in words])
         return cache_key
 
+    @staticmethod
+    def hash(key: str):
+        return hashlib.sha3_512(key.encode('utf-8')).hexdigest()
+
     def get_cache_entry(self,
                         chain_id: int,
                         cache_key: str,
@@ -165,11 +169,15 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         method = rec.method
         if chain_id not in self._cache:
             self._cache[chain_id] = {}
+
         if method not in self._cache[chain_id]:
             self._cache[chain_id][method] = {}
-        cache_key_hash = hashlib.sha3_512(cache_key.encode('utf-8')).hexdigest()
+
+        cache_key_hash = self.hash(cache_key)
+
         if cache_key_hash not in self._cache[chain_id][method]:
             self._cache[chain_id][method][cache_key_hash] = {}
+
         return self._cache[chain_id][method][cache_key_hash]
 
     def find_cache_entry(self,
@@ -184,20 +192,20 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         if method not in self._cache[chain_id]:
             return False, None
 
-        cache_key_hash = hashlib.sha3_512(cache_key.encode('utf-8')).hexdigest()
+        cache_key_hash = self.hash(cache_key)
         if cache_key_hash not in self._cache[chain_id][method]:
             return False, None
 
         cache_entry = self._cache[chain_id][method][cache_key_hash]
         if cache_entry['method'] == method:
             if cache_entry['chain_id'] == chain_id:
-                if cache_entry['input'] == json.dumps(input, cls=PydanticJSONEncoder):
+                if cache_entry['input'] == self.hash(json.dumps(input, cls=PydanticJSONEncoder)):
                     return True, cache_entry['untyped']
 
         if self._verbose:
             self.context.logger.info(f'{method=}: {cache_entry["method"]}')
             self.context.logger.info(f'{chain_id=}: {cache_entry["chain_id"]}')
-            self.context.logger.info(f'{json.dumps(input, cls=PydanticJSONEncoder)}: '
+            self.context.logger.info(f'{self.hash(json.dumps(input, cls=PydanticJSONEncoder))}: '
                                      f'{cache_entry["input"]}')
             self.context.logger.warn(f'? {self.name_id} Chef tried to grab but '
                                      f'needs re-cook {cache_key}>')
@@ -365,7 +373,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 cache_entry = self.get_cache_entry(int(self._context.chain_id), cache_key, rec)
                 cache_entry['untyped'] = untyped_post_result
                 cache_entry['method'] = rec.method
-                cache_entry['input'] = json.dumps(rec.input, cls=PydanticJSONEncoder)
+                cache_entry['input'] = self.hash(json.dumps(rec.input, cls=PydanticJSONEncoder))
                 cache_entry['chain_id'] = int(self._context.chain_id)
 
                 # Leave this in the end so wrong data doesn't not corrupt cache
