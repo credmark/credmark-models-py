@@ -1,6 +1,6 @@
 from typing import List
 from credmark.cmf.model import Model, describe
-from credmark.cmf.types import Contract, Contracts, Account, Token, Accounts
+from credmark.cmf.types import Contract, Contracts, Account, Token, Accounts, Price
 from credmark.dto import EmptyInput, DTO
 from credmark.cmf.model.errors import ModelDataError
 from datetime import datetime
@@ -18,6 +18,7 @@ class VestingInfo(DTO):
 class AccountVestingInfo(DTO):
     account: Account
     vesting_infos: List[VestingInfo]
+    claims: List[dict]
 
 @describe(
     slug="cmk.vesting-contracts",
@@ -68,8 +69,11 @@ class CMKGetVestingAccounts(Model):
 class CMKGetVestingByAccount(Model):
     def run(self, input: Account) -> AccountVestingInfo:
         vesting_contracts = Contracts(**self.context.models.cmk.vesting_contracts())
-        result = AccountVestingInfo(account=input, vesting_infos=[])
+        result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
+        claims = []
+        current_price = Price(**self.context.models.uniswap_v3.get_average_price(
+                        input={"symbol":"CMK"})).price
         for vesting_contract in vesting_contracts:
             if vesting_contract.functions.getElapsedVestingTime(input.address).call() == 0:
                 continue
@@ -97,6 +101,23 @@ class CMKGetVestingByAccount(Model):
                     vesting_contract.functions.getClaimableAmount(input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
+            claims_all= [
+                dict(d['args']) for d in
+                vesting_contract.events.AllocationClaimed.createFilter(
+                    fromBlock=0, toBlock=self.context.block_number
+                    ).get_all_entries()]
+            for c in claims_all:
+                if c['account'] == input.address:
+                    c['amount'] = Token(symbol="CMK").scaled(c['amount'])
+                    c['value_at_claim_time'] = c['amount'] * self.context.run_model(
+                        slug="uniswap-v3.get-average-price",
+                        input={"symbol":"CMK"},
+                        block_number=self.context.block_number.from_timestamp(c['timestamp']),
+                        return_type=Price).price
+                    c['value_now'] = c['amount'] * current_price
+                    claims.append(c)
+        result.claims = claims
+        
         return result
 
 
