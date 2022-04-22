@@ -22,12 +22,22 @@ Fork [credmark-models-py](https://github.com/credmark/credmark-models-py) reposi
 
 ## Virtual Env
 
-Create a virtual env (if you want):
+Create a virtual env (if you want).
+
+sh or bash:
 
 ```
 python3 -m venv venv
 source venv/bin/activate
 ```
+
+zsh:
+
+```
+python3 -m venv venv
+. venv/bin/activate
+```
+
 
 If you wish, you can run it on miniconda. Simply install the miniconda version mentioned in the prerequisite, open Anaconda prompt, navigate to the repo folder and continue with steps (commands) as mentioned below.
 
