@@ -14,7 +14,7 @@ from models.dtos.example import ExampleModelOutput
 class DtoExampleModel(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/02_dto_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_02_dto.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto")
 
         output.log("DTOs are classes with typed properties which will serialize and deserialize to and from JSON.")

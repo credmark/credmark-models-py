@@ -16,7 +16,7 @@ from models.tmp_abi_lookup import CMK_ADDRESS
 class ExampleAddress(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/05_contract_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_05_contract.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.contract.Contract.html")
 
         output.log("This model demonstrates the functionality of the Contract class")
