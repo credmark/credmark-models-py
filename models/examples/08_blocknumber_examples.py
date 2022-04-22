@@ -4,7 +4,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError, ModelRunError
 from credmark.cmf.types.block_number import (BlockNumber,
                                              BlockNumberOutOfRangeError)
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField, EmptyInput
 from models.examples.example_dtos import ExampleModelOutput
 
 
@@ -12,49 +12,53 @@ from models.examples.example_dtos import ExampleModelOutput
                 version='1.0',
                 display_name='BlockNumber Usage Examples',
                 description='This model gives examples of \
-                             the functionality available on \the BlockNumber class',
+                             the functionality available on the BlockNumber class',
                 developer='Credmark',
-                output=dict)
+                input=EmptyInput,
+                output=ExampleModelOutput)
 class ExampleBlockNumber(Model):
 
-    def run(self, input) -> dict:
-        """
-            This model demonstrates the functionality of the BlockNumber class
-        """
-        block_number = self.context.block_number
-        self.logger.info(
-            "The current environment's BlockNumber is available in the Model Context "
-            f"self.context.block_number : {self.context.block_number}")
-        self.logger.info(
-            f"block_number : {block_number}")
-        self.logger.info(
-            f"block_number.timestamp : {block_number.timestamp}")
-        self.logger.info(
-            f"block_number.timestamp_datetime : {block_number.timestamp_datetime}")
-        self.logger.info('Addition and subtraction works across BlockNumber and int types')
-        self.logger.info(
-            f"(block_number - 1000) : {(block_number - 1000)}")
-        self.logger.info(
-            f"(block_number - 1000).timestamp_datetime : {(block_number - 1000).timestamp_datetime}")  # pylint: disable=line-too-long
-        self.logger.info(
-            f"block_number.from_datetime(block_number.timestamp - 3600): {block_number.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
-        self.logger.info(
-            f"BlockNumber.from_datetime(block_number.timestamp - 3600): {BlockNumber.from_timestamp(block_number.timestamp - 3600)}")  # pylint: disable=line-too-long
+    def run(self, _) -> ExampleModelOutput:
+        output = ExampleModelOutput(
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/08_blocknumber_examples.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
 
-        """
-            NOTE: THE FOLLOWING IS FOR DEMONSTRATION ONLY.
-            You should NOT catch BlockNumberOutOfRangeError or
-            other ModelRunErrors in your models!
-        """
+        output.log("This model demonstrates the functionality of the BlockNumber class")
+
+        block_number = self.context.block_number
+
+        output.log("The current environment's BlockNumber is available in the Model Context")
+        output.log_io(input="self.context.block_number",
+                      output=self.context.block_number)
+        output.log_io(input="block_number",
+                      output=block_number)
+        output.log_io(input="block_number.timestamp",
+                      output=block_number.timestamp)
+        output.log_io(input="block_number.timestamp_datetime",
+                      output=block_number.timestamp_datetime)
+
+        output.log('Addition and subtraction works across BlockNumber and int types')
+        output.log_io(input="block_number - 1000",
+                      output=block_number - 1000)
+        output.log_io(input="(block_number - 1000).timestamp_datetime",
+                      output=(block_number - 1000).timestamp_datetime)
+        output.log_io(input="block_number.from_datetime(block_number.timestamp - 3600)",
+                      output=block_number.from_timestamp(block_number.timestamp - 3600))
+        output.log_io(input="BlockNumber.from_datetime(block_number.timestamp - 3600)",
+                      output=BlockNumber.from_timestamp(block_number.timestamp - 3600))
+
+        # NOTE: THE FOLLOWING IS FOR DEMONSTRATION ONLY.
+        # You should NOT catch BlockNumberOutOfRangeError or
+        # other ModelRunErrors in your models!
 
         try:
-            block_number + 1  # type: ignore
+            block_number + 1
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
                 'an exception was NOT caught, and the example has FAILED')
         except BlockNumberOutOfRangeError as _e:
-            self.logger.info(_e)
-            self.logger.info("Attempting to create a BlockNumber object higher than the current "
+            output.log_error(_e)
+            output.log_error("Attempting to create a BlockNumber object higher than the current "
                              "context's block_number raises BlockNumberOutOfRangeError")
 
         try:
@@ -63,12 +67,12 @@ class ExampleBlockNumber(Model):
                 message="BlockNumbers cannot be negative, an exception was NOT caught, "
                 "and the example has FAILED")
         except BlockNumberOutOfRangeError as _e:
-            self.logger.info(_e)
-            self.logger.info(
+            output.log_error(_e)
+            output.log_error(
                 "Attempting to create a BlockNumber object with a negative block number "
                 "raises BlockNumberOutOfRangeError")
 
-        return {"message": "see https://github.com/credmark/credmark-models-py/blob/main/models/examples/blocknumber_examples.py for examples of BlockNumber usage"}  # pylint: disable=line-too-long
+        return output
 
 
 class _BlockTimeInput(DTO):
@@ -81,23 +85,19 @@ class _BlockTimeInput(DTO):
     )
 
 
-@ Model.describe(slug='example.block-time',
-                 version='1.0',
-                 display_name='(Example) BlockNumber',
-                 description='The Time of the block of the execution context',
-                 input=_BlockTimeInput,
-                 output=ExampleModelOutput)
+@Model.describe(slug='example.block-time',
+                version='1.0',
+                display_name='(Example) BlockNumber',
+                description='The Time of the block of the execution context',
+                input=_BlockTimeInput,
+                output=ExampleModelOutput)
 class BlockTimeExample(Model):
-    """
-    This example shows the query between block_number, timestamp and Python datetime/date.
-        - How to obtain a block from either one type of input timestamp, date or datetime.
-        - How to obtain the Python datetime for a block
-    """
-
     def run(self, input: _BlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/08_blocknumber_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
+
+        output.log("This model demonstrates the conversion between block_number, timestamp and Python datetime")
 
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
