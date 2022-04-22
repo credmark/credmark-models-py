@@ -23,7 +23,7 @@ class ExampleTokenLoading(Model):
 
     def run(self, input: _TokenLoadingInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/token_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/06_token_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.token.html")
 
         output.log("Token class is an ERC20 contract")
