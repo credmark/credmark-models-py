@@ -26,7 +26,7 @@ class ExampleLedgerBlock(Model):
                                           limit="10",
                                           order_by=BlockTable.Columns.NUMBER + " desc")
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -52,7 +52,7 @@ class ExampleLedgerTransactions(Model):
                                                 limit="10",
                                                 order_by=TransactionTable.Columns.GAS)
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -87,7 +87,7 @@ class ExampleLedgerTransactionsMaxGas(Model):
             ledger.Aggregate(f'AVG({TransactionTable.Columns.GAS})', 'avg_gas')
         ])
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -122,7 +122,7 @@ class ExampleLedgerReceipts(Model):
                                             limit="10",
                                             order_by=f'{ReceiptTable.Columns.CONTRACT_ADDRESS} desc')
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -157,7 +157,7 @@ class ExampleLedgerTokenTransfers(Model):
                                                    order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
                                                    limit="10")
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -192,7 +192,7 @@ class ExampleLedgerTokens(Model):
                                                 limit="100",
                                                 order_by=TokenTable.Columns.BLOCK_NUMBER)
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -223,7 +223,7 @@ class ExampleLedgerLogs(Model):
                                         limit="10",
                                         order_by=f'{LogTable.Columns.ADDRESS} desc')
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -258,7 +258,7 @@ class ExampleLedgerContracts(Model):
         ledger_output = ledger.get_contracts(columns=list(ContractTable.columns()),
                                              limit="100", order_by=ContractTable.Columns.BLOCK_NUMBER)
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 
@@ -294,7 +294,7 @@ class ExampleLedgerTraces(Model):
                                           limit="100",
                                           order_by=TraceTable.Columns.FROM_ADDRESS)
 
-        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/ledger_examples.py",
+        output = ExampleLedgerOutput(github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/07_ledger_examples.py",
                                      documentation_url="https://developer-docs.credmark.com/en/latest/components.html#ledger",
                                      ledger_output=ledger_output)
 

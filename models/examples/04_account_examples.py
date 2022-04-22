@@ -1,8 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Accounts, Address
-
-from models.examples.example_dtos import ExampleModelOutput
 from credmark.dto import DTO
+from models.examples.example_dtos import ExampleModelOutput
 
 
 class _AccountInput(DTO):
@@ -21,7 +20,7 @@ class _AccountInput(DTO):
 class ExampleAccount(Model):
     def run(self, input: _AccountInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/account_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/04_account_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.account.html"
         )
 
