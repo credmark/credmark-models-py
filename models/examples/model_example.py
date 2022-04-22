@@ -6,19 +6,13 @@ class EchoDto(DTO):
     message: str = DTOField('Hello', description='A message')
 
 
-@Model.describe(slug='example.echo',
+@Model.describe(slug='example.model',
                 version='1.0',
-                display_name='Echo',
+                display_name='Example (Model)',
                 description="A test model to echo the message property sent in input.",
                 developer='Credmark',
                 input=EchoDto,
                 output=EchoDto)
 class EchoModel(Model):
-    """
-    This test simply echos back the input.
-    The DTO message field defines a default value so that is
-    used if no input is sent.
-    """
-
     def run(self, input: EchoDto) -> EchoDto:
         return input
