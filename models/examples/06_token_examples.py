@@ -3,7 +3,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, NativeToken, Token
 from credmark.dto import DTO, DTOField
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 
 class _TokenLoadingInput(DTO):

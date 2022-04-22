@@ -2,7 +2,7 @@ from random import choice
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address
 from credmark.dto import DTO
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 
 class _AddressInput(DTO):
