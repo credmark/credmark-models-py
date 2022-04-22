@@ -20,7 +20,7 @@ class _AddressInput(DTO):
 class ExampleAddress(Model):
     def run(self, input: _AddressInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/03_address_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_03_address.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.address.Address.html")
 
         output.log("This model demonstrates the functionality of the Address class")

@@ -20,7 +20,7 @@ class ExampleBlockNumber(Model):
 
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/08_blocknumber_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_08_blocknumber.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         output.log("This model demonstrates the functionality of the BlockNumber class")
@@ -94,7 +94,7 @@ class _BlockTimeInput(DTO):
 class BlockTimeExample(Model):
     def run(self, input: _BlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/08_blocknumber_examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_08_blocknumber.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         output.log("This model demonstrates the conversion between block_number, timestamp and Python datetime")
