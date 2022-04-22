@@ -1,6 +1,6 @@
+from typing import Any, List
 from credmark.cmf.model import Model
 from credmark.dto import DTO
-from models.examples.library_examples import LibrariesDto
 
 
 class RunModelHistorical(DTO):
@@ -50,6 +50,9 @@ class ExampleHistoricalSnap(Model):
     """
 
     def run(self, input):
+        class LibrariesDto(DTO):
+            libraries: List[Any]
+
         blocks = self.context.historical.run_model_historical(
             'example.libraries',
             window='5 days',

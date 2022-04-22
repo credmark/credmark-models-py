@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model, EmptyInput
 from credmark.cmf.types import Contract
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 from models.tmp_abi_lookup import CMK_ADDRESS
 

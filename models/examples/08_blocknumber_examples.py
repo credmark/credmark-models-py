@@ -5,7 +5,7 @@ from credmark.cmf.model.errors import ModelInputError, ModelRunError
 from credmark.cmf.types.block_number import (BlockNumber,
                                              BlockNumberOutOfRangeError)
 from credmark.dto import DTO, DTOField, EmptyInput
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 
 @Model.describe(slug='example.block-number',

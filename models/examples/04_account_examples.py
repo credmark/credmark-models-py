@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Accounts, Address
 from credmark.dto import DTO
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 
 class _AccountInput(DTO):

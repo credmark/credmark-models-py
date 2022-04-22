@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio
 from credmark.dto import DTO, DTOField, EmptyInput
-from models.examples.example_dtos import ExampleModelOutput
+from models.dtos.example import ExampleModelOutput
 
 
 @Model.describe(slug='example.dto',
