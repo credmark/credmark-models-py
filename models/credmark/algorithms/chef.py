@@ -421,6 +421,7 @@ class Kitchen(Singleton):
         Call during catch an error.
         """
         logging.info(f'% Kitchen has {len(self._pool)} chefs.')
+        logging.info(list(self._pool.keys()))
         for chef in self._pool.values():
             chef.save_cache()
 
