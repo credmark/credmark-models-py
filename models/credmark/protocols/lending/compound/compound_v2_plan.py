@@ -190,4 +190,5 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 else:
                     raise ModelRunError(f'Unknown sub-type {type(vv)=} {vv=}')
 
-        kitchen.save_cache()
+        if use_kitchen:
+            kitchen.save_cache()
