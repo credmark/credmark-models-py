@@ -201,7 +201,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         if cache_entry['method'] == method:
             if cache_entry['chain_id'] == chain_id:
                 if cache_entry['input'] == self.hash(json.dumps(input, cls=PydanticJSONEncoder)):
-                    if cache_entry['block_number'] == self.context.block_number:
+                    if cache_entry['block_number'] == int(self.context.block_number):
                         return True, cache_entry['untyped']
 
         if self._verbose:
