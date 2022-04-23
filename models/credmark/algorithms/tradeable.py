@@ -31,6 +31,7 @@ from models.credmark.algorithms.recipe import (
 
 from models.credmark.algorithms.chef import (
     Chef,
+    Kitchen,
 )
 
 from models.credmark.algorithms.plan import (

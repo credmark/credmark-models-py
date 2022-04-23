@@ -173,7 +173,8 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             for k, v in summary.items():
                 table_to_fill.loc[table_to_fill.blockNumber == block_number, k] = v
 
-        fp_out = os.path.join('tmp', f'compound_v2_assets_history_{start_dt:%Y%m%d}_{end_dt:%Y%m%d}.xlsx')
+        fp_out = os.path.join('tmp',
+                              f'compound_v2_assets_history_{start_dt:%Y%m%d}_{end_dt:%Y%m%d}.xlsx')
         with pd.ExcelWriter(fp_out, engine='xlsxwriter') as writer:  # pylint: disable=abstract-class-instantiated
             for s_name, vv in token_series.items():
                 if isinstance(vv, pd.DataFrame):

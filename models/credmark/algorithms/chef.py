@@ -2,7 +2,6 @@ import atexit
 import pickle
 import hashlib
 import os
-import logging
 from credmark.cmf.model.errors import (
     ModelRunError,
     ModelDataError,
@@ -405,9 +404,13 @@ class Singleton:
 
 class Kitchen(Singleton):
     _pool: Dict[Tuple[str, bool, bool, bool], Chef] = {}
+    _context: Any
+    _verbose: bool
 
     def get(self, context, name, reset_cache, use_cache, verbose):
         key = (name, reset_cache, use_cache, verbose)
+        self._context = context
+        self._verbose = verbose
         if key not in self._pool:
             self._pool[key] = Chef(context,
                                    name,
@@ -420,10 +423,12 @@ class Kitchen(Singleton):
         """
         Call during catch an error.
         """
-        logging.info(f'% Kitchen has {len(self._pool)} chefs.')
-        logging.info(list(self._pool.keys()))
-        for chef in self._pool.values():
-            chef.save_cache()
+        if len(self._pool) > 0:
+            if self._verbose:
+                self._context.logger.info(f'% Kitchen has {len(self._pool)} chefs.')
+                self._context.logger.info(list(self._pool.keys()))
+            for chef in self._pool.values():
+                chef.save_cache()
 
     def __del__(self):
         self.save_cache()
