@@ -201,8 +201,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         if cache_entry['method'] == method:
             if cache_entry['chain_id'] == chain_id:
                 if cache_entry['input'] == self.hash(json.dumps(input, cls=PydanticJSONEncoder)):
-                    if cache_entry['block_number'] == int(self.context.block_number):
-                        return True, cache_entry['untyped']
+                    return True, cache_entry['untyped']
 
         if self._verbose:
             self.context.logger.info(f'{method=}: {cache_entry["method"]}')
@@ -285,6 +284,9 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 # cond2: snap_clock and end_timestamp
                 # cond3: end_timestamp
                 # cond4: no end_stampstamp given, but end_timestamp needs to be given.
+                self.verify_input_and_key('window', rec)
+                self.verify_input_and_key('interval', rec)
+
                 cond1 = self.verify_input_and_key('snap_clock', rec) and\
                     self.context.block_number.timestamp in rec.cache_keywords
                 cond2 = self.verify_input_and_key('end_timestamp', rec) and\
@@ -377,7 +379,6 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 cache_entry['method'] = rec.method
                 cache_entry['input'] = self.hash(json.dumps(rec.input, cls=PydanticJSONEncoder))
                 cache_entry['chain_id'] = int(self._context.chain_id)
-                cache_entry['block_number'] = int(self.context.block_number)
 
                 # Leave this in the end so wrong data doesn't not corrupt cache
                 self._cache_unsaved += 1
