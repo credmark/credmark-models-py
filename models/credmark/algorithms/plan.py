@@ -31,6 +31,7 @@ from datetime import (
 from models.credmark.algorithms.chef import (
     Chef,
     Kitchen,
+    kitchen,
     PlanT,
     ChefT,
 )
@@ -131,12 +132,6 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         if self._chef is not None:
             if self._verbose:
                 self._chef.cache_status()
-
-            # TODO: let Chef decide
-            # if self._is_chef_internal:
-            #     self._chef.save_cache()
-            # if self._use_kitchen:
-            #     kitchen.save_cache()
             self._chef = None
 
     def post_proc(self, _context, output_from_chef: ChefT) -> PlanT:
@@ -182,11 +177,10 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
         except Exception:
             self._chef.context.logger.error(
                 f'! Exception during executing {self._target_key}. Force releasing Chef.')
-            # TODO: Only save own chef.
-            # if self._use_kitchen:
-            #     kitchen.save_cache()
-            # else:
-            self.chef.save_cache()
+            if self._use_kitchen:
+                kitchen.save_cache()
+            else:
+                self.chef.save_cache()
             raise
         else:
             return self._result

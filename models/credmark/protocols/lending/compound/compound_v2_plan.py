@@ -18,6 +18,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import (
 from models.credmark.algorithms.risk import (
     HistoricalBlockPlan,
     GeneralHistoricalPlan,
+    kitchen,
 )
 
 import os
@@ -49,12 +50,13 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
         end_dt = datetime.combine(date(2021, 10, 2),
                                   datetime.max.time(),
                                   tzinfo=timezone.utc)
+
         interval = (end_dt - start_dt).days
 
         window = f'{interval} days'
         interval = '1 day'
         use_kitchen = True
-        verbose = False
+        verbose = True
         dev_mode = False
 
         block_plan = HistoricalBlockPlan(
@@ -187,3 +189,5 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                     pd.DataFrame(vv).to_excel(writer, sheet_name=s_name, index=False)
                 else:
                     raise ModelRunError(f'Unknown sub-type {type(vv)=} {vv=}')
+
+        kitchen.save_cache()

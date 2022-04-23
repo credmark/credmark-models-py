@@ -423,3 +423,6 @@ class Kitchen(Singleton):
         self.save_cache()
         for key, _value in self._pool.items():
             del self._pool[key]
+
+
+kitchen = Kitchen()
