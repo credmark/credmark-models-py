@@ -1,6 +1,8 @@
+import atexit
 import pickle
 import hashlib
 import os
+import logging
 from credmark.cmf.model.errors import (
     ModelRunError,
     ModelDataError,
@@ -200,7 +202,8 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         if cache_entry['method'] == method:
             if cache_entry['chain_id'] == chain_id:
                 if cache_entry['input'] == self.hash(json.dumps(input, cls=PydanticJSONEncoder)):
-                    return True, cache_entry['untyped']
+                    if cache_entry['block_number'] == self.context.block_number:
+                        return True, cache_entry['untyped']
 
         if self._verbose:
             self.context.logger.info(f'{method=}: {cache_entry["method"]}')
@@ -232,13 +235,13 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
         try:
             if rec.method == 'block_number.from_timestamp':
                 assert self.verify_input_and_key('timestamp', rec)
-                result = self._context.block_number.from_timestamp(**rec.input)
+                result = self.context.block_number.from_timestamp(**rec.input)
                 return 'P', result
 
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('block_number', rec)
-                result = self._context.run_model(**rec.input,
-                                                 return_type=rec.chef_return_type)
+                result = self.context.run_model(**rec.input,
+                                                return_type=rec.chef_return_type)
                 return 'P', result
             elif rec.method == 'run_model[blocks]':
                 if 'block_numbers' not in rec.input:
@@ -375,6 +378,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 cache_entry['method'] = rec.method
                 cache_entry['input'] = self.hash(json.dumps(rec.input, cls=PydanticJSONEncoder))
                 cache_entry['chain_id'] = int(self._context.chain_id)
+                cache_entry['block_number'] = int(self.context.block_number)
 
                 # Leave this in the end so wrong data doesn't not corrupt cache
                 self._cache_unsaved += 1
@@ -400,10 +404,10 @@ class Singleton:
 
 
 class Kitchen(Singleton):
-    _pool: Dict[Tuple[Any, str, bool, bool, bool], Chef] = {}
+    _pool: Dict[Tuple[str, bool, bool, bool], Chef] = {}
 
     def get(self, context, name, reset_cache, use_cache, verbose):
-        key = (context, name, reset_cache, use_cache, verbose)
+        key = (name, reset_cache, use_cache, verbose)
         if key not in self._pool:
             self._pool[key] = Chef(context,
                                    name,
@@ -416,6 +420,7 @@ class Kitchen(Singleton):
         """
         Call during catch an error.
         """
+        logging.info(f'% Kitchen has {len(self._pool)} chefs.')
         for chef in self._pool.values():
             chef.save_cache()
 
@@ -425,4 +430,8 @@ class Kitchen(Singleton):
             del self._pool[key]
 
 
-kitchen = Kitchen()
+def kitchen_exit_handler():
+    Kitchen().save_cache()
+
+
+atexit.register(kitchen_exit_handler)

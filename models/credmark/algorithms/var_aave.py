@@ -24,7 +24,6 @@ from models.credmark.algorithms.dto import (
 from models.credmark.algorithms.risk import (
     ValueAtRiskBase,
     Plan,
-    kitchen,
 )
 
 
@@ -155,7 +154,5 @@ class ValueAtRiskAave(ValueAtRiskBase):
                                   f'_{min_date:%Y-%m-%d}_{max_date:%Y-%m-%d}.csv')
             df_res_p.to_csv(fn_res, index=False)
 
-        if input.use_kitchen:
-            kitchen.save_cache()
         return VaROutput(window=window,
                          var=var_result)

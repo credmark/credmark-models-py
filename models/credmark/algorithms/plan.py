@@ -31,7 +31,6 @@ from datetime import (
 from models.credmark.algorithms.chef import (
     Chef,
     Kitchen,
-    kitchen,
     PlanT,
     ChefT,
 )
@@ -178,7 +177,7 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
             self._chef.context.logger.error(
                 f'! Exception during executing {self._target_key}. Force releasing Chef.')
             if self._use_kitchen:
-                kitchen.save_cache()
+                Kitchen().save_cache()
             else:
                 self.chef.save_cache()
             raise

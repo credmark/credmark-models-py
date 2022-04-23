@@ -18,7 +18,6 @@ from models.credmark.protocols.lending.compound.compound_v2 import (
 from models.credmark.algorithms.risk import (
     HistoricalBlockPlan,
     GeneralHistoricalPlan,
-    kitchen,
 )
 
 import os
@@ -189,6 +188,3 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                     pd.DataFrame(vv).to_excel(writer, sheet_name=s_name, index=False)
                 else:
                     raise ModelRunError(f'Unknown sub-type {type(vv)=} {vv=}')
-
-        if use_kitchen:
-            kitchen.save_cache()
