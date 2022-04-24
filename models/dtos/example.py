@@ -1,8 +1,13 @@
-import logging
-from typing import Union
+from typing import TypedDict, Union
 
 from credmark.cmf.model.errors import ModelBaseError
 from credmark.dto import DTO
+from models.utils.term_colors import TermColors
+
+
+class ExampleModelOutputInfo(TypedDict):
+    github_url: str
+    documentation_url: str
 
 
 class ExampleModelOutput(DTO):
@@ -10,18 +15,41 @@ class ExampleModelOutput(DTO):
     documentation_url: str
     message: str = ""
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._log('\n> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
+        self._log('> ' + TermColors.apply("Source", underline=True) + " " + data["github_url"])
+
+    def _log(self, message: str):
+        print(message)
+
     def log(self, message: str):
-        logger = logging.getLogger('credmark.cmf.model.example')
-        logger.info(message)
-        self.message += '\n' + message
+        self._log('\n'+TermColors.apply(message, TermColors.BLUE))
 
     def log_io(self, input: str, output):
-        self.log(f"{input} : {output}")
+        str_to_log = ""
+        normalized_input = input.lstrip("\n").replace("\n", "\n\t")
+        if normalized_input != "":
+            str_to_log += "\n>>> "
+            highlighted_input = TermColors.apply(normalized_input, TermColors.GREEN)
+            str_to_log += highlighted_input
+
+        if isinstance(output, DTO):
+            output = output.dict()
+
+        if output != "":
+            highlighted_output = TermColors.apply(str(output), TermColors.YELLOW)
+            str_to_log += "\n"
+            str_to_log += highlighted_output
+
+        self._log(str_to_log)
 
     def log_error(self, error: Union[str, Exception]):
+        error_str = ""
         if isinstance(error, str):
-            self.log(error)
+            error_str = error
         elif isinstance(error, ModelBaseError):
-            self.log(error.data.message)
+            error_str = error.data.message
         else:
-            self.log(str(error))
+            error_str = str(error)
+        self._log('\n'+TermColors.apply(error_str, TermColors.RED))
