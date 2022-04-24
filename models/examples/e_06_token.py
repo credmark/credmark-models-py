@@ -7,11 +7,11 @@ from models.dtos.example import ExampleModelOutput
 
 
 class _TokenLoadingInput(DTO):
-    address: Address = DTOField(default='0x68cfb82eacb9f198d508b514d898a403c449533e')
+    address: Address = DTOField(default=Address('0x68cfb82eacb9f198d508b514d898a403c449533e'))
     symbol: str = DTOField(default='AAVE')
 
 
-@Model.describe(slug='example.token-loading',
+@Model.describe(slug='example.token',
                 version='1.0',
                 developer='credmark',
                 input=_TokenLoadingInput,
@@ -30,7 +30,7 @@ class ExampleTokenLoading(Model):
 
         output.log("Token can be initialized from address")
         tokenLoadedFromAddress = Token(address=input.address)
-        output.log_io(input=f"Token(address='{input.address}')", output={tokenLoadedFromAddress})
+        output.log_io(input=f"Token(address='{input.address}')", output=tokenLoadedFromAddress)
 
         output.log("Token can also be initialized from symbol")
         tokenLoadedFromSymbol = Token(symbol=input.symbol)
@@ -49,7 +49,7 @@ class ExampleTokenLoading(Model):
 
         output.log("Token amount can be converted from base unit to scaled unit using scaled utility method")
         output.log_io(input="tokenLoadedFromAddress.scaled(tokenLoadedFromAddress.total_supply)",
-                      output=f"{tokenLoadedFromAddress.scaled(tokenLoadedFromAddress.total_supply)}")
+                      output=tokenLoadedFromAddress.scaled(tokenLoadedFromAddress.total_supply))
 
         output.log("Ethereum token can be obtained using NativeToken")
         output.log_io(input="NativeToken()", output=NativeToken())
@@ -64,16 +64,5 @@ class ExampleTokenLoading(Model):
             output.log_error(
                 "Attempting to initialize a Token with invalid address "
                 "raises ValueError")
-
-        # try:
-        #     Token(symbol="INVSYM")
-        #     raise ModelRunError(
-        #         message="Token cannot be initialized with an invalid symbol, an exception was NOT caught, "
-        #         "and the example has FAILED")
-        # except ModelDataError as _e:
-        #     output.log(_e)
-        #     output.log(
-        #         "Attempting to initialize a Token with invalid symbol "
-        #         "raises ModelDataError")
 
         return output
