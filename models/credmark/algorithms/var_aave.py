@@ -40,7 +40,7 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
             _context.logger.warning(
                 f'Aave V2 contract was not live on block {_context.block_number}. '
                 'Return empty portfolio.')
-            return 'S', Portfolio(positions=[])
+            return self.skip_with_result(Portfolio(positions=[]))
         else:
             raise err
 

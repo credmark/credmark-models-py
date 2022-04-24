@@ -26,7 +26,6 @@ from typing import (
 )
 from datetime import (
     datetime,
-
 )
 
 from models.credmark.algorithms.recipe import (
@@ -34,6 +33,7 @@ from models.credmark.algorithms.recipe import (
     RiskObject,
     PlanT,
     ChefT,
+    ChefStatus,
 )
 
 
@@ -229,18 +229,18 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
 
     def perform(self,
                 rec: Recipe[ChefT, PlanT],
-                is_catch_runtime_error: bool) -> Tuple[str, Union[ChefT, PlanT]]:
+                is_catch_runtime_error: bool) -> Tuple[ChefStatus, Union[ChefT, PlanT]]:
         try:
             if rec.method == 'block_number.from_timestamp':
                 assert self.verify_input_and_key('timestamp', rec)
                 result = self.context.block_number.from_timestamp(**rec.input)
-                return 'P', result
+                return ChefStatus.SUCCESS, result
 
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('block_number', rec)
                 result = self.context.run_model(**rec.input,
                                                 return_type=rec.chef_return_type)
-                return 'P', result
+                return ChefStatus.SUCCESS, result
             elif rec.method == 'run_model[blocks]':
                 if 'block_numbers' not in rec.input:
                     raise ModelRunError(f'Missing "block_numbers" in Recipe\'s '
@@ -277,7 +277,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     rec_copy.input['block_number'] = block_number
                     result = self.cook(rec_copy)
                     sub_results.append((block_number, result))
-                return 'P', rec.chef_return_type(data=sub_results)
+                return ChefStatus.SUCCESS, rec.chef_return_type(data=sub_results)
 
             elif rec.method == 'run_model_historical':
                 # cond1: snap_clock and timestamp
@@ -299,7 +299,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 result = self._context.historical.run_model_historical(
                     **rec.input,
                     model_return_type=rec.plan_return_type)
-                return 'P', result
+                return ChefStatus.SUCCESS, result
             else:
                 raise ModelRunError(f'! Unknown {rec.method=}')
         except AssertionError:
@@ -310,10 +310,10 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
             if is_catch_runtime_error:
                 status_code, result = rec.error_handle(self._context, err)
 
-                if status_code == 'E':
+                if status_code == ChefStatus.ERROR:
                     raise err
 
-                if status_code in ['S', 'C']:
+                if status_code in [ChefStatus.SKIP, ChefStatus.FALLBACK]:
                     return status_code, result
 
                 raise ModelRunError(f'Unknown status code {status_code} while handling {err}')
@@ -329,7 +329,8 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
 
             if cache_find_status and cache_result is not None:
                 if self._verbose:
-                    self.context.logger.info(f'< {self.name_id} grabs < {cache_key}')
+                    self.context.logger.info(
+                        f'< {self.name_id} grabs < {cache_key} = {cache_result}')
                 self._cache_hit += 1
                 self._total_hit += 1
 
@@ -341,7 +342,8 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     return cache_result
 
         if self._verbose:
-            self.context.logger.info(f'> {self.name_id} cooks > {cache_key}')
+            # self.context.logger.info(f'> {self.name_id} cooks > {cache_key} {}')
+            pass
 
         retry_c = 0
         result = None
@@ -359,10 +361,11 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     f'Re-trying {retry_c+2} of {self.__RETRY__}.')
                 retry_c += 1
 
-        if status_code == 'S' and isinstance(result, rec.plan_return_type):
+        if status_code == ChefStatus.SKIP and isinstance(result, rec.plan_return_type):
             return result
 
-        elif status_code in ['P', 'C'] and isinstance(result, rec.chef_return_type):
+        elif (status_code in [ChefStatus.SUCCESS, ChefStatus.FALLBACK] and
+              isinstance(result, rec.chef_return_type)):
             if isinstance(result, rec.plan_return_type):
                 post_result = result
             else:

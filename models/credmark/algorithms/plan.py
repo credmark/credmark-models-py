@@ -1,5 +1,3 @@
-
-
 from abc import abstractmethod
 from credmark.cmf.model.errors import (
     ModelRunError,
@@ -30,6 +28,7 @@ from datetime import (
 
 from models.credmark.algorithms.chef import (
     Chef,
+    ChefStatus,
     Kitchen,
     PlanT,
     ChefT,
@@ -139,14 +138,14 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
             f'{self._chef_return_type} to {self._plan_return_type} '
             f'in class={self.__class__.__name__}')
 
-    def error_handle(self, _context, err: Exception) -> Tuple[str, PlanT]:
-        """
-        status code to return
-        1. E: trigger the error.
-        2. S: Skip with plan result
-        3. C: Continue with chef result (to be post-proc and cached)
-        """
+    def error_handle(self, _context, err: Exception) -> Tuple[ChefStatus, PlanT]:
         raise err
+
+    def skip_with_result(self, result):
+        return ChefStatus.SKIP, result
+
+    def fallback_with_result(self, result):
+        return ChefStatus.FALLBACK, result
 
     def create_recipe(self, cache_keywords, method, input):
         recipe = Recipe(cache_keywords=cache_keywords,
