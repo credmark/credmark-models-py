@@ -143,15 +143,18 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
             self._context.logger.info(f'* {self.name_id} {message} cache from '
                                       f'{self._cache_file} with {cache_log_info}')
 
-    @ property
+    @property
     def context(self):
         return self._context
 
-    @ property
+    def update_context(self, context):
+        self._context = context
+
+    @property
     def cache_hit(self):
         return self._cache_hit
 
-    @ property
+    @property
     def total_hit(self):
         return self._total_hit
 
@@ -241,6 +244,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 result = self.context.run_model(**rec.input,
                                                 return_type=rec.chef_return_type)
                 return ChefStatus.SUCCESS, result
+
             elif rec.method == 'run_model[blocks]':
                 if 'block_numbers' not in rec.input:
                     raise ModelRunError(f'Missing "block_numbers" in Recipe\'s '
@@ -329,8 +333,9 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
 
             if cache_find_status and cache_result is not None:
                 if self._verbose:
+                    # Need more results? Add = {cache_result}
                     self.context.logger.info(
-                        f'< {self.name_id} grabs < {cache_key} = {cache_result}')
+                        f'< {self.name_id} grabs < {cache_key}')
                 self._cache_hit += 1
                 self._total_hit += 1
 
@@ -342,8 +347,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     return cache_result
 
         if self._verbose:
-            # self.context.logger.info(f'> {self.name_id} cooks > {cache_key} {}')
-            pass
+            self.context.logger.info(f'> {self.name_id} cooks > {cache_key}')
 
         retry_c = 0
         result = None
@@ -361,11 +365,16 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     f'Re-trying {retry_c+2} of {self.__RETRY__}.')
                 retry_c += 1
 
+        # DEBUG: if need more result
+        # if self._verbose:
+        #     self.context.logger.info(f'> {self.name_id} cooks > {cache_key} = {result}')
+
         if status_code == ChefStatus.SKIP and isinstance(result, rec.plan_return_type):
             return result
 
         elif (status_code in [ChefStatus.SUCCESS, ChefStatus.FALLBACK] and
               isinstance(result, rec.chef_return_type)):
+
             if isinstance(result, rec.plan_return_type):
                 post_result = result
             else:
@@ -421,7 +430,9 @@ class Kitchen(Singleton):
                                    reset_cache=reset_cache,
                                    use_cache=use_cache,
                                    verbose=verbose)
-        return self._pool[key]
+        chef = self._pool[key]
+        chef.update_context(context)
+        return chef
 
     def save_cache(self):
         """

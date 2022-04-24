@@ -11,79 +11,101 @@ import numpy as np
 TEST_CASE_REFERENCE = {
     'AAVE+WETH (39 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'AAVE+WETH (90 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'WETH (90 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'WETH (39 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'AAVE (39 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'AAVE (90 days)': {
         'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 }
 
 
 TEST_CASE_ENGINE = {
+    'WETH (3 days)_2022-02-17': {
+        'no_test': True,
+        'skip': False,
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "3 days",
+                  "intervals": ["1 day"], "as_ofs": ["2022-02-17"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+    },
+
+    'WETH (4 days)_2022-02-17': {
+        'no_test': True,
+        'skip': False,
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "4 days",
+                  "intervals": ["1 day"], "as_ofs": ["2022-02-17"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+    },
+
     'WETH (39 days)_2022-02-14to17': {
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days", "intervals": [
-            "1 day"], "as_ofs": ["2022-02-17", "2022-02-15"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days",
+                  "intervals": ["1 day"], "as_ofs": ["2022-02-17", "2022-02-15"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 
     'WETH (90 days)_2022-02-14to17': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": [
-            "1 day"], "as_ofs": ["2022-02-17", "2022-02-15"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days",
+                  "intervals": ["1 day"], "as_ofs": ["2022-02-17", "2022-02-15"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 
     'WETH (39 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 
     'AAVE (39 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
+
     'AAVE (90 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
+
     'WETH (90 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
+
     'AAVE+WETH (39 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "39 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
     'AAVE+WETH (90 days)': {
-        'skip': True,
-        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days", "intervals": [
-            "1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True, "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
+        'input': {"portfolio": {"positions": [{"amount":  1, "asset": {"symbol": "WETH"}}, {"amount":  1, "asset": {"symbol": "AAVE"}}]}, "window": "90 days",
+                  "intervals": ["1 day", "2 day", "5 day", "10 day", "12 days"], "as_ofs": ["2022-02-17", "2022-02-05"], "as_of_is_range": True,
+                  "confidences": [0, 0.01, 0.05, 1.0], "dev_mode": True},
     },
 }
 
@@ -129,6 +151,7 @@ class ValueAtRiskRegressionTest(Model):
         dev_mode = True
 
         passed = []
+        skipped = []
 
         for model_slug, cases in TEST_CASE.items():
             for case_name, case_detail in cases.items():
@@ -153,15 +176,19 @@ class ValueAtRiskRegressionTest(Model):
                         f.write(res.__str__())
 
                 regtest_file = os.path.join('tmp', f'regtest_{test_case}.json')
-                if os.path.isfile(regtest_file):
-                    with open(regtest_file, 'r') as f:
-                        regtest_result = json.load(f)
-                        try:
-                            assert self.compare_dict([], res, regtest_result)
-                            passed.append(test_case)
-                        except AssertionError:
-                            raise ModelRunError(f'Failed test case {case_name} with {model_slug}')
+                if 'no_test' in case_detail and case_detail['no_test']:
+                    self.logger.error(ModelRunError(f'Failed test case {case_name} with {model_slug}'))
+                    skipped.append(test_case)
                 else:
-                    raise ModelRunError(f'Missing regtest result file {regtest_file}')
+                    if os.path.isfile(regtest_file):
+                        with open(regtest_file, 'r') as f:
+                            regtest_result = json.load(f)
+                            try:
+                                assert self.compare_dict([], res, regtest_result)
+                                passed.append(test_case)
+                            except AssertionError:
+                                raise ModelRunError(f'Failed test case {case_name} with {model_slug}')
+                    else:
+                        raise ModelRunError(f'Missing regtest result file {regtest_file}')
 
-        return {'passed': passed}
+        return {'passed': passed, 'skipped': skipped}
