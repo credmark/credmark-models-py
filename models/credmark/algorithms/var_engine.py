@@ -207,11 +207,6 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                                                   window=[input.window, minimal_interval],
                                                   interval=minimal_interval,
                                                   rolling_interval=ivl_n)
-                if input.dev_mode:
-                    self.save_mkt(mkt_scenarios,
-                                  os.path.join('tmp',
-                                               f'{fp_pre}_{as_of_str}_{ivl}_mkt_scenario.xlsx'))
-
                 ppl_scen_trade = pm.value_scenarios('eod',
                                                     'eod.var',
                                                     base_mkt,
@@ -229,9 +224,12 @@ class ValueAtRiskEnginePortfolio(ValueAtRiskBase):
                        .agg({'VALUE': ['sum']}))
 
                 if input.dev_mode:
-                    fp_ppl = os.path.join('tmp', f'{fp_pre}_{as_of_str}_{ivl}_ppl_scen_trade.xlsx')
-                    self.save_dict({'ppl': ppl, 'ppl_scen_trade': ppl_scen_trade},
-                                   fp_ppl)
+                    dict_ppl = {'ppl': ppl, 'ppl_scen_trade': ppl_scen_trade}
+                    self.save_mkt_and_dict(
+                        mkt_scenarios,
+                        dict_ppl,
+                        os.path.join('tmp',
+                                     f'{fp_pre}_{as_of_str}_{ivl}_var.xlsx'))
 
                 var_result[as_of_str][ivl] = {
                     conf: calc_var(ppl[('VALUE', 'sum')].to_numpy(), conf)
