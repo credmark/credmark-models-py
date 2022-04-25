@@ -1,4 +1,4 @@
-from typing import TypedDict, Union
+from typing import List, Optional, TypedDict, Union
 
 from credmark.cmf.model.errors import ModelBaseError
 from credmark.dto import DTO
@@ -11,11 +11,20 @@ class ExampleModelOutputInfo(TypedDict):
 
 
 class _ExampleModelOutput(DTO):
+
+    # TODO: Replace it with a Discriminated Union
+    class Log(DTO):
+        type: str
+        message: Optional[str] = None
+        input: Optional[str] = None
+        output: Optional[str] = None
+        error: Optional[str] = None
+
     title: str
     description: str = ""
     github_url: str
     documentation_url: str
-    message: str = ""
+    logs: List[Log] = []
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -30,6 +39,7 @@ class _ExampleModelOutput(DTO):
 
     def log(self, message: str):
         self._log('\n'+TermColors.apply(message, TermColors.BLUE))
+        self.logs.append(self.Log(type="message", message=message))
 
     def log_io(self, input: str, output):
         str_to_log = ""
@@ -48,6 +58,7 @@ class _ExampleModelOutput(DTO):
             str_to_log += highlighted_output
 
         self._log(str_to_log)
+        self.logs.append(self.Log(type="io", input=input, output=str(output)))
 
     def log_error(self, error: Union[str, Exception]):
         error_str = ""
@@ -58,6 +69,7 @@ class _ExampleModelOutput(DTO):
         else:
             error_str = str(error)
         self._log('\n' + TermColors.apply(error_str, TermColors.RED))
+        self.logs.append(self.Log(type="error", error=error_str))
 
 
 # __init__ with kwargs disables type hints
