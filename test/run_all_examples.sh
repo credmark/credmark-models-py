@@ -138,14 +138,13 @@ credmark-dev run sushiswap.get-pools --input '{"address":"0x68CFb82Eacb9f198d508
 echo ""
 echo "Run Aave V2 Examples:"
 echo ""
-credmark-dev run aave.token-asset --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904 --format_json
-credmark-dev run aave.token-asset --input '{"symbol":"USDC"}' -b 14234904 --format_json
-credmark-dev run aave.token-asset --input '{"symbol":"DAI"}' -b 14234904 --format_json
-credmark-dev run aave.lending-pool-assets --input '{}' -l aave.token-asset -b 14234904 --format_json
-credmark-dev run aave.token-liability --input '{"address":"0xE41d2489571d322189246DaFA5ebDe1F4699F498"}' -b 14234904 --format_json
-credmark-dev run aave.token-liability --input '{"symbol":"USDC"}' -b 14234904 --format_json
-credmark-dev run aave.overall-liabilities-portfolio --input '{}' -l aave.token-liability -b 14234904 --format_json
-credmark-dev run aave.token-asset-historical --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -l aave.token-asset -b 14234904 --format_json
+credmark-dev run aave-v2.token-asset --input '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' -b 14234904 --format_json
+credmark-dev run aave-v2.token-asset --input '{"symbol":"USDC"}' -b 14234904 --format_json
+credmark-dev run aave-v2.token-asset --input '{"symbol":"DAI"}' -b 14234904 --format_json
+credmark-dev run aave-v2.lending-pool-assets --input '{}' -l aave-v2.token-asset -b 14234904 --format_json
+credmark-dev run aave-v2.token-liability --input '{"address":"0xE41d2489571d322189246DaFA5ebDe1F4699F498"}' -b 14234904 --format_json
+credmark-dev run aave-v2.token-liability --input '{"symbol":"USDC"}' -b 14234904 --format_json
+credmark-dev run aave-v2.overall-liabilities-portfolio --input '{}' -l aave-v2.token-liability -b 14234904 --format_json
 echo ""
 echo "Run Curve Examples"
 echo ""
