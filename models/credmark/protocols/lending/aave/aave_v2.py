@@ -1,3 +1,6 @@
+from models.tmp_abi_lookup import (
+    AAVE_STABLEDEBT_ABI
+)
 from credmark.dto import (
     DTO,
     EmptyInput,
@@ -195,7 +198,7 @@ class AaveV2GetTokenAsset(Model):
         # 11. id | uint8 | the position in the list of active reserves |
 
         aToken = Token(address=reservesData[7])
-        stableDebtToken = Token(address=reservesData[8])
+        stableDebtToken = Token(address=reservesData[8], abi=AAVE_STABLEDEBT_ABI)
         variableDebtToken = Token(address=reservesData[9])
         interestRateStrategyContract = Contract(address=reservesData[10])
 
