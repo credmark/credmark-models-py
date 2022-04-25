@@ -10,13 +10,18 @@ class ExampleModelOutputInfo(TypedDict):
     documentation_url: str
 
 
-class ExampleModelOutput(DTO):
+class _ExampleModelOutput(DTO):
+    title: str
+    description: str = ""
     github_url: str
     documentation_url: str
     message: str = ""
 
     def __init__(self, **data):
         super().__init__(**data)
+        self._log('\n' + TermColors.apply(data["title"], invert=True))
+        if data["description"] != "":
+            self._log(TermColors.apply(data["description"], faint=True))
         self._log('\n> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
         self._log('> ' + TermColors.apply("Source", underline=True) + " " + data["github_url"])
 
@@ -52,4 +57,11 @@ class ExampleModelOutput(DTO):
             error_str = error.data.message
         else:
             error_str = str(error)
-        self._log('\n'+TermColors.apply(error_str, TermColors.RED))
+        self._log('\n' + TermColors.apply(error_str, TermColors.RED))
+
+
+# __init__ with kwargs disables type hints
+# This hack re-enables type hints
+# TODO: Use `Unpacked` from typing_extensions for kwargs type
+class ExampleModelOutput(_ExampleModelOutput):
+    pass

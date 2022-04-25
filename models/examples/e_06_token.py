@@ -14,15 +14,15 @@ class _TokenLoadingInput(DTO):
 @Model.describe(slug='example.token',
                 version='1.0',
                 developer='credmark',
+                display_name="Example - Token",
+                description="This model demonstrates the functionality of the Token class",
                 input=_TokenLoadingInput,
                 output=ExampleModelOutput)
 class ExampleTokenLoading(Model):
-    """
-        This model demonstrates the functionality of the Token class
-    """
-
     def run(self, input: _TokenLoadingInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
+            title="6. Example - Token",
+            description="This model demonstrates the functionality of the Token class",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_06_token.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.token.html")
 

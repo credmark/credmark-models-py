@@ -12,7 +12,7 @@ class _AccountInput(DTO):
 @Model.describe(
     slug='example.account',
     version='1.0',
-    display_name='Account Usage Examples',
+    display_name='Example - Account',
     description='This model gives examples of the functionality available on the Account class',
     developer='Credmark',
     input=_AccountInput,
@@ -20,11 +20,11 @@ class _AccountInput(DTO):
 class ExampleAccount(Model):
     def run(self, input: _AccountInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
+            title="4. Example - Account",
+            description="This model gives examples of the functionality available on the Account class",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_04_account.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.account.html"
         )
-
-        output.log("This model demonstrates the functionality of the Account class.")
 
         account_1 = Account(address=input.address_1)
         account_2 = Account(address=input.address_2)

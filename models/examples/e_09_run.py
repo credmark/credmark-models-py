@@ -11,21 +11,22 @@ class RunExampleOutput(ExampleModelOutput):
 @Model.describe(
     slug='example.model-run',
     version='1.0',
-    display_name='Runner test model',
-    description='Test model runs another model specified with \'model\' in input.',
+    display_name='Example - Model Run',
+    description='This model demonstrates how to run a "model" within a model',
     developer='Credmark',
     input=EmptyInput,
     output=RunExampleOutput)
 class RunnerTestModel(Model):
     def run(self, _) -> RunExampleOutput:
         output = RunExampleOutput(
+            title="9. Example - Model Run",
+            description="This model demonstrates how to run a \"model\" within a model",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_09_run.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#context-run-model",
             model_slug="example.model",
             model_output={}
         )
 
-        output.log("This model demonstrates how you run a model within a model.")
         output.log("Models are exposed on context.models by their slug (with any \"-\" (hyphens) in "
                    "the slug replaced with \"_\" (underscores)) and can be called like a function, "
                    "passing the input as a DTO or dict or as standard keyword args (kwargs).")

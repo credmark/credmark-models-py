@@ -13,14 +13,16 @@ class EchoExampleOutput(ExampleModelOutput):
 
 @Model.describe(slug='example.model',
                 version='1.0',
-                display_name='Example (Model)',
-                description="A test model to echo the message property sent in input.",
+                display_name='Example - Model',
+                description="First example model to echo the message property sent in input.",
                 developer='Credmark',
                 input=EchoExampleInput,
                 output=EchoExampleOutput)
 class EchoModel(Model):
     def run(self, input: EchoExampleInput) -> EchoExampleOutput:
         output = EchoExampleOutput(
+            title="1. Example - Model",
+            description="First example model to echo the message property sent in input.",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_01_model.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#model-class",
             echo=input.message
