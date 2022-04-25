@@ -4,7 +4,9 @@ from typing import Optional
 
 class TermColors:
     _PREF = "\033["
+    _FAINT = "2m"
     _UNDERLINE = "4m"
+    _INVERT = "7m"
     _RESET = "0m"
 
     BLACK = "30m"
@@ -29,7 +31,9 @@ class TermColors:
     def apply(text: str,
               color: Optional[str] = None,
               bg_color: Optional[str] = None,
-              underline=False):
+              faint=False,
+              underline=False,
+              invert=False):
 
         if platform == 'win32':
             return text
@@ -41,8 +45,14 @@ class TermColors:
             if color is not None:
                 highlighted_text += f"{TermColors._PREF}{color}"
 
+            if faint is True:
+                highlighted_text += f"{TermColors._PREF}{TermColors._FAINT}"
+
             if underline is True:
                 highlighted_text += f"{TermColors._PREF}{TermColors._UNDERLINE}"
+
+            if invert is True:
+                highlighted_text += f"{TermColors._PREF}{TermColors._INVERT}"
 
             highlighted_text += text
             highlighted_text += f"{TermColors._PREF}{TermColors._RESET}"
