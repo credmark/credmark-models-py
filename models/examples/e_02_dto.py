@@ -6,14 +6,16 @@ from models.dtos.example import ExampleModelOutput
 
 @Model.describe(slug='example.dto',
                 version='1.0',
-                display_name='Test Model',
-                description='Framework Test Model',
+                display_name='Example - DTO',
+                description='An example model to demonstrate DTO type',
                 developer='Credmark',
                 input=EmptyInput,
                 output=ExampleModelOutput)
 class DtoExampleModel(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
+            title="2. Example - DTO",
+            description="An example model to demonstrate DTO type",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_02_dto.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto")
 
