@@ -6,7 +6,6 @@ from credmark.dto import (
     EmptyInput,
     IterableListGenericDTO,
 )
-from credmark.cmf.types.series import BlockSeries
 from credmark.cmf.types import (
     Address,
     Contract,
@@ -134,7 +133,7 @@ def get_eip1967_implementation(context, logger, token_address):
     return token
 
 
-@Model.describe(slug="aave.overall-liabilities-portfolio",
+@Model.describe(slug="aave-v2.overall-liabilities-portfolio",
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
@@ -154,7 +153,7 @@ class AaveV2GetLiability(Model):
         positions = []
         for asset in aave_assets:
             # self.logger.info(f'getting info for {asset=}')
-            pos = self.context.run_model(slug='aave.token-liability',
+            pos = self.context.run_model(slug='aave-v2.token-liability',
                                          input=Token(address=asset),
                                          return_type=Position)
             positions.append(pos)
@@ -162,7 +161,7 @@ class AaveV2GetLiability(Model):
         return Portfolio(positions=positions)
 
 
-@Model.describe(slug="aave.token-liability",
+@Model.describe(slug="aave-v2.token-liability",
                 version="1.0",
                 display_name="Aave V2 token liability",
                 description="Aave V2 token liability at a given block number",
@@ -190,7 +189,7 @@ class AaveV2GetTokenLiability(Model):
         return Position(asset=aToken, amount=float(aToken.total_supply))
 
 
-@ Model.describe(slug="aave.lending-pool-assets",
+@ Model.describe(slug="aave-v2.lending-pool-assets",
                  version="1.0",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
@@ -208,7 +207,7 @@ class AaveV2GetAssets(Model):
 
         aave_debts_infos = []
         for asset_address in aave_assets_address:
-            info = self.context.run_model('aave.token-asset',
+            info = self.context.run_model('aave-v2.token-asset',
                                           input=Token(address=asset_address),
                                           return_type=AaveDebtInfo)
             aave_debts_infos.append(info)
@@ -219,7 +218,7 @@ class AaveV2GetAssets(Model):
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
-@Model.describe(slug="aave.token-asset",
+@Model.describe(slug="aave-v2.token-asset",
                 version="1.0",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
@@ -315,19 +314,3 @@ class AaveV2GetTokenAsset(Model):
         else:
             raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
                                 f'for {aToken.address=}')
-
-
-@ Model.describe(slug="aave.token-asset-historical",
-                 version="1.0",
-                 display_name="Aave V2 token liquidity",
-                 description="Aave V2 token liquidity at a given block number",
-                 input=Token,
-                 output=BlockSeries[AaveDebtInfo])
-class AaveV2GetTokenAssetHistorical(Model):
-    def run(self, input: Token) -> BlockSeries:
-        return self.context.historical.run_model_historical(
-            'aave.token-asset',
-            model_input=input,
-            window='5 days',
-            interval='1 day',
-            model_return_type=AaveDebtInfo)

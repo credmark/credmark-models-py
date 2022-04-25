@@ -63,7 +63,7 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
 
     def define(self) -> Portfolio:
         method = 'run_model'
-        slug = 'aave.lending-pool-assets'
+        slug = 'aave-v2.lending-pool-assets'
         block_number = self._input_to_plan['block_number']
 
         recipe = self.create_recipe(

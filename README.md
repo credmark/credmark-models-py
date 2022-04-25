@@ -22,12 +22,22 @@ Fork [credmark-models-py](https://github.com/credmark/credmark-models-py) reposi
 
 ## Virtual Env
 
-Create a virtual env (if you want):
+Create a virtual env (if you want).
+
+sh or bash:
 
 ```
 python3 -m venv venv
 source venv/bin/activate
 ```
+
+zsh:
+
+```
+python3 -m venv venv
+. venv/bin/activate
+```
+
 
 If you wish, you can run it on miniconda. Simply install the miniconda version mentioned in the prerequisite, open Anaconda prompt, navigate to the repo folder and continue with steps (commands) as mentioned below.
 
@@ -222,7 +232,7 @@ We strongly encourage you to create DTOs and/or make use of the common objects, 
 You may use `credmark-dev describe {model_slug}` to show the input/output schema and examples for specific model(s). For example
 
 ```
-credmark-dev describe aave.token-asset-historical
+credmark-dev describe aave-v2.token-asset-historical
 
 (...omit the output header)
 
@@ -251,7 +261,7 @@ Loaded models:
          └─output(object)
  - output example:
    #01: {'series': [{'blockNumber': 'integer', 'blockTimestamp': 'integer', 'sampleTimestamp': 'integer', 'output': 'object'}]}
- - class: models.credmark.protocols.aave.aave_v2.AaveV2GetTokenAssetHistorical
+ - class: models.credmark.protocols.aave-v2.aave_v2.AaveV2GetTokenAssetHistorical
 ```
 
 ## Submit a Model
@@ -572,7 +582,7 @@ In blockchain, every block is created with a timestamp (in Unix epoch). In Pytho
 4. Use a BlockNumber instance: Obtain a Python datetime with UTC of the block. The block number should be less or equal to the context block.
 
     ```
-    from credmark.cmf.types import ( BlockNumber )
+    from credmark.types import ( BlockNumber )
 
     dt = BlockNumber(14234904).timestamp_datetime
     ```
