@@ -3,11 +3,6 @@ from web3.exceptions import (
     BadFunctionCallOutput,
 )
 
-from typing import (
-    Optional,
-    Union,
-)
-
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (
@@ -17,8 +12,6 @@ from credmark.cmf.types import (
     Contract,
     Contracts,
 )
-
-from credmark.cmf.types.series import BlockSeries
 
 from credmark.dto import DTO
 
@@ -160,23 +153,3 @@ class UniswapV3GetAveragePrice(Model):
 
         price = sum(prices) / len(prices)
         return Price(price=price, src=self.slug)
-
-
-class HistoricalPriceDTO(DTO):
-    token: Token
-    window: Union[str, list[str]]
-    interval: Optional[str]
-
-
-@Model.describe(slug='uniswap-v3.get-historical-price',
-                version='1.0',
-                input=HistoricalPriceDTO,
-                output=BlockSeries[Price])
-class UniswapV3GetAveragePrice30Day(Model):
-
-    def run(self, input: HistoricalPriceDTO) -> BlockSeries[Price]:
-
-        return self.context.historical.run_model_historical('uniswap-v3.get-average-price',
-                                                            window=input.window,
-                                                            interval=input.interval,
-                                                            model_input=input.token)
