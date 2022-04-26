@@ -120,11 +120,11 @@ def get_eip1967_implementation(context, logger, token_address):
         # TODO: Work around before we can load proxy in the past based on block number.
         if token._meta.is_transparent_proxy:
             if token.proxy_for is not None and proxy_address != token.proxy_for.address:
-                logger.warning(
+                logger.debug(
                     f'token\'s implmentation is corrected to '
                     f'{proxy_address} from {token.proxy_for.address} for {token.address}')
         else:
-            logger.warning(
+            logger.debug(
                 f'token\'s implmentation is corrected to '
                 f'{proxy_address} from no-proxy for {token.address}')
 

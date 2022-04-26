@@ -153,7 +153,7 @@ def get_comptroller(logger):
 
     contract_implementation = Contract(address=proxy_address)
     if proxy_address != comptroller.proxy_for.address:
-        logger.warning(
+        logger.debug(
             f'Comptroller\'s implmentation is corrected to {proxy_address} '
             f'from {comptroller.proxy_for.address}')
     comptroller._meta.is_transparent_proxy = True
