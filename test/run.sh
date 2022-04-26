@@ -111,6 +111,10 @@ echo_cmd ""
 echo_cmd "Run Token Examples:"
 echo_cmd ""
 
+<<<<<<< HEAD
+=======
+test_model 0 example.token-loading '{}'
+>>>>>>> e0b506d (remove abi)
 test_model 0 token.price '{"symbol": "WETH"}' ${token_price_deps}
 test_model 0 token.price '{"symbol": "CMK"}' ${token_price_deps}
 test_model 0 token.price '{"symbol": "AAVE"}' ${token_price_deps}

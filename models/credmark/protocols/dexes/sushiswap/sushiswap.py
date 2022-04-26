@@ -120,7 +120,7 @@ class SushiswapGetPairDetails(Model):
 class SushiswapGetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
-        return get_uniswap_pools(SUSHISWAP_FACTORY_ADDRESS)
+        return get_uniswap_pools(SUSHISWAP_FACTORY_ADDRESS, input)
 
 
 @Model.describe(slug='sushiswap.get-average-price',

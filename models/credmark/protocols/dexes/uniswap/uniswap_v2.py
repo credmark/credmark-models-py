@@ -23,19 +23,31 @@ from models.dtos.volume import (
 from models.tmp_abi_lookup import (
     UNISWAP_V2_FACTORY_ADDRESS,
     WETH9_ADDRESS,
+    DAI_ADDRESS,
+    USDC_ADDRESS,
+    USDT_ADDRESS,
 )
 
 
-def get_uniswap_pools(factory_addr):
+def get_uniswap_pools(factory_addr, model_input):
     factory = Contract(address=factory_addr)
     tokens = [Token(symbol='USDC'),
               Token(symbol='USDT'),
               Token(symbol='WETH'),
               Token(symbol='DAI')]
+
+    t2 = [Token(address=Address(USDC_ADDRESS)),
+          Token(address=Address(USDT_ADDRESS)),
+          Token(address=Address(WETH9_ADDRESS)),
+          Token(address=Address(DAI_ADDRESS))]
+
+    for a, b in zip(tokens, t2):
+        assert a.address == b.address
+
     contracts = []
     try:
         for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
+            pair_address = factory.functions.getPair(model_input.address, token.address).call()
             if not pair_address == Address.null():
                 contracts.append(Contract(address=pair_address))
         return Contracts(contracts=contracts)
@@ -54,7 +66,7 @@ def get_uniswap_pools(factory_addr):
 class UniswapV2GetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
-        return get_uniswap_pools(UNISWAP_V2_FACTORY_ADDRESS)
+        return get_uniswap_pools(Address(UNISWAP_V2_FACTORY_ADDRESS), input)
 
 
 def uniswap_avg_price(model, pools_address, input):

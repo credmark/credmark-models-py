@@ -16,6 +16,7 @@ from credmark.cmf.types import (
 from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
+    UNISWAP_V3_POOL_ABI,
     UNISWAP_V3_FACTORY_ADDRESS,
     WETH9_ADDRESS,
 )
@@ -44,7 +45,6 @@ class UniswapV3PoolInfo(DTO):
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
     def run(self, input: Token) -> Contracts:
-
         fees = [3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
                           Token(symbol='USDT'),
@@ -61,9 +61,14 @@ class UniswapV3GetPoolsForToken(Model):
                 for primary_token in primary_tokens:
                     if input.address and primary_token.address:
                         pool = uniswap_factory.functions.getPool(
-                            input.address.checksum, primary_token.address.checksum, fee).call()
+                            input.address.checksum,
+                            primary_token.address.checksum,
+                            fee).call()
                         if pool != Address.null():
-                            pools.append(Contract(address=pool).info)
+                            # TODO: ABI for 0x2a84e2bd2e961b1557d6e516ca647268b432cba4
+                            # is not loaded in DB
+                            pools.append(Contract(address=pool,
+                                                  abi=UNISWAP_V3_POOL_ABI).info)
 
             return Contracts(contracts=pools)
         except BadFunctionCallOutput:
@@ -82,7 +87,7 @@ class UniswapV3GetPoolInfo(Model):
         try:
             input.abi
         except ModelDataError:
-            input = Contract(address=input.address).info
+            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
 
         pool = input
 

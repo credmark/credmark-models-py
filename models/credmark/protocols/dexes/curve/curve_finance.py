@@ -2,23 +2,36 @@ from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types.ledger import TransactionTable
-from credmark.dto import DTO
+
+from credmark.dto import (
+    DTO,
+    EmptyInput,
+)
+
 from credmark.cmf.types import (
     Address,
     Account,
     Accounts,
     Contract,
     Token,
-    Tokens
+    Tokens,
 )
-from credmark.cmf.types.series import BlockSeries
 
-from models.tmp_abi_lookup import (
-    CURVE_SWAP_ABI_1,
-    CURVE_SWAP_ABI_2,
-    CURVE_REGISTRY_ADDRESS,
-    CURVE_REGISTRY_ABI
-)
+# Same for all networks
+CURVE_PROVIDER = '0x0000000022D53366457F9d5E68Ec105046FC4383'
+
+
+@Model.describe(slug='curve-fi.get-registry',
+                version='1.0',
+                display_name='Curve Finance - Get Registry',
+                description='Curve Finance - Get Registry',
+                input=EmptyInput,
+                output=Contract)
+class CurveFinanceGetRegistry(Model):
+    def run(self, _) -> Contract:
+        provider = Contract(address=Address(CURVE_PROVIDER).checksum)
+        reg_addr = provider.functions.get_registry().call()
+        return Contract(address=Address(reg_addr).checksum).info
 
 
 class CurveFiPoolInfo(Contract):
@@ -34,29 +47,6 @@ class CurveFiPoolInfos(DTO):
     pool_infos: List[CurveFiPoolInfo]
 
 
-@Model.describe(slug='curve-fi.pool-historical-reserve',
-                version='1.0',
-                display_name='Curve Finance Pool Reserve Ratios',
-                description="the historical reserve ratios for a curve pool",
-                input=Contract,
-                output=BlockSeries[CurveFiPoolInfo])
-class CurveFinanceReserveRatio(Model):
-
-    def run(self, input: Contract) -> BlockSeries[CurveFiPoolInfo]:
-        # Verify input address can create a contract
-        _pool_address = input.address
-        _pool_contract = Contract(address=_pool_address.checksum, abi=CURVE_SWAP_ABI_1)
-
-        res = self.context.historical.run_model_historical('curve-fi.pool-info',
-                                                           window='60 days',
-                                                           interval='7 days',
-                                                           model_input={
-                                                               "address": input.address,
-                                                           },
-                                                           model_return_type=CurveFiPoolInfo)
-        return res
-
-
 @Model.describe(slug="curve-fi.pool-info",
                 version="1.0",
                 display_name="Curve Finance Pool Liqudity",
@@ -64,15 +54,16 @@ class CurveFinanceReserveRatio(Model):
                 input=Contract,
                 output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(Model):
-
     def run(self, input: Contract) -> CurveFiPoolInfo:
         tokens = Tokens()
         underlying_tokens = Tokens()
         balances = []
+
         try:
             input.functions.coins(0).call()
         except Exception as _err:
-            input = Contract(address=input.address.checksum, abi=CURVE_SWAP_ABI_2)
+            input = Contract(address=input.address.checksum)
+
         for i in range(0, 8):
             try:
                 tok = input.functions.coins(i).call()
@@ -116,17 +107,19 @@ class CurveFinancePoolInfo(Model):
 class CurveFinanceTotalTokenLiqudity(Model):
 
     def run(self, input) -> CurveFiPoolInfos:
-        registry = Contract(
-            address=Address(CURVE_REGISTRY_ADDRESS).checksum,
-            abi=CURVE_REGISTRY_ABI)
+        registry = self.context.run_model('curve-fi.get-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+
         total_pools = registry.functions.pool_count().call()
         pool_contracts = [
             Contract(address=registry.functions.pool_list(i).call())
             for i in range(0, total_pools)]
 
         pool_infos = [
-            CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(
-                Contract(address=pool.address, abi=CURVE_SWAP_ABI_1)))
+            CurveFiPoolInfo(
+                **self.context.models.curve_fi.pool_info(
+                    Contract(address=pool.address)))
             for pool in pool_contracts]
 
         return CurveFiPoolInfos(pool_infos=pool_infos)
