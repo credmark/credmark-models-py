@@ -6,7 +6,6 @@ from credmark.dto import (
     EmptyInput,
     IterableListGenericDTO,
 )
-
 from credmark.cmf.types import (
     Address,
     Contract,
@@ -14,17 +13,18 @@ from credmark.cmf.types import (
     Position,
     Portfolio
 )
-
 from credmark.cmf.model.errors import (
     ModelRunError,
     ModelDataError
 )
-
 from credmark.cmf.model import Model
-
 from typing import (
     List,
     Optional,
+)
+
+from web3.exceptions import (
+    ABIFunctionNotFound
 )
 
 
@@ -60,6 +60,12 @@ AAVE_LENDING_POOL_ADDRESS_PROVIDER = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5
 
 AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 
+# PriceOracle
+# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
+# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
+# getSourceOfAsset()
+# getFallbackOracle()
+
 
 @Model.describe(slug="aave-v2.get-lending-pool",
                 version="1.0",
@@ -89,6 +95,46 @@ class AaveV2GetPriceOracle(Model):
         return price_oracle_contract
 
 
+def get_eip1967_implementation(context, logger, token_address):
+    # pylint:disable=locally-disabled,protected-access
+    """
+    eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
+    """
+    default_proxy_address = ''.join(['0'] * 40)
+
+    token = Token(address=token_address)
+    # Got 0xca823F78C2Dd38993284bb42Ba9b14152082F7BD unrecognized by etherscan
+    # assert token.proxy_for is not None
+
+    # Many aTokens are not recognized as proxy in Etherscan
+    # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
+    # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
+    # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
+
+    proxy_address = context.web3.eth.get_storage_at(
+        token.address,
+        '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
+    if proxy_address[-40:] != default_proxy_address:
+        proxy_address = '0x' + proxy_address[-40:]
+        token_implemenation = Token(address=proxy_address)
+        # TODO: Work around before we can load proxy in the past based on block number.
+        if token._meta.is_transparent_proxy:
+            if token.proxy_for is not None and proxy_address != token.proxy_for.address:
+                logger.warning(
+                    f'token\'s implmentation is corrected to '
+                    f'{proxy_address} from {token.proxy_for.address} for {token.address}')
+        else:
+            logger.warning(
+                f'token\'s implmentation is corrected to '
+                f'{proxy_address} from no-proxy for {token.address}')
+
+        token._meta.is_transparent_proxy = True
+        token._meta.proxy_implementation = token_implemenation
+    else:
+        raise ModelDataError(f'Unable to retrieve proxy implementation for {token_address}')
+    return token
+
+
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
@@ -100,6 +146,9 @@ class AaveV2GetLiability(Model):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       aave_lending_pool.address)
 
         aave_assets = aave_lending_pool.functions.getReservesList().call()
 
@@ -126,11 +175,14 @@ class AaveV2GetTokenLiability(Model):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       aave_lending_pool.address)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
         # self.logger.info(f'info {reservesData}, {reservesData[7]}')
 
-        aToken = Token(address=reservesData[7])
+        aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
         try:
             aToken.total_supply
         except ModelDataError:
@@ -149,6 +201,9 @@ class AaveV2GetAssets(Model):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       aave_lending_pool.address)
 
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
@@ -173,6 +228,9 @@ class AaveV2GetTokenAsset(Model):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
+        aave_lending_pool = get_eip1967_implementation(self.context,
+                                                       self.logger,
+                                                       aave_lending_pool.address)
 
         reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
@@ -197,14 +255,29 @@ class AaveV2GetTokenAsset(Model):
         # 10. interestRateStrategyAddress | address | address of interest rate strategy
         # 11. id | uint8 | the position in the list of active reserves |
 
-        aToken = Token(address=reservesData[7])
-        stableDebtToken = Token(address=reservesData[8], abi=AAVE_STABLEDEBT_ABI)
-        variableDebtToken = Token(address=reservesData[9])
+        aToken = get_eip1967_implementation(self.context, self.logger, reservesData[7])
+        stableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[8])
+        variableDebtToken = get_eip1967_implementation(self.context, self.logger, reservesData[9])
         interestRateStrategyContract = Contract(address=reservesData[10])
 
         currentLiquidityRate = reservesData[3] / 1e27
         currentVariableBorrowRate = reservesData[4] / 1e27
         currentStableBorrowRate = reservesData[5] / 1e27
+
+        try:
+            # getSupplyData() returns
+            # 0. total principle,
+            # 1. total stable debt for the reserve (principle+interest),
+            # 2. average stable rate
+            # 3. last update timestamp
+            _ = stableDebtToken.functions.getSupplyData().call()
+        except ABIFunctionNotFound:
+            # pylint:disable=locally-disabled,protected-access
+            if stableDebtToken.proxy_for is not None:
+                if stableDebtToken.proxy_for._meta is not None:
+                    stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI
+            else:
+                raise
 
         supplyData = stableDebtToken.functions.getSupplyData().call()
         (totalStablePrincipleDebt,

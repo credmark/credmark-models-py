@@ -142,29 +142,49 @@ class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
     _iterator: str = 'values'
 
 
-@Model.describe(slug="compound-v2.get-comptroller",
-                version="1.0",
-                display_name="Compound V2 - comptroller",
-                description="Compound V2 - comptroller",
-                input=EmptyInput,
-                output=Contract)
+def get_comptroller(logger):
+    # pylint:disable=locally-disabled,protected-access
+    comptroller = Contract(address=COMPOUND_COMPTROLLER)
+    assert comptroller.address == '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B'
+    assert comptroller.contract_name == 'Unitroller'
+    assert comptroller.proxy_for is not None
+
+    proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
+
+    contract_implementation = Contract(address=proxy_address)
+    if proxy_address != comptroller.proxy_for.address:
+        logger.warning(
+            f'Comptroller\'s implmentation is corrected to {proxy_address} '
+            f'from {comptroller.proxy_for.address}')
+    comptroller._meta.is_transparent_proxy = True
+    comptroller._meta.proxy_implementation = contract_implementation
+    return comptroller
+
+
+@ Model.describe(slug="compound-v2.get-comptroller",
+                 version="1.0",
+                 display_name="Compound V2 - comptroller",
+                 description="Compound V2 - comptroller",
+                 input=EmptyInput,
+                 output=Contract)
 class CompoundV2Comptroller(Model):
-    # TODO: work-around before proxy can be queried with past block number
+    # pylint:disable=locally-disabled,protected-access
     def run(self, input: EmptyInput) -> Contract:
-        comptroller = Contract(address=COMPOUND_COMPTROLLER)
-        proxy_address = comptroller.instance.functions.comptrollerImplementation().call()
-        return Contract(address=proxy_address)
+        comptroller = get_comptroller(self.logger)
+        return comptroller._meta.proxy_implementation
 
 
-@Model.describe(slug="compound-v2.get-pools",
-                version="1.0",
-                display_name="Compound V2 - get cTokens/markets",
-                description="Compound V2 - get all cTokens/Markets",
-                input=EmptyInput,
-                output=dict)
+@ Model.describe(slug="compound-v2.get-pools",
+                 version="1.0",
+                 display_name="Compound V2 - get cTokens/markets",
+                 description="Compound V2 - get all cTokens/Markets",
+                 input=EmptyInput,
+                 output=dict)
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
-        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        # comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        comptroller = get_comptroller(self.logger)
+
         cTokens = comptroller.functions.getAllMarkets().call()
 
         # Check whether our list is complete
@@ -173,12 +193,12 @@ class CompoundV2GetAllPools(Model):
         return {'cTokens': cTokens}
 
 
-@Model.describe(slug="compound-v2.all-pools-info",
-                version="1.0",
-                display_name="Compound V2 - get cTokens/markets",
-                description="Compound V2 - get all cTokens/Markets",
-                input=EmptyInput,
-                output=CompoundV2PoolInfos)
+@ Model.describe(slug="compound-v2.all-pools-info",
+                 version="1.0",
+                 display_name="Compound V2 - get cTokens/markets",
+                 description="Compound V2 - get all cTokens/Markets",
+                 input=EmptyInput,
+                 output=CompoundV2PoolInfos)
 class CompoundV2AllPoolsInfo(Model):
     def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
         pool_infos = []
@@ -193,12 +213,12 @@ class CompoundV2AllPoolsInfo(Model):
         return ret
 
 
-@Model.describe(slug="compound-v2.all-pools-values",
-                version="1.0",
-                display_name="Compound V2 - get cTokens/markets",
-                description="Compound V2 - get all cTokens/Markets",
-                input=CompoundV2PoolInfos,
-                output=CompoundV2PoolValues)
+@ Model.describe(slug="compound-v2.all-pools-values",
+                 version="1.0",
+                 display_name="Compound V2 - get cTokens/markets",
+                 description="Compound V2 - get all cTokens/Markets",
+                 input=CompoundV2PoolInfos,
+                 output=CompoundV2PoolValues)
 class CompoundV2AllPoolsValue(Model):
     def run(self, input: CompoundV2PoolInfos) -> CompoundV2PoolValues:
         self.logger.info(f'Data as of {self.context.block_number=}')
@@ -256,15 +276,15 @@ class CompoundV2GetPoolInfo(Model):
     """
 
     def run(self, input: Token) -> CompoundV2PoolInfo:
-        comptroller = Contract(address=COMPOUND_COMPTROLLER)
+        comptroller = get_comptroller(self.logger)
 
         cToken = Token(address=input.address)
 
         # self.logger.info(f'{cToken._meta.is_transparent_proxy}')
         # self.logger.info(f'{cToken.is_transparent_proxy}')
 
-        (isListed, collateralFactorMantissa, isComped) = \
-            comptroller.functions.markets(cToken.address).call()
+        market_info = comptroller.functions.markets(cToken.address).call()
+        (isListed, collateralFactorMantissa, isComped) = market_info
         collateralFactorMantissa /= pow(10, 18)
 
         # From cToken to Token
@@ -282,8 +302,13 @@ class CompoundV2GetPoolInfo(Model):
 
         # Check for cToken to be matched with a Token
         assert cToken.functions.isCToken().call()
-        if cToken.proxy_for is not None:
-            assert cToken.functions.implementation().call() == cToken.proxy_for.address
+        # TODO: disable this test as we did not have loading ABI by block_number
+        # if cToken.proxy_for is not None:
+        #    try:
+        #        assert cToken.functions.implementation().call() == cToken.proxy_for.address
+        #    except AssertionError:
+        #        self.logger.error(f'{cToken.functions.implementation().call()}, '
+        #                          f'{cToken.proxy_for.address=}')
         assert cToken.functions.admin().call() == Address(COMPOUND_TIMELOCK)
         assert cToken.functions.comptroller().call() == Address(COMPOUND_COMPTROLLER)
         assert cToken.functions.symbol().call()
@@ -292,9 +317,10 @@ class CompoundV2GetPoolInfo(Model):
 
         # Get/calcualte info
 
-        # TODO: some ABI loading problem
+        # TODO: disable this test as we did not have loading ABI by block_number
         # irModel = Contract(address=cToken.functions.interestRateModel().call())
         # assert irModel.functions.isInterestRateModel().call()
+        # self.logger.info(f'{irModel.address=}, {irModel.functions.isInterestRateModel().call()=}')
 
         getCash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
