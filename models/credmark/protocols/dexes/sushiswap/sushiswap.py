@@ -14,8 +14,6 @@ from credmark.dto import (
 
 from models.tmp_abi_lookup import (
     SUSHISWAP_FACTORY_ADDRESS,
-    SUSHISWAP_FACTORY_ABI,
-    SUSHISWAP_PAIRS_ABI,
 )
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
@@ -30,14 +28,8 @@ from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
                 description="Returns the addresses of all pairs on Suhsiswap protocol")
 class SushiswapAllPairs(Model):
     def run(self, input) -> dict:
-
-        contract = Contract(
-            address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
-            abi=SUSHISWAP_FACTORY_ABI
-        )
-
+        contract = Contract(address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum)
         allPairsLength = contract.functions.allPairsLength().call()
-
         sushiswap_pairs_addresses = []
 
         error_count = 0
@@ -45,11 +37,14 @@ class SushiswapAllPairs(Model):
             try:
                 pair_address = contract.functions.allPairs(i).call()
                 sushiswap_pairs_addresses.append(Address(pair_address).checksum)
-
             except Exception as _err:
                 error_count += 1
 
-        return {"result": sushiswap_pairs_addresses}
+        self.logger.warning(f'There are {error_count} errors in total {allPairsLength} pools.')
+
+        return {"result": sushiswap_pairs_addresses,
+                'all_pairs_lenght': allPairsLength,
+                'error_count': error_count}
 
 
 class SushiSwapPool(DTO):
@@ -66,10 +61,7 @@ class SushiSwapPool(DTO):
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(
-            address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
-            abi=SUSHISWAP_FACTORY_ABI
-        )
+        contract = Contract(address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum)
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -90,10 +82,7 @@ class SushiswapGetPairDetails(Model):
     def run(self, input: Contract):
         output = {}
         self.logger.info(f'{input=}')
-        contract = Contract(
-            address=input.address.checksum,
-            abi=SUSHISWAP_PAIRS_ABI
-        )
+        contract = Contract(address=input.address.checksum)
         token0 = Token(address=contract.functions.token0().call())
         token1 = Token(address=contract.functions.token1().call())
         getReserves = contract.functions.getReserves().call()
