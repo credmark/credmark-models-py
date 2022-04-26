@@ -6,6 +6,10 @@ from web3.exceptions import (
 from web3._utils.filters import construct_event_filter_params
 from web3._utils.events import get_event_data
 
+from credmark.cmf.model.errors import (
+    ModelRunError,
+)
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import (
     Price,
@@ -27,6 +31,7 @@ from models.tmp_abi_lookup import (
     USDC_ADDRESS,
     USDT_ADDRESS,
 )
+
 
 def get_uniswap_pools(factory_addr, model_input):
     factory = Contract(address=factory_addr)
@@ -82,26 +87,28 @@ def uniswap_avg_price(model, pools_address, input):
         if reserves == [0, 0, 0]:
             continue
 
-        token0 = Token(address=pool.functions.token0().call())
-        token1 = Token(address=pool.functions.token1().call())
-        if input.address == token0.address:
-            other_token = Token(address=pool.functions.token1().call())
-            token_reserve = reserves[1]
-            input_reserve = reserves[0]
-        else:
-            other_token = Token(address=pool.functions.token0().call())
-            token_reserve = reserves[0]
+        token0 = Token(address=Address(pool.functions.token0().call()).checksum)
+        token1 = Token(address=Address(pool.functions.token1().call()).checksum)
+        price = token1.scaled(reserves[1]) / token0.scaled(reserves[0])
+        input_reserve = reserves[0]
+
+        if input.address == token1.address:
+            price = 1/price
             input_reserve = reserves[1]
 
-        price = other_token.scaled(token_reserve) / input.scaled(input_reserve)
-
+        weth_multipler = 1
         if input.address != WETH9_ADDRESS:
-            if WETH9_ADDRESS in (token0.address, token1.address):
+            if WETH9_ADDRESS in (token1.address, token0.address):
                 if weth_price is None:
                     weth_price = model.context.run_model(model.slug,
                                                          {"address": WETH9_ADDRESS},
-                                                         return_type=Price).price
-                price = price * weth_price
+                                                         return_type=Price)
+                    if weth_price.price is None:
+                        raise ModelRunError('Can not retriev price for WETH')
+                weth_multipler = weth_price.price
+
+        price *= weth_multipler
+
         prices.append((price, input_reserve))
 
     if len(prices) == 0:

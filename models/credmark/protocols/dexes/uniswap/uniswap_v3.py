@@ -1,5 +1,4 @@
 import pandas as pd
-from pyrsistent import b
 from web3.exceptions import (
     BadFunctionCallOutput,
 )
