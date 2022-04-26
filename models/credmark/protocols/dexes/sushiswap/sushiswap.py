@@ -20,7 +20,11 @@ from models.tmp_abi_lookup import (
     SUSHISWAP_FACTORY_ADDRESS,
     SUSHISWAP_FACTORY_ABI,
     SUSHISWAP_PAIRS_ABI,
-    UNISWAP_V2_SWAP_ABI,
+)
+
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
+    get_uniswap_pools,
+    uniswap_avg_price,
 )
 
 
@@ -131,21 +135,7 @@ class SushiswapGetPairDetails(Model):
 class SushiswapGetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
-
-        factory = Contract(address=SUSHISWAP_FACTORY_ADDRESS)
-        tokens = [Token(symbol="USDC"),
-                  Token(symbol="WETH"),
-                  Token(symbol="DAI")]
-        contracts = []
-        try:
-            for token in tokens:
-                pair_address = factory.functions.getPair(input.address, token.address).call()
-                if not pair_address == Address.null():
-                    contracts.append(Contract(address=pair_address))
-            return Contracts(contracts=contracts)
-        except BadFunctionCallOutput:
-            # Or use this condition: if self.context.block_number < 10794229
-            return Contracts(contracts=[])
+        return get_uniswap_pools(SUSHISWAP_FACTORY_ADDRESS)
 
 
 @Model.describe(slug='sushiswap.get-average-price',
@@ -156,41 +146,8 @@ class SushiswapGetPoolsForToken(Model):
                 output=Price)
 class SushiswapGetAveragePrice(Model):
     def run(self, input: Token) -> Price:
-        pools = self.context.run_model('sushiswap.get-pools',
-                                       input,
-                                       return_type=Contracts)
-        # TODO: remove ABI
-        pools = [Contract(address=p.address, abi=UNISWAP_V2_SWAP_ABI) for p in pools]
+        pools_address = self.context.run_model('sushiswap.get-pools',
+                                               input,
+                                               return_type=Contracts)
 
-        prices = []
-        reserves = []
-        weth_price = None
-        for pool in pools:
-            reserves = pool.functions.getReserves().call()
-            if input.address == pool.functions.token0().call():
-                token1 = Token(address=pool.functions.token1().call())
-
-                reserve = reserves[0]
-                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
-
-                if token1.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                            token1,
-                                                            return_type=Price).price
-                    price = price * weth_price
-            else:
-                token0 = Token(address=pool.functions.token0().call())
-                reserve = reserves[1]
-                price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
-                if token0.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                            token0,
-                                                            return_type=Price).price
-                    price = price * weth_price
-            prices.append((price, reserve))
-        if len(prices) == 0:
-            return Price(price=None, src=self.slug)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
-                     src=self.slug)
+        return uniswap_avg_price(self, pools_address, input)

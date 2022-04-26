@@ -23,7 +23,27 @@ from models.dtos.volume import (
 from models.tmp_abi_lookup import (
     UNISWAP_V2_SWAP_ABI,
     UNISWAP_V2_FACTORY_ADDRESS,
+    WETH9_ADDRESS,
 )
+
+
+def get_uniswap_pools(factory_addr):
+    factory = Contract(address=factory_addr)
+    tokens = [Token(symbol='USDC'),
+              Token(symbol='USDT'),
+              Token(symbol='WETH'),
+              Token(symbol='DAI')]
+    contracts = []
+    try:
+        for token in tokens:
+            pair_address = factory.functions.getPair(input.address, token.address).call()
+            if not pair_address == Address.null():
+                contracts.append(Contract(address=pair_address))
+        return Contracts(contracts=contracts)
+    except BadFunctionCallOutput:
+        # Or use this condition: if self.context.block_number < 10000835 # Uniswap V2
+        # Or use this condition: if self.context.block_number < 10794229 # SushiSwap
+        return Contracts(contracts=[])
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
@@ -35,21 +55,49 @@ from models.tmp_abi_lookup import (
 class UniswapV2GetPoolsForToken(Model):
 
     def run(self, input: Token) -> Contracts:
+        return get_uniswap_pools(UNISWAP_V2_FACTORY_ADDRESS)
 
-        factory = Contract(address=UNISWAP_V2_FACTORY_ADDRESS)
-        tokens = [Token(symbol="USDC"),
-                  Token(symbol="WETH"),
-                  Token(symbol="DAI")]
-        contracts = []
-        try:
-            for token in tokens:
-                pair_address = factory.functions.getPair(input.address, token.address).call()
-                if not pair_address == Address.null():
-                    contracts.append(Contract(address=pair_address))
-            return Contracts(contracts=contracts)
-        except BadFunctionCallOutput:
-            # Or use this condition: if self.context.block_number < 10000835
-            return Contracts(contracts=[])
+
+def uniswap_avg_price(model, pools_address, input):
+    """
+    Method to be shared between Uniswap V2 and SushiSwap
+    """
+    pools = [Contract(address=p.address) for p in pools_address]
+
+    prices = []
+    reserves = []
+    weth_price = None
+    for pool in pools:
+        reserves = pool.functions.getReserves().call()
+        if reserves == [0, 0, 0]:
+            continue
+
+        token0 = Token(address=pool.functions.token0().call())
+        token1 = Token(address=pool.functions.token1().call())
+        if input.address == token0.address:
+            other_token = Token(address=pool.functions.token1().call())
+            token_reserve = reserves[1]
+            input_reserve = reserves[0]
+        else:
+            other_token = Token(address=pool.functions.token0().call())
+            token_reserve = reserves[0]
+            input_reserve = reserves[1]
+
+        price = other_token.scaled(token_reserve) / input.scaled(input_reserve)
+
+        if input.address != WETH9_ADDRESS:
+            if WETH9_ADDRESS in (token0.address, token1.address):
+                if weth_price is None:
+                    weth_price = model.context.run_model(model.slug,
+                                                         {"address": WETH9_ADDRESS},
+                                                         return_type=Price).price
+                price = price * weth_price
+        prices.append((price, input_reserve))
+
+    if len(prices) == 0:
+        return Price(price=None, src=model.slug)
+    return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+                 src=model.slug)
 
 
 @Model.describe(slug='uniswap-v2.get-average-price',
@@ -60,47 +108,11 @@ class UniswapV2GetPoolsForToken(Model):
                 output=Price)
 class UniswapV2GetAveragePrice(Model):
     def run(self, input: Token) -> Price:
-        pools = self.context.run_model('uniswap-v2.get-pools',
-                                       input,
-                                       return_type=Contracts)
+        pools_address = self.context.run_model('uniswap-v2.get-pools',
+                                               input,
+                                               return_type=Contracts)
 
-        # TODO: remove abi
-        pools = [Contract(address=p.address, abi=UNISWAP_V2_SWAP_ABI)
-                 for p in pools]
-
-        prices = []
-        reserves = []
-        weth_price = None
-        for pool in pools:
-            reserves = pool.functions.getReserves().call()
-            if reserves == [0, 0, 0]:
-                continue
-            if input.address == pool.functions.token0().call():
-                token1 = Token(address=pool.functions.token1().call())
-                reserve = reserves[0]
-                price = token1.scaled(reserves[1]) / input.scaled(reserves[0])
-
-                if token1.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('uniswap-v2.get-average-price',
-                                                            token1,
-                                                            return_type=Price).price
-                    price = price * weth_price
-            else:
-                token0 = Token(address=pool.functions.token0().call())
-                reserve = reserves[1]
-                price = token0.scaled(reserves[0]) / input.scaled(reserves[1])
-                if token0.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('uniswap-v2.get-average-price',
-                                                            token0,
-                                                            return_type=Price).price
-                    price = price * weth_price
-            prices.append((price, reserve))
-        if len(prices) == 0:
-            return Price(price=None, src=self.slug)
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
-                     src=self.slug)
+        return uniswap_avg_price(self, pools_address, input)
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',

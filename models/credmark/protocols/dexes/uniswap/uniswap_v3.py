@@ -56,6 +56,7 @@ class UniswapV3GetPoolsForToken(Model):
 
         fees = [3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
+                          Token(symbol='USDT'),
                           Token(symbol='WETH'),
                           Token(symbol='USDC')]
 
