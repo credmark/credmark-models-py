@@ -5,7 +5,7 @@ from models.dtos.example import ExampleAccountInput, ExampleModelOutput
 
 @Model.describe(
     slug='example.account',
-    version='1.0',
+    version='1.1',
     display_name='Example - Account',
     description='This model gives examples of the functionality available on the Account class',
     developer='Credmark',

@@ -12,7 +12,7 @@ from models.tmp_abi_lookup import CMK_ADDRESS
 
 @Model.describe(
     slug='example.ledger-blocks',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Blocks",
     description="This model demonstrates the functionality of Ledger's blocks",
@@ -54,7 +54,7 @@ ledger_transactions_mocks = ModelMockConfig(
 
 @Model.describe(
     slug='example.ledger-transactions',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Transactions",
     description="This model demonstrates the functionality of Ledger's transactions",
@@ -86,8 +86,8 @@ class ExampleLedgerTransactions(Model):
 
 
 @Model.describe(
-    slug='example.ledger-transactions-gas-stats',
-    version="1.0",
+    slug='example.ledger-aggregates',
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Aggregates",
     description="This model demonstrates the functionality of aggregates in Ledger",
@@ -124,7 +124,7 @@ ledger.get_transactions(aggregates=[
 
 @Model.describe(
     slug='example.ledger-receipts',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Receipts",
     description="This model demonstrates the functionality of Ledger's receipts",
@@ -163,7 +163,7 @@ ledger.get_receipts(columns=[ReceiptTable.Columns.CONTRACT_ADDRESS,
 
 @Model.describe(
     slug='example.ledger-token-transfers',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Token transfers",
     description="This model demonstrates the functionality of Ledger's ERC20 token transfers",
@@ -200,7 +200,7 @@ ledger.get_erc20_transfers(columns=list(TokenTransferTable.columns()),
 
 @Model.describe(
     slug='example.ledger-tokens',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Tokens",
     description="This model demonstrates the functionality of Ledger's ERC20 tokens",
@@ -237,7 +237,7 @@ ledger.get_erc20_tokens(columns=list(TokenTable.columns()),
 
 @Model.describe(
     slug='example.ledger-logs',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Logs",
     description="This model demonstrates the functionality of Ledger's logs",
@@ -274,7 +274,7 @@ ledger.get_logs(columns=[LogTable.Columns.ADDRESS,
 
 @Model.describe(
     slug='example.ledger-contracts',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Contracts",
     description="This model demonstrates the functionality of Ledger's contracts",
@@ -310,7 +310,7 @@ ledger.get_contracts(columns=list(ContractTable.columns()),
 
 @Model.describe(
     slug='example.ledger-traces',
-    version="1.0",
+    version="1.1",
     developer="Credmark",
     display_name="Example - Ledger Traces",
     description="This model demonstrates the functionality of Ledger's traces",
