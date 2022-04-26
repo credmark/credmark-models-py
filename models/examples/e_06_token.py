@@ -18,10 +18,10 @@ class ExampleToken(Model):
         output = ExampleModelOutput(
             title="6. Example - Token",
             description="This model demonstrates the functionality of the Token class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_06_token.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.types.token.html")
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_06_token.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.types.token.html")
 
         output.log("Token class is an ERC20 contract")
 

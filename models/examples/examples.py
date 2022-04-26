@@ -14,8 +14,8 @@ class AllExample(Model):
 
         output = ExampleAllModelsOutput(
             title="Example - All",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/examples.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/examples.py",
             model_outputs=[]
         )
 

@@ -16,12 +16,12 @@ class ExampleAddress(Model):
     def run(self, input: ExampleAddressInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="3. Example - Address",
-            description="This model gives examples of the functionality available \
-                on the Address class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_03_address.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.types.address.Address.html")
+            description="This model gives examples of the functionality available "
+            "on the Address class",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_03_address.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.types.address.Address.html")
 
         address = input.address
 

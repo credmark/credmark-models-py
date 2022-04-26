@@ -15,8 +15,8 @@ class ExampleIteration(Model):
         output = ExampleIterationOutput(
             title="12. Example - Iteration",
             description="This model demonstrates how to create and use iterable DTOs",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_12_iteration.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_12_iteration.py",
             tokens=tokens
         )
 

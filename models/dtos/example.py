@@ -35,8 +35,8 @@ class _ExampleModelOutput(DTO):
         if ("documentation_url" in data
                 and data["documentation_url"] is not None
                 and data["documentation_url"] != ""):
-            self._log(f'> {TermColors.apply("Docs", underline=True)}   \
-                {data["documentation_url"]}')
+            self._log(f'> {TermColors.apply("Docs", underline=True)}   '
+                      f'{data["documentation_url"]}')
 
         self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 

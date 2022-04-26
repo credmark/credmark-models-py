@@ -12,8 +12,8 @@ from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
     slug='example.block-number',
     version='1.1',
     display_name='Example - BlockNumber',
-    description='This model gives examples of \
-                             the functionality available on the BlockNumber class',
+    description='This model gives examples of '
+    'the functionality available on the BlockNumber class',
     developer='Credmark',
     input=EmptyInput,
     output=ExampleModelOutput)
@@ -22,12 +22,12 @@ class ExampleBlockNumber(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="8a. BlockNumber",
-            description="This model gives examples of \
-                the functionality available on the BlockNumber class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_08_blocknumber.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.types.block_number.BlockNumber.html")
+            description="This model gives examples of "
+            "the functionality available on the BlockNumber class",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_08_blocknumber.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         block_number = self.context.block_number
 
@@ -85,20 +85,20 @@ class ExampleBlockNumber(Model):
     slug='example.block-time',
     version='1.1',
     display_name='Example - BlockTime',
-    description='This model demonstrates the conversion between block_number, \
-        timestamp and Python datetime',
+    description='This model demonstrates the conversion between block_number, '
+    'timestamp and Python datetime',
     input=ExampleBlockTimeInput,
     output=ExampleModelOutput)
 class ExampleBlockTime(Model):
     def run(self, input: ExampleBlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="8b. Example - Block Time",
-            description="This model demonstrates the conversion between block_number, \
-                timestamp and Python datetime",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_08_blocknumber.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.types.block_number.BlockNumber.html")
+            description="This model demonstrates the conversion between block_number, "
+            "timestamp and Python datetime",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_08_blocknumber.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)

@@ -29,15 +29,15 @@ class ExampleLedgerBlocks(Model):
         output = ExampleLedgerOutput(
             title="7a. Example - Ledger Blocks",
             description="This model demonstrates the functionality of Ledger's blocks",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch some information about the past 10 blocks:")
-        output.log_io(input='ledger.get_blocks(columns=[BlockTable.Columns.DIFFICULTY],\
-                          limit="10",order_by=BlockTable.Columns.NUMBER + " desc")',
+        output.log_io(input='ledger.get_blocks(columns=[BlockTable.Columns.DIFFICULTY],'
+                      'limit="10",order_by=BlockTable.Columns.NUMBER + " desc")',
                       output=ledger_output)
 
         return output
@@ -72,18 +72,18 @@ class ExampleLedgerTransactions(Model):
         ledger = self.context.ledger
         ledger_output = ledger.get_transactions(
             columns=[TransactionTable.Columns.HASH],
-            where=f'{TransactionTable.Columns.BLOCK_TIMESTAMP}=\
-                {self.context.block_number.timestamp}',
+            where=f'{TransactionTable.Columns.BLOCK_TIMESTAMP}='
+            '{self.context.block_number.timestamp}',
             limit="10",
             order_by=TransactionTable.Columns.GAS)
 
         output = ExampleLedgerOutput(
             title="7b. Example - Ledger Transactions",
             description="This model demonstrates the functionality of Ledger's transactions",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 10 transactions hashes mined in the requested block:")
@@ -117,10 +117,10 @@ class ExampleLedgerAggregates(Model):
         output = ExampleLedgerOutput(
             title="7c. Example - Ledger Aggregates",
             description="This model demonstrates the functionality of aggregates in Ledger",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch min, max, and average gas used in transactions "
@@ -159,10 +159,10 @@ class ExampleLedgerReceipts(Model):
         output = ExampleLedgerOutput(
             title="7d. Example - Ledger Receipts",
             description="This model demonstrates the functionality of Ledger's receipts",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 10 receipts in the requested block:")
@@ -193,19 +193,19 @@ class ExampleLedgerTokenTransfers(Model):
         ledger = self.context.ledger
         ledger_output = ledger.get_erc20_transfers(
             columns=list(TokenTransferTable.columns()),
-            where=f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{CMK_ADDRESS.lower()}\' or \
-                {TokenTransferTable.Columns.TO_ADDRESS}=\'{CMK_ADDRESS.lower()}\'',
+            where=f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{CMK_ADDRESS.lower()}\' or '
+            f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{CMK_ADDRESS.lower()}\'',
             order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
             limit="10")
 
         output = ExampleLedgerOutput(
             title="7e. Example - Ledger Token transfers",
-            description="This model demonstrates the functionality of Ledger's \
-                ERC20 token transfers",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            description="This model demonstrates the functionality of Ledger's "
+            "ERC20 token transfers",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 10 most recent ERC20 Token Transfers into or out of an address, "
@@ -244,10 +244,10 @@ class ExampleLedgerTokens(Model):
         output = ExampleLedgerOutput(
             title="7f. Example - Ledger Tokens",
             description="This model demonstrates the functionality of Ledger's ERC20 tokens",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 100 ERC20 Tokens:")
@@ -281,10 +281,10 @@ class ExampleLedgerLogs(Model):
         output = ExampleLedgerOutput(
             title="7g. Example - Ledger Logs",
             description="This model demonstrates the functionality of Ledger's logs",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 10 logs for the current block:")
@@ -323,10 +323,10 @@ class ExampleLedgerContracts(Model):
         output = ExampleLedgerOutput(
             title="7h. Example - Ledger Contracts",
             description="This model demonstrates the functionality of Ledger's contracts",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 100 Contracts:")
@@ -366,10 +366,10 @@ class ExampleLedgerTraces(Model):
         output = ExampleLedgerOutput(
             title="7i. Example - Ledger Traces",
             description="This model demonstrates the functionality of Ledger's traces",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_07_ledger.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#ledger",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_07_ledger.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#ledger",
             ledger_output=ledger_output)
 
         output.log("To fetch 100 traces for the current block:")

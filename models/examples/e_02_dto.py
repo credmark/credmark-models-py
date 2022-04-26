@@ -16,10 +16,10 @@ class ExampleDto(Model):
         output = ExampleModelOutput(
             title="2. Example - DTO",
             description="An example model to demonstrate DTO type",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_02_dto.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#data-transfer-object-dto")
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_02_dto.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#data-transfer-object-dto")
 
         output.log("DTOs are classes with typed properties which will serialize and "
                    "deserialize to and from JSON.")
@@ -83,10 +83,10 @@ class TestModel(Model):
     def run(self, _) -> PortfolioSummary:
         output = PortfolioSummary(
             title="2b. DTO Type Test 1",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/\
-                examples/dto_examples.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#data-transfer-object-dto",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/dto_examples.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#data-transfer-object-dto",
             num_tokens=5
         )
 
@@ -107,10 +107,10 @@ class TestModel2(Model):
     def run(self, _) -> PortfolioSummary:
         output = PortfolioSummary(
             title="2c. DTO Type Test 2",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/\
-                examples/dto_examples.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#data-transfer-object-dto",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/dto_examples.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#data-transfer-object-dto",
             num_tokens=5
         )
 

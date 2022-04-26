@@ -15,12 +15,11 @@ class ExampleEcho(Model):
         output = ExampleEchoOutput(
             title="1. Example - Model",
             description="First example model to echo the message property sent in input.",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_01_model.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                components.html#model-class",
-            echo=f"{input.message} from block: {self.context.block_number} at \
-                {self.context.block_number.timestamp_datetime}"
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_01_model.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "components.html#model-class",
+            echo=f"{input.message} from block: {self.context.block_number}"
         )
 
         output.log("This is a basic model")

@@ -17,11 +17,11 @@ class ExampleHistorical(Model):
         output = ExampleHistoricalOutput(
             title="11a. Example - Historical",
             description="This model demonstrates how to run a model over a period of time",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_11_historical.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html\
-                #credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
+            "#credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical",
             model_slug="example.model",
         )
 
@@ -84,14 +84,14 @@ class ExampleHistoricalBlock(Model):
     def run(self, _) -> ExampleHistoricalOutput:
         output = ExampleHistoricalOutput(
             title="11b. Example - Historical Block",
-            description="This model demonstrates how to run a model over a series \
-                of historical blocks",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
-                models/examples/e_11_historical.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/\
-                reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html\
-                #credmark.cmf.model.utils.historical_util.HistoricalUtil\
-                .run_model_historical_blocks",
+            description="This model demonstrates how to run a model over a series "
+            "of historical blocks",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
+            "#credmark.cmf.model.utils.historical_util.HistoricalUtil"
+            ".run_model_historical_blocks",
             model_slug="example.model",
         )
 
