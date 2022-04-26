@@ -1,39 +1,51 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Account,
-    Accounts,
-    Address,
-)
+from credmark.cmf.types import Token
+from models.dtos.example import ExampleIterationOutput
 
 
 @Model.describe(slug='example.iteration',
                 version='1.0',
-                display_name='Example Iteration',
-                description="A test model for iteration",
-                output=Accounts)
-class IterationExample(Model):
-    """
-    """
+                display_name='Example - Iteration',
+                description="An example model to demonstrate iterable DTOs",
+                output=ExampleIterationOutput)
+class ExampleIteration(Model):
+    def run(self, _) -> ExampleIterationOutput:
+        tokens = ExampleIterationOutput.Tokens(tokens=[Token(symbol="CMK")])
+        output = ExampleIterationOutput(
+            title="12. Example - Iteration",
+            description="This model demonstrates how to create and use iterable DTOs",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_12_iteration.py",
+            documentation_url="",
+            tokens=tokens
+        )
 
-    def run(self, input) -> Accounts:
+        output.log("To make a class iterable, you need to inherit "
+                   "\"IterableListGenericDTO\" and override \"_iterator\" attribute")
 
-        # You can create an account with address as string
-        account = Account(address="0x99cfb82eacb9f198d508b514d898a403c449533e")  # type: ignore
-        assert isinstance(account.address, Address)
+        output.log("To create iterable Tokens:")
+        output.log_io(
+            input="class Tokens(IterableListGenericDTO[Token]):\n"
+            "\ttokens: List[Token] = []\n"
+            "\t_iterator: str = PrivateAttr('tokens')",
+            output="")
 
-        # Or with an Address instance
-        account2 = Account(address=Address("0x68cfb82eacb9f198d508b514d898a403c449533e"))
-        assert isinstance(account.address, Address)
+        output.log_io(input="tokens = Tokens(tokens=[Token(symbol=\"CMK\")])", output=tokens)
 
-        accounts = Accounts(accounts=[
-            account,
-            account2,
-            Account(address=Address("0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"))])
+        output.log("More tokens can be added by using append method")
+        tokens.append(Token(symbol="DAI"))
+        output.log_io(input="tokens.append(Token(symbol=\"DAI\"))", output=tokens)
 
-        more_accounts = Accounts(
-            accounts=[Account(address=Address("0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"))])
+        output.log("You can iterate over \"tokens\" as you would any other list")
+        token_addresses = [token.address for token in tokens]
+        output.log_io(input="[token.address for token in tokens]", output=token_addresses)
 
-        for a in accounts:
-            if a.address == "0x68cfb82eacb9f198d508b514d898a403c449533e":
-                more_accounts.append(a)
-        return more_accounts
+        output.log("Use the extend function to merge another list into tokens")
+
+        stable_coins = ExampleIterationOutput.Tokens(tokens=[Token(symbol="USDC")])
+        tokens.extend(stable_coins)
+        output.log_io(input="stable_coins = Tokens(tokens=[Token(symbol=\"USDC\")])",
+                      output="")
+        output.log_io(input="tokens.extend(stable_coins)",
+                      output=tokens)
+        return output
