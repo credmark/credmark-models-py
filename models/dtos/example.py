@@ -2,10 +2,10 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 from credmark.cmf.model.errors import ModelBaseError
-from credmark.cmf.types import Address
+from credmark.cmf.types import Address, Token
 from credmark.cmf.types.ledger import LedgerModelOutput
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from models.utils.term_colors import TermColors
 
 
@@ -124,6 +124,14 @@ class ExampleHistoricalInput(DTO):
 class ExampleHistoricalOutput(ExampleModelOutput):
     model_slug: str
     model_historical_output: Optional[BlockSeries[dict]] = None
+
+
+class ExampleIterationOutput(ExampleModelOutput):
+    class Tokens(IterableListGenericDTO[Token]):
+        tokens: List[Token] = []
+        _iterator: str = PrivateAttr('tokens')
+
+    tokens: Tokens
 
 
 class ExampleLibrariesOutput(ExampleModelOutput):
