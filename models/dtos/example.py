@@ -9,7 +9,7 @@ from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from models.utils.term_colors import TermColors
 
 
-class _ExampleModelOutput(DTO):
+class ExampleModelOutput(DTO):
 
     # TODO: Replace it with a Discriminated Union
     class Log(DTO):
@@ -20,18 +20,18 @@ class _ExampleModelOutput(DTO):
         error: Optional[str] = None
 
     title: str
-    description: str = ""
+    description: Optional[str] = None
     github_url: str
-    documentation_url: str = ""
+    documentation_url: Optional[str] = None
     logs: List[Log] = []
 
     def __init__(self, **data):
         super().__init__(**data)
         self._log('\n' + TermColors.apply(data["title"], invert=True))
-        if data["description"] != "":
+        if "description" in data and data["description"] is not None and data["description"] != "":
             self._log(TermColors.apply(data["description"], faint=True))
         self._log('\n')
-        if data["documentation_url"] != "":
+        if "documentation_url" in data and data["documentation_url"] is not None and data["documentation_url"] != "":
             self._log('> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
         self._log('> ' + TermColors.apply("Source", underline=True) + " " + data["github_url"])
 
@@ -76,8 +76,8 @@ class _ExampleModelOutput(DTO):
 # __init__ with kwargs disables type hints
 # This hack re-enables type hints
 # TODO: Use `Unpacked` from typing_extensions for kwargs type
-class ExampleModelOutput(_ExampleModelOutput):
-    pass
+# class ExampleModelOutput(_ExampleModelOutput):
+#     pass
 
 
 class ExampleEchoInput(DTO):
@@ -140,3 +140,12 @@ class ExampleLibrariesOutput(ExampleModelOutput):
         version: str
 
     libraries: List[LibraryDTO]
+
+
+class ExampleAllModelsOutput(ExampleModelOutput):
+
+    class ModelOutput(DTO):
+        model_slug: str
+        model_output: dict
+
+    model_outputs: List[ModelOutput]
