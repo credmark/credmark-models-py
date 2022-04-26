@@ -17,11 +17,11 @@ class ExampleHistorical(Model):
         output = ExampleHistoricalOutput(
             title="11a. Example - Historical",
             description="This model demonstrates how to run a model over a period of time",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
-            "models/examples/e_11_historical.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/"
-            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
-            "#credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html\
+                #credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical",
             model_slug="example.model",
         )
 
@@ -64,7 +64,8 @@ class ExampleHistorical(Model):
                       output=model_historical_output.get(
                           timestamp=int(datetime.now().timestamp()) - 3600))
 
-        output.log("You can also iterate over historical output. To map result to a list of block numbers: ")
+        output.log("You can also iterate over historical output. To map result to a "
+                   "list of block numbers: ")
         output.log_io(input="list(map(lambda x: x.blockNumber, model_historical_output))",
                       output=list(map(lambda x: x.blockNumber, model_historical_output)))
         output.model_historical_output = model_historical_output
@@ -83,12 +84,14 @@ class ExampleHistoricalBlock(Model):
     def run(self, _) -> ExampleHistoricalOutput:
         output = ExampleHistoricalOutput(
             title="11b. Example - Historical Block",
-            description="This model demonstrates how to run a model over a series of historical blocks",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
-            "models/examples/e_11_historical.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/"
-            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
-            "#credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical_blocks",
+            description="This model demonstrates how to run a model over a series \
+                of historical blocks",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html\
+                #credmark.cmf.model.utils.historical_util.HistoricalUtil\
+                .run_model_historical_blocks",
             model_slug="example.model",
         )
 
@@ -132,7 +135,8 @@ class ExampleHistoricalBlock(Model):
                       output=model_historical_output.get(
                           timestamp=int(datetime.now().timestamp()) - 3600))
 
-        output.log("You can also iterate over historical output. To map result to a list of block number and echo message: ")
+        output.log("You can also iterate over historical output. To map result to a list "
+                   "of block number and echo message: ")
         output.log_io(input="list(map(lambda x: x.blockNumber, model_historical_output))",
                       output=list(map(lambda x: {"block_number": x.blockNumber,
                                                  "echo": x.output["echo"]},

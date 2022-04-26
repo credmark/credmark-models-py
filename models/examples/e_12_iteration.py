@@ -3,19 +3,20 @@ from credmark.cmf.types import Token
 from models.dtos.example import ExampleIterationOutput
 
 
-@Model.describe(slug='example.iteration',
-                version='1.1',
-                display_name='Example - Iteration',
-                description="An example model to demonstrate iterable DTOs",
-                output=ExampleIterationOutput)
+@Model.describe(
+    slug='example.iteration',
+    version='1.1',
+    display_name='Example - Iteration',
+    description="An example model to demonstrate iterable DTOs",
+    output=ExampleIterationOutput)
 class ExampleIteration(Model):
     def run(self, _) -> ExampleIterationOutput:
         tokens = ExampleIterationOutput.Tokens(tokens=[Token(symbol="CMK")])
         output = ExampleIterationOutput(
             title="12. Example - Iteration",
             description="This model demonstrates how to create and use iterable DTOs",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
-            "models/examples/e_12_iteration.py",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_12_iteration.py",
             tokens=tokens
         )
 

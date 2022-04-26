@@ -9,7 +9,7 @@ from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from models.utils.term_colors import TermColors
 
 
-class ExampleModelOutput(DTO):
+class _ExampleModelOutput(DTO):
 
     # TODO: Replace it with a Discriminated Union
     class Log(DTO):
@@ -31,15 +31,20 @@ class ExampleModelOutput(DTO):
         if "description" in data and data["description"] is not None and data["description"] != "":
             self._log(TermColors.apply(data["description"], faint=True))
         self._log('\n')
-        if "documentation_url" in data and data["documentation_url"] is not None and data["documentation_url"] != "":
-            self._log('> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
-        self._log('> ' + TermColors.apply("Source", underline=True) + " " + data["github_url"])
+
+        if ("documentation_url" in data
+                and data["documentation_url"] is not None
+                and data["documentation_url"] != ""):
+            self._log(f'> {TermColors.apply("Docs", underline=True)}   \
+                {data["documentation_url"]}')
+
+        self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 
     def _log(self, message: str):
         print(message)
 
     def log(self, message: str):
-        self._log('\n'+TermColors.apply(message, TermColors.BLUE))
+        self._log('\n' + TermColors.apply(message, TermColors.BLUE))
         self.logs.append(self.Log(type="message", message=message))
 
     def log_io(self, input: str, output):
@@ -76,8 +81,8 @@ class ExampleModelOutput(DTO):
 # __init__ with kwargs disables type hints
 # This hack re-enables type hints
 # TODO: Use `Unpacked` from typing_extensions for kwargs type
-# class ExampleModelOutput(_ExampleModelOutput):
-#     pass
+class ExampleModelOutput(_ExampleModelOutput):
+    pass
 
 
 class ExampleEchoInput(DTO):

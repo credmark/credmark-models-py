@@ -5,20 +5,23 @@ from credmark.cmf.types import NativeToken, Token
 from models.dtos.example import ExampleModelOutput, ExampleTokenInput
 
 
-@Model.describe(slug='example.token',
-                version='1.1',
-                developer='credmark',
-                display_name="Example - Token",
-                description="This model demonstrates the functionality of the Token class",
-                input=ExampleTokenInput,
-                output=ExampleModelOutput)
+@Model.describe(
+    slug='example.token',
+    version='1.1',
+    developer='credmark',
+    display_name="Example - Token",
+    description="This model demonstrates the functionality of the Token class",
+    input=ExampleTokenInput,
+    output=ExampleModelOutput)
 class ExampleToken(Model):
     def run(self, input: ExampleTokenInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="6. Example - Token",
             description="This model demonstrates the functionality of the Token class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_06_token.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.token.html")
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_06_token.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.token.html")
 
         output.log("Token class is an ERC20 contract")
 
@@ -41,7 +44,8 @@ class ExampleToken(Model):
         output.log_io(input="tokenLoadedFromAddress.total_supply",
                       output=tokenLoadedFromAddress.total_supply)
 
-        output.log("Token amount can be converted from base unit to scaled unit using scaled utility method")
+        output.log("Token amount can be converted from base unit to scaled unit "
+                   "using scaled utility method")
         output.log_io(input="tokenLoadedFromAddress.scaled(tokenLoadedFromAddress.total_supply)",
                       output=tokenLoadedFromAddress.scaled(tokenLoadedFromAddress.total_supply))
 

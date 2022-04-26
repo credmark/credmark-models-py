@@ -8,14 +8,15 @@ from credmark.dto import EmptyInput
 from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
 
 
-@Model.describe(slug='example.block-number',
-                version='1.1',
-                display_name='Example - BlockNumber',
-                description='This model gives examples of \
+@Model.describe(
+    slug='example.block-number',
+    version='1.1',
+    display_name='Example - BlockNumber',
+    description='This model gives examples of \
                              the functionality available on the BlockNumber class',
-                developer='Credmark',
-                input=EmptyInput,
-                output=ExampleModelOutput)
+    developer='Credmark',
+    input=EmptyInput,
+    output=ExampleModelOutput)
 class ExampleBlockNumber(Model):
 
     def run(self, _) -> ExampleModelOutput:
@@ -23,8 +24,10 @@ class ExampleBlockNumber(Model):
             title="8a. BlockNumber",
             description="This model gives examples of \
                 the functionality available on the BlockNumber class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_08_blocknumber.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_08_blocknumber.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         block_number = self.context.block_number
 
@@ -53,6 +56,8 @@ class ExampleBlockNumber(Model):
         # other ModelRunErrors in your models!
 
         try:
+            # pylint: disable=pointless-statement
+            # pyright: reportUnusedExpression=false
             block_number + 1
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
@@ -76,19 +81,24 @@ class ExampleBlockNumber(Model):
         return output
 
 
-@Model.describe(slug='example.block-time',
-                version='1.1',
-                display_name='Example - BlockTime',
-                description='This model demonstrates the conversion between block_number, timestamp and Python datetime',
-                input=ExampleBlockTimeInput,
-                output=ExampleModelOutput)
+@Model.describe(
+    slug='example.block-time',
+    version='1.1',
+    display_name='Example - BlockTime',
+    description='This model demonstrates the conversion between block_number, \
+        timestamp and Python datetime',
+    input=ExampleBlockTimeInput,
+    output=ExampleModelOutput)
 class ExampleBlockTime(Model):
     def run(self, input: ExampleBlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="8b. Example - Block Time",
-            description="This model demonstrates the conversion between block_number, timestamp and Python datetime",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_08_blocknumber.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.block_number.BlockNumber.html")
+            description="This model demonstrates the conversion between block_number, \
+                timestamp and Python datetime",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_08_blocknumber.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.block_number.BlockNumber.html")
 
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
@@ -99,7 +109,8 @@ class ExampleBlockTime(Model):
         output.log("as the last block before the datetime is returned")
         output.log_io(input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
 
-        output.log_io(input="block_number.timestamp_datetime", output=block_number.timestamp_datetime)
+        output.log_io(input="block_number.timestamp_datetime",
+                      output=block_number.timestamp_datetime)
 
         output.log("Block Number can also be obtained from unix timestamp.")
         output.log("If timezone is not provided, python defaults to UTC timezone")

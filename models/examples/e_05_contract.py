@@ -2,8 +2,6 @@ from credmark.cmf.model import Model, EmptyInput
 from credmark.cmf.types import Contract
 from models.dtos.example import ExampleModelOutput
 
-from models.tmp_abi_lookup import CMK_ADDRESS
-
 
 @Model.describe(
     slug='example.contract',
@@ -17,14 +15,18 @@ class ExampleContract(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",
-            description="This model gives examples of the functionality available on the Contract class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_05_contract.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.contract.Contract.html")
+            description="This model gives examples of the functionality available on the \
+                Contract class",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_05_contract.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.contract.Contract.html")
 
         output.log("Contract is a subclass of Account, and is initialized with an address.")
         output.log("To interact with one of CMK's vesting contracts:")
         contract = Contract(address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9")
-        output.log_io(input="Contract(address='0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9')", output=contract.dict())
+        output.log_io(input="Contract(address='0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9')",
+                      output=contract.dict())
 
         output.log("You can interact with contract functions")
         output.log_io(input="contract.functions.getTokenAddress().call()",
@@ -34,10 +36,13 @@ class ExampleContract(Model):
         output.log_io(input="contract.functions.getTotalClaimedAllocation().call()",
                       output=contract.functions.getTotalClaimedAllocation().call())
         output.log("You can also pass parameters to contract functions")
-        output.log_io(input="contract.functions.getClaimableAmount('0x2DA5e2C09d4DEc83C38Db2BBE2c1Aa111dDEe028').call()",
-                      output=contract.functions.getClaimableAmount('0x2DA5e2C09d4DEc83C38Db2BBE2c1Aa111dDEe028').call())
+        output.log_io(input="contract.functions.getClaimableAmount(\
+                          '0x2DA5e2C09d4DEc83C38Db2BBE2c1Aa111dDEe028').call()",
+                      output=contract.functions.getClaimableAmount(
+                          '0x2DA5e2C09d4DEc83C38Db2BBE2c1Aa111dDEe028').call())
 
-        output.log("You can get events by creating filters. To get all vested accounts, we can query \"VestingScheduleAdded\" events.")
+        output.log("You can get events by creating filters. To get all vested accounts, "
+                   "we can query \"VestingScheduleAdded\" events.")
         vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
             fromBlock=0,
             toBlock=self.context.block_number

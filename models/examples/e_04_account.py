@@ -15,9 +15,12 @@ class ExampleAccount(Model):
     def run(self, input: ExampleAccountInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="4. Example - Account",
-            description="This model gives examples of the functionality available on the Account class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_04_account.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.account.html"
+            description="This model gives examples of the functionality available \
+                on the Account class",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_04_account.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.account.html"
         )
 
         account_1 = Account(address=input.address_1)

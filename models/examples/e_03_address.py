@@ -16,9 +16,12 @@ class ExampleAddress(Model):
     def run(self, input: ExampleAddressInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="3. Example - Address",
-            description="This model gives examples of the functionality available on the Address class",
-            github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_03_address.py",
-            documentation_url="https://developer-docs.credmark.com/en/latest/reference/credmark.cmf.types.address.Address.html")
+            description="This model gives examples of the functionality available \
+                on the Address class",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/\
+                models/examples/e_03_address.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/\
+                reference/credmark.cmf.types.address.Address.html")
 
         address = input.address
 
@@ -33,7 +36,8 @@ class ExampleAddress(Model):
         output.log_io(input=f"address == Address('{address}')",
                       output=address == Address(str(address)))
 
-        random_case_address = '0x'+(''.join(choice((str.upper, str.lower))(char) for char in address[2:]))
+        random_case_address = '0x'+(''.join(
+            choice((str.upper, str.lower))(char) for char in address[2:]))
         output.log("Address equality is case-insensitive")
         output.log_io(input=f"{random_case_address} == {address}",
                       output=random_case_address == address)
