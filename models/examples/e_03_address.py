@@ -6,7 +6,7 @@ from models.dtos.example import ExampleAddressInput, ExampleModelOutput
 
 @Model.describe(
     slug='example.address',
-    version='1.0',
+    version='1.1',
     display_name='Example - Address',
     description='This model gives examples of the functionality available on the Address class',
     developer='Credmark',

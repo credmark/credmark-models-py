@@ -6,7 +6,7 @@ from models.dtos.example import ExampleHistoricalOutput
 
 @Model.describe(
     slug='example.historical',
-    version='1.0',
+    version='1.1',
     display_name='Example - Historical',
     description='This model demonstrates how to run a model over a period of time',
     developer='Credmark',
@@ -73,7 +73,7 @@ class ExampleHistorical(Model):
 
 @Model.describe(
     slug='example.historical-block',
-    version='1.0',
+    version='1.1',
     display_name='Example - Historical Block',
     description='This model demonstrates how to run a model over a series of historical blocks',
     developer='Credmark',

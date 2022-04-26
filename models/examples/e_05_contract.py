@@ -7,7 +7,7 @@ from models.tmp_abi_lookup import CMK_ADDRESS
 
 @Model.describe(
     slug='example.contract',
-    version='1.0',
+    version='1.1',
     display_name='Example - Contract',
     description='This model gives examples of the functionality available on the Contract class',
     developer='Credmark',

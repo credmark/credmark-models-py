@@ -1,12 +1,10 @@
-from datetime import datetime
 from credmark.cmf.model import Model
-from credmark.cmf.types import Portfolio
 from credmark.dto import DTO, DTOField, EmptyInput
 from models.dtos.example import ExampleModelOutput
 
 
 @Model.describe(slug='example.dto',
-                version='1.0',
+                version='1.1',
                 display_name='Example - DTO',
                 description='An example model to demonstrate DTO type',
                 developer='Credmark',
@@ -70,19 +68,19 @@ class PortfolioSummary(ExampleModelOutput):
 
 
 @Model.describe(slug='example.dto-type-test-1',
-                version='1.0',
+                version='1.1',
                 display_name='DTO Type Test 1',
                 developer='Credmark',
-                input=Portfolio,
+                input=EmptyInput,
                 output=PortfolioSummary)
 class TestModel(Model):
 
-    def run(self, input: Portfolio) -> PortfolioSummary:
+    def run(self, _) -> PortfolioSummary:
         output = PortfolioSummary(
             title="2b. DTO Type Test 1",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/dto_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto",
-            num_tokens=len(input.positions)
+            num_tokens=5
         )
 
         output.log("This model returns the correct type PortfolioSummary")
@@ -92,18 +90,18 @@ class TestModel(Model):
 
 
 @Model.describe(slug='example.dto-type-test-2',
-                version='1.0',
+                version='1.1',
                 display_name='DTO Type Test 2',
                 developer='Credmark',
-                input=Portfolio,
+                input=EmptyInput,
                 output=PortfolioSummary)
 class TestModel2(Model):
-    def run(self, input: Portfolio) -> PortfolioSummary:
+    def run(self, _) -> PortfolioSummary:
         output = PortfolioSummary(
             title="2c. DTO Type Test 2",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/dto_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto",
-            num_tokens=len(input.positions)
+            num_tokens=5
         )
 
         output.log("This model will raise an error because we're not returning")

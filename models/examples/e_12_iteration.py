@@ -4,7 +4,7 @@ from models.dtos.example import ExampleIterationOutput
 
 
 @Model.describe(slug='example.iteration',
-                version='1.0',
+                version='1.1',
                 display_name='Example - Iteration',
                 description="An example model to demonstrate iterable DTOs",
                 output=ExampleIterationOutput)
@@ -16,7 +16,6 @@ class ExampleIteration(Model):
             description="This model demonstrates how to create and use iterable DTOs",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/"
             "models/examples/e_12_iteration.py",
-            documentation_url="",
             tokens=tokens
         )
 
