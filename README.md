@@ -232,7 +232,7 @@ We strongly encourage you to create DTOs and/or make use of the common objects, 
 You may use `credmark-dev describe {model_slug}` to show the input/output schema and examples for specific model(s). For example
 
 ```
-credmark-dev describe aave.token-asset-historical
+credmark-dev describe aave-v2.token-asset-historical
 
 (...omit the output header)
 
@@ -261,7 +261,7 @@ Loaded models:
          └─output(object)
  - output example:
    #01: {'series': [{'blockNumber': 'integer', 'blockTimestamp': 'integer', 'sampleTimestamp': 'integer', 'output': 'object'}]}
- - class: models.credmark.protocols.aave.aave_v2.AaveV2GetTokenAssetHistorical
+ - class: models.credmark.protocols.aave-v2.aave_v2.AaveV2GetTokenAssetHistorical
 ```
 
 ## Submit a Model
