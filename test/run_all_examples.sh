@@ -156,4 +156,7 @@ echo ""
 echo "Run Finance Examples"
 echo ""
 credmark-dev run finance.example-var-contract --input '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical -b 14234904 --format_json
+<<<<<<< HEAD
 credmark-dev run finance.lcr --input '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}' -b 14234904 --format_json
+=======
+>>>>>>> a2c4484 (update examples)
