@@ -1,17 +1,13 @@
 from credmark.cmf.engine.mocks import ModelMock, ModelMockConfig
 from credmark.cmf.model import Model
 from credmark.cmf.types.ledger import (BlockTable, ContractTable,
-                                       LedgerModelOutput, LogTable,
+                                       LogTable,
                                        ReceiptTable, TokenTable,
                                        TokenTransferTable, TraceTable,
                                        TransactionTable)
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleModelOutput
+from models.dtos.example import ExampleLedgerOutput
 from models.tmp_abi_lookup import CMK_ADDRESS
-
-
-class ExampleLedgerOutput(ExampleModelOutput):
-    ledger_output: LedgerModelOutput
 
 
 @Model.describe(
@@ -22,7 +18,7 @@ class ExampleLedgerOutput(ExampleModelOutput):
     description="This model demonstrates the functionality of Ledger's blocks",
     input=EmptyInput,
     output=ExampleLedgerOutput)
-class ExampleLedgerBlock(Model):
+class ExampleLedgerBlocks(Model):
     def run(self, _):
         ledger = self.context.ledger
         ledger_output = ledger.get_blocks(columns=[BlockTable.Columns.DIFFICULTY],
@@ -97,7 +93,7 @@ class ExampleLedgerTransactions(Model):
     description="This model demonstrates the functionality of aggregates in Ledger",
     input=EmptyInput,
     output=ExampleLedgerOutput)
-class ExampleLedgerTransactionsMaxGas(Model):
+class ExampleLedgerAggregates(Model):
     def run(self, _):
         ledger = self.context.ledger
         ledger_output = ledger.get_transactions(aggregates=[

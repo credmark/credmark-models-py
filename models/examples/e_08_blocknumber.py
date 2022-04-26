@@ -4,8 +4,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError, ModelRunError
 from credmark.cmf.types.block_number import (BlockNumber,
                                              BlockNumberOutOfRangeError)
-from credmark.dto import DTO, DTOField, EmptyInput
-from models.dtos.example import ExampleModelOutput
+from credmark.dto import EmptyInput
+from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
 
 
 @Model.describe(slug='example.block-number',
@@ -76,24 +76,14 @@ class ExampleBlockNumber(Model):
         return output
 
 
-class _BlockTimeInput(DTO):
-    blockTime: datetime = DTOField(
-        title="Block time",
-        description="Unix time, i.e. seconds(if >= -2e10 or <= 2e10) or milliseconds "
-        "(if < -2e10 or > 2e10) since 1 January 1970 or string with format "
-        "YYYY-MM-DD[T]HH: MM[:SS[.ffffff]][Z or [±]HH[:]MM]]]",
-        default_factory=datetime.utcnow
-    )
-
-
 @Model.describe(slug='example.block-time',
                 version='1.0',
-                display_name='Example - BlockNumber',
+                display_name='Example - BlockTime',
                 description='This model demonstrates the conversion between block_number, timestamp and Python datetime',
-                input=_BlockTimeInput,
+                input=ExampleBlockTimeInput,
                 output=ExampleModelOutput)
-class BlockTimeExample(Model):
-    def run(self, input: _BlockTimeInput) -> ExampleModelOutput:
+class ExampleBlockTime(Model):
+    def run(self, input: ExampleBlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="8b. Example - Block Time",
             description="This model demonstrates the conversion between block_number, timestamp and Python datetime",

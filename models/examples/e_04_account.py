@@ -1,12 +1,6 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Account, Accounts, Address
-from credmark.dto import DTO
-from models.dtos.example import ExampleModelOutput
-
-
-class _AccountInput(DTO):
-    address_1: Address = Address('0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf')
-    address_2: Address = Address('0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
+from credmark.cmf.types import Account, Accounts
+from models.dtos.example import ExampleAccountInput, ExampleModelOutput
 
 
 @Model.describe(
@@ -15,10 +9,10 @@ class _AccountInput(DTO):
     display_name='Example - Account',
     description='This model gives examples of the functionality available on the Account class',
     developer='Credmark',
-    input=_AccountInput,
+    input=ExampleAccountInput,
     output=ExampleModelOutput)
 class ExampleAccount(Model):
-    def run(self, input: _AccountInput) -> ExampleModelOutput:
+    def run(self, input: ExampleAccountInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="4. Example - Account",
             description="This model gives examples of the functionality available on the Account class",

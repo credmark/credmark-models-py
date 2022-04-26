@@ -1,14 +1,8 @@
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, NativeToken, Token
-from credmark.dto import DTO, DTOField
-from models.dtos.example import ExampleModelOutput
-
-
-class _TokenLoadingInput(DTO):
-    address: Address = DTOField(default=Address('0x68cfb82eacb9f198d508b514d898a403c449533e'))
-    symbol: str = DTOField(default='AAVE')
+from credmark.cmf.types import NativeToken, Token
+from models.dtos.example import ExampleModelOutput, ExampleTokenInput
 
 
 @Model.describe(slug='example.token',
@@ -16,10 +10,10 @@ class _TokenLoadingInput(DTO):
                 developer='credmark',
                 display_name="Example - Token",
                 description="This model demonstrates the functionality of the Token class",
-                input=_TokenLoadingInput,
+                input=ExampleTokenInput,
                 output=ExampleModelOutput)
-class ExampleTokenLoading(Model):
-    def run(self, input: _TokenLoadingInput) -> ExampleModelOutput:
+class ExampleToken(Model):
+    def run(self, input: ExampleTokenInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="6. Example - Token",
             description="This model demonstrates the functionality of the Token class",

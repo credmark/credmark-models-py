@@ -11,7 +11,7 @@ from models.dtos.example import ExampleModelOutput
                 developer='Credmark',
                 input=EmptyInput,
                 output=ExampleModelOutput)
-class DtoExampleModel(Model):
+class ExampleDto(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="2. Example - DTO",
@@ -71,10 +71,9 @@ class PortfolioSummary(ExampleModelOutput):
     num_tokens: int = DTOField(..., description='Number of different tokens')
 
 
-@Model.describe(slug='example.type-test-1',
+@Model.describe(slug='example.dto-type-test-1',
                 version='1.0',
-                display_name='Test Model',
-                description='Framework Test Model',
+                display_name='DTO Type Test 1',
                 developer='Credmark',
                 input=Portfolio,
                 output=PortfolioSummary)
@@ -82,6 +81,7 @@ class TestModel(Model):
 
     def run(self, input: Portfolio) -> PortfolioSummary:
         output = PortfolioSummary(
+            title="2b. DTO Type Test 1",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/dto_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto",
             num_tokens=len(input.positions)
@@ -93,16 +93,16 @@ class TestModel(Model):
         return output
 
 
-@Model.describe(slug='example.type-test-2',
+@Model.describe(slug='example.dto-type-test-2',
                 version='1.0',
-                display_name='Test Model',
-                description='Framework Test Model',
+                display_name='DTO Type Test 2',
                 developer='Credmark',
                 input=Portfolio,
                 output=PortfolioSummary)
 class TestModel2(Model):
     def run(self, input: Portfolio) -> PortfolioSummary:
         output = PortfolioSummary(
+            title="2c. DTO Type Test 2",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/dto_examples.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto",
             num_tokens=len(input.positions)

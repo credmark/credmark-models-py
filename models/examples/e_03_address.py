@@ -1,12 +1,7 @@
 from random import choice
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address
-from credmark.dto import DTO
-from models.dtos.example import ExampleModelOutput
-
-
-class _AddressInput(DTO):
-    address: Address = Address("0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf")
+from models.dtos.example import ExampleAddressInput, ExampleModelOutput
 
 
 @Model.describe(
@@ -15,10 +10,10 @@ class _AddressInput(DTO):
     display_name='Example - Address',
     description='This model gives examples of the functionality available on the Address class',
     developer='Credmark',
-    input=_AddressInput,
+    input=ExampleAddressInput,
     output=ExampleModelOutput)
 class ExampleAddress(Model):
-    def run(self, input: _AddressInput) -> ExampleModelOutput:
+    def run(self, input: ExampleAddressInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="3. Example - Address",
             description="This model gives examples of the functionality available on the Address class",
