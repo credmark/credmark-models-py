@@ -10,7 +10,7 @@ from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
 
 @Model.describe(
     slug='example.block-number',
-    version='1.1',
+    version='1.2',
     display_name='Example - BlockNumber',
     description='This model gives examples of '
     'the functionality available on the BlockNumber class',
@@ -83,7 +83,7 @@ class ExampleBlockNumber(Model):
 
 @Model.describe(
     slug='example.block-time',
-    version='1.1',
+    version='1.2',
     display_name='Example - BlockTime',
     description='This model demonstrates the conversion between block_number, '
     'timestamp and Python datetime',

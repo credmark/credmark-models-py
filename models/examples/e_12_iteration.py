@@ -5,7 +5,7 @@ from models.dtos.example import ExampleIterationOutput
 
 @Model.describe(
     slug='example.iteration',
-    version='1.1',
+    version='1.2',
     display_name='Example - Iteration',
     description="An example model to demonstrate iterable DTOs",
     output=ExampleIterationOutput)

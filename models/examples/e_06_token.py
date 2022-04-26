@@ -7,7 +7,7 @@ from models.dtos.example import ExampleModelOutput, ExampleTokenInput
 
 @Model.describe(
     slug='example.token',
-    version='1.1',
+    version='1.2',
     developer='credmark',
     display_name="Example - Token",
     description="This model demonstrates the functionality of the Token class",

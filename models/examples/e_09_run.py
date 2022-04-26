@@ -10,7 +10,7 @@ class RunExampleOutput(ExampleModelOutput):
 
 @Model.describe(
     slug='example.model-run',
-    version='1.1',
+    version='1.2',
     display_name='Example - Model Run',
     description='This model demonstrates how to run a "model" within a model',
     developer='Credmark',

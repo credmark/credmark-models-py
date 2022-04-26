@@ -15,7 +15,7 @@ from models.dtos.example import ExampleLibrariesOutput
 
 @Model.describe(
     slug='example.libraries',
-    version='1.1',
+    version='1.2',
     display_name='Example - Libraries',
     description='A list of the math/data science libraries that are '
     'included in the Credmark Framework.',

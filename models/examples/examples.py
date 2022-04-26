@@ -4,7 +4,7 @@ from models.dtos.example import ExampleAllModelsOutput
 
 @Model.describe(
     slug='example.all',
-    version='1.1',
+    version='1.2',
     display_name='Example - All',
     description='This model runs all of the Credmark Example Models',
     developer='Credmark',

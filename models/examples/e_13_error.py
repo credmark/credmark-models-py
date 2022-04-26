@@ -4,7 +4,7 @@ from credmark.cmf.model.errors import ModelDataError
 
 @Model.describe(
     slug='example.data-error-1',
-    version='1.1',
+    version='1.2',
     display_name='Example - Data Error 1',
     description="An example model to generate a ModelDataError.",
     developer='Credmark',
@@ -18,7 +18,7 @@ class ExampleDataError1(Model):
 
 @Model.describe(
     slug='example.data-error-2',
-    version='1.1',
+    version='1.2',
     display_name='Example - Data Error 2',
     description="An example model to generate a ModelDataError with 2 codes defined.",
     developer='Credmark',

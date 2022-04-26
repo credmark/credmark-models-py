@@ -5,7 +5,7 @@ from models.dtos.example import ExampleModelOutput
 
 @Model.describe(
     slug='example.dto',
-    version='1.1',
+    version='1.2',
     display_name='Example - DTO',
     description='An example model to demonstrate DTO type',
     developer='Credmark',
@@ -73,7 +73,7 @@ class PortfolioSummary(ExampleModelOutput):
 
 @Model.describe(
     slug='example.dto-type-test-1',
-    version='1.1',
+    version='1.2',
     display_name='DTO Type Test 1',
     developer='Credmark',
     input=EmptyInput,
@@ -98,7 +98,7 @@ class TestModel(Model):
 
 @Model.describe(
     slug='example.dto-type-test-2',
-    version='1.1',
+    version='1.2',
     display_name='DTO Type Test 2',
     developer='Credmark',
     input=EmptyInput,

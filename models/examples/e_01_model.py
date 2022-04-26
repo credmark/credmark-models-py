@@ -4,7 +4,7 @@ from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
 
 @Model.describe(
     slug='example.model',
-    version='1.1',
+    version='1.2',
     display_name='Example - Model',
     description="First example model to echo the message property sent in input.",
     developer='Credmark',
