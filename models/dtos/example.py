@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, TypedDict, Union
+from typing import List, Optional, Union
 
 from credmark.cmf.model.errors import ModelBaseError
 from credmark.cmf.types import Address
@@ -7,11 +7,6 @@ from credmark.cmf.types.ledger import LedgerModelOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO, DTOField
 from models.utils.term_colors import TermColors
-
-
-class ExampleModelOutputInfo(TypedDict):
-    github_url: str
-    documentation_url: str
 
 
 class _ExampleModelOutput(DTO):
@@ -27,7 +22,7 @@ class _ExampleModelOutput(DTO):
     title: str
     description: str = ""
     github_url: str
-    documentation_url: str
+    documentation_url: str = ""
     logs: List[Log] = []
 
     def __init__(self, **data):
@@ -35,7 +30,9 @@ class _ExampleModelOutput(DTO):
         self._log('\n' + TermColors.apply(data["title"], invert=True))
         if data["description"] != "":
             self._log(TermColors.apply(data["description"], faint=True))
-        self._log('\n> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
+        self._log('\n')
+        if data["documentation_url"] != "":
+            self._log('> ' + TermColors.apply("Docs", underline=True) + "   " + data["documentation_url"])
         self._log('> ' + TermColors.apply("Source", underline=True) + " " + data["github_url"])
 
     def _log(self, message: str):
@@ -127,3 +124,11 @@ class ExampleHistoricalInput(DTO):
 class ExampleHistoricalOutput(ExampleModelOutput):
     model_slug: str
     model_historical_output: Optional[BlockSeries[dict]] = None
+
+
+class ExampleLibrariesOutput(ExampleModelOutput):
+    class LibraryDTO(DTO):
+        name: str
+        version: str
+
+    libraries: List[LibraryDTO]
