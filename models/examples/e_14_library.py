@@ -68,7 +68,7 @@ class ExampleLibraries(Model):
             description="This model lists the math/data science libraries that are "
             "included in the Credmark Framework.",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/"
-            "models/examples/e_11_historical.py",
+            "models/examples/e_14_library.py",
             documentation_url="",
             libraries=libraries
         )
