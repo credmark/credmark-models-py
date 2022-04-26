@@ -1,96 +1,141 @@
-from typing import Any, List
+from datetime import datetime
 from credmark.cmf.model import Model
-from credmark.dto import DTO
+from credmark.dto import EmptyInput
+from models.dtos.example import ExampleHistoricalOutput
 
 
-class RunModelHistorical(DTO):
-    model_slug: str
-    model_input: dict
-
-
-@Model.describe(slug='example.historical', version="1.0", input=RunModelHistorical)
+@Model.describe(
+    slug='example.historical',
+    version='1.0',
+    display_name='Example - Historical',
+    description='This model demonstrates how to run a model over a period of time',
+    developer='Credmark',
+    input=EmptyInput,
+    output=ExampleHistoricalOutput)
 class ExampleHistorical(Model):
+    def run(self, _) -> ExampleHistoricalOutput:
+        output = ExampleHistoricalOutput(
+            title="11a. Example - Historical",
+            description="This model demonstrates how to run a model over a period of time",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
+            "#credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical",
+            model_slug="example.model",
+        )
 
-    """
-    This model returns the library example for every day for the past 30 days
-    """
+        output.log("You can use the run_model_historical method of the historical util in "
+                   "context to run model over an interval over a fixed window.")
+        output.log("You can move the window by providing end_timestamp. Window can also be "
+                   "snapped by duration.")
 
-    def run(self, input: RunModelHistorical) -> dict:
-        model_slug = input.model_slug
-        model_input = input.model_input
-
-        res = self.context.historical.run_model_historical(
-            model_slug,
-            window='5 hours',
-            interval='45 minutes',
-            model_input=model_input)
-
-        #  You can get historical elements by blocknumber,
-        #  You can get historical elements by time,
-        #  or you can iterate through them by index.
-
-        block = res.get(timestamp=1646007299 + (45 * 60))
-        if block is not None:
-            assert block.output
-
-        block = res.get(block_number=14291219)
-        if block is not None:
-            assert block.output
-
-        self.logger.info(res[3].dict())
-
-        return res.dict()
-
-
-@Model.describe(slug='example.historical-snap', version="1.0")
-class ExampleHistoricalSnap(Model):
-
-    """
-    This model returns the library example for every day for the past 30 days
-    """
-
-    def run(self, input):
-        class LibrariesDto(DTO):
-            libraries: List[Any]
-
-        blocks = self.context.historical.run_model_historical(
-            'example.libraries',
+        output.log_io(input="model_historical_output = "
+                      "self.context.historical.run_model_historical(\n"
+                      "\t'example.model\n',"
+                      "\twindow='5 days\n',"
+                      "\tinterval='1 day\n',"
+                      "\tsnap_clock='1 day')",
+                      output="")
+        output.log("----------------------------------------"
+                   "----------------------------------------")
+        model_historical_output = self.context.historical.run_model_historical(
+            'example.model',
             window='5 days',
             interval='1 day',
-            snap_clock='1 day',
-            model_return_type=LibrariesDto)
-        for block in blocks:
-            # block.output is type LibrariesDto
-            assert block.output.libraries
-        return blocks
+            snap_clock='1 day')
+        output.log("----------------------------------------"
+                   "----------------------------------------")
+        output.log_io(input="", output=model_historical_output)
+
+        output.log("You can get historical elements by index, blocknumber as well as time")
+        output.log_io(input="model_historical_output[2]",
+                      output=model_historical_output[2])
+
+        output.log(f"To get model result at block number {model_historical_output[1].blockNumber}")
+        output.log_io(input=f"model_historical_output.get("
+                      f"block_number={model_historical_output[1].blockNumber})",
+                      output=model_historical_output.get(
+                          block_number=model_historical_output[1].blockNumber))
+
+        output.log("To get model result nearest to the block one hour from now:")
+        output.log_io(input="model_historical_output.get("
+                      "timestamp=int(datetime.now().timestamp()) - 3600)",
+                      output=model_historical_output.get(
+                          timestamp=int(datetime.now().timestamp()) - 3600))
+
+        output.log("You can also iterate over historical output. To map result to a list of block numbers: ")
+        output.log_io(input="list(map(lambda x: x.blockNumber, model_historical_output))",
+                      output=list(map(lambda x: x.blockNumber, model_historical_output)))
+        output.model_historical_output = model_historical_output
+        return output
 
 
-@Model.describe(slug='example.historical-block-snap', version="1.0")
-class ExampleHistoricalBlockSnap(Model):
-
-    """
-    This model returns the library example for every day for the past 30 days
-    with interval of 100, with end block snapped to the multiples of snap of 153
-    """
-
-    def run(self, input):
-        return self.context.historical.run_model_historical_blocks(
-            'example.echo',
-            window=500,
-            interval=100,
-            snap_block=153)
-
-
-@Model.describe(slug='example.historical-block', version="1.0")
+@Model.describe(
+    slug='example.historical-block',
+    version='1.0',
+    display_name='Example - Historical Block',
+    description='This model demonstrates how to run a model over a series of historical blocks',
+    developer='Credmark',
+    input=EmptyInput,
+    output=ExampleHistoricalOutput)
 class ExampleHistoricalBlock(Model):
+    def run(self, _) -> ExampleHistoricalOutput:
+        output = ExampleHistoricalOutput(
+            title="11b. Example - Historical Block",
+            description="This model demonstrates how to run a model over a series of historical blocks",
+            github_url="https://github.com/credmark/credmark-models-py/blob/main/"
+            "models/examples/e_11_historical.py",
+            documentation_url="https://developer-docs.credmark.com/en/latest/"
+            "reference/credmark.cmf.model.utils.historical_util.HistoricalUtil.html"
+            "#credmark.cmf.model.utils.historical_util.HistoricalUtil.run_model_historical_blocks",
+            model_slug="example.model",
+        )
 
-    """
-    This model returns the library example for every day for the past 30 days
-    """
+        output.log("You can use the run_model_historical_blocks method of the historical util in "
+                   "context to run model over an interval over a fixed window of blocks.")
+        output.log("You can move the window by providing end_block. Window can also be "
+                   "snapped by duration.")
 
-    def run(self, input):
-        return self.context.historical.run_model_historical_blocks(
-            'example.libraries',
-            window=500,
-            interval=100,
-            snap_block=None)
+        output.log_io(input="model_historical_output = "
+                      "self.context.historical.run_model_historical_blocks(\n"
+                      "\t'example.model',\n"
+                      "\twindow=1000,\n"
+                      "\tinterval=200,\n"
+                      "\tsnap_clock=500)",
+                      output="")
+        output.log("----------------------------------------"
+                   "----------------------------------------")
+        model_historical_output = self.context.historical.run_model_historical_blocks(
+            'example.model',
+            window=1000,
+            interval=200,
+            snap_block=500,
+            model_return_type=dict)
+        output.log("----------------------------------------"
+                   "----------------------------------------")
+        output.log_io(input="", output=model_historical_output)
+
+        output.log("You can get historical elements by index, blocknumber as well as time")
+        output.log_io(input="model_historical_output[2]",
+                      output=model_historical_output[2])
+
+        output.log(f"To get model result at block number {model_historical_output[1].blockNumber}")
+        output.log_io(input=f"model_historical_output.get("
+                      f"block_number={model_historical_output[1].blockNumber})",
+                      output=model_historical_output.get(
+                          block_number=model_historical_output[1].blockNumber))
+
+        output.log("To get model result nearest to the block one hour from now:")
+        output.log_io(input="model_historical_output.get("
+                      "timestamp=int(datetime.now().timestamp()) - 3600)",
+                      output=model_historical_output.get(
+                          timestamp=int(datetime.now().timestamp()) - 3600))
+
+        output.log("You can also iterate over historical output. To map result to a list of block number and echo message: ")
+        output.log_io(input="list(map(lambda x: x.blockNumber, model_historical_output))",
+                      output=list(map(lambda x: {"block_number": x.blockNumber,
+                                                 "echo": x.output["echo"]},
+                                      model_historical_output)))
+        output.model_historical_output = model_historical_output
+        return output
