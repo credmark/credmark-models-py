@@ -783,11 +783,17 @@ Example:
 ```py
 from credmark.cmf.types import (Address, Contract)
 
+<<<<<<< HEAD
 contract = Contract(
     # lending pool address
     address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum
 )
 ```
+=======
+        contract = Contract(
+            # lending pool address
+            address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum)
+>>>>>>> 27db22b (clean up ABI)
 
 The address can be provided in lower case, upper case or checksum hex format. This class will normalize the address into lower case. Note that It can be used as a normal string but it also has a "checksum" property which returns a web3 ChecksumAddress.
 
