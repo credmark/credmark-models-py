@@ -1,14 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
-from models.dtos.example import ExampleModelOutput
-
-
-class EchoExampleInput(DTO):
-    message: str = DTOField('Hello', description='A message')
-
-
-class EchoExampleOutput(ExampleModelOutput):
-    echo: str
+from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
 
 
 @Model.describe(slug='example.model',
@@ -16,21 +7,22 @@ class EchoExampleOutput(ExampleModelOutput):
                 display_name='Example - Model',
                 description="First example model to echo the message property sent in input.",
                 developer='Credmark',
-                input=EchoExampleInput,
-                output=EchoExampleOutput)
-class EchoModel(Model):
-    def run(self, input: EchoExampleInput) -> EchoExampleOutput:
-        output = EchoExampleOutput(
+                input=ExampleEchoInput,
+                output=ExampleEchoOutput)
+class ExampleEcho(Model):
+    def run(self, input: ExampleEchoInput) -> ExampleEchoOutput:
+        output = ExampleEchoOutput(
             title="1. Example - Model",
             description="First example model to echo the message property sent in input.",
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_01_model.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#model-class",
-            echo=input.message
+            echo=input.message + " from block:" + str(self.context.block_number) +
+            " at " + str(self.context.block_number.timestamp_datetime)
         )
 
         output.log("This is a basic model")
         output.log("You can supply a message (str) as input with default value of Hello")
         output.log_io(input="input.message", output=input.message)
 
-        output.log("It echoes back the input message")
+        output.log("It echoes back the input message with execution context's block number and it's timestamp")
         return output

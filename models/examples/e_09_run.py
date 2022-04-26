@@ -16,7 +16,7 @@ class RunExampleOutput(ExampleModelOutput):
     developer='Credmark',
     input=EmptyInput,
     output=RunExampleOutput)
-class RunnerTestModel(Model):
+class ExampleModelRun(Model):
     def run(self, _) -> RunExampleOutput:
         output = RunExampleOutput(
             title="9. Example - Model Run",
@@ -33,10 +33,12 @@ class RunnerTestModel(Model):
         output.log_io(input="self.context.models.example.model({\"message\": \"Hello from model-run example\"})",
                       output="")
         output.log("Or you can use the run_model method of the context.")
-        output.log_io(input="self.context.run_model(slug=\"example.model\", input={\"message\": \"Hello from model-run example\"})",
+        output.log_io(input="self.context.run_model(\n\tslug=\"example.model\",\n\tinput={\"message\": \"Hello from model-run example\"})",
                       output="")
         output.log("--------------------------------------------------------------------------------")
-        model_output = self.context.run_model(slug='example.model', input={"message": "Hello from model-run example"})
+        model_output = self.context.run_model(
+            slug='example.model',
+            input={"message": "Hello from model-run example"})
         output.log("--------------------------------------------------------------------------------")
         output.log_io(input="", output=model_output)
 

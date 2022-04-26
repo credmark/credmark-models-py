@@ -13,7 +13,7 @@ from models.tmp_abi_lookup import CMK_ADDRESS
     developer='Credmark',
     input=EmptyInput,
     output=ExampleModelOutput)
-class ExampleAddress(Model):
+class ExampleContract(Model):
     def run(self, _) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",

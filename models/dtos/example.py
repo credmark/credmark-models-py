@@ -1,7 +1,11 @@
+from datetime import datetime
 from typing import List, Optional, TypedDict, Union
 
 from credmark.cmf.model.errors import ModelBaseError
-from credmark.dto import DTO
+from credmark.cmf.types import Address
+from credmark.cmf.types.ledger import LedgerModelOutput
+from credmark.cmf.types.series import BlockSeries
+from credmark.dto import DTO, DTOField
 from models.utils.term_colors import TermColors
 
 
@@ -77,3 +81,49 @@ class _ExampleModelOutput(DTO):
 # TODO: Use `Unpacked` from typing_extensions for kwargs type
 class ExampleModelOutput(_ExampleModelOutput):
     pass
+
+
+class ExampleEchoInput(DTO):
+    message: str = DTOField('Hello', description='A message')
+
+
+class ExampleEchoOutput(ExampleModelOutput):
+    echo: str
+
+
+class ExampleAddressInput(DTO):
+    address: Address = Address("0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf")
+
+
+class ExampleAccountInput(DTO):
+    address_1: Address = Address('0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf')
+    address_2: Address = Address('0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
+
+
+class ExampleTokenInput(DTO):
+    address: Address = DTOField(default=Address('0x68cfb82eacb9f198d508b514d898a403c449533e'))
+    symbol: str = DTOField(default='AAVE')
+
+
+class ExampleLedgerOutput(ExampleModelOutput):
+    ledger_output: LedgerModelOutput
+
+
+class ExampleBlockTimeInput(DTO):
+    blockTime: datetime = DTOField(
+        title="Block time",
+        description="Unix time, i.e. seconds(if >= -2e10 or <= 2e10) or milliseconds "
+        "(if < -2e10 or > 2e10) since 1 January 1970 or string with format "
+        "YYYY-MM-DD[T]HH: MM[:SS[.ffffff]][Z or [±]HH[:]MM]]]",
+        default_factory=datetime.utcnow
+    )
+
+
+class ExampleHistoricalInput(DTO):
+    model_slug: str = 'example.model'
+    model_input: dict = {}
+
+
+class ExampleHistoricalOutput(ExampleModelOutput):
+    model_slug: str
+    model_historical_output: Optional[BlockSeries[dict]] = None
