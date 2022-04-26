@@ -21,7 +21,6 @@ from models.dtos.volume import (
 )
 
 from models.tmp_abi_lookup import (
-    UNISWAP_V2_SWAP_ABI,
     UNISWAP_V2_FACTORY_ADDRESS,
     WETH9_ADDRESS,
 )
@@ -123,7 +122,7 @@ class UniswapV2GetAveragePrice(Model):
                 output=TradingVolume)
 class UniswapV2PoolSwapVolume(Model):
     def run(self, input: Contract) -> TradingVolume:
-        input = Contract(address=input.address, abi=UNISWAP_V2_SWAP_ABI)
+        input = Contract(address=input.address)
 
         token0 = Token(address=input.functions.token0().call())
         token1 = Token(address=input.functions.token1().call())
