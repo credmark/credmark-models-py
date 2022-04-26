@@ -143,6 +143,7 @@ class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
 
 
 def get_comptroller(logger):
+    # pylint:disable=locally-disabled,protected-access
     comptroller = Contract(address=COMPOUND_COMPTROLLER)
     assert comptroller.address == '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B'
     assert comptroller.contract_name == 'Unitroller'
@@ -167,7 +168,7 @@ def get_comptroller(logger):
                  input=EmptyInput,
                  output=Contract)
 class CompoundV2Comptroller(Model):
-    # TODO: work-around before proxy can be queried with past block number
+    # pylint:disable=locally-disabled,protected-access
     def run(self, input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self.logger)
         return comptroller._meta.proxy_implementation

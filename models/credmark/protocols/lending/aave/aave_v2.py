@@ -96,6 +96,7 @@ class AaveV2GetPriceOracle(Model):
 
 
 def get_eip1967_implementation(context, logger, token_address):
+    # pylint:disable=locally-disabled,protected-access
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
@@ -109,6 +110,7 @@ def get_eip1967_implementation(context, logger, token_address):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
+
     proxy_address = context.web3.eth.get_storage_at(
         token.address,
         '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
@@ -270,6 +272,7 @@ class AaveV2GetTokenAsset(Model):
             # 3. last update timestamp
             _ = stableDebtToken.functions.getSupplyData().call()
         except ABIFunctionNotFound:
+            # pylint:disable=locally-disabled,protected-access
             if stableDebtToken.proxy_for is not None:
                 if stableDebtToken.proxy_for._meta is not None:
                     stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI
