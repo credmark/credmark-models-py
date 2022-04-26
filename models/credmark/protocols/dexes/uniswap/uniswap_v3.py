@@ -1,10 +1,14 @@
-
+import pandas as pd
+from pyrsistent import b
 from web3.exceptions import (
     BadFunctionCallOutput,
 )
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.model.errors import (
+    ModelDataError,
+    ModelRunError,
+)
 from credmark.cmf.types import (
     Price,
     Token,
@@ -24,7 +28,7 @@ from models.tmp_abi_lookup import (
 
 class UniswapV3PoolInfo(DTO):
     address: Address
-    sqrtPriceX96: str
+    sqrtPriceX96: float
     tick: int
     observationIndex: int
     observationCardinality: int
@@ -110,7 +114,6 @@ class UniswapV3GetPoolInfo(Model):
             "liquidity": liquidity,
             "fee": fee
         }
-
         return UniswapV3PoolInfo(**res)
 
 
@@ -133,28 +136,56 @@ class UniswapV3GetAveragePrice(Model):
             for p in pools
         ]
 
-        prices = []
-        weth_prices = None
+        prices_with_info = []
+        weth_price = None
         for info in infos:
             # decimal only available for ERC20s
             if info.token0.decimals and info.token1.decimals:
-                tick_price = 1.0001 ** info.tick * \
-                    (10 ** (info.token0.decimals - info.token1.decimals))
+                scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
+                tick_price = 1.0001 ** info.tick * scale_multiplier
+
                 if input.address == info.token1.address:
                     tick_price = 1/tick_price
 
+                ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
+
+                if input.address == info.token1.address:
+                    ratio_price = 1/ratio_price
+
+                weth_multipler = 1
                 if input.address != WETH9_ADDRESS:
                     if WETH9_ADDRESS in (info.token1.address, info.token0.address):
-                        if weth_prices is None:
-                            weth_prices = self.context.run_model('uniswap-v3.get-average-price',
-                                                                 {"address": WETH9_ADDRESS},
-                                                                 return_type=Price).price
-                        tick_price = tick_price * weth_prices
+                        if weth_price is None:
+                            weth_price = self.context.run_model(self.slug,
+                                                                {"address": WETH9_ADDRESS},
+                                                                return_type=Price)
+                            if weth_price.price is None:
+                                raise ModelRunError('Can not retriev price for WETH')
+                        weth_multipler = weth_price.price
 
-                prices.append(tick_price)
+                tick_price *= weth_multipler
+                ratio_price *= weth_multipler
 
-        if len(prices) == 0:
+                prices_with_info.append((tick_price,
+                                         ratio_price,
+                                         info.address,
+                                         info.tick,
+                                         info.sqrtPriceX96,
+                                         info.liquidity,
+                                         info.fee,
+                                         weth_multipler,
+                                         info.token0.address, info.token1.address,
+                                         info.token0.symbol, info.token1.symbol,
+                                         info.token0.decimals, info.token1.decimals))
+
+        if len(prices_with_info) == 0:
             return Price(price=None, src=self.slug)
 
-        price = sum(prices) / len(prices)
+        df = pd.DataFrame(prices_with_info,
+                          columns=['tick_price', 'ratio_price', 'pool', 'tick', 'sqrtPriceX96',
+                                   'liquidity', 'fee', 'weth_multiplier',
+                                   'token0', 'token1', 't0', 't1', 't0dec', 't1dec'])
+        df.liquidity = df.liquidity.astype(float)
+        self.logger.debug(df.to_json())
+        price = (df.tick_price * df.liquidity).sum() / df.liquidity.sum()
         return Price(price=price, src=self.slug)

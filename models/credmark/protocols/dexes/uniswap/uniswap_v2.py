@@ -28,7 +28,6 @@ from models.tmp_abi_lookup import (
     USDT_ADDRESS,
 )
 
-
 def get_uniswap_pools(factory_addr, model_input):
     factory = Contract(address=factory_addr)
     tokens = [Token(symbol='USDC'),
