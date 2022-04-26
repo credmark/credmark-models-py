@@ -1,3 +1,4 @@
+from datetime import datetime
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio
 from credmark.dto import DTO, DTOField, EmptyInput
@@ -19,45 +20,42 @@ class ExampleDto(Model):
             github_url="https://github.com/credmark/credmark-models-py/blob/main/models/examples/e_02_dto.py",
             documentation_url="https://developer-docs.credmark.com/en/latest/components.html#data-transfer-object-dto")
 
-        output.log("DTOs are classes with typed properties which will serialize and deserialize to and from JSON.")
+        output.log("DTOs are classes with typed properties which will serialize and "
+                   "deserialize to and from JSON.")
 
-        class Token(DTO):
-            symbol: str
-            decimals: int = 18
+        class Animal(DTO):
+            name: str
+            no_of_legs: int = 4
+            is_vegetarian: bool = False
 
-        output.log_io(input="""
-class Token(DTO):
-    symbol: str
-    total_supply: int = 1000""",
+        output.log_io(input="class Animal(DTO):\n"
+                      "\tname: str\n"
+                      "\tlegs: int = 4\n"
+                      "\tis_vegetarian: bool = False",
                       output="")
 
-        token = Token(symbol='CMK')
-        output.log_io(input="Token(symbol='CMK')", output=token)
-        output.log_io(input="token.dict()", output=token.dict())
-        output.log_io(input="token.schema_json()", output=token.schema_json())
+        animal = Animal(name='Dog')
+        output.log_io(input="Animal(name='Dog')", output=animal)
+        output.log_io(input="animal.dict()", output=animal.dict())
+        output.log_io(input="animal.schema_json()", output=animal.schema_json())
 
         output.log("To declare a field as required, you may declare it using just"
                    " an annotation, or you may use an ellipsis (...) as the value:")
-        output.log_io(input="""
-class Token(DTO):
-    a: int
-    b: int = ...
-    c: int = DTOField(...)""",
+        output.log_io(input="class Animal(DTO):\n\ta: int\n\tb: int = ...\n\tc: int = DTOField(...)",
                       output="")
 
         output.log("You can use default_factory to declare field with dynamic value")
-        output.log_io(input="""
-class Token(DTO):
-    uid: UUID = DTOField(default_factory=uuid4)
-    updated: datetime = DTOField(default_factory=datetime.utcnow)""",
+        output.log_io(input="class Animal(DTO):\n"
+                      "\tuid: UUID = DTOField(default_factory=uuid4)\n"
+                      "\tfeeding_time: datetime = DTOField(default_factory=datetime.utcnow)",
                       output="")
 
         output.log("For custom validation, use the validator decorator.")
         output.log_io(input="""
-class Token(DTO):
-    symbol: str
+class Animal(DTO):
+    name: str
 
-    @validator('symbol')
+    @validator('name')
     def symbol_must_not_contain_space(cls, v):
         if ' ' in v:
             raise ValueError('must not contain a space')
