@@ -1,7 +1,3 @@
-from web3.exceptions import (
-    BadFunctionCallOutput,
-)
-
 from credmark.cmf.model import Model
 
 from credmark.cmf.types import (
