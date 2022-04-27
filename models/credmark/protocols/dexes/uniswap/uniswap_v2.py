@@ -1,3 +1,5 @@
+import pandas as pd
+
 from web3.exceptions import (
     BadFunctionCallOutput
 )
@@ -81,8 +83,7 @@ def uniswap_avg_price(model, pools_address, input):
     """
     pools = [Contract(address=p.address) for p in pools_address]
 
-    prices = []
-    reserves = []
+    prices_with_info = []
     weth_price = None
     for pool in pools:
         reserves = pool.functions.getReserves().call()
@@ -93,10 +94,12 @@ def uniswap_avg_price(model, pools_address, input):
         token1 = Token(address=Address(pool.functions.token1().call()).checksum)
         price = token1.scaled(reserves[1]) / token0.scaled(reserves[0])
         input_reserve = reserves[0]
+        inverse = False
 
         if input.address == token1.address:
             price = 1/price
             input_reserve = reserves[1]
+            inverse = True
 
         weth_multipler = 1
         if input.address != WETH9_ADDRESS:
@@ -104,19 +107,35 @@ def uniswap_avg_price(model, pools_address, input):
                 if weth_price is None:
                     weth_price = model.context.run_model(model.slug,
                                                          {"address": WETH9_ADDRESS},
-                                                         return_type = Price)
+                                                         return_type=Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
-                weth_multipler=weth_price.price
+                weth_multipler = weth_price.price
 
         price *= weth_multipler
 
-        prices.append((price, input_reserve))
+        prices_with_info.append((price,
+                                 input_reserve,
+                                 token1.scaled(reserves[1]),
+                                 token0.scaled(reserves[0]),
+                                 inverse,
+                                 weth_multipler,
+                                 token0.address, token1.address,
+                                 token0.symbol, token1.symbol,
+                                 token0.decimals, token1.decimals
+                                 ))
 
-    if len(prices) == 0:
-        return Price(price = None, src = model.slug)
-    return Price(price = sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
-                 src=model.slug)
+    if len(prices_with_info) == 0:
+        return Price(price=None, src=model.slug)
+
+    df = pd.DataFrame(prices_with_info,
+                      columns=['price', 'input_reserve', 'token1_reserve', 'token0_reserve',
+                               'inverse', 'weth_multiplier',
+                               'token0', 'token1', 't0', 't1', 't0dec', 't1dec'])
+
+    model.logger.debug(df.to_json())
+    avg_price = (df.price * df.input_reserve).sum() / df.input_reserve.sum()
+    return Price(price=avg_price, src=model.slug)
 
 
 @Model.describe(slug='uniswap-v2.get-average-price',
