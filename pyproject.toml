@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "credmark_models-py"
+version = "1.0.1"
+description = ""
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.9"
+numpy = ">=1.22.1"
+matplotlib = ">=3.5.1"
+pandas = ">=1.4.0"
+scipy = ">=1.8.0"
+statsmodels = ">=0.13.2"
+xlrd = ">=2.0.1"
+XlsxWriter = ">=3.0.3"
+beautifulsoup4 = ">=4.10.0"
+pyarrow = ">=7.0.0"
+
+[tool.poetry.dev-dependencies]
+autopep8 = "1.6.0"
+pycodestyle = "2.8.0"
+pylint = "2.13.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
