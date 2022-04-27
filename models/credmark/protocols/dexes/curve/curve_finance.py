@@ -310,6 +310,5 @@ class CurveFinanceAllYield(Model):
             yields = self.context.run_model('curve-fi.gauge-yield', gauge)
             self.logger.info(yields)
             res.append(yields)
-            break
 
         return {"results": res}
