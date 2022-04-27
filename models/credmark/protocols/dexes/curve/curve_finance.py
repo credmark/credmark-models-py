@@ -306,7 +306,6 @@ class CurveFinanceAllYield(Model):
 
         res = []
         for gauge in gauge_contracts.contracts:
-            gauge = Contract(**{"address": "0x824F13f1a2F29cFEEa81154b46C0fc820677A637"})
             yields = self.context.run_model('curve-fi.gauge-yield', gauge)
             self.logger.info(yields)
             res.append(yields)
