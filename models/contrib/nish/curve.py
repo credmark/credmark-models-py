@@ -16,14 +16,14 @@ from credmark.dto import (
 # Get token balance of an address on ethereum chain
 def ethereum_token_balance_of_address(contract_address, account_address):
     '''
-            Get token balance of an address method
-            Args::
-                contract_address: Ethereum Address of the token contract
-                account_address: Ethereum Address of account whose token balance is to be fetched
-                _apiKey: Etherscan API Key
-            Returns::
-                _name: Name of token
-                _balance: Token Balance of Account
+    Get token balance of an address method
+    Args::
+        contract_address: Ethereum Address of the token contract
+        account_address: Ethereum Address of account whose token balance is to be fetched
+        _apiKey: Etherscan API Key
+    Returns::
+        _name: Name of token
+        _balance: Token Balance of Account
     '''
 
     contract_address = Address(contract_address).checksum
