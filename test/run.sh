@@ -35,7 +35,7 @@ echo_cmd ""
 test_model 0 contrib.neilz '{}'
 
 echo_cmd ""
-echo_cmd "echo Examples"
+echo_cmd "Examples"
 echo_cmd ""
 test_model 0 example.all '{}' example.contract,example.ledger-transactions,example.block-time
 test_model 0 example.model '{}'
@@ -47,6 +47,7 @@ test_model 0 example.block-time '{}'
 test_model 0 example.block-number '{}'
 test_model 0 example.address '{}'
 test_model 0 example.libraries '{}'
+test_model 0 example.token '{}'
 
 # Fix USDC here
 test_model 0 example.dto '{}'
