@@ -221,7 +221,7 @@ test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry
 # Curve.fi Factory USD Metapool: Alchemix USD: 0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c
 test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
 # Running time too long: curve-fi.all-pools-info
-test_model 0 curve-fi.all-yield '{}' curve-fi.all-gauges,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.gauge-yield
+# test_model 0 curve-fi.all-yield '{}' curve-fi.all-gauges,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.gauge-yield
 test_model 0 curve-fi.all-gauges '{}'
 test_model 0 curve-fi.get-gauge-stake-and-claimable-rewards '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}'
 test_model 0 curve-fi.gauge-yield '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' curve-fi.get-gauge-stake-and-claimable-rewards

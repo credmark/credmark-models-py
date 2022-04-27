@@ -147,7 +147,6 @@ echo "Run Curve Examples"
 echo ""
 credmark-dev run curve-fi.all-pools --input '{}' -l curve-fi.get-registry -b 14234904 --format_json
 credmark-dev run curve-fi.pool-info --input '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}' -b 14234904 --format_json
-credmark-dev run curve-fi.all-yield --input '{}' -l curve-fi.all-gauges,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.gauge-yield -b 14234904 --format_json
 credmark-dev run curve-fi.all-gauges --input '{}' -b 14234904 --format_json
 credmark-dev run curve-fi.get-gauge-stake-and-claimable-rewards --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -b 14234904 --format_json
 credmark-dev run curve-fi.gauge-yield --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -l curve-fi.get-gauge-stake-and-claimable-rewards -b 14234904 --format_json
