@@ -117,7 +117,7 @@ class ExampleBlockTimeInput(DTO):
         description="Unix time, i.e. seconds(if >= -2e10 or <= 2e10) or milliseconds "
         "(if < -2e10 or > 2e10) since 1 January 1970 or string with format "
         "YYYY-MM-DD[T]HH: MM[:SS[.ffffff]][Z or [±]HH[:]MM]]]",
-        default_factory=datetime.utcnow
+        default_factory=lambda: datetime(2022, 1, 15)
     )
 
 

@@ -72,8 +72,8 @@ class ExampleLedgerTransactions(Model):
         ledger = self.context.ledger
         ledger_output = ledger.get_transactions(
             columns=[TransactionTable.Columns.HASH],
-            where=f'{TransactionTable.Columns.BLOCK_TIMESTAMP}='
-            '{self.context.block_number.timestamp}',
+            where=f'{TransactionTable.Columns.BLOCK_TIMESTAMP}'
+            f'={self.context.block_number.timestamp}',
             limit="10",
             order_by=TransactionTable.Columns.GAS)
 
@@ -89,7 +89,7 @@ class ExampleLedgerTransactions(Model):
         output.log("To fetch 10 transactions hashes mined in the requested block:")
         output.log_io(input="ledger.get_transactions(columns=[TransactionTable.Columns.HASH], "
                       "where=f'{TransactionTable.Columns.BLOCK_TIMESTAMP}"
-                      "={self.context.block_number.timestamp}', "
+                      f"={self.context.block_number.timestamp}, "
                       "limit=\"10\", "
                       "order_by=TransactionTable.Columns.GAS)",
                       output=ledger_output)

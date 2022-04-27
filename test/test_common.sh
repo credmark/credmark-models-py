@@ -197,5 +197,5 @@ echo_cmd () {
 }
 
 
-deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
-var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}
+token_price_deps='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${token_price_deps}
