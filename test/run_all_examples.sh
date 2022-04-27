@@ -66,15 +66,15 @@ credmark-dev run example.iteration --input '{}' -b 14234904 --format_json
 echo ""
 echo "Run Token Examples:"
 echo ""
-credmark-dev run token.price --input '{"symbol": "WETH"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "CMK"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "AAVE"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "USDC"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"symbol": "MKR"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -b 14234904 --format_json
-credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -b 14234904 --format_json
-credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "WETH"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "CMK"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "AAVE"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "USDC"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"symbol": "MKR"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price --input '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
+credmark-dev run token.price-ext --input '{"symbol": "CMK"}' -l token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price -b 14234904 --format_json
 credmark-dev run token.holders --input '{"symbol": "CMK"}' -b 14234904 --format_json
 credmark-dev run token.swap-pools --input '{"symbol":"CMK"}' -b 14234904 --format_json
 credmark-dev run token.info --input '{"symbol":"CMK"}' -b 14234904 --format_json
@@ -145,9 +145,8 @@ credmark-dev run aave-v2.overall-liabilities-portfolio --input '{}' -l aave-v2.t
 echo ""
 echo "Run Curve Examples"
 echo ""
-credmark-dev run curve-fi.all-pools --input '{}' -l curve-fi.pool-info,curve-fi.get-registry -b 14234904 --format_json
+credmark-dev run curve-fi.all-pools --input '{}' -l curve-fi.get-registry -b 14234904 --format_json
 credmark-dev run curve-fi.pool-info --input '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}' -b 14234904 --format_json
-credmark-dev run curve-fi.all-yield --input '{}' -l curve-fi.gauge-yield,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.all-gauge-claim-addresses -b 14234904 --format_json
 credmark-dev run curve-fi.all-gauges --input '{}' -b 14234904 --format_json
 credmark-dev run curve-fi.get-gauge-stake-and-claimable-rewards --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -b 14234904 --format_json
 credmark-dev run curve-fi.gauge-yield --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -l curve-fi.get-gauge-stake-and-claimable-rewards -b 14234904 --format_json
