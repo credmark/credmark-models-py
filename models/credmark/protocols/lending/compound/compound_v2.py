@@ -111,9 +111,9 @@ def get_comptroller(model):
 
 
 @ Model.describe(slug="compound-v2.get-comptroller",
-                 version="1.0",
+                 version="1.1",
                  display_name="Compound V2 - comptroller",
-                 description="Compound V2 - comptroller",
+                 description="Get comptroller contract",
                  input=EmptyInput,
                  output=Contract)
 class CompoundV2Comptroller(Model):
@@ -124,14 +124,13 @@ class CompoundV2Comptroller(Model):
 
 
 @ Model.describe(slug="compound-v2.get-pools",
-                 version="1.0",
+                 version="1.1",
                  display_name="Compound V2 - get cTokens/markets",
-                 description="Compound V2 - get all cTokens/Markets",
+                 description="Query the comptroller for all cTokens/markets",
                  input=EmptyInput,
                  output=dict)
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
-        # comptroller = Contract(address=compound_comptroller)
         comptroller = get_comptroller(self)
 
         cTokens = comptroller.functions.getAllMarkets().call()
@@ -143,9 +142,9 @@ class CompoundV2GetAllPools(Model):
 
 
 @ Model.describe(slug="compound-v2.all-pools-info",
-                 version="1.0",
-                 display_name="Compound V2 - get cTokens/markets",
-                 description="Compound V2 - get all cTokens/Markets",
+                 version="1.1",
+                 display_name="Compound V2 - get all pool info",
+                 description="Get all pools and query for their info (deposit, borrow, rates)",
                  input=EmptyInput,
                  output=CompoundV2PoolInfos)
 class CompoundV2AllPoolsInfo(Model):
@@ -163,9 +162,9 @@ class CompoundV2AllPoolsInfo(Model):
 
 
 @ Model.describe(slug="compound-v2.all-pools-values",
-                 version="1.0",
-                 display_name="Compound V2 - get cTokens/markets",
-                 description="Compound V2 - get all cTokens/Markets",
+                 version="1.1",
+                 display_name="Compound V2 - get all pools value",
+                 description="Compound V2 - convert pool's info to value",
                  input=CompoundV2PoolInfos,
                  output=CompoundV2PoolValues)
 class CompoundV2AllPoolsValue(Model):
@@ -186,7 +185,7 @@ class CompoundV2AllPoolsValue(Model):
 
 
 @ Model.describe(slug="compound-v2.get-pool-info",
-                 version="1.0",
+                 version="1.1",
                  display_name="Compound V2 - pool/market information",
                  description="Compound V2 - pool/market information",
                  input=Token,
@@ -399,7 +398,7 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @ Model.describe(slug="compound-v2.pool-value",
-                 version="1.0",
+                 version="1.1",
                  display_name="Compound V2 - value of a market",
                  description="Compound V2 - value of a market",
                  input=CompoundV2PoolInfo,
@@ -436,7 +435,7 @@ class CompoundV2PoolsValueHistoricalInput(DTO):
 
 
 @ Model.describe(slug="compound-v2.pool-value-historical",
-                 version="1.0",
+                 version="1.1",
                  display_name="Compound pools value history",
                  description="Compound pools value history",
                  input=CompoundV2PoolsValueHistoricalInput,

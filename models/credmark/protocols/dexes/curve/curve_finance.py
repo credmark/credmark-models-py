@@ -20,9 +20,9 @@ from credmark.cmf.types import (
 
 
 @Model.describe(slug='curve-fi.get-provider',
-                version='1.0',
+                version='1.1',
                 display_name='Curve Finance - Get Provider',
-                description='Curve Finance - Get Provider',
+                description='Get provider contract',
                 input=EmptyInput,
                 output=Contract)
 class CurveFinanceGetProvider(Model):
@@ -34,9 +34,9 @@ class CurveFinanceGetProvider(Model):
 
 
 @Model.describe(slug='curve-fi.get-registry',
-                version='1.0',
+                version='1.1',
                 display_name='Curve Finance - Get Registry',
-                description='Curve Finance - Get Registry',
+                description='Query provider to get the registry',
                 input=EmptyInput,
                 output=Contract)
 class CurveFinanceGetRegistry(Model):
@@ -47,14 +47,34 @@ class CurveFinanceGetRegistry(Model):
 
 
 @Model.describe(slug="curve-fi.get-gauge-controller",
-                version='1.0',
-                display_name="Curve Finance - Get Gauge",
-                description="Curve Finance - Get Gauge")
+                version='1.1',
+                display_name="Curve Finance - Get Gauge Controller",
+                description="Query the registry for the guage controller")
 class CurveFinanceGetGauge(Model):
     def run(self, input):
         provider = Contract(**self.context.models.curve_fi.get_registry())
         gauge_addr = provider.functions.gauge_controller().call()
         return Contract(address=Address(gauge_addr).checksum)
+
+
+@Model.describe(slug="curve-fi.all-pools",
+                version="1.1",
+                display_name="Curve Finance - Get all pools",
+                description="Query the registry for all pools",
+                output=Contracts)
+class CurveFinanceAllPools(Model):
+
+    def run(self, input) -> Contracts:
+        registry = self.context.run_model('curve-fi.get-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+
+        total_pools = registry.functions.pool_count().call()
+        pool_contracts = [
+            Contract(address=registry.functions.pool_list(i).call())
+            for i in range(0, total_pools)]
+
+        return Contracts(contracts=pool_contracts)
 
 
 class CurveFiPoolInfo(Contract):
@@ -71,7 +91,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.0",
+                version="1.1",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -122,30 +142,10 @@ class CurveFinancePoolInfo(Model):
                                name=name)
 
 
-@Model.describe(slug="curve-fi.all-pools",
-                version="1.0",
-                display_name="Curve Finance Pool Liqudity",
-                description="The amount of Liquidity for Each Token in a Curve Pool",
-                output=Contracts)
-class CurveFinanceAllPools(Model):
-
-    def run(self, input) -> Contracts:
-        registry = self.context.run_model('curve-fi.get-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract)
-
-        total_pools = registry.functions.pool_count().call()
-        pool_contracts = [
-            Contract(address=registry.functions.pool_list(i).call())
-            for i in range(0, total_pools)]
-
-        return Contracts(contracts=pool_contracts)
-
-
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.0",
-                display_name="Curve Finance Pool Liqudity",
-                description="The amount of Liquidity for Each Token in a Curve Pool",
+                version="1.1",
+                display_name="Curve Finance Pool Liqudity - All",
+                description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(Model):
 
@@ -162,7 +162,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
 
 @ Model.describe(slug="curve-fi.all-gauges",
-                 version='1.0',
+                 version='1.1',
                  display_name="Curve Finance Gauge List",
                  description="All Gauge Contracts for Curve Finance Pools",
                  input=EmptyInput,
@@ -183,7 +183,7 @@ class CurveFinanceAllGauges(Model):
 
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.0',
+                 version='1.1',
                  input=Contract,
                  output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
@@ -202,7 +202,7 @@ class CurveFinanceAllGaugeAddresses(Model):
 
 
 @ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                 version='1.0',
+                 version='1.1',
                  input=Contract,
                  output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
@@ -227,10 +227,10 @@ class CurveFinanceGaugeRewardsCRV(Model):
         return {"yields": yields}
 
 
-@ Model.describe(slug='curve-fi.gauge-yield',
-                 version='1.0',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='curve-fi.gauge-yield',
+                version='1.1',
+                input=Contract,
+                output=dict)
 class CurveFinanceAverageGaugeYield(Model):
     CRV_PRICE = 3.0
 
@@ -292,7 +292,7 @@ class CurveFinanceAverageGaugeYield(Model):
 
 
 @ Model.describe(slug='curve-fi.all-yield',
-                 version='1.0',
+                 version='1.1',
                  description="Yield from all Gauges",
                  input=EmptyInput,
                  output=dict)

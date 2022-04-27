@@ -39,7 +39,7 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
 # getFallbackOracle()
 
 @Model.describe(slug="aave-v2.get-lending-pool-providers-from-registry",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
                 description="Aave V2 - Get lending pool providers",
                 input=EmptyInput,
@@ -61,7 +61,7 @@ class AaveV2GetLendingPoolProviders(Model):
 
 
 @Model.describe(slug="aave-v2.get-lending-pool-provider",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
                 description="Aave V2 - Get lending pool providers",
                 input=EmptyInput,
@@ -82,7 +82,7 @@ class AaveV2GetLendingPoolProvider(Model):
 
 
 @ Model.describe(slug="aave-v2.get-lending-pool",
-                 version="1.0",
+                 version="1.1",
                  display_name="Aave V2 - Get lending pool for main market",
                  description="Aave V2 - Get lending pool for main market",
                  input=EmptyInput,
@@ -98,7 +98,7 @@ class AaveV2GetLendingPool(Model):
 
 
 @Model.describe(slug="aave-v2.get-price-oracle",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 - Get price oracle for main market",
                 description="Aave V2 - Get price oracle for main market",
                 input=EmptyInput,
@@ -154,7 +154,7 @@ def get_eip1967_implementation(context, logger, token_address):
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 output=Portfolio)
@@ -182,7 +182,7 @@ class AaveV2GetLiability(Model):
 
 
 @Model.describe(slug="aave-v2.token-liability",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 token liability",
                 description="Aave V2 token liability at a given block number",
                 input=Token,
@@ -210,7 +210,7 @@ class AaveV2GetTokenLiability(Model):
 
 
 @ Model.describe(slug="aave-v2.lending-pool-assets",
-                 version="1.0",
+                 version="1.1",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
                  output=AaveDebtInfos)
@@ -236,7 +236,7 @@ class AaveV2GetAssets(Model):
 
 
 @Model.describe(slug="aave-v2.token-asset",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 input=Token,
