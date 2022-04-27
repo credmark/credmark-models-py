@@ -100,6 +100,9 @@ class ExampleBlockTime(Model):
             documentation_url="https://developer-docs.credmark.com/en/latest/"
             "reference/credmark.cmf.types.block_number.BlockNumber.html")
 
+        output.log("The default input.blockTime is set to 2022/02/19 "
+                   "so we can run this example with a past block number >= 14233162")
+
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
