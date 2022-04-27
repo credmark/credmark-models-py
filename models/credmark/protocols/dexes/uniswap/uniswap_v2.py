@@ -2,7 +2,6 @@ from web3.exceptions import (
     BadFunctionCallOutput
 )
 
-# TODO: to be merged in framework
 from web3._utils.filters import construct_event_filter_params
 from web3._utils.events import get_event_data
 
@@ -25,7 +24,6 @@ from models.dtos.volume import (
 )
 
 from models.tmp_abi_lookup import (
-    UNISWAP_V2_FACTORY_ADDRESS,
     WETH9_ADDRESS,
     DAI_ADDRESS,
     USDC_ADDRESS,
@@ -62,15 +60,19 @@ def get_uniswap_pools(factory_addr, model_input):
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 input=Token,
                 output=Contracts)
 class UniswapV2GetPoolsForToken(Model):
+    # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
+    UNISWAP_V2_FACTORY_ADDRESS = {
+        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f' for k in [1, 3, 4, 5, 42]}
 
     def run(self, input: Token) -> Contracts:
-        return get_uniswap_pools(Address(UNISWAP_V2_FACTORY_ADDRESS), input)
+        addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
+        return get_uniswap_pools(Address(addr).checksum, input)
 
 
 def uniswap_avg_price(model, pools_address, input):
@@ -102,23 +104,23 @@ def uniswap_avg_price(model, pools_address, input):
                 if weth_price is None:
                     weth_price = model.context.run_model(model.slug,
                                                          {"address": WETH9_ADDRESS},
-                                                         return_type=Price)
+                                                         return_type = Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
-                weth_multipler = weth_price.price
+                weth_multipler=weth_price.price
 
         price *= weth_multipler
 
         prices.append((price, input_reserve))
 
     if len(prices) == 0:
-        return Price(price=None, src=model.slug)
-    return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
+        return Price(price = None, src = model.slug)
+    return Price(price = sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]),
                  src=model.slug)
 
 
 @Model.describe(slug='uniswap-v2.get-average-price',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v2 Token Price',
                 description='The Uniswap v2 price, averaged by liquidity',
                 input=Token,
@@ -133,7 +135,7 @@ class UniswapV2GetAveragePrice(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v2 Pool Swap Volumes',
                 description='The volume of each token swapped in a pool in a window',
                 input=Contract,
@@ -151,11 +153,8 @@ class UniswapV2PoolSwapVolume(Model):
                 toBlock=self.context.block_number).get_all_entries()
         except ValueError:
             # Some node server does not support newer eth_newFilter method
-            # Alternatively, use protected method
-            # input.events._get_event_abi()
-            swap_event_abi = [x for x in input.events.abi
-                              if 'name' in x and x['name'] == 'Swap' and
-                                 'type' in x and x['type'] == 'event'][0]
+            # pylint:disable=locally-disabled,protected-access
+            swap_event_abi = input.events.Swap._get_event_abi()
 
             __data_filter_set, event_filter_params = construct_event_filter_params(
                 abi_codec=self.context.web3.codec,

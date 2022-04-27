@@ -9,11 +9,8 @@ from credmark.cmf.types import (
 )
 
 from credmark.dto import (
-    DTO
-)
-
-from models.tmp_abi_lookup import (
-    SUSHISWAP_FACTORY_ADDRESS,
+    DTO,
+    EmptyInput,
 )
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
@@ -22,13 +19,44 @@ from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
 )
 
 
-@Model.describe(slug="sushiswap.all-pools",
+@Model.describe(slug="sushiswap.get-v2-factory",
                 version="1.0",
+                display_name="Sushiswap - get factory",
+                description="Returns the address of Suishiswap factory contract",
+                input=EmptyInput,
+                output=Contract)
+class SushiswapV2Factory(Model):
+    SUSHISWAP_V2_FACTORY_ADDRESS = {
+        1: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
+    } | {
+        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4' for k in [3, 4, 5, 42]
+    }
+
+    def run(self, _) -> Contract:
+        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
+        contract = Contract(address=addr)
+        return contract
+
+
+@Model.describe(slug='sushiswap.get-pools',
+                version='1.1',
+                display_name='Uniswap v2 Token Pools',
+                description='The Uniswap v2 pools that support a token contract',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForToken(Model):
+    def run(self, input: Token) -> Contracts:
+        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        return get_uniswap_pools(contract.address, input)
+
+
+@Model.describe(slug="sushiswap.all-pools",
+                version="1.1",
                 display_name="Sushiswap all pairs",
                 description="Returns the addresses of all pairs on Suhsiswap protocol")
 class SushiswapAllPairs(Model):
     def run(self, input) -> dict:
-        contract = Contract(address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum)
+        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []
 
@@ -61,7 +89,7 @@ class SushiSwapPool(DTO):
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum)
+        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -109,18 +137,6 @@ class SushiswapGetPairDetails(Model):
                   'token1_reserve': token1_reserve}
 
         return output
-
-
-@Model.describe(slug='sushiswap.get-pools',
-                version='1.1',
-                display_name='Uniswap v2 Token Pools',
-                description='The Uniswap v2 pools that support a token contract',
-                input=Token,
-                output=Contracts)
-class SushiswapGetPoolsForToken(Model):
-
-    def run(self, input: Token) -> Contracts:
-        return get_uniswap_pools(SUSHISWAP_FACTORY_ADDRESS, input)
 
 
 @Model.describe(slug='sushiswap.get-average-price',

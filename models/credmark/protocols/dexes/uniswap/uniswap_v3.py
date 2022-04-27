@@ -20,7 +20,6 @@ from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
     UNISWAP_V3_POOL_ABI,
-    UNISWAP_V3_FACTORY_ADDRESS,
     WETH9_ADDRESS,
 )
 
@@ -47,6 +46,10 @@ class UniswapV3PoolInfo(DTO):
                 input=Token,
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
+    UNISWAP_V3_FACTORY_ADDRESS = {
+        1: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    }
+
     def run(self, input: Token) -> Contracts:
         fees = [3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
@@ -58,7 +61,8 @@ class UniswapV3GetPoolsForToken(Model):
             return Contracts(contracts=[])
 
         try:
-            uniswap_factory = Contract(address=UNISWAP_V3_FACTORY_ADDRESS)
+            addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.chain_id]
+            uniswap_factory = Contract(address=addr)
             pools = []
             for fee in fees:
                 for primary_token in primary_tokens:
@@ -117,7 +121,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-average-price',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Token,
