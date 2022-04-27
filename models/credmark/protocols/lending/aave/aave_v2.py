@@ -1,31 +1,11 @@
-from models.tmp_abi_lookup import (
-    AAVE_STABLEDEBT_ABI
-)
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-    Position,
-    Portfolio
-)
-from credmark.cmf.model.errors import (
-    ModelRunError,
-    ModelDataError
-)
-from credmark.cmf.model import Model
-from typing import (
-    List,
-    Optional,
-)
+from typing import List, Optional
 
-from web3.exceptions import (
-    ABIFunctionNotFound
-)
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Address, Contract, Portfolio, Position, Token
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
+from web3.exceptions import ABIFunctionNotFound
 
 
 class AaveDebtInfo(DTO):
@@ -53,12 +33,10 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
 
 
 # For different markets
-AAVE_LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413'
-
-# For main market
-AAVE_LENDING_POOL_ADDRESS_PROVIDER = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5'
-
-AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
+aave_lending_pool_address_provider_registry = {
+    1: '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413',
+    42: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
+}
 
 # PriceOracle
 # getAssetPrice() Returns the price of the supported _asset in ETH wei units.
@@ -75,7 +53,14 @@ AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
                 output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, input: EmptyInput) -> Contract:
-        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
+        aave_lending_pool_addr_provider = {
+            # For mainnet
+            1: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
+            # Kovan
+            42: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+        }
+        addr = Address(aave_lending_pool_addr_provider[self.context.chain_id]).checksum
+        address_provider = Contract(address=addr)
         lending_pool_address = address_provider.functions.getLendingPool().call()
         lending_pool_contract = Contract(address=lending_pool_address)
         return lending_pool_contract
@@ -89,7 +74,14 @@ class AaveV2GetLendingPool(Model):
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
     def run(self, input: EmptyInput) -> Contract:
-        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
+        aave_lending_pool_addr_provider = {
+            # For mainnet
+            1: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
+            # Kovan
+            42: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+        }
+        addr = Address(aave_lending_pool_addr_provider[self.context.chain_id]).checksum
+        address_provider = Contract(address=addr)
         price_oracle_address = address_provider.functions.getPriceOracle().call()
         price_oracle_contract = Contract(address=price_oracle_address)
         return price_oracle_contract
