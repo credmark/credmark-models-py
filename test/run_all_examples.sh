@@ -6,7 +6,7 @@ echo "Neil's example:"
 echo ""
 credmark-dev run contrib.neilz --input '{}' -b 14234904 --format_json
 echo ""
-echo "echo Examples"
+echo "Examples"
 echo ""
 credmark-dev run example.all --input '{}' -l example.contract,example.ledger-transactions,example.block-time -b 14234904 --format_json
 credmark-dev run example.model --input '{}' -b 14234904 --format_json
@@ -18,6 +18,7 @@ credmark-dev run example.block-time --input '{}' -b 14234904 --format_json
 credmark-dev run example.block-number --input '{}' -b 14234904 --format_json
 credmark-dev run example.address --input '{}' -b 14234904 --format_json
 credmark-dev run example.libraries --input '{}' -b 14234904 --format_json
+credmark-dev run example.token --input '{}' -b 14234904 --format_json
 credmark-dev run example.dto --input '{}' -b 14234904 --format_json
 credmark-dev run example.dto-type-test-1 --input '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}' -b 14234904 --format_json
 credmark-dev run example.dto-type-test-2 --input '{"positions": [{"amount": "4.2", "asset": {"symbol": "USDC"}},{"amount": "4.4", "asset": {"symbol": "USDT"}}]}' -b 14234904 --format_json
@@ -146,12 +147,14 @@ echo "Run Curve Examples"
 echo ""
 credmark-dev run curve-fi.all-pools --input '{}' -l curve-fi.pool-info,curve-fi.get-registry -b 14234904 --format_json
 credmark-dev run curve-fi.pool-info --input '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}' -b 14234904 --format_json
-credmark-dev run curve-fi.all-yield --input '{}' -l curve-fi.gauge-yield,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.all-gauge-claim-addresses -b 14234904 --format_json
 credmark-dev run curve-fi.all-gauges --input '{}' -b 14234904 --format_json
 credmark-dev run curve-fi.get-gauge-stake-and-claimable-rewards --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -b 14234904 --format_json
 credmark-dev run curve-fi.gauge-yield --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -l curve-fi.get-gauge-stake-and-claimable-rewards -b 14234904 --format_json
 credmark-dev run curve-fi.all-gauge-claim-addresses --input '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}' -b 14234904 --format_json
 credmark-dev run curve-fi.all-gauge-claim-addresses --input '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}' -b 14234904 --format_json
+credmark-dev run contrib.nish-curve-get-pegging-ratio --input '{"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}' -b 14234904 --format_json
+credmark-dev run contrib.nish-curve-get-pegging-ratio-historical --input '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}, "date_range": ["2022-01-10","2022-01-15"]}' -b 14234904 --format_json
+credmark-dev run contrib.nish-curve-get-depegging-amount --input '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"},"token": {"address": "0xd71ecff9342a5ced620049e616c5035f1db98620"}, "desired_ratio": 0.98485645}' -b 14234904 --format_json
 echo ""
 echo "Run Finance Examples"
 echo ""
