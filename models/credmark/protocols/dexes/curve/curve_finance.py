@@ -13,12 +13,10 @@ from credmark.cmf.types import (
     Account,
     Accounts,
     Contract,
+    Contracts,
     Token,
     Tokens,
 )
-
-# Same for all networks
-CURVE_PROVIDER = '0x0000000022D53366457F9d5E68Ec105046FC4383'
 
 
 @Model.describe(slug='curve-fi.get-registry',
@@ -28,10 +26,12 @@ CURVE_PROVIDER = '0x0000000022D53366457F9d5E68Ec105046FC4383'
                 input=EmptyInput,
                 output=Contract)
 class CurveFinanceGetRegistry(Model):
+    CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
+
     def run(self, _) -> Contract:
-        provider = Contract(address=Address(CURVE_PROVIDER).checksum)
+        provider = Contract(address=Address(self.CURVE_PROVIDER_ALL_NETWORK).checksum)
         reg_addr = provider.functions.get_registry().call()
-        return Contract(address=Address(reg_addr).checksum).info
+        return Contract(address=Address(reg_addr).checksum)
 
 
 class CurveFiPoolInfo(Contract):
@@ -103,10 +103,10 @@ class CurveFinancePoolInfo(Model):
                 version="1.0",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
-                output=CurveFiPoolInfos)
-class CurveFinanceTotalTokenLiqudity(Model):
+                output=Contracts)
+class CurveFinanceAllPools(Model):
 
-    def run(self, input) -> CurveFiPoolInfos:
+    def run(self, input) -> Contracts:
         registry = self.context.run_model('curve-fi.get-registry',
                                           input=EmptyInput(),
                                           return_type=Contract)
@@ -115,6 +115,21 @@ class CurveFinanceTotalTokenLiqudity(Model):
         pool_contracts = [
             Contract(address=registry.functions.pool_list(i).call())
             for i in range(0, total_pools)]
+
+        return Contracts(contracts=pool_contracts)
+
+
+@Model.describe(slug="curve-fi.all-pools-info",
+                version="1.0",
+                display_name="Curve Finance Pool Liqudity",
+                description="The amount of Liquidity for Each Token in a Curve Pool",
+                output=CurveFiPoolInfos)
+class CurveFinanceTotalTokenLiqudity(Model):
+
+    def run(self, input) -> CurveFiPoolInfos:
+        pool_contracts = self.context.run_model('curve-fi.all-pools',
+                                                input=EmptyInput(),
+                                                return_type=Contracts)
 
         pool_infos = [
             CurveFiPoolInfo(
