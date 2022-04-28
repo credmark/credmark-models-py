@@ -1,31 +1,11 @@
-from models.tmp_abi_lookup import (
-    AAVE_STABLEDEBT_ABI
-)
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-    Position,
-    Portfolio
-)
-from credmark.cmf.model.errors import (
-    ModelRunError,
-    ModelDataError
-)
-from credmark.cmf.model import Model
-from typing import (
-    List,
-    Optional,
-)
+from typing import List, Optional
 
-from web3.exceptions import (
-    ABIFunctionNotFound
-)
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
+from web3.exceptions import ABIFunctionNotFound
 
 
 class AaveDebtInfo(DTO):
@@ -52,13 +32,32 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
     _iterator: str = 'aaveDebtInfos'
 
 
-# For different markets
-AAVE_LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413'
+# PriceOracle
+# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
+# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
+# getSourceOfAsset()
+# getFallbackOracle()
 
-# For main market
-AAVE_LENDING_POOL_ADDRESS_PROVIDER = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5'
+@Model.describe(slug="aave-v2.get-lending-pool-providers-from-registry",
+                version="1.1",
+                display_name="Aave V2 - Get lending pool providers",
+                description="Aave V2 - Get lending pool providers",
+                input=EmptyInput,
+                output=Contracts)
+class AaveV2GetLendingPoolProviders(Model):
+    """
+    Returns the lending pool providers
+    """
+    LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = {
+        1: '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413',
+        42: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
+    }
 
-AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
+    def run(self, _) -> Contracts:
+        addr = Address(self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.chain_id]).checksum
+        address_provider_registry = Contract(address=addr)
+        address_providers = address_provider_registry.functions.getAddressesProvidersList().call()
+        return Contracts(contracts=address_providers)
 
 # PriceOracle
 # getAssetPrice() Returns the price of the supported _asset in ETH wei units.
@@ -67,35 +66,61 @@ AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 # getFallbackOracle()
 
 
-@Model.describe(slug="aave-v2.get-lending-pool",
-                version="1.0",
-                display_name="Aave V2 - Get lending pool for main market",
-                description="Aave V2 - Get lending pool for main market",
+@Model.describe(slug="aave-v2.get-lending-pool-provider",
+                version="1.1",
+                display_name="Aave V2 - Get lending pool providers",
+                description="Aave V2 - Get lending pool providers",
                 input=EmptyInput,
                 output=Contract)
+class AaveV2GetLendingPoolProvider(Model):
+    """
+    Returns the lending pool address provider
+    """
+    LENDING_POOL_ADDRESS_PROVIDER = {
+        # For mainnet
+        1: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
+        # Kovan
+        42: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+    }
+
+    def run(self, _) -> Contract:
+        return Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.chain_id])
+
+
+@ Model.describe(slug="aave-v2.get-lending-pool",
+                 version="1.1",
+                 display_name="Aave V2 - Get lending pool for main market",
+                 description="Aave V2 - Get lending pool for main market",
+                 input=EmptyInput,
+                 output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, input: EmptyInput) -> Contract:
-        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
-        lending_pool_address = address_provider.functions.getLendingPool().call()
+        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
+                                                       input=EmptyInput(),
+                                                       return_type=Contract)
+        lending_pool_address = lending_pool_provider.functions.getLendingPool().call()
         lending_pool_contract = Contract(address=lending_pool_address)
         return lending_pool_contract
 
 
 @Model.describe(slug="aave-v2.get-price-oracle",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 - Get price oracle for main market",
                 description="Aave V2 - Get price oracle for main market",
                 input=EmptyInput,
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
     def run(self, input: EmptyInput) -> Contract:
-        address_provider = Contract(address=Address(AAVE_LENDING_POOL_ADDRESS_PROVIDER).checksum)
-        price_oracle_address = address_provider.functions.getPriceOracle().call()
+        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
+                                                       input=EmptyInput(),
+                                                       return_type=Contract)
+        price_oracle_address = lending_pool_provider.functions.getPriceOracle().call()
         price_oracle_contract = Contract(address=price_oracle_address)
         return price_oracle_contract
 
 
 def get_eip1967_implementation(context, logger, token_address):
+    # pylint:disable=locally-disabled,protected-access
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
@@ -118,11 +143,11 @@ def get_eip1967_implementation(context, logger, token_address):
         # TODO: Work around before we can load proxy in the past based on block number.
         if token._meta.is_transparent_proxy:
             if token.proxy_for is not None and proxy_address != token.proxy_for.address:
-                logger.warning(
+                logger.debug(
                     f'token\'s implmentation is corrected to '
                     f'{proxy_address} from {token.proxy_for.address} for {token.address}')
         else:
-            logger.warning(
+            logger.debug(
                 f'token\'s implmentation is corrected to '
                 f'{proxy_address} from no-proxy for {token.address}')
 
@@ -134,7 +159,7 @@ def get_eip1967_implementation(context, logger, token_address):
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 output=Portfolio)
@@ -162,7 +187,7 @@ class AaveV2GetLiability(Model):
 
 
 @Model.describe(slug="aave-v2.token-liability",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 token liability",
                 description="Aave V2 token liability at a given block number",
                 input=Token,
@@ -190,7 +215,7 @@ class AaveV2GetTokenLiability(Model):
 
 
 @ Model.describe(slug="aave-v2.lending-pool-assets",
-                 version="1.0",
+                 version="1.1",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
                  output=AaveDebtInfos)
@@ -212,14 +237,11 @@ class AaveV2GetAssets(Model):
                                           return_type=AaveDebtInfo)
             aave_debts_infos.append(info)
 
-        # TODO: if we would like to do alternative output to dataframe
-        # pd.DataFrame([x.dict() for x in aave_debts_infos]).to_excel(
-        #     os.path.join(f'aave_debts_infos_{self.context.block_number}.xlsx'))
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
 @Model.describe(slug="aave-v2.token-asset",
-                version="1.0",
+                version="1.1",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 input=Token,
@@ -273,6 +295,7 @@ class AaveV2GetTokenAsset(Model):
             # 3. last update timestamp
             _ = stableDebtToken.functions.getSupplyData().call()
         except ABIFunctionNotFound:
+            # pylint:disable=locally-disabled,protected-access
             if stableDebtToken.proxy_for is not None:
                 if stableDebtToken.proxy_for._meta is not None:
                     stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI

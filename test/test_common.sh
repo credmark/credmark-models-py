@@ -72,19 +72,19 @@ if [ "${test_mode}" == 'test' ]; then
     # Use prod for test:
     # api_url=' --api_url=http://localhost:8700'
     api_url=''
-    block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
 elif [ "${test_mode}" == 'prod' ];
 then
     cmk_dev='credmark-dev'
     api_url=''  # no api url param uses the gateway api
-    block_number='-b 14234904'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
 else
     exit
 fi
+
+block_number='-b 14234904'
 
 if [ $gen_mode -eq 1 ]; then
     echo "Sending commands to ${cmd_file}"
@@ -197,5 +197,5 @@ echo_cmd () {
 }
 
 
-deps_token_price='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
-var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${deps_token_price}
+token_price_deps='token.price,token.price-ext,uniswap-v2.get-average-price,uniswap-v3.get-average-price,sushiswap.get-average-price'
+var_deps=finance.var-engine,finance.var-reference,token.price-ext,finance.get-one,${token_price_deps}
