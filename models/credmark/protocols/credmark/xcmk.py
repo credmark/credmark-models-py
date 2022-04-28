@@ -10,9 +10,7 @@ from credmark.dto import DTO
 
 from models.tmp_abi_lookup import (
     CMK_ADDRESS,
-    CMK_ABI,
     STAKED_CREDMARK_ADDRESS,
-    STAKED_CREDMARK_ABI,
 )
 
 
@@ -24,9 +22,7 @@ from models.tmp_abi_lookup import (
 class xCmkCmkStaked(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
-
-        cmk_contract = Contract(address=Address(CMK_ADDRESS).checksum,
-                                abi=CMK_ABI)
+        cmk_contract = Contract(address=Address(CMK_ADDRESS).checksum)
         result = cmk_contract.functions.balanceOf(STAKED_CREDMARK_ADDRESS).call()
         return {'result': result}
 
@@ -39,8 +35,7 @@ class xCmkTotalSupply(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
 
-        staked_credmark = Contract(address=Address(STAKED_CREDMARK_ADDRESS).checksum,
-                                   abi=STAKED_CREDMARK_ABI)
+        staked_credmark = Contract(address=Address(STAKED_CREDMARK_ADDRESS).checksum)
         result = staked_credmark.functions.totalSupply().call()
         return {'result': result}
 
