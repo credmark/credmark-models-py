@@ -100,6 +100,9 @@ class ExampleBlockTime(Model):
             documentation_url="https://developer-docs.credmark.com/en/latest/"
             "reference/credmark.cmf.types.block_number.BlockNumber.html")
 
+        output.log("The default input.blockTime is set to 2022/02/19 "
+                   "so we can run this example with a past block number >= 14233162")
+
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
@@ -118,11 +121,14 @@ class ExampleBlockTime(Model):
         output.log_io(input=f"BlockNumber.from_timestamp({block_time.timestamp()})",
                       output=BlockNumber.from_timestamp(block_time.timestamp()))
 
-        output.log("Querying block number for a future timestamp returns the latest block number")
-        future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
-        output.log_io(input="future_block_time", output=future_block_time)
-        output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
-                      output=BlockNumber.from_timestamp(future_block_time))
+        # To run this code when we are on the latest
+        if self.context.web3.eth.get_block_number() - self.context.block_number < 100:
+            output.log("Querying block number for a future timestamp "
+                       "returns the latest block number")
+            future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
+            output.log_io(input="future_block_time", output=future_block_time)
+            output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
+                          output=BlockNumber.from_timestamp(future_block_time))
 
         block_time_without_tz = block_time.replace(tzinfo=None)
         output.log_io(input="block_time_without_tz", output=block_time_without_tz)

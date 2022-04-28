@@ -5,6 +5,16 @@ from credmark.dto import EmptyInput, DTO
 from credmark.cmf.model.errors import ModelDataError
 from datetime import datetime
 
+from credmark.cmf.model.errors import (
+    ModelRunError,
+)
+
+from web3._utils.filters import construct_event_filter_params
+from web3._utils.events import get_event_data
+from urllib3.exceptions import ReadTimeoutError
+from requests.exceptions import ReadTimeout
+
+
 class VestingInfo(DTO):
     account: Account
     vesting_contract: Contract
@@ -15,9 +25,11 @@ class VestingInfo(DTO):
     claimable_amount: float
     claimed_amount: float
 
+
 class AccountVestingInfo(DTO):
     account: Account
     vesting_infos: List[VestingInfo]
+
 
 @describe(
     slug="cmk.vesting-contracts",
@@ -41,6 +53,7 @@ class CMKGetVestingContracts(Model):
             )
         raise ModelDataError(message="cmk vesting contracts only deployed on mainnet")
 
+
 @describe(
     slug="cmk.get-vesting-accounts",
     version="1.0",
@@ -49,16 +62,40 @@ class CMKGetVestingContracts(Model):
 )
 class CMKGetVestingAccounts(Model):
     def run(self, input) -> Accounts:
-        accounts=[]
+        accounts = set()
+        accounts_info = []
         for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-            vesting_added_events = c.events.VestingScheduleAdded.createFilter(
-                fromBlock=0,
-                toBlock=self.context.block_number
+            try:
+                vesting_added_events = c.events.VestingScheduleAdded.createFilter(
+                    fromBlock=0,
+                    toBlock=self.context.block_number
                 ).get_all_entries()
+            except ValueError:
+                # Some Eth node does not support the newer eth_newFilter method
+                try:
+                    # pylint:disable=locally-disabled,protected-access
+                    event_abi = c.instance.events.VestingScheduleAdded._get_event_abi()
+
+                    __data_filter_set, event_filter_params = construct_event_filter_params(
+                        abi_codec=self.context.web3.codec,
+                        event_abi=event_abi,
+                        address=c.address.checksum,
+                        fromBlock=0,
+                        toBlock=self.context.block_number
+                    )
+                    vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
+                    vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
+                                            for s in vesting_added_events]
+                except (ReadTimeoutError, ReadTimeout):
+                    raise ModelRunError(
+                        f'There was timeout error when reading logs for {c.address}')
             for vae in vesting_added_events:
                 if vae['args']['account'] not in accounts:
-                    accounts.append(vae)
-        return Accounts(accounts=accounts)
+                    accounts.add(vae['args']['account'])
+                    accounts_info.append(Account(address=vae['args']['account']))
+
+        return Accounts(accounts=accounts_info)
+
 
 @describe(
     slug="cmk.get-vesting-info-by-account",
@@ -108,11 +145,12 @@ class CMKGetVestingByAccount(Model):
 class CMKGetAllVestingBalances(Model):
     def run(self, input: EmptyInput) -> dict:
         accounts = Accounts(**self.context.models.cmk.get_vesting_accounts())
-        results = {"vesting_infos":[]}
+        results = {"vesting_infos": []}
         for account in accounts:
             results['vesting_infos'].append(
                 self.context.models.cmk.get_vesting_info_by_account(account))
         return results
+
 
 @describe(
     slug="cmk.vesting-events",
@@ -121,12 +159,32 @@ class CMKGetAllVestingBalances(Model):
     output=dict
 )
 class CMKVestingEvents(Model):
-    def run(self, input:Contract) -> dict:
-        claims= [
-            dict(d['args']) for d in
-            input.events.AllocationClaimed.createFilter(
-                fromBlock=0, toBlock=self.context.block_number
-                ).get_all_entries()]
+    def run(self, input: Contract) -> dict:
+        try:
+            allocation_claimed_events = input.events.AllocationClaimed.createFilter(
+                fromBlock=0, toBlock=self.context.block_number).get_all_entries()
+        except ValueError:
+            # Some Eth node does not support the newer eth_newFilter method
+            try:
+                # pylint:disable=locally-disabled,protected-access
+                event_abi = input.instance.events.AllocationClaimed._get_event_abi()
+
+                __data_filter_set, event_filter_params = construct_event_filter_params(
+                    abi_codec=self.context.web3.codec,
+                    event_abi=event_abi,
+                    address=input.address.checksum,
+                    fromBlock=0,
+                    toBlock=self.context.block_number
+                )
+                allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
+                allocation_claimed_events = [get_event_data(self.context.web3.codec, event_abi, s)
+                                             for s in allocation_claimed_events]
+            except (ReadTimeoutError, ReadTimeout):
+                raise ModelRunError(
+                    f'There was timeout error when reading logs for {input.address}')
+
+        claims = [dict(d['args']) for d in allocation_claimed_events]
+
         # cancels = [
         #     dict(d['args']) for d in
         #     input.events.VestingScheduleCanceled.createFilter(
@@ -134,4 +192,4 @@ class CMKVestingEvents(Model):
         #     toBlock=self.context.block_number
         #     ).get_all_entries()]
 
-        return {"events":claims}
+        return {"events": claims}
