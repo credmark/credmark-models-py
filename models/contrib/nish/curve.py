@@ -194,7 +194,7 @@ class CurveV2PoolsValueHistorical(Model):
 
 
 class CurveDepeggingAmountInput(DTO):
-    pool_address: Contract
+    pool: Contract
     token: Token
     desired_ratio: float
 
@@ -215,7 +215,7 @@ class CurveGetDepeggingAmount(Model):
     def run(self, input) -> CurvePoolDepeggingAmount:
         pool_info = self.context.run_model(
             slug = 'contrib.curve-get-pegging-ratio',
-            input = input.pool_address)
+            input = input.pool)
 
         desired_ratio = input.desired_ratio
         coins = list(pool_info['coin_balances'].keys())
@@ -229,11 +229,11 @@ class CurveGetDepeggingAmount(Model):
         if n==2:
             if input.token.symbol == coins[0] :
                 temp= ( 2-desired_ratio + 2*math.sqrt(1-desired_ratio))
-                amount_token0 = token1_balance *temp/ desired_ratio
+                amount_token0 = token1_balance * temp/ desired_ratio
                 amount_required = amount_token0 - token0_balance
             if input.token.symbol == coins[1] :
                 temp=( 2-desired_ratio + 2*math.sqrt(1-desired_ratio))
-                amount_token1 = token0_balance * temp / desired_ratio
+                amount_token1 = token0_balance / temp * desired_ratio
                 amount_required = amount_token1 - token1_balance
 
         return CurvePoolDepeggingAmount(
