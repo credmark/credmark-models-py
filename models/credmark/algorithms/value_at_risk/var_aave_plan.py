@@ -74,7 +74,7 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
         return self.chef.cook(recipe)
 
 
-@Model.describe(slug='finance.var-aave',
+@Model.describe(slug='finance.var-aave-plan',
                 version='1.0',
                 display_name='Value at Risk for Aave',
                 description='Value at Risk for Aave',
