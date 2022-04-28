@@ -35,7 +35,7 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
 AAVE_LENDING_POOL_V2 = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9'
 
 
-@Model.describe(slug="contrib.nish-aave-overall-liabilities-portfolio",
+@Model.describe(slug="contrib.aave-overall-liabilities-portfolio",
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
@@ -56,7 +56,7 @@ class AaveV2GetLiability(Model):
             return_type=Position) for asset in aave_assets])
 
 
-@Model.describe(slug="contrib.nish-aave-token-liability",
+@Model.describe(slug="contrib.aave-token-liability",
                 version="1.0",
                 display_name="Aave V2 token liability",
                 description="Aave V2 token liability at a given block number",
@@ -79,7 +79,7 @@ class AaveV2GetTokenLiability(Model):
         return Position(asset=aToken, amount=aToken.total_supply)
 
 
-@Model.describe(slug="contrib.nish-aave-lending-pool-assets",
+@Model.describe(slug="contrib.aave-lending-pool-assets",
                 version="1.0",
                 display_name="Aave V2 Lending Pool Assets",
                 description="Aave V2 assets for the main lending pool",
@@ -102,7 +102,7 @@ class AaveV2GetAssets(Model):
         return aave_debts
 
 
-@Model.describe(slug="contrib.nish-aave-token-asset",
+@Model.describe(slug="contrib.aave-token-asset",
                 version="1.0",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
@@ -140,7 +140,7 @@ class AaveV2GetTokenAsset(Model):
             totalDebt=totalDebt)
 
 
-@Model.describe(slug="contrib.nish-aave-token-asset-historical",
+@Model.describe(slug="contrib.aave-token-asset-historical",
                  version="1.0",
                  display_name="Aave V2 token liquidity",
                  description="Aave V2 token liquidity at a given block number",
@@ -157,7 +157,7 @@ class AaveV2GetTokenAssetHistorical(Model):
 
 
 
-@Model.describe(slug="contrib.nish-aave-LCR",
+@Model.describe(slug="contrib.aave-LCR",
                           version="1.0",
                           display_name="Aave V2 LCR",
                           description="Current LCR value for Aave V2",
@@ -208,7 +208,7 @@ class AaveV2GetLCR(Model):
 
 
 
-@Model.describe(slug="contrib.nish-aave-VAR",
+@Model.describe(slug="contrib.aave-VAR",
                 version="1.0",
                 display_name="Aave V2 VAR",
                 description="Current LCR value for Aave V2",
