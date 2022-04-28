@@ -29,7 +29,7 @@ ${cmk_dev} list | awk -v script_dir=$SCRIPT_DIRECTORY -v test_scripts=examples,a
             if (res != "") {
                 break
             } else {
-                if (i == total_test_files-1) {
+                if (i == total_test_files) {
                     print "(Test check) No test for " m
                 }
             }

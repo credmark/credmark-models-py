@@ -1,7 +1,7 @@
 echo_cmd ""
 echo_cmd "Run Aave V2 Examples:"
 echo_cmd ""
-test_model 0 aave-v2.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' aave-v2.get-lending-pool
+test_model 0 aave-v2.token-asset '{"address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}' aave-v2.get-lending-pool,aave-v2.get-lending-pool-provider,aave-v2.get-lending-pool-providers-from-registry
 test_model 0 aave-v2.token-asset '{"symbol":"USDC"}'
 test_model 0 aave-v2.token-asset '{"symbol":"DAI"}'
 test_model 0 aave-v2.lending-pool-assets '{}' aave-v2.token-asset
