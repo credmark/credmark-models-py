@@ -1,57 +1,11 @@
-from web3.exceptions import ABIFunctionNotFound
-from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
-from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from models.tmp_abi_lookup import (
-    AAVE_V2_TOKEN_CONTRACT_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
-)
-from typing import (
-    Union,
-    List,
-)
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
-from credmark.cmf.types.series import BlockSeries
-from datetime import (
-    date,
-)
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-    Position,
-    Portfolio,
-)
-from credmark.cmf.model.errors import (
-    ModelRunError,
-    ModelDataError
-)
 from typing import List, Optional
 
 from credmark.cmf.model import Model
-<< << << < HEAD
-
-
-== == == =
->>>>>> > main
-
-
-class PriceList(IterableListGenericDTO[float]):
-    prices: List[float] = DTOField(default=[], description='List of prices')
-    token: Token
-    src: Union[str, None] = DTOField(None, description='Source')
-    _iterator: str = PrivateAttr('prices')
-
-    class Config:
-        schema_extra: dict = {
-            'examples': [{'prices': [4.2, 2.3],
-                          'token': {'address': '0x6B175474E89094C44Da98b954EedeAC495271d0F'}}]
-        }
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
+from web3.exceptions import ABIFunctionNotFound
 
 
 class AaveDebtInfo(DTO):
