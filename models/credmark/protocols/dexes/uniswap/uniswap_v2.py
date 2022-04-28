@@ -122,10 +122,6 @@ def uniswap_avg_price(model, pools_address, input, col_label):
                                  token0.symbol, token1.symbol,
                                  token0.decimals, token1.decimals,
                                  pool.address,
-                                 reserves[1],
-                                 reserves[0],
-                                 scaled_reserve1,
-                                 scaled_reserve0,
                                  ))
 
     if len(prices_with_info) == 0:
@@ -137,10 +133,6 @@ def uniswap_avg_price(model, pools_address, input, col_label):
                                't0_symbol', 't1_symbol',
                                't0_decimal', 't1_decimal',
                                'pool_address',
-                               f'{col_label}_reserve1',
-                               f'{col_label}_reserve0',
-                               f'{col_label}_reserve1_scaled',
-                               f'{col_label}_reserve0_scaled',
                                ])
     df.to_csv(f'tmp/{col_label}.csv')
     model.logger.debug(df.to_json())

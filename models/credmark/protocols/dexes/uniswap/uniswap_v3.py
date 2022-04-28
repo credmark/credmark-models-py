@@ -37,11 +37,6 @@ class UniswapV3PoolInfo(DTO):
     fee: int
     token0: Token
     token1: Token
-    # uint128. the total amount of position liquidity that
-    #          uses the pool either as tick lower or tick upper,
-    liquidityGross: float
-    # int128. how much liquidity changes when the pool price crosses the tick,
-    liquidityNet: float
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
@@ -179,41 +174,21 @@ class UniswapV3GetAveragePrice(Model):
                 tick_price *= weth_multipler
                 ratio_price *= weth_multipler
 
-                prices_with_info.append((self.slug,
-                                         tick_price,
-                                         info.liquidity,
-                                         weth_multipler,
-                                         inverse,
+                prices_with_info.append((self.slug, tick_price, info.liquidity, weth_multipler, inverse,
                                          info.token0.address, info.token1.address,
                                          info.token0.symbol, info.token1.symbol,
                                          info.token0.decimals, info.token1.decimals,
-                                         info.address,
-                                         info.tick,
-                                         info.sqrtPriceX96,
-                                         info.fee,
-                                         info.liquidityGross,
-                                         info.liquidityNet,
-                                         scale_multiplier,
-                                         ratio_price,
-                                         ))
+                                         info.address))
 
         if len(prices_with_info) == 0:
             return Price(price=None, src=self.slug)
 
         df = pd.DataFrame(prices_with_info,
-                          columns=['src',
-                                   'price', 'liquidity', 'weth_multiplier', 'inverse',
+                          columns=['src', 'price', 'liquidity', 'weth_multiplier', 'inverse',
                                    't0_address', 't1_address',
                                    't0_symbol', 't1_symbol',
                                    't0_decimal', 't1_decimal',
                                    'pool_address',
-                                   'univ3_pool_tick',
-                                   'univ3_sqrtPriceX96',
-                                   'univ3_fee',
-                                   'univ3_liquidityGross',
-                                   'univ3_liquidityNet',
-                                   'univ3_scale_multiplier',
-                                   'univ3_ratio_price',
                                    ])
         df.to_csv('tmp/univ3.csv')
         df.liquidity = df.liquidity.astype(float)
