@@ -77,7 +77,7 @@ class UniswapV2GetPoolsForToken(Model):
         return get_uniswap_pools(Address(addr).checksum, input)
 
 
-def uniswap_avg_price(model, pools_address, input):
+def uniswap_avg_price(model, pools_address, input, col_label):
     """
     Method to be shared between Uniswap V2 and SushiSwap
     """
@@ -92,14 +92,17 @@ def uniswap_avg_price(model, pools_address, input):
 
         token0 = Token(address=Address(pool.functions.token0().call()).checksum)
         token1 = Token(address=Address(pool.functions.token1().call()).checksum)
-        price = token1.scaled(reserves[1]) / token0.scaled(reserves[0])
-        input_reserve = reserves[0]
-        inverse = False
+        scaled_reserve0 = token0.scaled(reserves[0])
+        scaled_reserve1 = token1.scaled(reserves[1])
 
-        if input.address == token1.address:
-            price = 1/price
-            input_reserve = reserves[1]
+        if input.address == token0.address:
+            inverse = False
+            price = scaled_reserve1 / scaled_reserve0
+            input_reserve = scaled_reserve0
+        else:
             inverse = True
+            price = scaled_reserve0 / scaled_reserve1
+            input_reserve = scaled_reserve1
 
         weth_multipler = 1
         if input.address != WETH9_ADDRESS:
@@ -114,27 +117,34 @@ def uniswap_avg_price(model, pools_address, input):
 
         price *= weth_multipler
 
-        prices_with_info.append((price,
-                                 input_reserve,
-                                 token1.scaled(reserves[1]),
-                                 token0.scaled(reserves[0]),
-                                 inverse,
-                                 weth_multipler,
+        prices_with_info.append((model.slug, price, input_reserve, weth_multipler, inverse,
                                  token0.address, token1.address,
                                  token0.symbol, token1.symbol,
-                                 token0.decimals, token1.decimals
+                                 token0.decimals, token1.decimals,
+                                 pool.address,
+                                 reserves[1],
+                                 reserves[0],
+                                 scaled_reserve1,
+                                 scaled_reserve0,
                                  ))
 
     if len(prices_with_info) == 0:
         return Price(price=None, src=model.slug)
 
     df = pd.DataFrame(prices_with_info,
-                      columns=['price', 'input_reserve', 'token1_reserve', 'token0_reserve',
-                               'inverse', 'weth_multiplier',
-                               'token0', 'token1', 't0', 't1', 't0dec', 't1dec'])
-
+                      columns=['src', 'price', 'liquidity', 'weth_multiplier', 'inverse',
+                               't0_address', 't1_address',
+                               't0_symbol', 't1_symbol',
+                               't0_decimal', 't1_decimal',
+                               'pool_address',
+                               f'{col_label}_reserve1',
+                               f'{col_label}_reserve0',
+                               f'{col_label}_reserve1_scaled',
+                               f'{col_label}_reserve0_scaled',
+                               ])
+    df.to_csv(f'tmp/{col_label}.csv')
     model.logger.debug(df.to_json())
-    avg_price = (df.price * df.input_reserve).sum() / df.input_reserve.sum()
+    avg_price = (df.price * df.liquidity).sum() / df.liquidity.sum()
     return Price(price=avg_price, src=model.slug)
 
 
@@ -150,7 +160,7 @@ class UniswapV2GetAveragePrice(Model):
                                                input,
                                                return_type=Contracts)
 
-        return uniswap_avg_price(self, pools_address, input)
+        return uniswap_avg_price(self, pools_address, input, 'univ2')
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',

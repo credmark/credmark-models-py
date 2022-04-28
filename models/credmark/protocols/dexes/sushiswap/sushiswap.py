@@ -151,4 +151,4 @@ class SushiswapGetAveragePrice(Model):
                                                input,
                                                return_type=Contracts)
 
-        return uniswap_avg_price(self, pools_address, input)
+        return uniswap_avg_price(self, pools_address, input, 'sushiswap')

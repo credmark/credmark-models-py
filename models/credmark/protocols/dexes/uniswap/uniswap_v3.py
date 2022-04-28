@@ -37,6 +37,11 @@ class UniswapV3PoolInfo(DTO):
     fee: int
     token0: Token
     token1: Token
+    # uint128. the total amount of position liquidity that
+    #          uses the pool either as tick lower or tick upper,
+    liquidityGross: float
+    # int128. how much liquidity changes when the pool price crosses the tick,
+    liquidityNet: float
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
@@ -103,6 +108,7 @@ class UniswapV3GetPoolInfo(Model):
         token1 = pool.functions.token1().call()
         liquidity = pool.functions.liquidity().call()
         fee = pool.functions.fee().call()
+        ticks = pool.functions.ticks(slot0[1]).call()
         res = {
             "address": input.address,
             "sqrtPriceX96": slot0[0],
@@ -115,7 +121,9 @@ class UniswapV3GetPoolInfo(Model):
             "token0": Token(address=token0),
             "token1": Token(address=token1),
             "liquidity": liquidity,
-            "fee": fee
+            "fee": fee,
+            'liquidityGross': ticks[0],
+            'liquidityNet': ticks[1],
         }
         return UniswapV3PoolInfo(**res)
 
@@ -152,8 +160,10 @@ class UniswapV3GetAveragePrice(Model):
 
                 ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
+                inverse = False
                 if input.address == info.token1.address:
                     ratio_price = 1/ratio_price
+                    inverse = True
 
                 weth_multipler = 1
                 if input.address != WETH9_ADDRESS:
@@ -169,26 +179,44 @@ class UniswapV3GetAveragePrice(Model):
                 tick_price *= weth_multipler
                 ratio_price *= weth_multipler
 
-                prices_with_info.append((tick_price,
-                                         ratio_price,
+                prices_with_info.append((self.slug,
+                                         tick_price,
+                                         info.liquidity,
+                                         weth_multipler,
+                                         inverse,
+                                         info.token0.address, info.token1.address,
+                                         info.token0.symbol, info.token1.symbol,
+                                         info.token0.decimals, info.token1.decimals,
                                          info.address,
                                          info.tick,
                                          info.sqrtPriceX96,
-                                         info.liquidity,
                                          info.fee,
-                                         weth_multipler,
-                                         info.token0.address, info.token1.address,
-                                         info.token0.symbol, info.token1.symbol,
-                                         info.token0.decimals, info.token1.decimals))
+                                         info.liquidityGross,
+                                         info.liquidityNet,
+                                         scale_multiplier,
+                                         ratio_price,
+                                         ))
 
         if len(prices_with_info) == 0:
             return Price(price=None, src=self.slug)
 
         df = pd.DataFrame(prices_with_info,
-                          columns=['tick_price', 'ratio_price', 'pool', 'tick', 'sqrtPriceX96',
-                                   'liquidity', 'fee', 'weth_multiplier',
-                                   'token0', 'token1', 't0', 't1', 't0dec', 't1dec'])
+                          columns=['src',
+                                   'price', 'liquidity', 'weth_multiplier', 'inverse',
+                                   't0_address', 't1_address',
+                                   't0_symbol', 't1_symbol',
+                                   't0_decimal', 't1_decimal',
+                                   'pool_address',
+                                   'univ3_pool_tick',
+                                   'univ3_sqrtPriceX96',
+                                   'univ3_fee',
+                                   'univ3_liquidityGross',
+                                   'univ3_liquidityNet',
+                                   'univ3_scale_multiplier',
+                                   'univ3_ratio_price',
+                                   ])
+        df.to_csv('tmp/univ3.csv')
         df.liquidity = df.liquidity.astype(float)
         self.logger.debug(df.to_json())
-        price = (df.tick_price * df.liquidity).sum() / df.liquidity.sum()
+        price = (df.price * df.liquidity).sum() / df.liquidity.sum()
         return Price(price=price, src=self.slug)
