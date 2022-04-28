@@ -58,7 +58,7 @@ class CurvePoolPeggingInfo(Contract):
 
 
 
-@Model.describe(slug="contrib.nish-curve-get-pegging-ratio",
+@Model.describe(slug="contrib.curve-get-pegging-ratio",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
@@ -158,7 +158,7 @@ class CurvePoolsValueHistoricalInput(DTO):
     date_range: Tuple[date, date]
 
 
-@Model.describe(slug="contrib.nish-curve-get-pegging-ratio-historical",
+@Model.describe(slug="contrib.curve-get-pegging-ratio-historical",
                 version="1.0",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
@@ -182,7 +182,7 @@ class CurveV2PoolsValueHistorical(Model):
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
 
         pool_infos = self.context.historical.run_model_historical(
-            model_slug='contrib.nish-curve-get-pegging-ratio',
+            model_slug='contrib.curve-get-pegging-ratio',
             model_input=input.pool_address,
             model_return_type=CurvePoolPeggingInfo,
             window=window,
@@ -205,7 +205,7 @@ class CurvePoolDepeggingAmount(DTO):
     amount_required: float
 
 
-@Model.describe(slug="contrib.nish-curve-get-depegging-amount",
+@Model.describe(slug="contrib.curve-get-depegging-amount",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
@@ -214,7 +214,7 @@ class CurvePoolDepeggingAmount(DTO):
 class CurveGetDepeggingAmount(Model):
     def run(self, input) -> CurvePoolDepeggingAmount:
         pool_info = self.context.run_model(
-            slug = 'contrib.nish-curve-get-pegging-ratio',
+            slug = 'contrib.curve-get-pegging-ratio',
             input = input.pool_address)
 
         desired_ratio = input.desired_ratio
@@ -233,7 +233,7 @@ class CurveGetDepeggingAmount(Model):
                 amount_required = amount_token0 - token0_balance
             if input.token.symbol == coins[1] :
                 temp=( 2-desired_ratio + 2*math.sqrt(1-desired_ratio))
-                amount_token1 = token1_balance * temp / desired_ratio
+                amount_token1 = token0_balance * temp / desired_ratio
                 amount_required = amount_token1 - token1_balance
 
         return CurvePoolDepeggingAmount(
