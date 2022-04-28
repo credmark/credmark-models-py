@@ -1,3 +1,5 @@
+import json
+
 from credmark.cmf.model import Model
 
 from credmark.cmf.types import (
@@ -15,7 +17,7 @@ from models.credmark.algorithms.value_at_risk.dto import (
 
 
 @Model.describe(slug='finance.example-historical-price',
-                version='1.0',
+                version='1.1',
                 display_name='Value at Risk - Get Price Historical',
                 description='Feed a mock historical price list',
                 input=HistoricalPriceInput,
@@ -75,8 +77,9 @@ class DemoContractVaR(Model):
                 historical_price_input = HistoricalPriceInput(token=pos.asset,
                                                               window=input.window,
                                                               asOf=input.asOf)
+                # json.loads(dto.json()) is to marshal date type to JSON
                 pl = self.context.run_model(slug='finance.example-historical-price',
-                                            input=historical_price_input,
+                                            input=json.loads(historical_price_input.json()),
                                             return_type=PriceList)
                 pls.append(pl)
                 pl_assets.add(pos.asset.address)
