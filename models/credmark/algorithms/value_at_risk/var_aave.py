@@ -30,29 +30,6 @@ from models.credmark.protocols.lending.aave.aave_v2 import (
                 output=dict)
 class AaveV2GetVAR(Model):
     def run(self, input: ContractVaRInput) -> dict:
-        """
-        contract = Contract(
-            address=Address(AAVE_LENDING_POOL_V2).checksum,
-            abi=AAVE_V2_TOKEN_CONTRACT_ABI
-        )
-
-        aave_assets = contract.functions.getReservesList().call()
-
-        positions = []
-        for asset in aave_assets:
-            reservesData = contract.functions.getReserveData(asset).call()
-            stableDebtToken = Token(address=reservesData[8], abi=ERC_20_TOKEN_CONTRACT_ABI)
-            try:
-                symbol = stableDebtToken.symbol[10:]
-                positions.append(Position(asset=Token(symbol=symbol), amount=100))
-            except:
-                symbol = None
-            # print("Asset ", stableDebtToken, symbol)
-
-        1. Checkout the aave-v2.lending-pool-assets model
-        2. Get the portfolio on the input.asOf date.
-        """
-
         asof_dt = datetime.combine(input.asOf, datetime.max.time(), tzinfo=timezone.utc)
         asof_block_number = BlockNumber.from_timestamp(asof_dt)
 
@@ -62,7 +39,6 @@ class AaveV2GetVAR(Model):
                                        block_number=asof_block_number)
 
         n_debts = len(debts.aaveDebtInfos)
-
         positions = []
         self.logger.info('Aave net asset = Asset - liability')
         for n_dbt, dbt in enumerate(debts):
