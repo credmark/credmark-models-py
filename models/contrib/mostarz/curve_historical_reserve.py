@@ -1,5 +1,4 @@
 from credmark.cmf.model import Model
-
 from credmark.cmf.types import (
     Contract,
 )
@@ -13,6 +12,15 @@ from credmark.cmf.types import (
                 input=Contract,
                 output=dict)
 class CurveFinanceHistoricalReserve(Model):
+    """
+    INSTRUCTIONS
+    1. go to the curve.fi and find the pool you want
+    2. click on the pool and scroll to the bottom
+    3. click on "POOL ADDRESS",  you will be sent to Etherscan
+    4. copy that address and enter it
+
+    """
+
     def run(self, input: Contract) -> dict:
         res = self.context.historical.run_model_historical(
             'curve-fi.pool-info',
