@@ -31,7 +31,7 @@ from models.credmark.protocols.lending.aave.aave_v2 import (
                 output=dict)
 class AaveV2GetVAR(Model):
     """
-    We calculate the VaR of Aave.
+    VaR of Aave based on its inventory of tokens.
     The exposure of Aave is the number of tokens borrowed (totalDebt)
     less than the total numbe of tokens (totalSupply) deposited.
 
