@@ -131,7 +131,7 @@ class UniswapV3GetPoolInfo(Model):
         # Compute the tick range near the current tick
         tick_bottom = (np.floor(tick / tick_spacing)) * tick_spacing
         tick_top = tick_bottom + tick_spacing
-        assert tick_bottom < tick < tick_top
+        assert tick_bottom <= tick <= tick_top
 
         # Compute square roots of prices corresponding to the bottom and top ticks
         sa = self.tick_to_price(tick_bottom // 2)
