@@ -2,11 +2,8 @@
 # pylint: disable=locally-disabled, line-too-long
 
 from credmark.cmf.model import Model
-
-from credmark.cmf.types import (
-    Account
-)
-
+from credmark.cmf.engine.mocks import ModelMockConfig, ModelMock
+from credmark.cmf.types import Account
 from credmark.cmf.types.ledger import (
     BlockTable,
     TransactionTable,
@@ -34,6 +31,19 @@ class ExampleLedgerBlock(Model):
         return self.context.ledger.get_blocks(columns=[BlockTable.Columns.DIFFICULTY],
                                               limit="10",
                                               order_by=BlockTable.Columns.NUMBER + " desc")
+
+
+# This mock config can be used as mock data for the 'example.ledger-transactions'
+# model below.
+# Run with: credmark-dev run example.ledger-transactions -m models.examples.ledger_examples.ledger_transactions_mocks
+ledger_transactions_mocks = ModelMockConfig(
+    models={
+        'ledger.transaction_data':
+        ModelMock({"data":
+                   [{"hash": "0x8862c4b7bc8b7d48f1671b413dd3b5e0b785d2001443ff3e13ba9602eddb7ef2"},
+                    {"hash": "0x9a1bbc5508e4fed1e7f08d791740dfb03aa8560965c78c92b6ee8fcc350021db"},
+                    {"hash": "0x00643f90efc4b949e4c8ed8abfa61d36b035297a996a066c967f64df3d2c7040"}]})
+    })
 
 
 @Model.describe(slug='example.ledger-transactions', version="1.0")
