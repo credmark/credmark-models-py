@@ -18,7 +18,7 @@ from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
 
 
 @Model.describe(slug='price',
-                version='1.1',
+                version='1.0',
                 display_name='Token Price',
                 description='DEPRECATED - use token.price',
                 input=Token,
@@ -136,10 +136,11 @@ class TokenPriceModel(Model, PriceWeight):
                      pool_price_infos_sushi['pool_price_infos'] +
                      pool_price_infos_univ3['pool_price_infos'])
 
-        non_zero_pools = set([ii['src'] for ii in all_infos if ii['liquidity'] > 0])
-        pool_aggregator_input = PoolPriceAggregatorInput(pool_price_infos=all_infos,
-                                                         price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
-                                                         weight_power=self.WEIGHT_POWER)
+        non_zero_pools = {ii['src'] for ii in all_infos if ii['liquidity'] > 0}
+        pool_aggregator_input = PoolPriceAggregatorInput(
+            pool_price_infos=all_infos,
+            price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
+            weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
                                       return_type=Price)
