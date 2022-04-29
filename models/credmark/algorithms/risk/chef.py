@@ -240,14 +240,14 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 return ChefStatus.SUCCESS, result
 
             elif rec.method == 'run_model':
-                assert self.verify_input_and_key('model_version', rec)
+                assert self.verify_input_and_key('version', rec)
                 assert self.verify_input_and_key('block_number', rec)
                 result = self.context.run_model(**rec.input,
                                                 return_type=rec.chef_return_type)
                 return ChefStatus.SUCCESS, result
 
             elif rec.method == 'run_model[blocks]':
-                assert self.verify_input_and_key('model_version', rec)
+                assert self.verify_input_and_key('version', rec)
 
                 if 'block_numbers' not in rec.input:
                     raise ModelRunError(f'Missing "block_numbers" in Recipe\'s '

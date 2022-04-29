@@ -51,14 +51,10 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
         positions = []
         context.logger.info('Aave net asset = Asset - liability')
         for n_dbt, dbt in enumerate(debts):
-            context.logger.info(f'{n_dbt+1}/{n_debts} '
-                                f'Token info: {dbt.token.symbol=} {dbt.token.address=} '
-                                f'{dbt.token.name=} {dbt.token.total_supply=} '
-                                f'{dbt.token.decimals=}')
-            net_amt = dbt.totalSupply_qty - dbt.totalDebt_qty
-            context.logger.info(f'{dbt.aToken.address=} {net_amt=} '
-                                f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
-            positions.append(Position(amount=net_amt, asset=dbt.token))
+            context.logger.debug(f'{n_dbt+1}/{n_debts} '
+                                 f'{dbt.aToken.address=} {dbt.totalLiquidity_qty=} '
+                                 f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
+            positions.append(Position(amount=-dbt.totalLiquidity_qty, asset=dbt.token))
         return Portfolio(positions=positions)
 
     def define(self) -> Portfolio:
@@ -71,7 +67,7 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
             cache_keywords=[method, model_slug, model_version, block_number],
             method=method,
             input={'slug': model_slug,
-                   'model_version': model_version,
+                   'version': model_version,
                    'block_number': block_number})
         return self.chef.cook(recipe)
 

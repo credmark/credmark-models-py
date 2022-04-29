@@ -18,7 +18,7 @@ from credmark.dto import (
 import pandas as pd
 import numpy as np
 
-from models.credmark.algorithms.risk import (
+from .plan import (
     BlockFromTimePlan,
 )
 

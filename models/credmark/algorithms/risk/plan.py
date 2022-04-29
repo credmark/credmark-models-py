@@ -210,6 +210,7 @@ class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
             method=method,
             input={'slug': model_slug,
                    **({} if model_input == {} else {'input': model_input}),
+                   'version': model_version,
                    'block_number': block_number})
         return self.chef.cook(recipe)
 
@@ -316,6 +317,7 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
             cache_keywords=[method, model_slug, model_version, window, interval, as_of_timestamp],
             method=method,
             input={'model_slug': model_slug,
+                   'model_version': model_version,
                    'window': window,
                    'interval': interval,
                    'end_timestamp': as_of_timestamp})
@@ -402,7 +404,7 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         else:
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
         model_slug = 'token.price-ext'
-        model_version = '1.1'
+        model_version = '1.0'
 
         # other choices for slug:
         # - 'token.price-ext',
@@ -418,7 +420,7 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
             method=method,
             input={'slug': model_slug,
                    'input': input_token,
-                   'model_version': model_version,
+                   'version': model_version,
                    'block_numbers': sorted_block_numbers})
 
         rec_result = self.chef.cook(rec)
