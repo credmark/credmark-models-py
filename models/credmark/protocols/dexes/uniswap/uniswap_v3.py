@@ -172,8 +172,6 @@ class UniswapV3GetPoolInfo(Model):
             'tick_liquidity_token0': adjusted_amount0,
             'tick_liquidity_token1': adjusted_amount1,
             "fee": fee,
-            'liquidityGross': ticks[0],
-            'liquidityNet': ticks[1],
             'virtual_liquidity_token0': virtual_x,
             'virtual_liquidity_token1': virtual_y,
         }
