@@ -362,7 +362,7 @@ class CompoundV2GetPoolInfo(Model):
         borrowRate = cToken.functions.borrowRatePerBlock().call() / pow(10, 18)
         supplyRate = cToken.functions.supplyRatePerBlock().call() / pow(10, 18)
 
-        tokenprice = self.context.run_model(slug='token.price-ext', input=token, return_type=Price)
+        tokenprice = self.context.run_model(slug='token.price', input=token, return_type=Price)
 
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')

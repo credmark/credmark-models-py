@@ -785,8 +785,7 @@ from credmark.cmf.types import (Address, Contract)
 
 contract = Contract(
     # lending pool address
-    address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum,
-    abi=AAVE_V2_TOKEN_CONTRACT_ABI
+    address=Address("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9").checksum
 )
 ```
 

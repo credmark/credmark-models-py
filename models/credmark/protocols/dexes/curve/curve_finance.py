@@ -153,7 +153,6 @@ class CurveFinanceTotalTokenLiqudity(Model):
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
                                                 return_type=Contracts)
-
         pool_infos = [
             CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(pool))
             for pool in pool_contracts]
