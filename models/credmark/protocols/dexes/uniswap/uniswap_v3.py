@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from web3.exceptions import (
     BadFunctionCallOutput,
@@ -34,6 +35,10 @@ class UniswapV3PoolInfo(DTO):
     feeProtocol: int
     unlocked: bool
     liquidity: str
+    tick_liquidity_token0: float
+    tick_liquidity_token1: float
+    virtual_liquidity_token0: float
+    virtual_liquidity_token1: float
     fee: int
     token0: Token
     token1: Token
@@ -90,6 +95,11 @@ class UniswapV3GetPoolsForToken(Model):
                 input=Contract,
                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
+    UNISWAP_BASE = 1.0001
+
+    def tick_to_price(self, tick):
+        return pow(self.UNISWAP_BASE, tick)
+
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         try:
             input.abi
@@ -99,37 +109,85 @@ class UniswapV3GetPoolInfo(Model):
         pool = input
 
         slot0 = pool.functions.slot0().call()
-        token0 = pool.functions.token0().call()
-        token1 = pool.functions.token1().call()
-        liquidity = pool.functions.liquidity().call()
         fee = pool.functions.fee().call()
         ticks = pool.functions.ticks(slot0[1]).call()
+
+        token0_addr = pool.functions.token0().call()
+        token1_addr = pool.functions.token1().call()
+        token0 = Token(address=token0_addr)
+        token1 = Token(address=token1_addr)
+
+        # Liquidity for virutal amount of x and y
+        liquidity = pool.functions.liquidity().call()
+
+        # To calculate liquidity within the range of tick
+
+        # Get the current tick and tick_spacing for the pool (set based on the fee)
+        tick = slot0[1]
+        tick_spacing = pool.functions.tickSpacing().call()
+        # Compute the current price
+        p_current = self.tick_to_price(tick)
+
+        # Compute the tick range near the current tick
+        tick_bottom = (np.floor(tick / tick_spacing)) * tick_spacing
+        tick_top = tick_bottom + tick_spacing
+        assert tick_bottom < tick < tick_top
+
+        # Compute square roots of prices corresponding to the bottom and top ticks
+        sa = self.tick_to_price(tick_bottom // 2)
+        sb = self.tick_to_price(tick_top // 2)
+        sp = p_current ** 0.5
+
+        amount0 = liquidity * (sb - sp) / (sp * sb)
+        amount1 = liquidity * (sp - sa)
+
+        # Below shall be equal for the tick liquidity
+        # Reference: UniswapV3 whitepaper Eq. 2.2
+        assert np.isclose(
+            (amount0 + liquidity / sb) * (amount1 + liquidity * sa),
+            float(liquidity * liquidity))
+
+        # Scale the amounts to the token's unit
+        adjusted_amount0 = token0.scaled(amount0)
+        adjusted_amount1 = token1.scaled(amount1)
+
+        # Calculate the virtual liquidity
+        # Reference: UniswapV3 whitepaper Eq. 2.1
+        virtual_x = token0.scaled(liquidity / sp)
+        virtual_y = token1.scaled(liquidity * sp)
+
         res = {
             "address": input.address,
             "sqrtPriceX96": slot0[0],
-            "tick": slot0[1],
+            "tick": tick,
             "observationIndex": slot0[2],
             "observationCardinality": slot0[3],
             "observationCardinalityNext": slot0[4],
             "feeProtocol": slot0[5],
             "unlocked": slot0[6],
-            "token0": Token(address=token0),
-            "token1": Token(address=token1),
+            "token0": token0,
+            "token1": token1,
             "liquidity": liquidity,
+            'tick_liquidity_token0': adjusted_amount0,
+            'tick_liquidity_token1': adjusted_amount1,
             "fee": fee,
             'liquidityGross': ticks[0],
             'liquidityNet': ticks[1],
+            'virtual_liquidity_token0': virtual_x,
+            'virtual_liquidity_token1': virtual_y,
         }
         return UniswapV3PoolInfo(**res)
 
 
-@Model.describe(slug='uniswap-v3.get-average-price',
-                version='1.1',
-                display_name='Uniswap v3 Token Pools',
-                description='The Uniswap v3 pools that support a token contract',
-                input=Token,
-                output=Price)
+@ Model.describe(slug='uniswap-v3.get-average-price',
+                 version='1.1',
+                 display_name='Uniswap v3 Token Pools',
+                 description='The Uniswap v3 pools that support a token contract',
+                 input=Token,
+                 output=Price)
 class UniswapV3GetAveragePrice(Model):
+    UNISWAP_BASE = 1.0001
+
     def run(self, input: Token) -> Price:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
@@ -149,16 +207,17 @@ class UniswapV3GetAveragePrice(Model):
             if info.token0.decimals and info.token1.decimals:
                 scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
                 tick_price = 1.0001 ** info.tick * scale_multiplier
-
-                if input.address == info.token1.address:
-                    tick_price = 1/tick_price
-
+                tick_liquidity = info.tick_liquidity_token1
+                virtual_liquidity = info.virtual_liquidity_token1
                 ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
                 inverse = False
                 if input.address == info.token1.address:
+                    tick_price = 1/tick_price
                     ratio_price = 1/ratio_price
                     inverse = True
+                    tick_liquidity = info.tick_liquidity_token0
+                    virtual_liquidity = info.virtual_liquidity_token0
 
                 weth_multipler = 1
                 if input.address != WETH9_ADDRESS:
@@ -174,7 +233,8 @@ class UniswapV3GetAveragePrice(Model):
                 tick_price *= weth_multipler
                 ratio_price *= weth_multipler
 
-                prices_with_info.append((self.slug, tick_price, info.liquidity, weth_multipler, inverse,
+                prices_with_info.append((self.slug, tick_price, tick_liquidity, virtual_liquidity,
+                                         weth_multipler, inverse,
                                          info.token0.address, info.token1.address,
                                          info.token0.symbol, info.token1.symbol,
                                          info.token0.decimals, info.token1.decimals,
@@ -184,7 +244,8 @@ class UniswapV3GetAveragePrice(Model):
             return Price(price=None, src=self.slug)
 
         df = pd.DataFrame(prices_with_info,
-                          columns=['src', 'price', 'liquidity', 'weth_multiplier', 'inverse',
+                          columns=['src', 'price', 'liquidity', 'virtual_liquidity',
+                                   'weth_multiplier', 'inverse',
                                    't0_address', 't1_address',
                                    't0_symbol', 't1_symbol',
                                    't0_decimal', 't1_decimal',
