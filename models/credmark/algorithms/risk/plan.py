@@ -10,6 +10,7 @@ from credmark.cmf.types import (
 )
 
 from credmark.cmf.types.series import BlockSeries
+from eth_utils import sort_return
 
 import pandas as pd
 
@@ -409,6 +410,20 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         # other choices for slug:
         # - 'uniswap-v3.get-average-price',
         sorted_block_numbers = sorted(block_numbers)
+
+        rec = self.create_recipe(
+            cache_keywords=[method,
+                            'token.pool-price-info',
+                            '1.1',
+                            self._target_key,
+                            [sorted_block_numbers]],
+            method=method,
+            input={'slug': 'token.pool-price-info',
+                   'input': input_token,
+                   'version': '1.1',
+                   'block_numbers': sorted_block_numbers})
+        rec_result = self.chef.cook(rec)
+
         rec = self.create_recipe(
             cache_keywords=[method,
                             model_slug,
