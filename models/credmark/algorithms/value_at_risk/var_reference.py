@@ -75,7 +75,7 @@ class ValueAtRisk(ValueAtRiskBase):
 
             self.logger.info(f'Start loading {n_pos+1}/{total_n_pos} {pos.asset.address}')
             historical = (self.context.historical
-                          .run_model_historical('token.price-ext',
+                          .run_model_historical('token.price',
                                                 window=window_from_max_as_of,
                                                 interval=minimal_interval,
                                                 model_input=pos.asset,

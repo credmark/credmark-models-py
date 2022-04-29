@@ -403,13 +403,11 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
             method = 'run_model[blocks]'
         else:
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
-        model_slug = 'token.price-ext'
+        model_slug = 'token.price'
         model_version = '1.0'
 
         # other choices for slug:
-        # - 'token.price-ext',
         # - 'uniswap-v3.get-average-price',
-        # - 'token.price',
         sorted_block_numbers = sorted(block_numbers)
         rec = self.create_recipe(
             cache_keywords=[method,
