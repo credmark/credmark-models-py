@@ -216,11 +216,11 @@ class CurveGetDepeggingAmount(Model):
             input = input.pool)
 
         desired_ratio = input.desired_ratio
-        coins = list(pool_info.coin_balances.keys())
+        coins = list(pool_info["coin_balances"].keys())
         n = len(coins)
 
-        token0_balance = pool_info.coin_balances[coins[0]]
-        token1_balance = pool_info.coin_balances[coins[1]]
+        token0_balance = pool_info["coin_balances"][coins[0]]
+        token1_balance = pool_info["coin_balances"][coins[1]]
 
         amount_required = float(0)
 
