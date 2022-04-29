@@ -5,7 +5,7 @@ from models.credmark.algorithms.value_at_risk.dto import (
     VaRHistoricalInput,
 )
 
-from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+from models.credmark.algorithms.risk import calc_var
 
 import numpy as np
 

@@ -23,7 +23,7 @@ from models.credmark.algorithms.risk import (
     ValueAtRiskBase,
 )
 
-from models.credmark.algorithms.dto import (
+from models.credmark.algorithms.value_at_risk.dto_plan import (
     PPLAggregationInput,
     VaRPortfolioInput,
     VaROutput,

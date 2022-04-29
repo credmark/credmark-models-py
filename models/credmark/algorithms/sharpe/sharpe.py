@@ -13,7 +13,7 @@ from credmark.dto import (
     DTO
 )
 
-from models.credmark.algorithms.var import (
+from models.credmark.algorithms.value_at_risk.dto import (
     HistoricalPriceInput
 )
 

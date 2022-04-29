@@ -24,17 +24,17 @@ from typing import (
 
 )
 
-from models.credmark.algorithms.recipe import (
+from .dto import (
     RiskObject,
     validate_as_of,
 )
 
-from models.credmark.algorithms.chef import (
+from .chef import (
     Chef,
     Kitchen,
 )
 
-from models.credmark.algorithms.plan import (
+from .plan import (
     TokenEODPlan,
 )
 

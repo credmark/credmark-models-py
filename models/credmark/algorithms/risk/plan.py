@@ -26,7 +26,7 @@ from datetime import (
     timezone,
 )
 
-from models.credmark.algorithms.chef import (
+from .chef import (
     Chef,
     ChefStatus,
     Kitchen,
@@ -34,7 +34,7 @@ from models.credmark.algorithms.chef import (
     ChefT,
 )
 
-from models.credmark.algorithms.recipe import (
+from .dto import (
     Recipe,
     validate_as_of,
     BlockData,
@@ -199,16 +199,17 @@ class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
 
     def define(self) -> PlanT:
         method = self._input_to_plan['method']
-        slug = self._input_to_plan['slug']
-        input = self._input_to_plan.get('input', {})
+        model_slug = self._input_to_plan['slug']
+        model_input = self._input_to_plan.get('input', {})
         block_number = self._input_to_plan['block_number']
         input_keys = self._input_to_plan['input_keys']
+        model_version = self._input_to_plan['model_version']
 
         recipe = self.create_recipe(
-            cache_keywords=[method, slug, block_number] + input_keys,
+            cache_keywords=[method, model_slug, model_version, block_number] + input_keys,
             method=method,
-            input={'slug': slug,
-                   **({} if input == {} else {'input': input}),
+            input={'slug': model_slug,
+                   **({} if model_input == {} else {'input': model_input}),
                    'block_number': block_number})
         return self.chef.cook(recipe)
 
@@ -286,6 +287,7 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
     def define(self) -> dict:
         method = 'run_model_historical'
         model_slug = 'finance.get-one'
+        model_version = '1.0'
         as_of = self._input_to_plan['as_of']
         window = self._input_to_plan['window']
         interval = self._input_to_plan['interval']
@@ -311,7 +313,7 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
         __as_of_block = block_plan.execute()['block_number']
 
         recipe = self.create_recipe(
-            cache_keywords=[method, model_slug, window, interval, as_of_timestamp],
+            cache_keywords=[method, model_slug, model_version, window, interval, as_of_timestamp],
             method=method,
             input={'model_slug': model_slug,
                    'window': window,
@@ -400,6 +402,7 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         else:
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
         model_slug = 'token.price-ext'
+        model_version = '1.1'
 
         # other choices for slug:
         # - 'token.price-ext',
@@ -409,11 +412,13 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         rec = self.create_recipe(
             cache_keywords=[method,
                             model_slug,
+                            model_version,
                             self._target_key,
                             [rolling_interval, sorted_block_numbers]],
             method=method,
             input={'slug': model_slug,
                    'input': input_token,
+                   'model_version': model_version,
                    'block_numbers': sorted_block_numbers})
 
         rec_result = self.chef.cook(rec)

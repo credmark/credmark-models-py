@@ -15,7 +15,7 @@ from models.credmark.protocols.lending.aave.aave_v2 import (
     AaveDebtInfos,
 )
 
-from models.credmark.algorithms.dto import (
+from models.credmark.algorithms.value_at_risk.dto_plan import (
     AaveVaR,
     VaRPortfolioInput,
     VaROutput,
@@ -63,13 +63,15 @@ class AaveDebtHistoricalPlan(Plan[AaveDebtInfos, Portfolio]):
 
     def define(self) -> Portfolio:
         method = 'run_model'
-        slug = 'aave-v2.lending-pool-assets'
+        model_slug = 'aave-v2.lending-pool-assets'
+        model_version = '1.1'
         block_number = self._input_to_plan['block_number']
 
         recipe = self.create_recipe(
-            cache_keywords=[method, slug, block_number],
+            cache_keywords=[method, model_slug, model_version, block_number],
             method=method,
-            input={'slug': slug,
+            input={'slug': model_slug,
+                   'model_version': model_version,
                    'block_number': block_number})
         return self.chef.cook(recipe)
 

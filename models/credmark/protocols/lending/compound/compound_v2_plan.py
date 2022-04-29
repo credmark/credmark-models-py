@@ -91,6 +91,7 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 verbose=verbose,
                 method='run_model',
                 slug='compound-v2.get-comptroller',
+                model_version='1.1',
                 block_number=block_number,
                 input_keys=[],
             )
@@ -113,6 +114,7 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 verbose=verbose,
                 method='run_model',
                 slug='compound-v2.all-pools-info',
+                model_version='1.1',
                 block_number=block_number,
                 input_keys=[],
             )
@@ -135,6 +137,7 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
                 reset_cache=reset_cache_value,
                 method='run_model',
                 slug='compound-v2.all-pools-values',
+                model_version='1.1',
                 input=pool_infos,
                 block_number=block_number,
                 input_keys=[pl.cToken.address for pl in pool_infos]

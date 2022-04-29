@@ -1,13 +1,15 @@
 # pylint: disable=locally-disabled, unused-import
 
-from models.credmark.algorithms.base import (
+from .base import (
     ValueAtRiskBase,
 )
-from models.credmark.algorithms.risk_method import (
+
+from .risk_method import (
     calc_es,
     calc_var,
 )
-from models.credmark.algorithms.tradeable import (
+
+from .tradeable import (
     Tradeable,
     TokenTradeable,
     ContractTradeable,
@@ -16,7 +18,7 @@ from models.credmark.algorithms.tradeable import (
     MarketTarget,
 )
 
-from models.credmark.algorithms.plan import (
+from .plan import (
     TokenEODPlan,
     BlockFromTimePlan,
     HistoricalBlockPlan,
@@ -24,7 +26,14 @@ from models.credmark.algorithms.plan import (
     GeneralHistoricalPlan,
 
 )
-from models.credmark.algorithms.chef import (
+
+from .chef import (
     Chef,
     Kitchen,
+)
+
+from .dto import (
+    Recipe,
+    RiskObject
+
 )
