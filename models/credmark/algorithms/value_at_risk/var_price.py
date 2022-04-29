@@ -1,11 +1,8 @@
 # pylint:disable=locally-disabled,line-too-long
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Token
 
-import os
-import json
-import numpy as np
 
 from models.credmark.algorithms.risk import (
     GeneralHistoricalPlan
@@ -21,7 +18,7 @@ from models.dtos.price import PoolPriceInfos
                 input=Token,
                 output=dict)
 class ValueAtRiskPrices(Model):
-    def run(self, input: dict) -> dict:
+    def run(self, input: Token) -> dict:
         use_kitchen = True
         verbose = True
         block_number = int(self.context.block_number)
@@ -42,6 +39,6 @@ class ValueAtRiskPrices(Model):
             block_number=block_number,
             input_keys=[input.address],
         )
-        comptroller = pool_price_info.execute()
+        pool_price_info = pool_price_info.execute()
 
         return {}

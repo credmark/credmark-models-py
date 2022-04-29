@@ -10,7 +10,6 @@ from credmark.cmf.types import (
 )
 
 from credmark.cmf.types.series import BlockSeries
-from eth_utils import sort_return
 
 import pandas as pd
 
