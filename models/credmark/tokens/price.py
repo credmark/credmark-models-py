@@ -113,8 +113,30 @@ class SushiV2GetAveragePrice(Model, PriceWeight):
                                       return_type=Price)
 
 
+@ Model.describe(slug='token.pool-price-info',
+                 version='1.1',
+                 display_name='Token Price - all pools',
+                 description='The Current Credmark Supported Price Algorithm',
+                 developer='Credmark',
+                 input=Token,
+                 output=PoolPriceInfos)
+class TokenPoolPriceInfo(Model):
+    def run(self, input: Token) -> PoolPriceInfos:
+        pool_price_infos_univ2 = self.context.run_model('uniswap-v2.get-pool-price-info',
+                                                        input=input)
+        pool_price_infos_sushi = self.context.run_model('sushiswap.get-pool-price-info',
+                                                        input=input)
+        pool_price_infos_univ3 = self.context.run_model('uniswap-v3.get-pool-price-info',
+                                                        input=input)
+        all_infos = (pool_price_infos_univ2['pool_price_infos'] +
+                     pool_price_infos_sushi['pool_price_infos'] +
+                     pool_price_infos_univ3['pool_price_infos'])
+
+        return PoolPriceInfos(pool_price_infos=all_infos)
+
+
 @ Model.describe(slug='token.price',
-                 version='1.0',
+                 version='1.1',
                  display_name='Token Price - weighted by liquidity',
                  description='The Current Credmark Supported Price Algorithm',
                  developer='Credmark',
@@ -126,19 +148,12 @@ class TokenPriceModel(Model, PriceWeight):
     """
 
     def run(self, input: Token) -> Price:
-        pool_price_infos_univ2 = self.context.run_model('uniswap-v2.get-pool-price-info',
-                                                        input=input)
-        pool_price_infos_sushi = self.context.run_model('sushiswap.get-pool-price-info',
-                                                        input=input)
-        pool_price_infos_univ3 = self.context.run_model('uniswap-v3.get-pool-price-info',
-                                                        input=input)
-        all_infos = (pool_price_infos_univ2['pool_price_infos'] +
-                     pool_price_infos_sushi['pool_price_infos'] +
-                     pool_price_infos_univ3['pool_price_infos'])
-
-        non_zero_pools = {ii['src'] for ii in all_infos if ii['liquidity'] > 0}
+        all_pool_infos = self.context.run_model('token.pool-price-info',
+                                                input=input,
+                                                return_type=PoolPriceInfos)
+        non_zero_pools = {ii.src for ii in all_pool_infos.pool_price_infos if ii.liquidity > 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
-            pool_price_infos=all_infos,
+            pool_price_infos=all_pool_infos.pool_price_infos,
             price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
             weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
