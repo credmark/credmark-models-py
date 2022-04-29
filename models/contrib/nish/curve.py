@@ -181,7 +181,7 @@ class CurveV2PoolsValueHistorical(Model):
 
         pool_infos = self.context.historical.run_model_historical(
             model_slug='contrib.curve-get-pegging-ratio',
-            model_input=input.pool_address,
+            model_input=input.pool,
             model_return_type=CurvePoolPeggingInfo,
             window=window,
             interval=interval,
