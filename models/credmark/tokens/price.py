@@ -136,7 +136,7 @@ class TokenPoolPriceInfo(Model):
 
 
 @ Model.describe(slug='token.price',
-                 version='1.0',
+                 version='1.1',
                  display_name='Token Price - weighted by liquidity',
                  description='The Current Credmark Supported Price Algorithm',
                  developer='Credmark',
