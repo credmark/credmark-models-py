@@ -404,7 +404,7 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
         else:
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
         model_slug = 'token.price'
-        model_version = '1.0'
+        model_version = '1.1'
 
         # other choices for slug:
         # - 'uniswap-v3.get-average-price',

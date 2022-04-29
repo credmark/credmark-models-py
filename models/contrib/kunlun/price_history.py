@@ -23,15 +23,23 @@ credmark-dev run contrib.price-history -i '{"address":"0x090185f2135308BaD175270
                 output=dict)
 class PriceHistory(Model):
     def run(self, input: Token) -> dict:
-        if False:
-            block_time = datetime(2022, 1, 28, 23, 59, 59, tzinfo=timezone.utc)
-            bb = BlockNumber.from_timestamp(block_time)
-            res = self.context.run_model(
-                'token.pool-price-info',
-                input=input,
-                block_number=bb)
+        block_time = datetime(2022, 1, 26, 23, 59, 59, tzinfo=timezone.utc)
+        bb = BlockNumber.from_timestamp(block_time)
+        res = self.context.run_model(
+            'token.pool-price-info',
+            input=input,
+            block_number=bb)
 
-            df = pd.DataFrame(res['pool_price_infos'])
+        df = pd.DataFrame(res['pool_price_infos'])
+
+        self.logger.info(df)
+
+        res = self.context.run_model(
+            'token.price',
+            input=input,
+            block_number=bb)
+
+        print(res)
 
         res = self.context.historical.run_model_historical(
             'token.price',
