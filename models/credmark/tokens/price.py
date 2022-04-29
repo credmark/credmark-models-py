@@ -1,4 +1,5 @@
 # pylint: disable=locally-disabled, unused-import
+import pandas as pd
 from typing import List
 
 from credmark.cmf.model import Model
@@ -12,6 +13,8 @@ from credmark.cmf.types import (
 )
 
 from credmark.dto import DTO, IterableListGenericDTO
+
+from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
 
 
 @Model.describe(slug='price',
@@ -29,63 +32,114 @@ class PriceModel(Model):
         return self.context.run_model('token.price', input, return_type=Price)
 
 
-@Model.describe(slug='token.price',
-                version='1.0',
-                display_name='Token Price',
-                description='The Current Credmark Supported Price Algorithm',
-                developer='Credmark',
+@Model.describe(slug='price.pool-aggregator',
+                version='1.1',
+                display_name='Token Price from DEX pools, weighted by liquidity',
+                description='Aggregate prices from pools weighted by liquidity',
+                input=PoolPriceAggregatorInput,
+                output=Price)
+class PoolPriceAggregator(Model):
+    def run(self, input: PoolPriceAggregatorInput) -> Price:
+        if len(input.pool_price_infos) == 0:
+            return Price(price=None, src=input.price_src)
+
+        df = pd.DataFrame(input.dict()['pool_price_infos'])
+
+        if len(input.pool_price_infos) == 1:
+            return Price(price=input.pool_price_infos[0].price, src=input.price_src)
+
+        product_of_price_liquidity = (df.price * df.liquidity ** input.weight_power).sum()
+        sum_of_liquidity = (df.liquidity ** input.weight_power).sum()
+        price = product_of_price_liquidity / sum_of_liquidity
+        return Price(price=price, src=input.price_src)
+
+
+class PriceWeight:
+    WEIGHT_POWER = 1.0
+    # TODO: more price weight-related methods
+
+
+@Model.describe(slug='uniswap-v3.get-weighted-price',
+                version='1.1',
+                display_name='Uniswap v3 - get price weighted by liquidity',
+                description='The Uniswap v3 pools that support a token contract',
                 input=Token,
                 output=Price)
-class TokenPriceModel(Model):
+class UniswapV3GetAveragePrice(Model, PriceWeight):
+    def run(self, input: Token) -> Price:
+        pool_price_infos = self.context.run_model('uniswap-v3.get-pool-price-info',
+                                                  input=input)
+        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+                                                         price_src=self.slug,
+                                                         weight_power=self.WEIGHT_POWER)
+        return self.context.run_model('price.pool-aggregator',
+                                      input=pool_aggregator_input,
+                                      return_type=Price)
+
+
+@Model.describe(slug='uniswap-v2.get-weighted-price',
+                version='1.1',
+                display_name='Uniswap v2 - get price weighted by liquidity',
+                description='The Uniswap v2 pools that support a token contract',
+                input=Token,
+                output=Price)
+class UniswapV2GetAveragePrice(Model, PriceWeight):
+    def run(self, input: Token) -> Price:
+        pool_price_infos = self.context.run_model('uniswap-v2.get-pool-price-info',
+                                                  input=input)
+        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+                                                         price_src=self.slug,
+                                                         weight_power=self.WEIGHT_POWER)
+        return self.context.run_model('price.pool-aggregator',
+                                      input=pool_aggregator_input,
+                                      return_type=Price)
+
+
+@Model.describe(slug='sushiswap.get-weighted-price',
+                version='1.1',
+                display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
+                description='The Sushi v2 pools that support a token contract',
+                input=Token,
+                output=Price)
+class SushiV2GetAveragePrice(Model, PriceWeight):
+    def run(self, input: Token) -> Price:
+        pool_price_infos = self.context.run_model('sushiswap.get-pool-price-info',
+                                                  input=input)
+        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+                                                         price_src=self.slug,
+                                                         weight_power=self.WEIGHT_POWER)
+        return self.context.run_model('price.pool-aggregator',
+                                      input=pool_aggregator_input,
+                                      return_type=Price)
+
+
+@ Model.describe(slug='token.price',
+                 version='1.0',
+                 display_name='Token Price - weighted by liquidity',
+                 description='The Current Credmark Supported Price Algorithm',
+                 developer='Credmark',
+                 input=Token,
+                 output=Price)
+class TokenPriceModel(Model, PriceWeight):
     """
     Return token's price
     """
 
     def run(self, input: Token) -> Price:
-        prices = []
-        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
-        if uniswap_v2.price is not None:
-            prices.append(uniswap_v2)
-        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
-        if uniswap_v3.price is not None:
-            prices.append(uniswap_v3)
-        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
-        if sushiswap.price is not None:
-            prices.append(sushiswap)
-        average_price = 0
-        if len(prices) > 0:
-            average_price = sum([p.price for p in prices]) / len(prices)
-            srcs = '|'.join([p.src for p in prices])
-            return Price(price=average_price, src=self.slug+':'+srcs)
-        else:
-            return Price(price=None, src=self.slug)
+        pool_price_infos_univ2 = self.context.run_model('uniswap-v2.get-pool-price-info',
+                                                        input=input)
+        pool_price_infos_sushi = self.context.run_model('sushiswap.get-pool-price-info',
+                                                        input=input)
+        pool_price_infos_univ3 = self.context.run_model('uniswap-v3.get-pool-price-info',
+                                                        input=input)
+        all_infos = (pool_price_infos_univ2['pool_price_infos'] +
+                     pool_price_infos_sushi['pool_price_infos'] +
+                     pool_price_infos_univ3['pool_price_infos'])
 
-
-@Model.describe(slug='token.price-ext',
-                version='1.0',
-                display_name='Token Price',
-                description='The Current Credmark Supported Price Algorithm (fast)',
-                developer='Credmark',
-                input=Token,
-                output=Price)
-class TokenPriceModelExt(Model):
-    """
-    Return token's price with immediate available source.
-    """
-
-    def run(self, input: Token) -> Price:
-        # Token initialization test
-        # _ = input.proxy_for
-        # _ = input.decimals
-        # _ = input.functions.implementation.call()
-
-        uniswap_v2 = Price(**self.context.models.uniswap_v2.get_average_price(input))
-        if uniswap_v2.price is not None:
-            return uniswap_v2
-        uniswap_v3 = Price(**self.context.models.uniswap_v3.get_average_price(input))
-        if uniswap_v3.price is not None:
-            return uniswap_v3
-        sushiswap = Price(**self.context.models.sushiswap.get_average_price(input))
-        if sushiswap.price is not None:
-            return sushiswap
-        return Price(price=None, src=self.slug)
+        non_zero_pools = set([ii['src'] for ii in all_infos if ii['liquidity'] > 0])
+        pool_aggregator_input = PoolPriceAggregatorInput(pool_price_infos=all_infos,
+                                                         price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
+                                                         weight_power=self.WEIGHT_POWER)
+        return self.context.run_model('price.pool-aggregator',
+                                      input=pool_aggregator_input,
+                                      return_type=Price)

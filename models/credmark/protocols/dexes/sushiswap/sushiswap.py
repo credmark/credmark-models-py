@@ -5,7 +5,6 @@ from credmark.cmf.types import (
     Contract,
     Token,
     Contracts,
-    Price
 )
 
 from credmark.dto import (
@@ -14,9 +13,10 @@ from credmark.dto import (
 )
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
-    get_uniswap_pools,
-    uniswap_avg_price,
+    UniswapV2PoolMeta,
+    UniswapPoolPriceInfoMeta,
 )
+from models.dtos.price import PoolPriceInfos
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -44,10 +44,10 @@ class SushiswapV2Factory(Model):
                 description='The Uniswap v2 pools that support a token contract',
                 input=Token,
                 output=Contracts)
-class SushiswapGetPoolsForToken(Model):
+class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         contract = Contract(**self.context.models.sushiswap.get_v2_factory())
-        return get_uniswap_pools(contract.address, input)
+        return self.get_uniswap_pools(input, contract.address)
 
 
 @Model.describe(slug="sushiswap.all-pools",
@@ -139,16 +139,19 @@ class SushiswapGetPairDetails(Model):
         return output
 
 
-@Model.describe(slug='sushiswap.get-average-price',
+@Model.describe(slug='sushiswap.get-pool-price-info',
                 version='1.0',
-                display_name='Sushiswap Token Price',
-                description='The Sushiswap price, averaged by liquidity',
+                display_name='Sushiswap Token Pools Price ',
+                description='Gather price and liquidity information from pools',
                 input=Token,
-                output=Price)
-class SushiswapGetAveragePrice(Model):
-    def run(self, input: Token) -> Price:
+                output=PoolPriceInfos)
+class SushiswapGetAveragePrice(Model, UniswapPoolPriceInfoMeta):
+    def run(self, input: Token) -> PoolPriceInfos:
         pools_address = self.context.run_model('sushiswap.get-pools',
                                                input,
                                                return_type=Contracts)
 
-        return uniswap_avg_price(self, pools_address, input, 'sushiswap')
+        return self.get_pool_price_infos(self,
+                                         input,
+                                         pools_address,
+                                         pricer_slug='sushiswap.get-weighted-price')

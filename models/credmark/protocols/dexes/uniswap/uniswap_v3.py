@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from web3.exceptions import (
     BadFunctionCallOutput,
 )
@@ -23,6 +22,8 @@ from models.tmp_abi_lookup import (
     UNISWAP_V3_POOL_ABI,
     WETH9_ADDRESS,
 )
+
+from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 
 
 class UniswapV3PoolInfo(DTO):
@@ -90,7 +91,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
                 version='1.1',
-                display_name='Uniswap v3 Token Pools',
+                display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Contract,
                 output=UniswapV3PoolInfo)
@@ -179,16 +180,14 @@ class UniswapV3GetPoolInfo(Model):
         return UniswapV3PoolInfo(**res)
 
 
-@ Model.describe(slug='uniswap-v3.get-average-price',
-                 version='1.1',
-                 display_name='Uniswap v3 Token Pools',
-                 description='The Uniswap v3 pools that support a token contract',
-                 input=Token,
-                 output=Price)
-class UniswapV3GetAveragePrice(Model):
-    UNISWAP_BASE = 1.0001
-
-    def run(self, input: Token) -> Price:
+@Model.describe(slug='uniswap-v3.get-pool-price-info',
+                version='1.1',
+                display_name='Uniswap v3 Token Pools Price ',
+                description='Gather price and liquidity information from pools',
+                input=Token,
+                output=PoolPriceInfos)
+class UniswapV3GetPoolPriceInfo(Model):
+    def run(self, input: Token) -> PoolPriceInfos:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -207,7 +206,7 @@ class UniswapV3GetAveragePrice(Model):
             if info.token0.decimals and info.token1.decimals:
                 scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
                 tick_price = 1.0001 ** info.tick * scale_multiplier
-                tick_liquidity = info.tick_liquidity_token1
+                _tick_liquidity = info.tick_liquidity_token1
                 virtual_liquidity = info.virtual_liquidity_token1
                 ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
@@ -216,43 +215,37 @@ class UniswapV3GetAveragePrice(Model):
                     tick_price = 1/tick_price
                     ratio_price = 1/ratio_price
                     inverse = True
-                    tick_liquidity = info.tick_liquidity_token0
+                    _tick_liquidity = info.tick_liquidity_token0
                     virtual_liquidity = info.virtual_liquidity_token0
 
-                weth_multipler = 1
+                weth_multiplier = 1.0
                 if input.address != WETH9_ADDRESS:
                     if WETH9_ADDRESS in (info.token1.address, info.token0.address):
                         if weth_price is None:
-                            weth_price = self.context.run_model(self.slug,
+                            weth_price = self.context.run_model('uniswap-v3.get-weighted-price',
                                                                 {"address": WETH9_ADDRESS},
                                                                 return_type=Price)
                             if weth_price.price is None:
                                 raise ModelRunError('Can not retriev price for WETH')
-                        weth_multipler = weth_price.price
 
-                tick_price *= weth_multipler
-                ratio_price *= weth_multipler
+                            weth_price = weth_price.price
+                        weth_multiplier = weth_price
 
-                prices_with_info.append((self.slug, tick_price, tick_liquidity, virtual_liquidity,
-                                         weth_multipler, inverse,
-                                         info.token0.address, info.token1.address,
-                                         info.token0.symbol, info.token1.symbol,
-                                         info.token0.decimals, info.token1.decimals,
-                                         info.address))
+                tick_price *= weth_multiplier
+                ratio_price *= weth_multiplier
 
-        if len(prices_with_info) == 0:
-            return Price(price=None, src=self.slug)
+                pool_price_info = PoolPriceInfo(src=self.slug,
+                                                price=tick_price,
+                                                liquidity=virtual_liquidity,
+                                                weth_multiplier=weth_multiplier,
+                                                inverse=inverse,
+                                                token0_address=info.token0.address,
+                                                token1_address=info.token1.address,
+                                                token0_symbol=info.token0.symbol,
+                                                token1_symbol=info.token1.symbol,
+                                                token0_decimals=info.token0.decimals,
+                                                token1_decimals=info.token1.decimals,
+                                                pool_address=info.address)
+                prices_with_info.append(pool_price_info)
 
-        df = pd.DataFrame(prices_with_info,
-                          columns=['src', 'price', 'liquidity', 'virtual_liquidity',
-                                   'weth_multiplier', 'inverse',
-                                   't0_address', 't1_address',
-                                   't0_symbol', 't1_symbol',
-                                   't0_decimal', 't1_decimal',
-                                   'pool_address',
-                                   ])
-        df.to_csv('tmp/univ3.csv')
-        df.liquidity = df.liquidity.astype(float)
-        self.logger.debug(df.to_json())
-        price = (df.price * df.liquidity).sum() / df.liquidity.sum()
-        return Price(price=price, src=self.slug)
+        return PoolPriceInfos(pool_price_infos=prices_with_info)
