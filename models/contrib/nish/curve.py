@@ -10,8 +10,8 @@ from credmark.cmf.types import (
 from credmark.dto import (
     DTO,
 )
-
-
+​
+​
 # Get token balance of an address on ethereum chain
 def ethereum_token_balance_of_address(contract_address, account_address):
     '''
@@ -24,30 +24,30 @@ def ethereum_token_balance_of_address(contract_address, account_address):
                 _name: Name of token
                 _balance: Token Balance of Account
     '''
-
+​
     contract_address = Address(contract_address).checksum
-
+​
     _contract = Token(address=contract_address)
-
+​
     _name = _contract.functions.name().call()
     _balance = _contract.functions.balanceOf(account_address).call()
     _decimals = _contract.functions.decimals().call()
     _symbol = _contract.functions.symbol().call()
-
+​
     _balance = float(_balance)/pow(10, _decimals)
-
+​
     return (_name, _symbol, _balance)
-
-
-
+​
+​
+​
 # Function to catch naming error while fetching mandatory data
 def try_or(func, default=None, expected_exc=(Exception,)):
     try:
         return func()
     except expected_exc:
         return default
-
-
+​
+​
 class CurvePoolPeggingInfo(Contract):
     name: str
     address: Address
@@ -55,9 +55,9 @@ class CurvePoolPeggingInfo(Contract):
     A: float
     chi: float
     ratio: float
-
-
-
+​
+​
+​
 @Model.describe(slug="contrib.curve-get-pegging-ratio",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
@@ -96,17 +96,17 @@ class CurveGetPeggingRatio(Model):
         coin_balances.update({token0_symbol : token0_balance})
         token1_name, token1_symbol, token1_balance = ethereum_token_balance_of_address(token1, pool)
         coin_balances.update({token1_symbol : token1_balance})
-
+​
         # Pool Name
         pool_name = 'Curve.fi : {} -{}/ {}-{}'.format(
             str(token0_name), str(token0_symbol), str(token1_name),str(token1_symbol))
-
+​
         # Calculating D for token0 and token1
         d = token0_balance + token1_balance
-
+​
         # Product of tokens' quantity for token0 and token1
         product = token0_balance * token1_balance
-
+​
         # Fetching token2 details if present in thee pool
         if token2 is None:
             pass
@@ -122,7 +122,7 @@ class CurveGetPeggingRatio(Model):
             d += t2_balance
             # Updating pool name
             pool_name = pool_name + '/{}-{}'.format(str(t2_name),str(t2_symbol))
-
+​
         # Fetching token3 details if present in thee pool
         if token3 is None:
             pass
@@ -137,13 +137,13 @@ class CurveGetPeggingRatio(Model):
             d += t3_balance
             # Updating pool name
             pool_name = pool_name + '/{}-{}'.format(str(t3_name),str(t3_symbol))
-
+​
         # Calculating ratio, this gives information about peg
         ratio = product / pow((d/n), n)
-
+​
         # Calculating 'chi'
         chi = a* ratio
-
+​
         return CurvePoolPeggingInfo(
             address = Address(pool),
             name = pool_name,
@@ -151,13 +151,13 @@ class CurveGetPeggingRatio(Model):
             A = a,
             chi = chi,
             ratio = ratio)
-
-
+​
+​
 class CurvePoolsValueHistoricalInput(DTO):
     pool_address: Contract
     date_range: Tuple[date, date]
-
-
+​
+​
 @Model.describe(slug="contrib.curve-get-pegging-ratio-historical",
                 version="1.0",
                 display_name="Compound pools value history",
@@ -169,18 +169,18 @@ class CurveV2PoolsValueHistorical(Model):
         d_start, d_end = input.date_range
         if d_start > d_end:
             d_start, d_end = d_end, d_start
-
+​
         dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
         dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
-
+​
         interval = (dt_end - dt_start).days + 1
         window = f'{interval} days'
         interval = '1 day'
-
+​
         # TODO: add two days to the end as work-around to current start-end-window
         ts_as_of_end_dt = self.context.block_number.from_timestamp(
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
-
+​
         pool_infos = self.context.historical.run_model_historical(
             model_slug='contrib.curve-get-pegging-ratio',
             model_input=input.pool_address,
@@ -188,23 +188,23 @@ class CurveV2PoolsValueHistorical(Model):
             window=window,
             interval=interval,
             end_timestamp=ts_as_of_end_dt)
-
+​
         return {'pool_infos': pool_infos}
-
-
-
+​
+​
+​
 class CurveDepeggingAmountInput(DTO):
     pool: Contract
     token: Token
     desired_ratio: float
-
+​
 class CurvePoolDepeggingAmount(DTO):
     pool_info : CurvePoolPeggingInfo
-    token: Token
+    token: str
     desired_ratio: float
     amount_required: float
-
-
+​
+​
 @Model.describe(slug="contrib.curve-get-depegging-amount",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
@@ -216,16 +216,16 @@ class CurveGetDepeggingAmount(Model):
         pool_info = self.context.run_model(
             slug = 'contrib.curve-get-pegging-ratio',
             input = input.pool)
-
+​
         desired_ratio = input.desired_ratio
         coins = list(pool_info['coin_balances'].keys())
         n = len(coins)
-
+​
         token0_balance = pool_info['coin_balances'][coins[0]]
         token1_balance = pool_info['coin_balances'][coins[1]]
-
+​
         amount_required = float(0)
-
+​
         if n==2:
             if input.token.symbol == coins[0] :
                 temp= ( 2-desired_ratio + 2*math.sqrt(1-desired_ratio))
@@ -235,10 +235,10 @@ class CurveGetDepeggingAmount(Model):
                 temp=( 2-desired_ratio + 2*math.sqrt(1-desired_ratio))
                 amount_token1 = token0_balance / temp * desired_ratio
                 amount_required = amount_token1 - token1_balance
-
+​
         return CurvePoolDepeggingAmount(
             pool_info = pool_info,
-            token = input.token,
+            token = input.token.symbol,
             desired_ratio = input.desired_ratio,
             amount_required = amount_required
         )
