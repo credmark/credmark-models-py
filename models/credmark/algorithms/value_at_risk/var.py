@@ -11,7 +11,7 @@ import numpy as np
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.0',
+                version='1.1',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 input=VaRHistoricalInput,
