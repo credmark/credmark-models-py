@@ -16,7 +16,7 @@ class PriceHistory(Model):
 
     def run(self, input: Token) -> dict:
         res = self.context.historical.run_model_historical(
-            'token.price-ext',
+            'token.price',
             window='10 days',
             interval='1 days',
             model_input=input)

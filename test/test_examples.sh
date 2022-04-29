@@ -26,7 +26,6 @@ test_model 0 example.ledger-aggregates '{}'
 echo_cmd ""
 echo_cmd "Run Historical Examples:"
 echo_cmd ""
-test_model 0 example.historical '{"model_slug":"token.price-ext","model_input":{"symbol": "USDC"}}' token.price-ext
 test_model 0 example.historical '{"model_slug":"token.price","model_input":{"symbol": "USDC"}}' token.price
 test_model 0 example.historical '{"model_slug":"token.overall-volume","model_input":{"symbol": "USDC"}}' token.overall-volume # series.time-window-interval, series.time-start-end-interval
 test_model 0 example.historical-block '{}' example.libraries # series.block-window-interval, series.block-start-end-interval

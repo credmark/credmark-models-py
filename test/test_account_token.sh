@@ -23,8 +23,6 @@ test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a16
 # RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
 test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' ${token_price_deps}
 
-test_model 0 token.price-ext '{"symbol": "CMK"}' ${token_price_deps}
-
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
 test_model 0 token.info '{"symbol":"CMK"}'
