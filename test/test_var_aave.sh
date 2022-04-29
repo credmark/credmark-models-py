@@ -1,3 +1,8 @@
+aave_deps=aave.token-asset,aave.lending-pool-assets
+
+test_model 0 finance.var-aave-plan '{"window": "30 days", "intervals": ["10 day"], "confidences": [0.01], "dev_mode":false, "verbose":true}' ${aave_deps},${var_deps}
+test_model 0 finance.var-aave-plan '{"window": "30 days", "intervals": ["10 day"], "as_ofs": ["2022-02-10", "2022-02-15"], "as_of_is_range":true, "confidences": [0.01], "dev_mode":false, "verbose":true}' ${aave_deps},${var_deps}
+
 # only to get history
 test_model 0 finance.var-aave-plan '{"window": "1 days", "intervals": ["10 day"], "as_ofs": ["2020-11-30", "2022-02-18"], "as_of_is_range":true, "confidences": [0.01], "dev_mode":true, "verbose":true, "aave_history":true}' ${aave_deps},${var_deps}
 
