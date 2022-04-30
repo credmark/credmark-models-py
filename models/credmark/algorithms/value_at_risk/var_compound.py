@@ -86,7 +86,6 @@ class CompoundGetVAR(Model):
         positions = []
         for poolinfo in poolsinfo:
             temp = (poolinfo.totalBorrows -  poolinfo.totalLiability) / pow(10, 9)
-            print("DEBUG TEMP ", temp) 
             positions.append(Position(amount= temp, asset=poolinfo.token))
 
         
