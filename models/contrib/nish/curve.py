@@ -243,8 +243,8 @@ class CurveGetDepeggingAmount(Model):
             desired_ratio = input.desired_ratio,
             amount_required = amount_required
         )
-    
-    class CurvePeggingRatioChangeInput(DTO):
+
+class CurvePeggingRatioChangeInput(DTO):
     pool: Contract
     amounts: dict
 
