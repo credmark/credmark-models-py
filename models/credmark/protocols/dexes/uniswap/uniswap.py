@@ -7,15 +7,13 @@ from credmark.cmf.types import (
 )
 
 from credmark.dto import DTO
-from models.tmp_abi_lookup import (UNISWAP_QUOTER_ABI,
-                                   UNISWAP_QUOTER_ADDRESS,
-                                   DAI_ADDRESS,
-                                   UNISWAP_FACTORY_ABI,
-                                   UNISWAP_FACTORY_ADDRESS,
-                                   UNISWAP_DAI_V1_ABI,
-                                   UNISWAP_DAI_V1_ADDRESS,
-                                   UNISWAP_V3_SWAP_ROUTER_ABI,
-                                   UNISWAP_V3_SWAP_ROUTER_ADDRESS)
+from models.tmp_abi_lookup import (
+    UNISWAP_QUOTER_ADDRESS,
+    DAI_ADDRESS,
+    UNISWAP_FACTORY_ADDRESS,
+    UNISWAP_DAI_V1_ADDRESS,
+    UNISWAP_V3_SWAP_ROUTER_ADDRESS,
+)
 
 
 class UniswapQuoterPriceUsd(DTO):
@@ -43,8 +41,7 @@ class UniswapRouterPricePair(Model):
         sqrtPriceLimitX96 = 0
         tokenAmount = 1 * 10 ** decimals
 
-        uniswap_quoter = Contract(address=Address(
-            UNISWAP_QUOTER_ADDRESS).checksum, abi=UNISWAP_QUOTER_ABI)
+        uniswap_quoter = Contract(address=Address(UNISWAP_QUOTER_ADDRESS).checksum)
 
         quote = uniswap_quoter.functions.quoteExactOutputSingle(inTokenAddress,
                                                                 outTokenAddress,
@@ -67,9 +64,7 @@ class UniswapRouterPriceUsd(Model):
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap,
          default to USDC/USDT/DAI and throw out outliers.
         """
-        _uniswap_router = Contract(
-            address=Address(UNISWAP_V3_SWAP_ROUTER_ADDRESS).checksum,
-            abi=UNISWAP_V3_SWAP_ROUTER_ABI)
+        _uniswap_router = Contract(address=Address(UNISWAP_V3_SWAP_ROUTER_ADDRESS).checksum)
 
         return {}
 
@@ -82,8 +77,7 @@ class UniswapTokens(Model):
 
     def run(self, input) -> dict:
         uniswap_factory_contract = Contract(
-            address=Address(UNISWAP_FACTORY_ADDRESS).checksum,
-            abi=UNISWAP_FACTORY_ABI)
+            address=Address(UNISWAP_FACTORY_ADDRESS).checksum)
 
         # returns a count of all the trading pairs on uniswap
         allPairsLength = uniswap_factory_contract.functions.allPairsLength().call()
@@ -99,8 +93,7 @@ class UniswapExchange(Model):
 
     def run(self, input) -> dict:
         exchange_contract = Contract(
-            address=Address(UNISWAP_DAI_V1_ADDRESS).checksum,
-            abi=UNISWAP_DAI_V1_ABI)
+            address=Address(UNISWAP_DAI_V1_ADDRESS).checksum)
 
         # Prices
         eth_amount = self.context.web3.toWei('1', 'Ether')
