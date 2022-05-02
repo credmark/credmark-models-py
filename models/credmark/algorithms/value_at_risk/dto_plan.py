@@ -42,7 +42,7 @@ class VaRParameters(DTO):
     window: str
     intervals: List[str] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
-    var_or_es: Literal['es', 'var'] = DTOField(default='es')
+    var_or_es: Literal['es', 'var'] = DTOField(default='var')
 
     class Config:
         validate_assignment = True
@@ -52,7 +52,7 @@ class VaRParametersInt(DTO):
     n_window: int
     n_intervals: List[int] = DTOField(...)
     confidences: List[float] = DTOField(..., ge=0.0, le=1.0)  # accepts multiple values
-    var_or_es: Literal['es', 'var'] = DTOField('es')
+    var_or_es: Literal['es', 'var'] = DTOField('var')
 
 
 class VaRPortfolioInput(VaRParameters, RunControl, ChefControl):
@@ -99,4 +99,4 @@ class VaRPPL(DTO):
 class PPLAggregationInput(VaRPPL):
     ppl: List[float]
     confidence: List[float]
-    var_or_es: Literal['es', 'var'] = DTOField('es')
+    var_or_es: Literal['es', 'var'] = DTOField('var')

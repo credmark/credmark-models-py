@@ -1,5 +1,6 @@
 import os
 
+import json
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
     ModelRunError,
@@ -134,7 +135,7 @@ class ValueAtRiskAave(ValueAtRiskBase):
             var_out = self.context.run_model(
                 # 'finance.var-reference',
                 'finance.var-engine',
-                input=var_input,
+                input=json.loads(var_input.json()),
                 return_type=VaROutput)
             if window == '':
                 window = var_out.window
