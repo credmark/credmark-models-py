@@ -38,17 +38,17 @@ import numpy as np
                 output=None)
 class CompoundV2AllPoolsValueHistoricalPlan(Model):
     def run(self, input: EmptyInput) -> None:
-        start_dt = datetime.combine(date(2020, 6, 15),
-                                    datetime.max.time(),
-                                    tzinfo=timezone.utc)
-        end_dt = self.context.block_number.timestamp_datetime
-
         start_dt = datetime.combine(date(2021, 9, 28),
                                     datetime.max.time(),
                                     tzinfo=timezone.utc)
         end_dt = datetime.combine(date(2021, 10, 2),
                                   datetime.max.time(),
                                   tzinfo=timezone.utc)
+
+        start_dt = datetime.combine(date(2020, 6, 15),
+                                    datetime.max.time(),
+                                    tzinfo=timezone.utc)
+        end_dt = self.context.block_number.timestamp_datetime
 
         interval = (end_dt - start_dt).days
 
