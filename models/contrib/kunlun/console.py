@@ -1,20 +1,56 @@
 # pylint: disable=locally-disabled, unused-import
-import code
+import IPython
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from web3.exceptions import ABIFunctionNotFound
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
-    Address, Contract, Token,
-    Contracts, Tokens,
+    Address,
+    Account, Contract, Token,
+    Accounts, Contracts, Tokens,
     Portfolio, Position,
     Price, PriceList,
     BlockNumber,
-)
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
-import models.tmp_abi_lookup as abi_lookup
-from web3.exceptions import ABIFunctionNotFound
+    NativeToken,
+    NativePosition,
+    TokenPosition,
 
-import IPython
+)
+from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO, PrivateAttr
+
+from credmark.cmf.types.ledger import TokenTransferTable
+
+import models.tmp_abi_lookup as abi_lookup
+
+from models.credmark.protocols.lending.aave.aave_v2 import (
+    AaveDebtInfo,
+    AaveDebtInfos,
+)
+
+from models.credmark.protocols.lending.compound.compound_v2 import (
+    CompoundV2PoolInfo,
+    CompoundV2PoolValue
+)
+
+from models.credmark.protocols.dexes.curve.curve_finance import (
+    CurveFiPoolInfo,
+    CurveFiPoolInfos,
+)
+
+from models.dtos.volume import (
+    TradingVolume,
+    TokenTradingVolume,
+)
+
+from models.dtos.price import (
+    PoolPriceInfo,
+    PoolPriceInfos,
+    PoolPriceAggregatorInput,
+)
 
 
 @Model.describe(slug='contrib.console',
@@ -27,7 +63,7 @@ class CmfConsole(Model):
 
     def run(self, _) -> dict:
         IPython.embed(banner1=f'Enter CmfConsole on block {self.context.block_number}',
-                      banner2='Available types are Address, Contract, Token...',
+                      banner2='Available types are BlockNumber, Address, Contract, Token...',
                       exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}'
                       )
         return {'block_number': self.context.block_number}
