@@ -1,7 +1,9 @@
+# pylint: disable=locally-disabled, unused-import
+
 import pandas as pd
 from typing import List
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.dto import DTO, EmptyInput
 
@@ -51,8 +53,8 @@ class CurveFinanceGetRegistry(Model):
                 description="Query the registry for the guage controller")
 class CurveFinanceGetGauge(Model):
     def run(self, input):
-        provider = Contract(**self.context.models.curve_fi.get_registry())
-        gauge_addr = provider.functions.gauge_controller().call()
+        registry = Contract(**self.context.models.curve_fi.get_registry())
+        gauge_addr = registry.functions.gauge_controller().call()
         return Contract(address=Address(gauge_addr).checksum)
 
 
@@ -79,9 +81,12 @@ class CurveFinanceAllPools(Model):
 class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
+    tokens_symbol: List[str]
     balances: List[int]
     underlying_tokens: Tokens
+    underlying_tokens_symbol: List[str]
     A: int
+    is_meta: bool
     name: str
     lp_token_name: str
     pool_token_name: str
@@ -99,28 +104,49 @@ class CurveFiPoolInfos(DTO):
                 output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(Model):
     def run(self, input: Contract) -> CurveFiPoolInfo:
+        registry = Contract(**self.context.models.curve_fi.get_registry())
+
         tokens = Tokens()
-        underlying_tokens = Tokens()
+        tokens_symbol = []
+        underlying = Tokens()
+        underlying_symbol = []
         balances = []
 
-        try:
-            input.functions.coins(0).call()
-        except Exception as _err:
-            input = Contract(address=input.address.checksum)
-
-        for i in range(0, 8):
-            try:
-                tok = input.functions.coins(i).call()
-                bal = input.functions.balances(i).call()
+        # Equivalent to input.functions.coins(ii).call()
+        coins = registry.functions.get_coins(input.address.checksum).call()
+        for tok_addr_raw in coins:
+            tok_addr = Address(tok_addr_raw)
+            if tok_addr != Address.null():
+                tok = Token(address=tok_addr.checksum)
+                tokens.append(tok)
                 try:
-                    und = input.functions.underlying_coins(i).call()
-                    underlying_tokens.append(Token(address=und))
-                except Exception:
-                    pass
-                balances.append(bal)
-                tokens.append(Token(address=tok))
-            except Exception as _err:
-                break
+                    tokens_symbol.append(tok.symbol)
+                except ModelDataError:
+                    if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                        tokens_symbol.append('eeeETH')
+                    else:
+                        raise
+
+        # Equivalent to input.functions.balances(ii).call()
+        balances_ret = registry.functions.get_balances(input.address.checksum).call()
+        for ii in range(len(tokens_symbol)):
+            # tokens.tokens[ii].scaled(balances_ret[ii])
+            balances.append(balances_ret[ii])
+
+        # However, input.functions.underlying_coins(ii).call() is empty for some pools
+        underlying_coins = registry.functions.get_underlying_coins(input.address.checksum).call()
+        for und_addr_raw in underlying_coins:
+            und_addr = Address(und_addr_raw)
+            if und_addr != Address.null():
+                und = Token(address=und_addr.checksum)
+                underlying.append(und)
+                try:
+                    underlying_symbol.append(und.symbol)
+                except ModelDataError:
+                    if und.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                        underlying_symbol.append('eeeETH')
+                    else:
+                        raise
 
         try:
             a = input.functions.A().call()
@@ -129,12 +155,16 @@ class CurveFinancePoolInfo(Model):
             virtual_price = (10**18)
             a = 0
 
+        is_meta = registry.functions.is_meta(input.address.checksum).call()
+        registry.functions.get_underlying_coins(input.address.checksum).call()
+
         try:
             name = input.functions.name().call()
         except Exception as _err:
             name = ""
 
         pool_token_name = ''
+        lp_token_name = ''
         try:
             lp_token_addr = Address(input.functions.lp_token().call())
             lp_token_name = Token(address=lp_token_addr.checksum).name
@@ -145,22 +175,27 @@ class CurveFinancePoolInfo(Model):
                                                   return_type=Contract)
                 pool_info_addr = Address(provider.functions.get_address(1).call())
                 pool_info_contract = Contract(address=pool_info_addr.checksum)
-                pool_info = (pool_info_contract
-                             .functions.get_pool_info(input.address.checksum).call())
+                pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
+                             .call())
                 lp_token_addr = Address(pool_info[5])
                 lp_token_name = Token(address=lp_token_addr.checksum).name
             except ContractLogicError:
-                lp_token_name = ''
-                pool_token_addr = Address(input.functions.token().call())
-                pool_token = Token(address=pool_token_addr.checksum)
-                pool_token_name = pool_token.name
+                try:
+                    pool_token_addr = Address(input.functions.token().call())
+                    pool_token = Token(address=pool_token_addr.checksum)
+                    pool_token_name = pool_token.name
+                except ABIFunctionNotFound:
+                    pass
 
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
                                tokens=tokens,
+                               tokens_symbol=tokens_symbol,
                                balances=balances,
-                               underlying_tokens=underlying_tokens,
+                               underlying_tokens=underlying,
+                               underlying_tokens_symbol=underlying_symbol,
                                A=a,
+                               is_meta=is_meta,
                                name=name,
                                lp_token_name=lp_token_name,
                                pool_token_name=pool_token_name)
@@ -183,7 +218,8 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
-        # pd.DataFrame((all_pools_info.dict())['pool_infos'])
+        (pd.DataFrame((all_pools_info.dict())['pool_infos'])
+         .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
         return all_pools_info
 
 
