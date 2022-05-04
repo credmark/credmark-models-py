@@ -59,11 +59,12 @@ from models.dtos.price import (
                 display_name='Console',
                 description='REPL for Cmf')
 class CmfConsole(Model):
+    # pylint: disable= too-many-arguments
     def get_dt(self, year, month, day, hour=0, minute=0, second=0, microsecond=0):
         return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=timezone.utc)
 
-    def get_block(self, dt):
-        return BlockNumber.from_timestamp(dt.replace(tzinfo=timezone.utc).timestamp())
+    def get_block(self, in_dt):
+        return BlockNumber.from_timestamp(in_dt.replace(tzinfo=timezone.utc).timestamp())
 
     def goto_block(self, to_block):
         self.context.run_model(self.slug, block_number=to_block)
