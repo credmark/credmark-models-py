@@ -218,8 +218,8 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
-        (pd.DataFrame((all_pools_info.dict())['pool_infos'])
-         .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
+        # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
+        # .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
         return all_pools_info
 
 
