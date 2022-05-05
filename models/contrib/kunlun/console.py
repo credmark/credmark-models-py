@@ -1,6 +1,8 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled, unused-import, unused-variable
 from datetime import datetime, date, timezone, timedelta
 import IPython
+
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,11 +21,16 @@ from credmark.cmf.types import (
     NativeToken,
     NativePosition,
     TokenPosition,
-
+    ContractLedger,
 )
+
 from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO, PrivateAttr
 
-from credmark.cmf.types.ledger import TokenTransferTable
+from credmark.cmf.types.ledger import (BlockTable, ContractTable,
+                                       LogTable,
+                                       ReceiptTable, TokenTable,
+                                       TokenTransferTable, TraceTable,
+                                       TransactionTable)
 
 import models.tmp_abi_lookup as abi_lookup
 
@@ -59,6 +66,39 @@ from models.dtos.price import (
                 display_name='Console',
                 description='REPL for Cmf')
 class CmfConsole(Model):
+    def help(self):
+        logging.info('# Pre-defined (shorthand) variable ')
+        logging.info('ledger = self.context.ledger')
+        logging.info('run_model = self.context.run_model'
+                     '(model_slug, input=EmptyInput(), return_type=dict): run a model')
+        logging.info(
+            'run_model_historical = self.context.historical.run_model_historical'
+            '(model_slug, model_input, model_return_type, window, interval, '
+            'end_timestamp, snap_clock)')
+        logging.info('models = self.context.models')
+        logging.info('block_number = self.context.block_number')
+        logging.info('chain_id = self.context.chain_id')
+        logging.info('web3 = self.context.web3')
+
+        logging.info('# Console functions')
+        logging.info('self.save("output_filename"): save console history to {output_filename}.py')
+        logging.info('self.load("input_filename"): load and run {input_filename}.py')
+        logging.info('self.get_dt(y,m,d,h=0,m=0,s=0,ms=0): create UTC time')
+        logging.info('self.get_block(timestamp): get the block number before the timestamp')
+        logging.info('self.goto_block(block_number): run the console as of a past block number')
+        logging.info('# CredMark')
+        logging.info('self.context.block_number: ')
+
+    def save(self, filename):
+        ipython = IPython.get_ipython()
+        if ipython is not None:
+            ipython.magic(f"%save {filename}.py")
+
+    def load(self, filename):
+        ipython = IPython.get_ipython()
+        if ipython is not None:
+            ipython.magic(f"%load {filename}.py")
+
     # pylint: disable= too-many-arguments
     def get_dt(self, year, month, day, hour=0, minute=0, second=0, microsecond=0):
         return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=timezone.utc)
@@ -70,7 +110,15 @@ class CmfConsole(Model):
         self.context.run_model(self.slug, block_number=to_block)
 
     def run(self, _) -> dict:
-        IPython.embed(banner1=f'Enter CmfConsole on block {self.context.block_number}',
+        ledger = self.context.ledger
+        run_model = self.context.run_model
+        models = self.context.models
+        block_number = self.context.block_number
+        chain_id = self.context.chain_id
+        web3 = self.context.web3
+        run_model_historical = self.context.historical.run_model_historical
+
+        IPython.embed(banner1=f'Enter CmfConsole on block {self.context.block_number}. Help: self.help(), Quit: quit()',
                       banner2='Available types are BlockNumber, Address, Contract, Token...',
                       exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}'
                       )
