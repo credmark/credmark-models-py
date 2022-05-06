@@ -118,7 +118,8 @@ class CmfConsole(Model):
         web3 = self.context.web3
         run_model_historical = self.context.historical.run_model_historical
 
-        IPython.embed(banner1=f'Enter CmfConsole on block {self.context.block_number}. Help: self.help(), Quit: quit()',
+        IPython.embed(banner1=(f'Enter CmfConsole on block {self.context.block_number}. '
+                               'Help: self.help(), Quit: quit()'),
                       banner2='Available types are BlockNumber, Address, Contract, Token...',
                       exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}'
                       )
