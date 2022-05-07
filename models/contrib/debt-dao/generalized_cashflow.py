@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Token, BlockNumber
-from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import DTO
+
 
 class GCInput(DTO):
     sender_address: Address
@@ -13,6 +13,7 @@ class GCInput(DTO):
                           'receiver_address': '0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e'}]
         }
 
+
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
     version='1.1',
@@ -23,13 +24,14 @@ class GCInput(DTO):
 )
 class GeneralizedCashflow(Model):
     def run(self, input: GCInput) -> dict:
-        transfers = self.context.ledger.get_erc20_transfers(columns=[
-            TokenTransferTable.Columns.BLOCK_NUMBER,
-            TokenTransferTable.Columns.VALUE,
-            TokenTransferTable.Columns.TOKEN_ADDRESS,
-            TokenTransferTable.Columns.TRANSACTION_HASH
-        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
-        and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
+        with self.context.ledger.Transaction as q:
+            transfers = q.select(columns=[
+                q.Columns.BLOCK_NUMBER,
+                q.Columns.VALUE,
+                q.Columns.TOKEN_ADDRESS,
+                q.Columns.TRANSACTION_HASH
+            ], where=f'{q.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
+        and {q.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
         for transfer in transfers:
             token = Token(address=transfer['token_address']).info
             try:

@@ -46,20 +46,18 @@ def try_or(func, default=None, expected_exc=(Exception,)):
         return default
 
 
-
 class PoolVolumeInfo(Contract):
     name: str
     address: Address
-    coin_balances : dict
-    prices : dict
-    tvl : float
-    volume24h : float
+    coin_balances: dict
+    prices: dict
+    tvl: float
+    volume24h: float
 
 
 class PoolVolumeInfoHistoricalInput(DTO):
     pool_address: Contract
     date_range: Tuple[date, date]
-
 
 
 @Model.describe(slug="contrib.curve-get-tvl-and-volume",
@@ -69,7 +67,7 @@ class PoolVolumeInfoHistoricalInput(DTO):
                 input=Contract,
                 output=PoolVolumeInfo)
 class CurveGetTVLAndVolume(Model):
-    def run(self, input) -> PoolVolumeInfo:
+    def run(self, input: Contract) -> PoolVolumeInfo:
         # Converting to CheckSum Address
         pool = Address(input.address).checksum
         # Pool name
@@ -96,23 +94,22 @@ class CurveGetTVLAndVolume(Model):
 
         # Fetching token0 and token1 details and balance
         token0_name, token0_symbol, token0_balance = ethereum_token_balance_of_address(token0, pool)
-        coin_balances.update({token0_symbol : token0_balance})
+        coin_balances.update({token0_symbol: token0_balance})
         token0_price = self.context.run_model(
-                                slug = 'token.price',
-                                input = Token(address=token0)
-                            )
+            slug='token.price',
+            input=Token(address=token0)
+        )
         tvl += token0_balance * token0_price['price']
-        prices.update({token0_symbol : token0_price['price']})
-
+        prices.update({token0_symbol: token0_price['price']})
 
         token1_name, token1_symbol, token1_balance = ethereum_token_balance_of_address(token1, pool)
-        coin_balances.update({token1_symbol : token1_balance})
+        coin_balances.update({token1_symbol: token1_balance})
         token1_price = self.context.run_model(
-                                slug = 'token.price',
-                                input = Token(address=token1)
-                            )
+            slug='token.price',
+            input=Token(address=token1)
+        )
         tvl += token1_balance * token1_price['price']
-        prices.update({token1_symbol : token1_price['price']})
+        prices.update({token1_symbol: token1_price['price']})
 
         # Pool Name
         pool_name = 'Curve.fi : {}-{}/{}-{}'.format(
@@ -126,46 +123,44 @@ class CurveGetTVLAndVolume(Model):
         else:
             t2_name, t2_symbol, t2_balance = ethereum_token_balance_of_address(token2, pool)
             # Updating coins
-            coin_balances.update({t2_symbol : t2_balance})
+            coin_balances.update({t2_symbol: t2_balance})
             # Updating number of tokens present
             n += 1
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t2_name),str(t2_symbol))
+            pool_name = pool_name + '/{}-{}'.format(str(t2_name), str(t2_symbol))
             t2_price = self.context.run_model(
-                                    slug = 'token.price',
-                                    input = Token(address=token2)
-                                    )
+                slug='token.price',
+                input=Token(address=token2)
+            )
             tvl += t2_balance * t2_price['price']
-            prices.update({t2_symbol : t2_price['price']})
+            prices.update({t2_symbol: t2_price['price']})
 
         # Fetching token3 details if present in thee pool
         if token3 is None:
             pass
         else:
             t3_name, t3_symbol, t3_balance = ethereum_token_balance_of_address(token3, pool)
-            coin_balances.update({t3_symbol : t3_balance})
+            coin_balances.update({t3_symbol: t3_balance})
             # Updating number of tokens present
             n += 1
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t3_name),str(t3_symbol))
+            pool_name = pool_name + '/{}-{}'.format(str(t3_name), str(t3_symbol))
             t3_price = self.context.run_model(
-                                    slug = 'token.price',
-                                    input = Token(address=token3)
-                                    )
+                slug='token.price',
+                input=Token(address=token3)
+            )
             tvl += t3_balance * t3_price['price']
-            prices.update({t3_symbol : t3_price['price']})
+            prices.update({t3_symbol: t3_price['price']})
 
         # Calculating Volume in 24 Hours
 
-
-
         return PoolVolumeInfo(
-                name = pool_name,
-                address = Address(pool),
-                coin_balances = coin_balances,
-                prices = prices,
-                tvl = tvl,
-                volume24h = volume24h
+            name=pool_name,
+            address=Address(pool),
+            coin_balances=coin_balances,
+            prices=prices,
+            tvl=tvl,
+            volume24h=volume24h
         )
 
 
@@ -230,23 +225,22 @@ class UniSushiGetTVLAndVolume(Model):
         token1 = Token(address=pool_contract_instance.functions.token1().call())
         # Fetching token0 and token1 details and balance
         t0_name, t0_symbol, t0_balance = ethereum_token_balance_of_address(token0.address, pool)
-        coin_balances.update({t0_symbol : t0_balance})
+        coin_balances.update({t0_symbol: t0_balance})
         t0_price = self.context.run_model(
-                                slug = 'token.price',
-                                input = Token(address=token0.address)
-                            )
+            slug='token.price',
+            input=Token(address=token0.address)
+        )
         tvl += t0_balance * t0_price['price']
-        prices.update({t0_symbol : t0_price['price']})
-
+        prices.update({t0_symbol: t0_price['price']})
 
         t1_name, t1_symbol, t1_balance = ethereum_token_balance_of_address(token1.address, pool)
-        coin_balances.update({t1_symbol : t1_balance})
+        coin_balances.update({t1_symbol: t1_balance})
         t1_price = self.context.run_model(
-                                slug = 'token.price',
-                                input = Token(address=token1.address)
-                            )
+            slug='token.price',
+            input=Token(address=token1.address)
+        )
         tvl += t1_balance * t1_price['price']
-        prices.update({t1_symbol : t1_price['price']})
+        prices.update({t1_symbol: t1_price['price']})
 
         # Pool Name
         pool_name = '{}-{}/{}-{}'.format(
@@ -257,12 +251,12 @@ class UniSushiGetTVLAndVolume(Model):
         # Calculating Volume in 24 Hours
 
         return PoolVolumeInfo(
-                name = pool_name,
-                address = Address(pool),
-                coin_balances = coin_balances,
-                prices = prices,
-                tvl = tvl,
-                volume24h = volume24h
+            name=pool_name,
+            address=Address(pool),
+            coin_balances=coin_balances,
+            prices=prices,
+            tvl=tvl,
+            volume24h=volume24h
         )
 
 
@@ -275,10 +269,10 @@ class UniSushiGetTVLAndVolume(Model):
 class SushiswapGetTVLAndVolume(Model):
     def run(self, input: Contract) -> PoolVolumeInfo:
         pool_info = self.context.run_model(
-            slug = 'contrib.uni-sushi-get-tvl-and-volume',
-            input = input)
+            slug='contrib.uni-sushi-get-tvl-and-volume',
+            input=input)
         pool_info['name'] = 'Sushiswap : ' + str(pool_info['name'])
-        return pool_info
+        return PoolVolumeInfo(**pool_info)
 
 
 @Model.describe(slug="contrib.sushiswap-get-tvl-and-volume-historical",
@@ -327,10 +321,11 @@ class UniswapGetTVLAndVolume(Model):
         fee = pool_contract_instance.functions.fee().call()
         # Pool TVL and Volume Info
         pool_info = self.context.run_model(
-            slug = 'contrib.uni-sushi-get-tvl-and-volume',
-            input = input)
-        pool_info['name'] = 'Uniswap V3 : '+ str(pool_info['name']) + '-' + str(fee)
-        return pool_info
+            slug='contrib.uni-sushi-get-tvl-and-volume',
+            input=input)
+        pool_info['name'] = 'Uniswap V3 : ' + str(pool_info['name']) + '-' + str(fee)
+        return PoolVolumeInfo(**pool_info)
+
 
 @Model.describe(slug="contrib.uniswap-get-tvl-and-volume-historical",
                 version="1.0",

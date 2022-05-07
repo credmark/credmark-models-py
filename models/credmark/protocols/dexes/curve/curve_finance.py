@@ -1,7 +1,6 @@
 from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types.ledger import TransactionTable
 
 from credmark.dto import (
     DTO,
@@ -188,16 +187,18 @@ class CurveFinanceAllGauges(Model):
 class CurveFinanceAllGaugeAddresses(Model):
 
     def run(self, input: Contract) -> Accounts:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        return Accounts(accounts=[
-            Account(address=address)
-            for address in
-            list(dict.fromkeys([
-                a[TransactionTable.Columns.FROM_ADDRESS]
-                for a
-                in addrs]))])
+        with self.context.ledger.Transaction as txn:
+            addrs = txn.select(
+                columns=[txn.Columns.FROM_ADDRESS],
+                where=f'{txn.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+
+            return Accounts(accounts=[
+                Account(address=address)
+                for address in
+                list(dict.fromkeys([
+                    a[txn.Columns.FROM_ADDRESS]
+                    for a
+                    in addrs]))])
 
 
 @ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',

@@ -7,7 +7,6 @@ from credmark.cmf.types import (
     NativePosition,
     TokenPosition
 )
-from credmark.cmf.types.ledger import TokenTransferTable
 
 
 @Model.describe(
@@ -20,12 +19,13 @@ from credmark.cmf.types.ledger import TokenTransferTable
     output=Portfolio)
 class WalletInfoModel(Model):
     def run(self, input: Account) -> Portfolio:
-        token_addresses = self.context.ledger.get_erc20_transfers(
-            columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
-            where=' '.join(
-                [f"{TokenTransferTable.Columns.FROM_ADDRESS}='{input.address}'",
-                 "or",
-                 f"{TokenTransferTable.Columns.TO_ADDRESS}='{input.address}'"]))
+        with self.context.ledger.TokenTransfer as q:
+            token_addresses = q.select(
+                columns=[q.Columns.TOKEN_ADDRESS],
+                where=' '.join(
+                    [f"{q.Columns.FROM_ADDRESS}='{input.address}'",
+                     "or",
+                     f"{q.Columns.TO_ADDRESS}='{input.address}'"]))
 
         positions = []
         positions.append(
