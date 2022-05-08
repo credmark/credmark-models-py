@@ -3,10 +3,7 @@ from datetime import datetime, timezone
 
 from credmark.cmf.model import Model
 
-from typing import (
-    List,
-    Tuple,
-)
+from typing import (List)
 
 from credmark.dto import (
     DTO,
@@ -17,7 +14,7 @@ from credmark.dto import (
 
 from credmark.cmf.types import (
     Position,
-    Token, 
+    Token,
     Portfolio,
     BlockNumber,
     PriceList,
@@ -28,6 +25,8 @@ from models.credmark.algorithms.value_at_risk.dto import (
     VaRHistoricalInput,
     ContractVaRInput,
 )
+
+
 class CompoundV2PoolInfo(DTO):
     tokenSymbol: str
     cTokenSymbol: str
@@ -59,7 +58,6 @@ class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
     _iterator: str = 'infos'
 
 
-
 @Model.describe(slug="finance.var-compound",
                 version="1.0",
                 display_name="Compound V2 VaR",
@@ -68,6 +66,13 @@ class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
                 output=dict)
 class CompoundGetVAR(Model):
     """
+    VaR of Compound based on its inventory of tokens.
+    The exposure of Compound is the number of tokens borrowed (totalLiability)
+    less than it lends out (cToken.totalBorrows, cToken.totalReserves, cToken.getCash).
+
+    - totalLiability = cToken.totalSupply / invExchangeRate, negated to a negative sign
+    - totalBorrows, positive sign as an asset to Compound.
+    - totalLiabiltiy - totalBorrows ~= (cash - totalReserves)
 
     Reference:
     https://docs.credmark.com/risk-insights/research/aave-and-compound-historical-var
@@ -77,18 +82,15 @@ class CompoundGetVAR(Model):
         asof_dt = datetime.combine(input.asOf, datetime.max.time(), tzinfo=timezone.utc)
         asof_block_number = BlockNumber.from_timestamp(asof_dt)
 
-
         poolsinfo = self.context.run_model('compound-v2.all-pools-info',
-                                       input=EmptyInput(),
-                                       return_type=CompoundV2PoolInfos,
-                                       block_number=asof_block_number)
-
+                                           input=EmptyInput(),
+                                           return_type=CompoundV2PoolInfos,
+                                           block_number=asof_block_number)
         positions = []
         for poolinfo in poolsinfo:
-            temp = (poolinfo.totalBorrows -  poolinfo.totalLiability) / pow(10, 9)
-            positions.append(Position(amount= temp, asset=poolinfo.token))
+            amount = (poolinfo.totalBorrows - poolinfo.totalLiability)
+            positions.append(Position(amount=amount, asset=poolinfo.token))
 
-        
         portfolio = Portfolio(positions=positions)
 
         pls = []
