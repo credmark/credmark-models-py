@@ -68,7 +68,7 @@ class CompoundGetVAR(Model):
     """
     VaR of Compound based on its inventory of tokens.
     The exposure of Compound is the number of tokens borrowed (totalLiability)
-    less than it lends out (cToken.totalBorrows, cToken.totalReserves, cToken.getCash).
+    less than it lends out (cToken.totalBorrows).
 
     - totalLiability = cToken.totalSupply / invExchangeRate, negated to a negative sign
     - totalBorrows, positive sign as an asset to Compound.
