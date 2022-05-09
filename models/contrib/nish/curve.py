@@ -238,7 +238,7 @@ class CurveGetDepeggingAmount(Model):
             raise ModelRunError('Pool with >2 token not implemented.')
 
         return CurvePoolDepeggingAmount(
-            pool_info = CurvePoolPeggingInfo(**pool_info),
+            pool_info = pool_info,
             token = input.token.symbol,
             desired_ratio = input.desired_ratio,
             amount_required = amount_required
