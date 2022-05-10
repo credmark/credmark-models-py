@@ -20,7 +20,7 @@ from credmark.cmf.types import (
 
 
 @Model.describe(slug='curve-fi.get-provider',
-                version='1.1',
+                version='1.2',
                 display_name='Curve Finance - Get Provider',
                 description='Get provider contract',
                 input=EmptyInput,
@@ -34,7 +34,7 @@ class CurveFinanceGetProvider(Model):
 
 
 @Model.describe(slug='curve-fi.get-registry',
-                version='1.1',
+                version='1.2',
                 display_name='Curve Finance - Get Registry',
                 description='Query provider to get the registry',
                 input=EmptyInput,
@@ -47,7 +47,7 @@ class CurveFinanceGetRegistry(Model):
 
 
 @Model.describe(slug="curve-fi.get-gauge-controller",
-                version='1.1',
+                version='1.2',
                 display_name="Curve Finance - Get Gauge Controller",
                 description="Query the registry for the guage controller")
 class CurveFinanceGetGauge(Model):
@@ -58,7 +58,7 @@ class CurveFinanceGetGauge(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.1",
+                version="1.2",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 output=Contracts)
@@ -91,7 +91,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.1",
+                version="1.2",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -143,7 +143,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.1",
+                version="1.2",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -161,7 +161,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
 
 @ Model.describe(slug="curve-fi.all-gauges",
-                 version='1.1',
+                 version='1.2',
                  display_name="Curve Finance Gauge List",
                  description="All Gauge Contracts for Curve Finance Pools",
                  input=EmptyInput,
@@ -182,7 +182,7 @@ class CurveFinanceAllGauges(Model):
 
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.1',
+                 version='1.2',
                  input=Contract,
                  output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
@@ -201,7 +201,7 @@ class CurveFinanceAllGaugeAddresses(Model):
 
 
 @ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                 version='1.1',
+                 version='1.2',
                  input=Contract,
                  output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
@@ -227,7 +227,7 @@ class CurveFinanceGaugeRewardsCRV(Model):
 
 
 @Model.describe(slug='curve-fi.gauge-yield',
-                version='1.1',
+                version='1.2',
                 input=Contract,
                 output=dict)
 class CurveFinanceAverageGaugeYield(Model):
@@ -291,7 +291,7 @@ class CurveFinanceAverageGaugeYield(Model):
 
 
 @ Model.describe(slug='curve-fi.all-yield',
-                 version='1.1',
+                 version='1.2',
                  description="Yield from all Gauges",
                  input=EmptyInput,
                  output=dict)

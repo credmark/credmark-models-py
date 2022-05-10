@@ -58,7 +58,7 @@ class CurvePoolPeggingInfo(Contract):
 
 
 @Model.describe(slug="contrib.curve-get-pegging-ratio",
-                version="1.0",
+                version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
                 input=Contract,
@@ -158,7 +158,7 @@ class CurvePoolsValueHistoricalInput(DTO):
 
 
 @Model.describe(slug="contrib.curve-get-pegging-ratio-historical",
-                version="1.0",
+                version="1.1",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
                 input=CurvePoolsValueHistoricalInput,
@@ -205,7 +205,7 @@ class CurvePoolDepeggingAmount(DTO):
 
 
 @Model.describe(slug="contrib.curve-get-depegging-amount",
-                version="1.0",
+                version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
                 input=CurveDepeggingAmountInput,
