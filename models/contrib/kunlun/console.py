@@ -62,6 +62,15 @@ from models.dtos.price import (
 )
 
 
+@Model.describe(slug='contrib.token-total-supply',
+                version='1.0',
+                input=Token,
+                output=dict)
+class ConsoleTokenSupply(Model):
+    def run(self, input: Token) -> dict:
+        return {'total_supply': input.scaled(input.total_supply)}
+
+
 @Model.describe(slug='contrib.console',
                 version='1.0',
                 display_name='Console',
@@ -77,7 +86,11 @@ class CmfConsole(Model):
         logging.info(
             'run_model_historical = self.context.historical.run_model_historical'
             '(model_slug, model_input, model_return_type, window, interval, '
-            'end_timestamp, snap_clock)')
+            ' end_timestamp, snap_clock, model_version)')
+        logging.info(
+            'run_model_historical_blocks = self.context.run_model_historical_blocks'
+            '(model_slug, model_input, model_return_type, window, interval, '
+            ' end_block, snap_block, model_version)')
         logging.info('models = self.context.models')
         logging.info('block_number = self.context.block_number')
         logging.info('chain_id = self.context.chain_id')
@@ -125,11 +138,13 @@ class CmfConsole(Model):
         chain_id = self.context.chain_id
         web3 = self.context.web3
         run_model_historical = self.context.historical.run_model_historical
+        run_model_historical_blocks = self.context.historical.run_model_historical_blocks
 
         IPython.embed(banner1=(f'Enter CmfConsole on block {self.context.block_number}. '
                                'Help: self.help(), Quit: quit()'),
                       banner2='Available types are BlockNumber, Address, Contract, Token...',
-                      exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}. You are left on blocks {self.blocks[:-1]}.'
+                      exit_msg=(f'Exiting the CmfConsol on block {self.context.block_number}. '
+                                f'You are left on blocks {self.blocks[:-1]}.')
                       )
         self.blocks.pop()
         return {'block_number': self.context.block_number}
