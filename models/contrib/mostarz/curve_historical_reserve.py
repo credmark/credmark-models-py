@@ -6,7 +6,7 @@ from credmark.cmf.types import (
 
 
 @Model.describe(slug="contrib.curve-fi-pool-historical-reserve",
-                version="1.1",
+                version="1.2",
                 display_name="Curve Finance Pool Liqudity",
                 description="gets reserve ratio of stablecoin"
                 "pools in Curve for every day in the past year",
