@@ -129,7 +129,7 @@ class CmfConsole(Model):
         IPython.embed(banner1=(f'Enter CmfConsole on block {self.context.block_number}. '
                                'Help: self.help(), Quit: quit()'),
                       banner2='Available types are BlockNumber, Address, Contract, Token...',
-                      exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}'
+                      exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}. You are left on blocks {self.blocks[:-1]}.'
                       )
         self.blocks.pop()
         return {'block_number': self.context.block_number}
