@@ -1,4 +1,5 @@
 from credmark.cmf.model import Model
+from credmark.cmf.types import Tokens
 from credmark.dto import EmptyInput
 
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfos
@@ -17,22 +18,18 @@ class Minrisk(Model):
     Doc is
         https://docs.credmark.com/smart-money-in-defi/investment-concepts/minimum-risk-rate-of-defi
     """
-    STABLECOINS = {
-        "USDT": '0xdac17f958d2ee523a2206206994597c13d831ec7',
-        "USDC": '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-        "DAI": '0x6b175474e89094c44da98b954eedeac495271d0f',
-    }
 
     def run(self, _) -> dict:
         aave_debts = self.context.run_model('aave-v2.lending-pool-assets',
                                             input=EmptyInput(),
                                             return_type=AaveDebtInfos)
 
+        stable_coins = Tokens(**self.context.models.token.stablecoins())
         sb_debt_infos = {}
         sb_tokens = {}
         for dbt in aave_debts:
             token = dbt.token
-            if token.address in self.STABLECOINS.values():
+            if token in stable_coins:
                 dbt_info = sb_debt_infos.get(token.address, [])
                 rate = dbt.supplyRate
                 supply_qty = dbt.totalSupply_qty
@@ -45,7 +42,7 @@ class Minrisk(Model):
 
         for dbt in compound_debts:
             token = dbt.token
-            if token.address in self.STABLECOINS.values():
+            if token in stable_coins:
                 dbt_info = sb_debt_infos.get(token.address, [])
                 rate = dbt.supplyAPY
                 supply_qty = dbt.totalLiability
