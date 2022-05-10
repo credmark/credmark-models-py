@@ -1,4 +1,5 @@
 # pylint: disable=locally-disabled, unused-import, unused-variable
+from typing import List
 from datetime import datetime, date, timezone, timedelta
 import IPython
 
@@ -66,8 +67,10 @@ from models.dtos.price import (
                 display_name='Console',
                 description='REPL for Cmf')
 class CmfConsole(Model):
+    blocks: List[BlockNumber] = []
+
     def help(self):
-        logging.info('# Pre-defined (shorthand) variable ')
+        logging.info('# Pre-defined (shorthand) to Credmark model utilities')
         logging.info('ledger = self.context.ledger')
         logging.info('run_model = self.context.run_model'
                      '(model_slug, input=EmptyInput(), return_type=dict): run a model')
@@ -81,13 +84,16 @@ class CmfConsole(Model):
         logging.info('web3 = self.context.web3')
 
         logging.info('# Console functions')
+        logging.info('self.where(): where you are in the chain of blocks')
         logging.info('self.save("output_filename"): save console history to {output_filename}.py')
         logging.info('self.load("input_filename"): load and run {input_filename}.py')
         logging.info('self.get_dt(y,m,d,h=0,m=0,s=0,ms=0): create UTC time')
         logging.info('self.get_block(timestamp): get the block number before the timestamp')
         logging.info('self.goto_block(block_number): run the console as of a past block number')
-        logging.info('# CredMark')
-        logging.info('self.context.block_number: ')
+
+    def where(self):
+        logging.info(f'You are {len(self.blocks)} blocks deep.')
+        logging.info(f'The block journey is {self.blocks}')
 
     def save(self, filename):
         ipython = IPython.get_ipython()
@@ -110,6 +116,8 @@ class CmfConsole(Model):
         self.context.run_model(self.slug, block_number=to_block)
 
     def run(self, _) -> dict:
+        self.blocks.append(self.context.block_number)
+
         ledger = self.context.ledger
         run_model = self.context.run_model
         models = self.context.models
@@ -123,4 +131,5 @@ class CmfConsole(Model):
                       banner2='Available types are BlockNumber, Address, Contract, Token...',
                       exit_msg=f'Exiting the CmfConsol on block {self.context.block_number}'
                       )
+        self.blocks.pop()
         return {'block_number': self.context.block_number}
