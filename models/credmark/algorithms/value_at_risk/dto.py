@@ -5,6 +5,7 @@ from credmark.dto import (
     DTO,
     IterableListGenericDTO,
     PrivateAttr,
+    cross_examples,
 )
 
 from credmark.cmf.types import (
@@ -36,9 +37,22 @@ class ContractVaRInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{'asOf': '2022-02-17',
-                          'window': '2 days',
-                          'interval': 1,
-                          'confidences': [0.01, 0.05]
-                          }]
+            'examples': [
+                {'asOf': '2022-02-17',
+                 'window': '2 days',
+                 'interval': 1,
+                 'confidences': [0.01, 0.05]
+                 }]
+        }
+
+
+class PortfolioVaRInput(ContractVaRInput):
+    portfolio: Portfolio
+
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(ContractVaRInput.Config.schema_extra['examples'],
+                                       [{'portfolio': v}
+                                           for v in Portfolio.Config.schema_extra['examples']],
+                                       limit=10)
         }
