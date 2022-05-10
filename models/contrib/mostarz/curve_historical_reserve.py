@@ -1,6 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import (
     Contract,
+    BlockNumber
 )
 
 
@@ -24,7 +25,7 @@ class CurveFinanceHistoricalReserve(Model):
     def run(self, input: Contract) -> dict:
         res = self.context.historical.run_model_historical(
             'curve-fi.pool-info',
-            window='365 days',
+            window='5 days',
             interval='1 days',
             model_input=input)
 
@@ -36,7 +37,8 @@ class CurveFinanceHistoricalReserve(Model):
                 "balances": r.output['balances'],
                 "address": r.output['address'],
                 "virtualPrice": r.output['virtualPrice'],
-                "blocknumber": r.blockNumber
+                "blocknumber": r.blockNumber,
+                "block_time": str(BlockNumber(r.blockNumber).timestamp_datetime)
             })
 
         return {'balances': balances}
