@@ -1,7 +1,6 @@
 from credmark.cmf.model import Model, EmptyInput
-from credmark.cmf.types import Contract
+from credmark.cmf.types import Contract, ContractLedger
 from credmark.cmf.model.errors import ModelRunError
-
 from models.dtos.example import ExampleModelOutput
 
 from web3._utils.filters import construct_event_filter_params
@@ -101,5 +100,44 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
         output.log("And to map the events to list of accounts")
         output.log_io(input="[event['args']['account'] for event in vesting_added_events]",
                       output=[event['args']['account'] for event in vesting_added_events])
+
+        # Contract ledger queries
+        output.log("You can query ledger data for contract function calls")
+        output.log_io(input="""
+contract.ledger.functions.addVestingSchedule(columns=[
+        ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
+        ContractLedger.Functions.InputCol('account'),
+        ContractLedger.Functions.InputCol('allocation')
+    ],
+    order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
+    limit='5')
+        """,
+                      output=contract.ledger.functions.addVestingSchedule(
+                          columns=[
+                              ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
+                              ContractLedger.Functions.InputCol('account'),
+                              ContractLedger.Functions.InputCol('allocation')
+                          ],
+                          order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
+                          limit='5'))
+
+        output.log("You can query ledger data for contract events")
+        output.log_io(input="""
+contract.ledger.events.VestingScheduleAdded(columns=[
+        ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
+        ContractLedger.Events.InputCol('account'),
+        ContractLedger.Events.InputCol('allocation')
+    ],
+    order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
+    limit='5')
+        """,
+                      output=contract.ledger.events.VestingScheduleAdded(
+                          columns=[
+                              ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
+                              ContractLedger.Events.InputCol('account'),
+                              ContractLedger.Events.InputCol('allocation')
+                          ],
+                          order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
+                          limit='5'))
 
         return output

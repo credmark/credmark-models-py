@@ -244,3 +244,52 @@ class CurveGetDepeggingAmount(Model):
             desired_ratio=input.desired_ratio,
             amount_required=amount_required
         )
+
+class CurvePeggingRatioChangeInput(DTO):
+    pool: Contract
+    amounts: dict
+
+@Model.describe(slug="contrib.curve-get-pegging-ratio-change",
+                version="1.0",
+                display_name="Get pegging ratio for all of Curve's pools",
+                description="Get pegging ratio for all of Curve's pools",
+                input=CurvePeggingRatioChangeInput,
+                output=CurvePoolPeggingInfo)
+class CurveGetPeggingRatioChange(Model):
+    def run(self, input: CurvePeggingRatioChangeInput) -> CurvePoolPeggingInfo:
+        pool_info = self.context.run_model(
+            slug = 'contrib.curve-get-pegging-ratio',
+            input = input.pool)
+
+        # Tokens and their current balances as feetched from contract
+        coin_balances = pool_info["coin_balances"]
+        coins = list(coin_balances.keys())
+        n = len(coins)
+        # Amount of tokens to be added or removed as fetched from contract
+        coins_to_be_changed = list(input.amounts.keys())
+        m =  len(coins_to_be_changed)
+        # Appending balances of tokens with response to input provided
+        for i in range(m):
+            coin = coins_to_be_changed[i]
+            if coin in coins:
+                coin_balances[coin] = coin_balances[coin] + input.amounts[coin]
+            else:
+                raise ModelRunError('Pool does not contain the input token.')
+        # List of new balances
+        new_balances = [coin_balances[coin] for coin in coins]
+        # New product of token amount
+        product = math.prod(new_balances)
+        # New sum of token amount
+        d = sum(new_balances)
+        # Calculating new ratio
+        ratio = product / pow((d/n), n)
+        # Calculating 'chi'
+        chi = pool_info['A'] * ratio
+
+        return CurvePoolPeggingInfo(
+            address= pool_info['address'],
+            name= pool_info['name'],
+            coin_balances= coin_balances,
+            A= pool_info['A'],
+            chi= chi,
+            ratio= ratio)
