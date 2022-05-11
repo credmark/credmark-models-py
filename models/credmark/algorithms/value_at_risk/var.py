@@ -1,13 +1,58 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 
+from credmark.cmf.types import PriceList, Price
+
+
 from models.credmark.algorithms.value_at_risk.dto import (
     VaRHistoricalInput,
+    PortfolioVaRInput,
 )
 
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
 import numpy as np
+
+
+@Model.describe(slug='finance.var-portfolio-historical',
+                version='1.0',
+                display_name='Value at Risk - for a portfolio',
+                description='Calculate VaR based on input portfolio',
+                input=PortfolioVaRInput,
+                output=dict)
+class VaRPortfolio(Model):
+    def run(self, input: PortfolioVaRInput) -> dict:
+        portfolio = input.portfolio
+
+        pls = []
+        pl_assets = set()
+        for pos in portfolio:
+            if pos.asset.address not in pl_assets:
+                hp = self.context.historical.run_model_historical(model_slug='token.price',
+                                                                  model_input=pos.asset,
+                                                                  window=input.window,
+                                                                  model_return_type=Price)
+                ps = [p.output.price for p in hp if p.output.price is not None][::-1]
+                if len(ps) < len(hp.series):
+                    raise ModelRunError('Received None output for token price.'
+                                        'Check the series '
+                                        f'{[(p.output.price,p.blockNumber) for p in hp]}')
+                pl = PriceList(prices=ps,
+                               tokenAddress=pos.asset.address,
+                               src=list({p.output.src for p in hp})[0])
+                pls.append(pl)
+                pl_assets.add(pos.asset.address)
+
+        var_input = VaRHistoricalInput(
+            portfolio=portfolio,
+            priceLists=pls,
+            interval=input.interval,
+            confidences=input.confidences,
+        )
+
+        return self.context.run_model(slug='finance.var-engine-historical',
+                                      input=var_input,
+                                      return_type=dict)
 
 
 @Model.describe(slug='finance.var-engine-historical',

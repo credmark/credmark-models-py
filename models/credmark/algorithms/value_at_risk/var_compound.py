@@ -1,6 +1,3 @@
-import json
-from datetime import datetime, timezone
-
 from credmark.cmf.model import Model
 
 from typing import (List)
@@ -16,14 +13,11 @@ from credmark.cmf.types import (
     Position,
     Token,
     Portfolio,
-    BlockNumber,
-    PriceList,
 )
 
 from models.credmark.algorithms.value_at_risk.dto import (
-    HistoricalPriceInput,
-    VaRHistoricalInput,
     ContractVaRInput,
+    PortfolioVaRInput,
 )
 
 
@@ -59,7 +53,7 @@ class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
 
 
 @Model.describe(slug="finance.var-compound",
-                version="1.0",
+                version="1.1",
                 display_name="Compound V2 VaR",
                 description="Calcualte the VaR of Compound contract of its net asset",
                 input=ContractVaRInput,
@@ -79,13 +73,9 @@ class CompoundGetVAR(Model):
     """
 
     def run(self, input: ContractVaRInput) -> dict:
-        asof_dt = datetime.combine(input.asOf, datetime.max.time(), tzinfo=timezone.utc)
-        asof_block_number = BlockNumber.from_timestamp(asof_dt)
-
         poolsinfo = self.context.run_model('compound-v2.all-pools-info',
                                            input=EmptyInput(),
-                                           return_type=CompoundV2PoolInfos,
-                                           block_number=asof_block_number)
+                                           return_type=CompoundV2PoolInfos)
         positions = []
         for poolinfo in poolsinfo:
             amount = (poolinfo.totalBorrows - poolinfo.totalLiability)
@@ -93,27 +83,7 @@ class CompoundGetVAR(Model):
 
         portfolio = Portfolio(positions=positions)
 
-        pls = []
-        pl_assets = set()
-
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=pos.asset,
-                                                              window=input.window,
-                                                              asOf=input.asOf)
-                pl = self.context.run_model(slug='finance.example-historical-price',
-                                            input=json.loads(historical_price_input.json()),
-                                            return_type=PriceList)
-                pls.append(pl)
-                pl_assets.add(pos.asset.address)
-
-        self.logger.info('')
-        var_input = VaRHistoricalInput(
-            portfolio=portfolio,
-            priceLists=pls,
-            interval=input.interval,
-            confidences=input.confidences,
-        )
-        return self.context.run_model(slug='finance.var-engine-historical',
+        var_input = PortfolioVaRInput(portfolio=portfolio, **input)
+        return self.context.run_model(slug='finance.var-portfolio-historical',
                                       input=var_input,
                                       return_type=dict)
