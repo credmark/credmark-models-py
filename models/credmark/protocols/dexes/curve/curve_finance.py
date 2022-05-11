@@ -233,7 +233,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
 
 @ Model.describe(slug="curve-fi.all-gauges",
-                 version='1.1',
+                 version='1.2',
                  display_name="Curve Finance Gauge List",
                  description="All Gauge Contracts for Curve Finance Pools",
                  input=EmptyInput,
