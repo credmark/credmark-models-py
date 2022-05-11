@@ -103,6 +103,10 @@ run_model () {
     input=$2
     local_models=$3
 
+    if [ "${local_models}" == "__all__" ]; then
+        local_models=*
+    fi
+
     if [ $# -eq 2 ]; then
         if [ $gen_mode -eq 1 ]; then
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}" >> $cmd_file
@@ -115,15 +119,15 @@ run_model () {
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
         else
             if [ $gen_mode -eq 1 ]; then
-                echo "${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}" >> $cmd_file
+                echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts} -l '${local_models}'" >> $cmd_file
             else
-                echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}"
-                ${cmk_dev} run ${model} --input "${input}" -l ${local_models} ${block_number}${api_url}${other_opts}
+                echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts} -l '${local_models}'"
+                ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}${other_opts} -l "${local_models}"
             fi
         fi
     elif [ $# -eq 4 ]; then
         if [ "$4" == 'print-command' ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}"
+            echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
         else
             echo "Got unexpected test arguments=$*"
             exit
