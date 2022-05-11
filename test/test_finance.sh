@@ -9,3 +9,4 @@ test_model 0 finance.var-aave '{"asOf": "2022-02-17", "window": "30 days", "inte
 test_model 0 finance.var-compound '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical
 test_model 0 finance.sharpe-ratio-token '{"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}, "window": "10 minute", "risk_free_rate": 0.02}'
 test_model 0 finance.sharpe-ratio-token '{"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}, "window": "360 days", "risk_free_rate": 0.02}'
+test_model 0 finance.var-portfolio '{"asOf": "2022-02-17", "window": "20 days", "interval": 1, "confidences": [0,0.01,0.05,1], "portfolio": {"positions": [{"amount": "0.5", "asset": {"symbol": "WBTC"}}, {"amount": "0.5", "asset": {"symbol": "WETH"}}]}}'
