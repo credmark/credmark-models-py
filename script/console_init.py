@@ -24,5 +24,3 @@ def load_modules(environ):
     environ['PoolPriceInfo'] = dto_prices.PoolPriceInfo
     environ['PoolPriceInfos'] = dto_prices.PoolPriceInfos
     environ['PoolPriceAggregatorInput'] = dto_prices.PoolPriceAggregatorInput
-
-    print(environ.keys())
