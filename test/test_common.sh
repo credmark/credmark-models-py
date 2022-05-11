@@ -71,17 +71,17 @@ if [ "${test_mode}" == 'test' ]; then
     cmk_dev='python test/test.py'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
+	api_url=' --api_url=http://localhost:8700'
 elif [ "${test_mode}" == 'prod' ];
 then
     cmk_dev='credmark-dev'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
+	api_url=''
 else
     exit
 fi
 
-api_url=' --api_url=http://localhost:8700'
-# api_url=''
 
 block_number='-b 14234904'
 
