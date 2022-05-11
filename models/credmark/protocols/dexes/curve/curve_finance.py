@@ -89,7 +89,9 @@ class CurveFiPoolInfo(Contract):
     is_meta: bool
     name: str
     lp_token_name: str
+    lp_token_addr: Address
     pool_token_name: str
+    pool_token_addr: Address
 
 
 class CurveFiPoolInfos(DTO):
@@ -97,7 +99,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.2",
+                version="1.3",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -157,17 +159,17 @@ class CurveFinancePoolInfo(Model):
 
         is_meta = registry.functions.is_meta(input.address.checksum).call()
         registry.functions.get_underlying_coins(input.address.checksum).call()
-
         try:
             name = input.functions.name().call()
         except Exception as _err:
             name = ""
 
-        pool_token_name = ''
+        lp_token_addr = Address.null()
         lp_token_name = ''
         try:
             lp_token_addr = Address(input.functions.lp_token().call())
-            lp_token_name = Token(address=lp_token_addr.checksum).name
+            lp_token = Token(address=lp_token_addr.checksum)
+            lp_token_name = lp_token.name
         except ABIFunctionNotFound:
             try:
                 provider = self.context.run_model('curve-fi.get-provider',
@@ -178,14 +180,19 @@ class CurveFinancePoolInfo(Model):
                 pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
                              .call())
                 lp_token_addr = Address(pool_info[5])
-                lp_token_name = Token(address=lp_token_addr.checksum).name
+                lp_token = Token(address=lp_token_addr.checksum)
+                lp_token_name = lp_token.name
             except ContractLogicError:
-                try:
-                    pool_token_addr = Address(input.functions.token().call())
-                    pool_token = Token(address=pool_token_addr.checksum)
-                    pool_token_name = pool_token.name
-                except ABIFunctionNotFound:
-                    pass
+                pass
+
+        pool_token_addr = Address.null()
+        pool_token_name = ''
+        try:
+            pool_token_addr = Address(input.functions.token().call())
+            pool_token = Token(address=pool_token_addr.checksum)
+            pool_token_name = pool_token.name
+        except ABIFunctionNotFound:
+            pass
 
         return CurveFiPoolInfo(**(input.dict()),
                                virtualPrice=virtual_price,
@@ -198,7 +205,9 @@ class CurveFinancePoolInfo(Model):
                                is_meta=is_meta,
                                name=name,
                                lp_token_name=lp_token_name,
-                               pool_token_name=pool_token_name)
+                               lp_token_addr=lp_token_addr,
+                               pool_token_name=pool_token_name,
+                               pool_token_addr=pool_token_addr)
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
@@ -218,11 +227,11 @@ class CurveFinanceTotalTokenLiqudity(Model):
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
-        # .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
+        #    .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
         return all_pools_info
 
 
-@Model.describe(slug="curve-fi.all-gauges",
+@ Model.describe(slug="curve-fi.all-gauges",
                  version='1.2',
                  display_name="Curve Finance Gauge List",
                  description="All Gauge Contracts for Curve Finance Pools",
@@ -300,15 +309,18 @@ class CurveFinanceAverageGaugeYield(Model):
         presuming that crv has a constant value of $3
         """
 
-        pool_info = self.context.models.curve_fi.pool_info(
-            Contract(address=input.functions.lp_token().call()))
+        lp_token_addr = input.functions.lp_token().call()
 
-        # addrs = self.context.run_model('curve-fi.all-gauge-addresses', input)
-
-        # gauge_input = {
-        #     "gaugeAddress": input.address,
-        #     "userAddresses": [{"address": a['from_address']} for a in addrs['data']]
-        # }
+        registry = self.context.run_model('curve-fi.get-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+        pool_addr = registry.functions.get_pool_from_lp_token(lp_token_addr).call()
+        if pool_addr != Address.null():
+            pool_info = self.context.models.curve_fi.pool_info(Contract(address=pool_addr))
+            pool_virtual_price = pool_info['virtualPrice']
+        else:
+            lp_token = Contract(address=lp_token_addr)
+            pool_virtual_price = lp_token.functions.get_virtual_price().call()
 
         res = self.context.historical.run_model_historical(
             'curve-fi.get-gauge-stake-and-claimable-rewards',
@@ -336,7 +348,7 @@ class CurveFinanceAverageGaugeYield(Model):
                         if y1['balanceOf'] == y2['balanceOf']:
                             y2_rewards_value = y2["claimable_tokens"] * self.CRV_PRICE / (10**18)
                             y1_rewards_value = y1["claimable_tokens"] * self.CRV_PRICE / (10**18)
-                            virtual_price = pool_info['virtualPrice'] / (10**18) / (10**18)
+                            virtual_price = pool_virtual_price / (10**18) / (10**18)
                             y2_liquidity_value = y2["balanceOf"] * virtual_price
                             y1_liquidity_value = y1["balanceOf"] * virtual_price
                             new_portfolio_value = y2_rewards_value + y2_liquidity_value
@@ -349,7 +361,7 @@ class CurveFinanceAverageGaugeYield(Model):
         if len(yields) == 0:
             return {}
         avg_yield = sum(yields) / len(yields) * (365 * 86400) / (10 * 86400)
-        return {"pool_info": pool_info, "crv_yield": avg_yield}
+        return {"crv_yield": avg_yield}
 
 
 @Model.describe(slug='curve-fi.all-yield',
