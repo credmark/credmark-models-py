@@ -69,20 +69,19 @@ echo Start from: $start_n
 
 if [ "${test_mode}" == 'test' ]; then
     cmk_dev='python test/test.py'
-    # Use prod for test:
-    # api_url=' --api_url=http://localhost:8700'
-    api_url=''
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
     echo In test mode, using ${cmk_dev} and ${api_url}
 elif [ "${test_mode}" == 'prod' ];
 then
     cmk_dev='credmark-dev'
-    api_url=''  # no api url param uses the gateway api
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
     echo Using installed credmark-dev and gateway api.
 else
     exit
 fi
+
+api_url=' --api_url=http://localhost:8700'
+# api_url=''
 
 block_number='-b 14234904'
 
