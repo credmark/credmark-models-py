@@ -6,10 +6,8 @@ test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry,curve-fi.get-provider
 # Curve.fi Factory USD Metapool: Alchemix USD: 0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c
 test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
 test_model 0 curve-fi.all-pools-info '{}' __all__
-# Running time too long: curve-fi.all-pools-info
-# test_model 0 curve-fi.all-yield '{}' curve-fi.all-gauges,curve-fi.pool-info,curve-fi.get-gauge-stake-and-claimable-rewards,curve-fi.gauge-yield
-test_model 0 curve-fi.all-gauges '{}' # curve-fi.get-gauge-controller
-test_model 0 curve-fi.get-gauge-stake-and-claimable-rewards '{"address":"0x824F13f1a2F29cFEEa81154b46C0fc820677A637"}'
+# Curve.fi Curve.fi ETH/rETH (rCRV): 0x53a901d48795C58f485cBB38df08FA96a24669D5
+test_model 0 curve-fi.pool-info '{"address":"0x53a901d48795C58f485cBB38df08FA96a24669D5"}'
 # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
 test_model 0 curve-fi.gauge-yield '{"address":"0x11137B10C210b579405c21A07489e28F3c040AB1"}' curve-fi.get-gauge-stake-and-claimable-rewards
 # Curve.fi tbtc2/sbtcCRV-f Gauge Deposit: 0x29284d30bcb70e86a6c3f84cbc4de0ce16b0f1ca
