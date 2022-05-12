@@ -232,7 +232,7 @@ class UniSushiGetTVLAndVolume(Model):
             pool_contract_instance.abi
         except ModelDataError:
             pool_contract_instance = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
-    
+
         # fetching token adresses of each asset in pool
         token0 = Token(address=pool_contract_instance.functions.token0().call())
         token1 = Token(address=pool_contract_instance.functions.token1().call())
