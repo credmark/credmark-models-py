@@ -32,6 +32,9 @@ class VaRPortfolio(Model):
                                                                   model_input=pos.asset,
                                                                   window=input.window,
                                                                   model_return_type=Price)
+                if len(hp.series) > 1:
+                    assert hp.series[0].blockNumber < hp.series[1].blockNumber
+                # Reverse the order of data so the recent in the front.
                 ps = [p.output.price for p in hp if p.output.price is not None][::-1]
                 if len(ps) < len(hp.series):
                     raise ModelRunError('Received None output for token price.'
