@@ -77,7 +77,7 @@ class UniswapTokens(Model):
 
     def run(self, input) -> dict:
         uniswap_factory_contract = Contract(
-            address=Address(UNISWAP_FACTORY_ADDRESS).checksum)
+            address=Address(UNISWAP_FACTORY_ADDRESS))
 
         # returns a count of all the trading pairs on uniswap
         allPairsLength = uniswap_factory_contract.functions.allPairsLength().call()
