@@ -1,7 +1,8 @@
 from datetime import datetime
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO
 from credmark.cmf.types import Token, Price
+from credmark.cmf.types.series import BlockSeries
 
 import numpy as np
 import pandas as pd
@@ -9,12 +10,12 @@ import pandas as pd
 
 class SharpRatioInput(DTO):
     token: Token
-    window: str = DTOField("360 days")
+    prices: BlockSeries[Price]
     risk_free_rate: float
 
 
 @Model.describe(slug="finance.sharpe-ratio-token",
-                version="1.0",
+                version="1.1",
                 display_name="Sharpe ratio for a token's historical price performance",
                 description=("Sharpe ratio is return (averaged returns, annualized) "
                              "versus risk (std. dev. of return)"),
@@ -40,16 +41,9 @@ class SharpeRatioToken(Model):
     """
 
     def run(self, input: SharpRatioInput) -> dict:
-        token = input.token
-        window = input.window
         risk_free_rate = input.risk_free_rate
 
-        pl = self.context.historical.run_model_historical('token.price',
-                                                          model_input=token,
-                                                          window=window,
-                                                          model_return_type=Price)
-
-        df_pl = pd.DataFrame(pl.dict()['series']).sort_values(['blockNumber'], ascending=False)
+        df_pl = pd.DataFrame(input.prices.dict()['series']).sort_values(['blockNumber'], ascending=False)
         df_pl.loc[:, 'price'] = df_pl.output.apply(lambda p: p['price'])
         df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(datetime.utcfromtimestamp)
         df_pl = (df_pl.loc[:, ['blockNumber', 'blockTimestamp', 'blockTime', 'price']]
@@ -74,12 +68,11 @@ class SharpeRatioToken(Model):
 
         sharpe_ratio = (avg_6m_ret[return_rolling_interval-1:] - risk_free_rate) / st_dev
 
-        ret_dict = {"sharpe_ratio": sharpe_ratio.to_list()[0],
-                    'window': window,
+        ret_dict = {'token_address': input.token.address,
+                    'sharpe_ratio': sharpe_ratio.to_list()[0],
                     'return_rolling_interval': return_rolling_interval,
                     'blockTime': str(df_pl.blockTime[0]),
                     'block_number': int(df_pl.blockNumber[0]),
                     'blockTimestamp': int(df_pl.blockTimestamp[0]),
-                    'token_address': input.token.address,
                     }
         return ret_dict
