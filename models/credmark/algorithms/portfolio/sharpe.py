@@ -43,7 +43,8 @@ class SharpeRatioToken(Model):
     def run(self, input: SharpRatioInput) -> dict:
         risk_free_rate = input.risk_free_rate
 
-        df_pl = pd.DataFrame(input.prices.dict()['series']).sort_values(['blockNumber'], ascending=False)
+        df_pl = (pd.DataFrame(input.prices.dict()['series'])
+                 .sort_values(['blockNumber'], ascending=False))
         df_pl.loc[:, 'price'] = df_pl.output.apply(lambda p: p['price'])
         df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(datetime.utcfromtimestamp)
         df_pl = (df_pl.loc[:, ['blockNumber', 'blockTimestamp', 'blockTime', 'price']]
