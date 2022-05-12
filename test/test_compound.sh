@@ -8,6 +8,16 @@ test_model 0 compound-v2.get-pool-info '{"address":"0x95b4ef2869ebd94beb4eee400a
 test_model 0 compound-v2.get-comptroller '{}'
 test_model 0 compound-v2.get-pools '{}' compound-v2.get-pool-info
 test_model 0 compound-v2.all-pools-info '{}' compound-v2.get-pool-info,compound-v2.get-pools,${token_price_deps}
+
+# cCOMP 0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4
 test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-12-15", "2021-12-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
 test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-09-15", "2021-09-20"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
 test_model 0 compound-v2.pool-value-historical '{"date_range": ["2022-01-15", "2022-01-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}' ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
+
+# cUSDC 0x39aa39c021dfbae8fac545936693ac917d5e7563
+test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-09-29", "2021-10-01"], "token": {"address":"0x39aa39c021dfbae8fac545936693ac917d5e7563"}}' ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
+
+# cDAI 0x5d3a536e4d6dbd6114cc1ead35777bab948e3643
+test_model 0 compound-v2.pool-value-historical '{"date_range": ["2021-09-29", "2021-10-01"], "token": {"address":"0x5d3a536e4d6dbd6114cc1ead35777bab948e3643"}}' ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
+
+
