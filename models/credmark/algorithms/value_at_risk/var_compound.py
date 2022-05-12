@@ -1,17 +1,12 @@
 from credmark.cmf.model import Model
-
-from typing import (List)
-
 from credmark.dto import (
     DTO,
     EmptyInput,
     IterableListGenericDTO,
 )
 
-
 from credmark.cmf.types import (
     Position,
-    Token,
     Portfolio,
 )
 
@@ -21,35 +16,7 @@ from models.credmark.algorithms.value_at_risk.dto import (
 )
 
 
-class CompoundV2PoolInfo(DTO):
-    tokenSymbol: str
-    cTokenSymbol: str
-    token: Token
-    cToken: Token
-    tokenDecimal: int
-    cTokenDecimal: int
-    tokenPrice: float
-    tokenPriceSrc: str
-    cash: float
-    totalBorrows: float
-    totalReserves: float
-    totalSupply: float
-    exchangeRate: float
-    invExchangeRate: float
-    totalLiability: float
-    borrowRate: float
-    supplyRate: float
-    reserveFactor: float
-    isListed: bool
-    collateralFactor: float
-    isComped: bool
-    block_number: int
-    block_datetime: str
-
-
-class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
-    infos: List[CompoundV2PoolInfo]
-    _iterator: str = 'infos'
+from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfos
 
 
 @Model.describe(slug="finance.var-compound",
@@ -83,7 +50,7 @@ class CompoundGetVAR(Model):
 
         portfolio = Portfolio(positions=positions)
 
-        var_input = PortfolioVaRInput(portfolio=portfolio, **input)
+        var_input = PortfolioVaRInput(portfolio=portfolio, **input.dict())
         return self.context.run_model(slug='finance.var-portfolio-historical',
                                       input=var_input,
                                       return_type=dict)

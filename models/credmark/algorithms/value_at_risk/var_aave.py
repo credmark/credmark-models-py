@@ -4,7 +4,6 @@ from credmark.dto import EmptyInput
 from credmark.cmf.types import (
     Position,
     Portfolio,
-    PriceList,
 )
 
 from models.credmark.algorithms.value_at_risk.dto import (
@@ -53,7 +52,7 @@ class AaveV2GetVAR(Model):
             positions.append(Position(amount=-dbt.totalLiquidity_qty, asset=dbt.token))
         portfolio = Portfolio(positions=positions)
 
-        var_input = PortfolioVaRInput(portfolio=portfolio, **input)
+        var_input = PortfolioVaRInput(portfolio=portfolio, **input.dict())
         return self.context.run_model(slug='finance.var-portfolio-historical',
                                       input=var_input,
                                       return_type=dict)

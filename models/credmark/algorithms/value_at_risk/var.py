@@ -15,7 +15,7 @@ import numpy as np
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.0',
+                version='1.1',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
