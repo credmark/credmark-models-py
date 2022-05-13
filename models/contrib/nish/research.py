@@ -11,33 +11,6 @@ from credmark.dto import (
 )
 
 
-# Get token balance of an address on ethereum chain
-def ethereum_token_balance_of_address(contract_address, account_address):
-    '''
-            Get token balance of an address method
-            Args::
-                contract_address: Ethereum Address of the token contract
-                account_address: Ethereum Address of account whose token balance is to be fetched
-                _apiKey: Etherscan API Key
-            Returns::
-                _name: Name of token
-                _balance: Token Balance of Account
-    '''
-
-    contract_address = Address(contract_address).checksum
-
-    _contract = Token(address=contract_address)
-
-    _name = _contract.functions.name().call()
-    _balance = _contract.functions.balanceOf(account_address).call()
-    _decimals = _contract.functions.decimals().call()
-    _symbol = _contract.functions.symbol().call()
-
-    _balance = float(_balance)/pow(10, _decimals)
-
-    return (_name, _symbol, _balance)
-
-
 # Function to catch naming error while fetching mandatory data
 def try_or(func, default=None, expected_exc=(Exception,)):
     try:
@@ -95,21 +68,25 @@ class CurveGetTVLAndVolume(Model):
         token3 = try_or(lambda: pool_contract_instance.functions.coins(3).call())
 
         # Fetching token0 and token1 details and balance
-        token0_name, token0_symbol, token0_balance = ethereum_token_balance_of_address(token0, pool)
+        token0_instance = Token(address=token0)
+        token0_name, token0_symbol = token0_instance.name, token0_instance.symbol
+        token0_balance = token0_instance.scaled(token0_instance.functions.balanceOf(pool).call())
         coin_balances.update({token0_symbol : token0_balance})
         token0_price = self.context.run_model(
                                 slug = 'token.price',
-                                input = Token(address=token0)
+                                input = token0_instance
                             )
         tvl += token0_balance * token0_price['price']
         prices.update({token0_symbol : token0_price['price']})
 
 
-        token1_name, token1_symbol, token1_balance = ethereum_token_balance_of_address(token1, pool)
+        token1_instance = Token(address=token1)
+        token1_name, token1_symbol = token1_instance.name, token1_instance.symbol
+        token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
         coin_balances.update({token1_symbol : token1_balance})
         token1_price = self.context.run_model(
                                 slug = 'token.price',
-                                input = Token(address=token1)
+                                input = token1_instance
                             )
         tvl += token1_balance * token1_price['price']
         prices.update({token1_symbol : token1_price['price']})
@@ -124,36 +101,43 @@ class CurveGetTVLAndVolume(Model):
         if token2 is None:
             pass
         else:
-            t2_name, t2_symbol, t2_balance = ethereum_token_balance_of_address(token2, pool)
+            token2_instance = Token(address=token2)
+            token2_name, token2_symbol = token2_instance.name, token2_instance.symbol
+            token2_balance = token2_instance.scaled(
+                token2_instance.functions.balanceOf(pool).call()
+            )
             # Updating coins
-            coin_balances.update({t2_symbol : t2_balance})
+            coin_balances.update({token2_symbol : token2_balance})
             # Updating number of tokens present
             n += 1
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t2_name),str(t2_symbol))
-            t2_price = self.context.run_model(
+            pool_name = pool_name + '/{}-{}'.format(str(token2_name),str(token2_symbol))
+            token2_price = self.context.run_model(
                                     slug = 'token.price',
-                                    input = Token(address=token2)
+                                    input = token2_instance
                                     )
-            tvl += t2_balance * t2_price['price']
-            prices.update({t2_symbol : t2_price['price']})
+            tvl += token2_balance * token2_price['price']
+            prices.update({token2_symbol : token2_price['price']})
 
         # Fetching token3 details if present in thee pool
         if token3 is None:
             pass
         else:
-            t3_name, t3_symbol, t3_balance = ethereum_token_balance_of_address(token3, pool)
-            coin_balances.update({t3_symbol : t3_balance})
+            token3_instance = Token(address=token3)
+            token3_name, token3_symbol = token3_instance.name, token3_instance.symbol
+            token3_balance = token3_instance.scaled(
+                token3_instance.functions.balanceOf(pool).call()
+            )
             # Updating number of tokens present
             n += 1
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t3_name),str(t3_symbol))
-            t3_price = self.context.run_model(
+            pool_name = pool_name + '/{}-{}'.format(str(token3_name),str(token3_symbol))
+            token3_price = self.context.run_model(
                                     slug = 'token.price',
-                                    input = Token(address=token3)
+                                    input = token3_instance
                                     )
-            tvl += t3_balance * t3_price['price']
-            prices.update({t3_symbol : t3_price['price']})
+            tvl += token3_balance * token3_price['price']
+            prices.update({token3_symbol : token3_price['price']})
 
         # Calculating Volume in 24 Hours
 
@@ -229,29 +213,33 @@ class UniSushiGetTVLAndVolume(Model):
         token0 = Token(address=pool_contract_instance.functions.token0().call())
         token1 = Token(address=pool_contract_instance.functions.token1().call())
         # Fetching token0 and token1 details and balance
-        t0_name, t0_symbol, t0_balance = ethereum_token_balance_of_address(token0.address, pool)
-        coin_balances.update({t0_symbol : t0_balance})
-        t0_price = self.context.run_model(
+        token0_instance = Token(address=token0)
+        token0_name, token0_symbol = token0_instance.name, token0_instance.symbol
+        token0_balance = token0_instance.scaled(token0_instance.functions.balanceOf(pool).call())
+        coin_balances.update({token0_symbol : token0_balance})
+        token0_price = self.context.run_model(
                                 slug = 'token.price',
                                 input = Token(address=token0.address)
                             )
-        tvl += t0_balance * t0_price['price']
-        prices.update({t0_symbol : t0_price['price']})
+        tvl += token0_balance * token0_price['price']
+        prices.update({token0_symbol : token0_price['price']})
 
 
-        t1_name, t1_symbol, t1_balance = ethereum_token_balance_of_address(token1.address, pool)
-        coin_balances.update({t1_symbol : t1_balance})
-        t1_price = self.context.run_model(
+        token1_instance = Token(address=token1)
+        token1_name, token1_symbol = token1_instance.name, token1_instance.symbol
+        token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
+        coin_balances.update({token1_symbol : token1_balance})
+        token1_price = self.context.run_model(
                                 slug = 'token.price',
                                 input = Token(address=token1.address)
                             )
-        tvl += t1_balance * t1_price['price']
-        prices.update({t1_symbol : t1_price['price']})
+        tvl += token1_balance * token1_price['price']
+        prices.update({token1_symbol : token1_price['price']})
 
         # Pool Name
         pool_name = '{}-{}/{}-{}'.format(
-            str(t0_name), str(t0_symbol),
-            str(t1_name), str(t1_symbol)
+            str(token0_name), str(token0_symbol),
+            str(token1_name), str(token1_symbol)
         )
 
         # Calculating Volume in 24 Hours

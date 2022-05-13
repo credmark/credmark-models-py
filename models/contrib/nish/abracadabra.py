@@ -134,14 +134,17 @@ class AbracadabraGetTVL(Model):
             _exchange_rate = float(market_contract.functions.exchangeRate().call())
             _price = 1 / _exchange_rate * pow(10,decimals)
 
+            collateral_instance = Token(address=collateral)
+            _name, _symbol = collateral_instance.name, collateral_instance.symbol
             # Balance of BENTOBOX
-            _name, _symbol, bento_balance = ethereum_token_balance_of_address(
-                                                        contract_address = collateral,
-                                                        account_address = BENTOBOX_ADDRESS_ETH)
+
+            bento_balance = collateral_instance.scaled(
+                collateral_instance.functions.balanceOf(BENTOBOX_ADDRESS_ETH).call()
+            )
             # Balance OF DEGENBOX
-            _name, _symbol, degen_balance = ethereum_token_balance_of_address(
-                                                        contract_address = collateral,
-                                                        account_address = DEGENBOX_ADDRESS_ETH)
+            degen_balance = collateral_instance.scaled(
+                collateral_instance.functions.balanceOf(DEGENBOX_ADDRESS_ETH).call()
+            )
             # Total Balance
             _balance = bento_balance + degen_balance
 
