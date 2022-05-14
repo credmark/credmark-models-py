@@ -41,7 +41,7 @@ class PriceModel(Model):
 class PoolPriceAggregator(Model):
     def run(self, input: PoolPriceAggregatorInput) -> Price:
         if len(input.pool_price_infos) == 0:
-            return Price(price=None, src=input.price_src)
+            raise ModelDataError(f'No pool to aggregate for {input.token}')
 
         df = pd.DataFrame(input.dict()['pool_price_infos'])
 
@@ -69,7 +69,8 @@ class UniswapV3GetAveragePrice(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         pool_price_infos = self.context.run_model('uniswap-v3.get-pool-price-info',
                                                   input=input)
-        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+        pool_aggregator_input = PoolPriceAggregatorInput(token=input,
+                                                         **pool_price_infos,
                                                          price_src=self.slug,
                                                          weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
@@ -87,7 +88,8 @@ class UniswapV2GetAveragePrice(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         pool_price_infos = self.context.run_model('uniswap-v2.get-pool-price-info',
                                                   input=input)
-        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+        pool_aggregator_input = PoolPriceAggregatorInput(token=input,
+                                                         **pool_price_infos,
                                                          price_src=self.slug,
                                                          weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
@@ -105,7 +107,8 @@ class SushiV2GetAveragePrice(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         pool_price_infos = self.context.run_model('sushiswap.get-pool-price-info',
                                                   input=input)
-        pool_aggregator_input = PoolPriceAggregatorInput(**pool_price_infos,
+        pool_aggregator_input = PoolPriceAggregatorInput(token=input,
+                                                         **pool_price_infos,
                                                          price_src=self.slug,
                                                          weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
@@ -153,6 +156,7 @@ class TokenPriceModel(Model, PriceWeight):
                                                 return_type=PoolPriceInfos)
         non_zero_pools = {ii.src for ii in all_pool_infos.pool_price_infos if ii.liquidity > 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
+            token=input,
             pool_price_infos=all_pool_infos.pool_price_infos,
             price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
             weight_power=self.WEIGHT_POWER)
