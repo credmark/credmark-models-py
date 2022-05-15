@@ -28,8 +28,10 @@ class Sushiswap(Model):
     def run(self, input: ContractSushiswapInput) -> dict:
         range_per        = input.range_percent
         total_amount     = input.total_amount
+
         amount_eth       = input.total_amount/2
         amount_btc       = input.total_amount/2
+
         df               = pd.DataFrame()
         start            = datetime.datetime.strptime("2020-01-01", "%Y-%m-%d")
         start           -= relativedelta.relativedelta(days=364)
@@ -58,6 +60,7 @@ class Sushiswap(Model):
         lower_price                = df['Lower_Bound'][0]
         upper_price                = df['Upper_Bound'][0]
         current_price              = df['BTC/ETH'][0]
+
         df['IL']                   = np.nan
         var1                       = abs(df['10D_rel_change'])
         var2                       = math.sqrt(lower_price/current_price)
