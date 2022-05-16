@@ -112,6 +112,8 @@ class UniswapV3GetPoolInfo(Model):
         slot0 = pool.functions.slot0().call()
         fee = pool.functions.fee().call()
         ticks = pool.functions.ticks(slot0[1]).call()
+        _liquidityGross = ticks[0]
+        _liquidityNet = ticks[1]
 
         token0_addr = pool.functions.token0().call()
         token1_addr = pool.functions.token1().call()
@@ -172,8 +174,6 @@ class UniswapV3GetPoolInfo(Model):
             'tick_liquidity_token0': adjusted_amount0,
             'tick_liquidity_token1': adjusted_amount1,
             "fee": fee,
-            'liquidityGross': ticks[0],
-            'liquidityNet': ticks[1],
             'virtual_liquidity_token0': virtual_x,
             'virtual_liquidity_token1': virtual_y,
         }

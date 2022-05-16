@@ -1,10 +1,10 @@
-git+https://github.com/credmark/credmark-model-framework-py.git@0.8.11
+git+https://github.com/credmark/credmark-model-framework-py.git@0.8.20
 # data libraries
 numpy>=1.22.1
 matplotlib>=3.5.1
 pandas>=1.4.0
 scipy>=1.8.0
-statsmodels>=0.13.2
+statsmodels>=0.13.0
 # Pandas' I/O
 xlrd>=2.0.1
 xlsxwriter>=3.0.3

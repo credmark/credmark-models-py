@@ -27,6 +27,8 @@ from credmark.dto import (
     IterableListGenericDTO,
 )
 
+import numpy as np
+
 # Pool(Contract)
 # LendingPool(Pool)
 # CompoundLendingPool(LendingPool)
@@ -50,6 +52,9 @@ class CompoundV2PoolInfo(DTO):
     totalLiability: float
     borrowRate: float
     supplyRate: float
+    borrowAPY: float
+    supplyAPY: float
+    utilizationRate: float
     reserveFactor: float
     isListed: bool
     collateralFactor: float
@@ -142,7 +147,7 @@ class CompoundV2GetAllPools(Model):
 
 
 @ Model.describe(slug="compound-v2.all-pools-info",
-                 version="1.1",
+                 version="1.2",
                  display_name="Compound V2 - get all pool info",
                  description="Get all pools and query for their info (deposit, borrow, rates)",
                  input=EmptyInput,
@@ -185,7 +190,7 @@ class CompoundV2AllPoolsValue(Model):
 
 
 @ Model.describe(slug="compound-v2.get-pool-info",
-                 version="1.1",
+                 version="1.2",
                  display_name="Compound V2 - pool/market information",
                  description="Compound V2 - pool/market information",
                  input=Token,
@@ -295,6 +300,11 @@ class CompoundV2GetPoolInfo(Model):
         }
     }
 
+    # APY calculation
+    ETH_MANTISSA = 1e18
+    BLOCKS_PER_DAY = 6570  # 13.15 seconds per block
+    DAYS_PER_YEAR = 365
+
     def test_fixture(self, chain_id):
         compoud_assets = sorted(self.COMPOUND_ASSETS[chain_id].keys())
         compoud_ctokens = sorted(['WETH' if t == 'cETH' else t[1:]
@@ -358,9 +368,18 @@ class CompoundV2GetPoolInfo(Model):
         invExchangeRate = 1 / exchangeRate * pow(10, 10)
         totalLiability = totalSupply / invExchangeRate
 
-        reserveFactor = cToken.functions.reserveFactorMantissa().call() / pow(10, 18)
-        borrowRate = cToken.functions.borrowRatePerBlock().call() / pow(10, 18)
-        supplyRate = cToken.functions.supplyRatePerBlock().call() / pow(10, 18)
+        reserveFactor = cToken.functions.reserveFactorMantissa().call() / self.ETH_MANTISSA
+        borrowRate = cToken.functions.borrowRatePerBlock().call() / self.ETH_MANTISSA
+        supplyRate = cToken.functions.supplyRatePerBlock().call() / self.ETH_MANTISSA
+
+        if np.isclose(getCash + totalBorrows - totalReserves, 0):
+            utilizationRate = 0
+        else:
+            utilizationRate = totalBorrows / (getCash + totalBorrows - totalReserves)
+        supplyAPY = ((supplyRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
+        borrowAPY = ((borrowRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
+        # By definition, this is how supplyRate is derived.
+        # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
         tokenprice = self.context.run_model(slug='token.price', input=token, return_type=Price)
 
@@ -386,6 +405,9 @@ class CompoundV2GetPoolInfo(Model):
             invExchangeRate=invExchangeRate,
             borrowRate=borrowRate,
             supplyRate=supplyRate,
+            supplyAPY=supplyAPY,
+            borrowAPY=borrowAPY,
+            utilizationRate=utilizationRate,
             reserveFactor=reserveFactor,
             isListed=isListed,
             collateralFactor=collateralFactorMantissa,

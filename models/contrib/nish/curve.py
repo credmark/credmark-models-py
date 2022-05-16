@@ -57,8 +57,8 @@ class CurvePoolPeggingInfo(Contract):
     ratio: float
 
 
-@Model.describe(slug="contrib.nish-curve-get-pegging-ratio",
-                version="1.0",
+@Model.describe(slug="contrib.curve-get-pegging-ratio",
+                version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
                 input=Contract,
@@ -66,7 +66,7 @@ class CurvePoolPeggingInfo(Contract):
 class CurveGetPeggingRatio(Model):
     def run(self, input: Contract) -> CurvePoolPeggingInfo:
         # Converting to CheckSum Address
-        pool = Address(input.address).checksum
+        pool = Address(input.address)
         # Pool name
         pool_name = str('None')
         # Dict of coin balances
@@ -144,7 +144,7 @@ class CurveGetPeggingRatio(Model):
         chi = a * ratio
 
         return CurvePoolPeggingInfo(
-            address=Address(pool),
+            address=pool,
             name=pool_name,
             coin_balances=coin_balances,
             A=a,
@@ -157,8 +157,8 @@ class CurvePoolsValueHistoricalInput(DTO):
     date_range: Tuple[date, date]
 
 
-@Model.describe(slug="contrib.nish-curve-get-pegging-ratio-historical",
-                version="1.0",
+@Model.describe(slug="contrib.curve-get-pegging-ratio-historical",
+                version="1.1",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
                 input=CurvePoolsValueHistoricalInput,
@@ -181,7 +181,7 @@ class CurveV2PoolsValueHistorical(Model):
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
 
         pool_infos = self.context.historical.run_model_historical(
-            model_slug='contrib.nish-curve-get-pegging-ratio',
+            model_slug='contrib.curve-get-pegging-ratio',
             model_input=input.pool,
             model_return_type=CurvePoolPeggingInfo,
             window=window,
@@ -199,13 +199,13 @@ class CurveDepeggingAmountInput(DTO):
 
 class CurvePoolDepeggingAmount(DTO):
     pool_info: CurvePoolPeggingInfo
-    token: Token
+    token: str
     desired_ratio: float
     amount_required: float
 
 
-@Model.describe(slug="contrib.nish-curve-get-depegging-amount",
-                version="1.0",
+@Model.describe(slug="contrib.curve-get-depegging-amount",
+                version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
                 input=CurveDepeggingAmountInput,
@@ -213,7 +213,7 @@ class CurvePoolDepeggingAmount(DTO):
 class CurveGetDepeggingAmount(Model):
     def run(self, input: CurveDepeggingAmountInput) -> CurvePoolDepeggingAmount:
         pool_info = self.context.run_model(
-            slug='contrib.nish-curve-get-pegging-ratio',
+            slug='contrib.curve-get-pegging-ratio',
             input=input.pool,
             return_type=CurvePoolPeggingInfo)
 
@@ -231,17 +231,65 @@ class CurveGetDepeggingAmount(Model):
                 temp = (2-desired_ratio + 2*math.sqrt(1-desired_ratio))
                 amount_token0 = token1_balance * temp / desired_ratio
                 amount_required = amount_token0 - token0_balance
-
             if input.token.symbol == coins[1]:
                 temp = (2-desired_ratio + 2*math.sqrt(1-desired_ratio))
-                amount_token1 = token1_balance * temp / desired_ratio
+                amount_token1 = token0_balance / temp * desired_ratio
                 amount_required = amount_token1 - token1_balance
         else:
             raise ModelRunError('Pool with >2 token not implemented.')
 
         return CurvePoolDepeggingAmount(
             pool_info=pool_info,
-            token=input.token,
+            token=input.token.symbol,
             desired_ratio=input.desired_ratio,
             amount_required=amount_required
         )
+
+class CurvePeggingRatioChangeInput(DTO):
+    pool: Contract
+    amounts: dict
+
+@Model.describe(slug="contrib.curve-get-pegging-ratio-change",
+                version="1.0",
+                display_name="Get pegging ratio for all of Curve's pools",
+                description="Get pegging ratio for all of Curve's pools",
+                input=CurvePeggingRatioChangeInput,
+                output=CurvePoolPeggingInfo)
+class CurveGetPeggingRatioChange(Model):
+    def run(self, input: CurvePeggingRatioChangeInput) -> CurvePoolPeggingInfo:
+        pool_info = self.context.run_model(
+            slug = 'contrib.curve-get-pegging-ratio',
+            input = input.pool)
+
+        # Tokens and their current balances as feetched from contract
+        coin_balances = pool_info["coin_balances"]
+        coins = list(coin_balances.keys())
+        n = len(coins)
+        # Amount of tokens to be added or removed as fetched from contract
+        coins_to_be_changed = list(input.amounts.keys())
+        m =  len(coins_to_be_changed)
+        # Appending balances of tokens with response to input provided
+        for i in range(m):
+            coin = coins_to_be_changed[i]
+            if coin in coins:
+                coin_balances[coin] = coin_balances[coin] + input.amounts[coin]
+            else:
+                raise ModelRunError('Pool does not contain the input token.')
+        # List of new balances
+        new_balances = [coin_balances[coin] for coin in coins]
+        # New product of token amount
+        product = math.prod(new_balances)
+        # New sum of token amount
+        d = sum(new_balances)
+        # Calculating new ratio
+        ratio = product / pow((d/n), n)
+        # Calculating 'chi'
+        chi = pool_info['A'] * ratio
+
+        return CurvePoolPeggingInfo(
+            address= pool_info['address'],
+            name= pool_info['name'],
+            coin_balances= coin_balances,
+            A= pool_info['A'],
+            chi= chi,
+            ratio= ratio)
