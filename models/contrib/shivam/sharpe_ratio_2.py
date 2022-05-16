@@ -29,7 +29,7 @@ class ContractSharpOutput(DTO):
         description="Dictionary of Sharp Ratios with token symbol as key and float as value")
 
 
-@Model.describe(slug="finance.sharperatiolisttokens",
+@Model.describe(slug="contrib.finance.sharperatiolisttokens",
                 version="1.0",
                 display_name="sharperatiolisttokens",
                 description="Sharpe Ratio of provided list of tokens",
