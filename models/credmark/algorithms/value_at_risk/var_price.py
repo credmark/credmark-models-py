@@ -34,7 +34,6 @@ class ValueAtRiskPrices(Model):
             verbose=verbose,
             method='run_model',
             slug='token.pool-price-info',
-            model_version='1.1',
             input=input,
             block_number=block_number,
             input_keys=[input.address],

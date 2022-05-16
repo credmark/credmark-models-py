@@ -68,10 +68,10 @@ class CompoundV2AllPoolsValueHistoricalPlan(Model):
             window=window,
             interval=interval)
 
-        pre_plan_results = block_plan.execute()
+        block_plan_results = block_plan.execute()
 
-        block_numbers = pre_plan_results['block_numbers']
-        block_table = pre_plan_results['block_table']
+        block_numbers = block_plan_results['block_numbers']
+        block_table = block_plan_results['block_table']
 
         reset_cache_value = False
 

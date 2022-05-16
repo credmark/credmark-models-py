@@ -132,6 +132,16 @@ class Plan(Generic[ChefT, PlanT]):  # pylint:disable=too-many-instance-attribute
                 self._chef.cache_status()
             self._chef = None
 
+    def get_model_version(self, model_slug):
+        if self._context is None:
+            raise ModelRunError('context is not set for plan')
+        # pylint:disable=protected-access
+        model_manifest = self._context._model_manifests(False)[model_slug]
+        model_version = (model_manifest['latestVersion']
+                         if 'latestVersion' in model_manifest
+                         else model_manifest['version'])
+        return model_version
+
     def post_proc(self, _context, output_from_chef: ChefT) -> PlanT:
         raise ModelRunError(
             'Please add explicit post_proc to convert from '
@@ -203,7 +213,7 @@ class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
         model_input = self._input_to_plan.get('input', {})
         block_number = self._input_to_plan['block_number']
         input_keys = self._input_to_plan['input_keys']
-        model_version = self._input_to_plan['model_version']
+        model_version = self.get_model_version(model_slug)
 
         recipe = self.create_recipe(
             cache_keywords=[method, model_slug, model_version, block_number] + input_keys,
@@ -288,7 +298,7 @@ class HistoricalBlockPlan(Plan[BlockSeries[dict], dict]):
     def define(self) -> dict:
         method = 'run_model_historical'
         model_slug = 'finance.get-one'
-        model_version = '1.0'
+        model_version = self.get_model_version(model_slug)
         as_of = self._input_to_plan['as_of']
         window = self._input_to_plan['window']
         interval = self._input_to_plan['interval']
@@ -403,25 +413,29 @@ class TokenEODPlan(Plan[BlockData[Price], dict]):
             method = 'run_model[blocks]'
         else:
             raise ModelRunError(f'! Unsupported artifact {input_token=}')
-        model_slug = 'token.price'
-        model_version = '1.1'
 
         # other choices for slug:
         # - 'uniswap-v3.get-average-price',
         sorted_block_numbers = sorted(block_numbers)
 
+        model_slug = 'token.pool-price-info'
+        model_version = self.get_model_version(model_slug)
+
         rec = self.create_recipe(
             cache_keywords=[method,
-                            'token.pool-price-info',
-                            '1.1',
+                            model_slug,
+                            model_version,
                             self._target_key,
                             [sorted_block_numbers]],
             method=method,
-            input={'slug': 'token.pool-price-info',
+            input={'slug': model_slug,
                    'input': input_token,
-                   'version': '1.1',
+                   'version': model_version,
                    'block_numbers': sorted_block_numbers})
         rec_result = self.chef.cook(rec)
+
+        model_slug = 'token.price'
+        model_version = self.get_model_version(model_slug)
 
         rec = self.create_recipe(
             cache_keywords=[method,
