@@ -242,7 +242,6 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('version', rec)
                 assert self.verify_input_and_key('block_number', rec)
-                breakpoint()
                 result = self.context.run_model(**rec.input,
                                                 return_type=rec.chef_return_type)
                 return ChefStatus.SUCCESS, result
@@ -282,7 +281,6 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 for block_number in block_numbers:
                     rec_copy.cache_keywords = rec_cache_keywords + [block_number]
                     rec_copy.input['block_number'] = block_number
-                    breakpoint()
                     result = self.cook(rec_copy)
                     sub_results.append((block_number, result))
                 return ChefStatus.SUCCESS, rec.chef_return_type(data=sub_results)
