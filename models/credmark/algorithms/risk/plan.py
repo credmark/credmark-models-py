@@ -208,20 +208,39 @@ class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
         super().__init__(**kwargs)
 
     def define(self) -> PlanT:
-        method = self._input_to_plan['method']
+        method = 'run_model[blocks]'
         model_slug = self._input_to_plan['slug']
         model_input = self._input_to_plan.get('input', {})
-        block_number = self._input_to_plan['block_number']
         input_keys = self._input_to_plan['input_keys']
         model_version = self.get_model_version(model_slug)
 
-        recipe = self.create_recipe(
-            cache_keywords=[method, model_slug, model_version, block_number] + input_keys,
-            method=method,
-            input={'slug': model_slug,
-                   **({} if model_input == {} else {'input': model_input}),
-                   'version': model_version,
-                   'block_number': block_number})
+        if 'block_numbers' in self._input_to_plan:
+            block_numbers = self._input_to_plan['block_numbers']
+            sorted_block_numbers = sorted(block_numbers)
+
+            recipe = self.create_recipe(
+                cache_keywords=([method,
+                                model_slug,
+                                model_version] +
+                                input_keys +
+                                [[sorted_block_numbers]]),
+                method=method,
+                input={'slug': model_slug,
+                       'input': model_input,
+                       'version': model_version,
+                       'block_numbers': sorted_block_numbers})
+        elif 'block_number' in self._input_to_plan:
+            block_number = self._input_to_plan['block_number']
+            recipe = self.create_recipe(
+                cache_keywords=[method, model_slug, model_version, block_number] + input_keys,
+                method=method,
+                input={'slug': model_slug,
+                       **({} if model_input == {} else {'input': model_input}),
+                       'version': model_version,
+                       'block_number': block_number})
+        else:
+            raise ModelRunError('Missing block_number of block_numbers')
+
         return self.chef.cook(recipe)
 
 

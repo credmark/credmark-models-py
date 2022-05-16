@@ -1,12 +1,10 @@
+from typing import List, Union
+
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types.series import BlockSeries
 
 from credmark.dto import (
     DTO
-)
-
-from credmark.cmf.types import (
-    Contract,
 )
 
 from models.credmark.algorithms.risk import (
@@ -21,9 +19,11 @@ from datetime import date, datetime, timezone
 class GenericHistoricalInput(DTO):
     model_slug: str
     model_input: dict
+    input_keys: List[str]
     asOf: date
     window: str
     interval: str
+    save_file: Union[None, str]
 
 
 @Model.describe(slug="finance.historical-plan",
@@ -43,6 +43,7 @@ class GenericHistoricalPlan(Model):
         interval = input.interval
         model_slug = input.model_slug
         model_input = input.model_input
+        input_keys = input.input_keys
 
         block_plan = HistoricalBlockPlan(
             tag='eod',
@@ -60,27 +61,28 @@ class GenericHistoricalPlan(Model):
         block_table = block_plan_results['block_table']
         df_table = block_table.copy()
 
-        for block_number in sorted(block_numbers):
-            block_time = block_table.query('blockNumber == @block_number')['blockTime'].to_list()[0]
-            self.logger.info(f'{block_time=}')
+        hp_plan = GeneralHistoricalPlan(
+            tag='eod',
+            target_key=f'HistoricalPlan.{model_slug}.{end_dt}.{window}.{interval}',
+            name=model_slug,
+            use_kitchen=use_kitchen,
+            chef_return_type=BlockSeries[dict],
+            plan_return_type=dict,
+            context=self.context,
+            verbose=verbose,
+            slug=model_slug,
+            input=model_input,
+            block_numbers=block_numbers,
+            input_keys=input_keys,
+        )
+        hp = hp_plan.execute()
 
-            hp_plan = GeneralHistoricalPlan(
-                tag='eod',
-                target_key=f'HistoricalPlan.{model_slug}.{block_number}',
-                name=model_slug,
-                use_kitchen=use_kitchen,
-                chef_return_type=dict,
-                plan_return_type=dict,
-                context=self.context,
-                verbose=verbose,
-                method='run_model',
-                slug=model_slug,
-                input=model_input,
-                block_number=block_number,
-                input_keys=[],
-            )
-            hp = hp_plan.execute()
-            print(hp, block_number)
+        for block_numbers, result in hp['data']:
+            for k, v in result.items():
+                df_table.loc[df_table.blockNumber == block_numbers, k] = v
 
-            df_table.loc[df_table.blockNumber == block_number,
-                         'result'] = hp
+        if input.save_file is not None and isinstance(input.save_file, str):
+            df_table.to_csv(input.save_file)
+            self.logger.info(f'Saved result({df_table.shape}) to {input.save_file}')
+
+        return df_table.to_dict()
