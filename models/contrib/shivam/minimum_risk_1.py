@@ -23,7 +23,7 @@ class ContractMinriskOutput(DTO):
     minimum_risk: float = DTOField(default=0.0, description='Minimum Risk Free Rate')
 
 
-@Model.describe(slug="contrib.finance.minrisk",
+@Model.describe(slug="contrib.finance-minrisk",
                 version="1.0",
                 display_name="MinRisk",
                 description="MinRisk for input tokens",
