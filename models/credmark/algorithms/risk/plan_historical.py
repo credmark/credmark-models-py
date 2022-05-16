@@ -63,7 +63,7 @@ class GenericHistoricalPlan(Model):
 
         hp_plan = GeneralHistoricalPlan(
             tag='eod',
-            target_key=f'HistoricalPlan.{model_slug}.{end_dt}.{window}.{interval}',
+            target_key=f'GeneralHistoricalPlan.{model_slug}.{end_dt}.{window}.{interval}',
             name=model_slug,
             use_kitchen=use_kitchen,
             chef_return_type=BlockSeries[dict],

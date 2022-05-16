@@ -242,6 +242,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
             elif rec.method == 'run_model':
                 assert self.verify_input_and_key('version', rec)
                 assert self.verify_input_and_key('block_number', rec)
+                breakpoint()
                 result = self.context.run_model(**rec.input,
                                                 return_type=rec.chef_return_type)
                 return ChefStatus.SUCCESS, result
@@ -265,7 +266,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 del rec_cache_keywords[-1]
 
                 type_hints = get_type_hints(rec.chef_return_type)
-                sub_type = type_hints['data'].__args__[0].__args__[1]
+                sub_type = get_type_hints(type_hints['series'].__args__[0])['output']
 
                 rec_copy = Recipe[sub_type, sub_type](
                     cache_keywords=rec_cache_keywords,
@@ -277,11 +278,11 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     chef_return_type=sub_type,
                     plan_return_type=sub_type
                 )
-
                 sub_results = []
                 for block_number in block_numbers:
                     rec_copy.cache_keywords = rec_cache_keywords + [block_number]
                     rec_copy.input['block_number'] = block_number
+                    breakpoint()
                     result = self.cook(rec_copy)
                     sub_results.append((block_number, result))
                 return ChefStatus.SUCCESS, rec.chef_return_type(data=sub_results)
