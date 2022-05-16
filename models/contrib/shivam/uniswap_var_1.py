@@ -44,7 +44,7 @@ class ContractUniswapVarOutput(DTO):
     type_: str = DTOField(description="Uniswap Type")
 
 
-@Model.describe(slug="finance.uniswapvar",
+@Model.describe(slug="contrib.finance-uniswapvar",
                 version="1.0",
                 display_name="UniswapVar",
                 description="Var for Uniswap v2 and v3",
