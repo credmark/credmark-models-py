@@ -26,10 +26,10 @@ class VaRPortfolio(Model):
 
         pls = []
         pl_assets = set()
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
+        for position in portfolio:
+            if position.asset.address not in pl_assets:
                 hp = self.context.historical.run_model_historical(model_slug='token.price',
-                                                                  model_input=pos.asset,
+                                                                  model_input=position.asset,
                                                                   window=input.window,
                                                                   model_return_type=Price)
                 if len(hp.series) > 1:
@@ -41,10 +41,10 @@ class VaRPortfolio(Model):
                                         'Check the series '
                                         f'{[(p.output.price,p.blockNumber) for p in hp]}')
                 pl = PriceList(prices=ps,
-                               tokenAddress=pos.asset.address,
+                               tokenAddress=position.asset.address,
                                src=list({p.output.src for p in hp})[0])
                 pls.append(pl)
-                pl_assets.add(pos.asset.address)
+                pl_assets.add(position.asset.address)
 
         var_input = VaRHistoricalInput(
             portfolio=portfolio,

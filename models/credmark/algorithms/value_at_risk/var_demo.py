@@ -69,15 +69,15 @@ class DemoContractVaR(Model):
 
         pls = []
         pl_assets = set()
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=pos.asset,
+        for position in portfolio:
+            if position.asset.address not in pl_assets:
+                historical_price_input = HistoricalPriceInput(token=position.asset,
                                                               window=input.window)
                 pl = self.context.run_model(slug='finance.example-historical-price',
                                             input=historical_price_input,
                                             return_type=PriceList)
                 pls.append(pl)
-                pl_assets.add(pos.asset.address)
+                pl_assets.add(position.asset.address)
 
         var_input = VaRHistoricalInput(
             portfolio=portfolio,
