@@ -1,3 +1,4 @@
+from typing import List, Optional
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token, Price
@@ -120,7 +121,7 @@ class AaveV2GetPriceOracle(Model):
 @Model.describe(slug="aave-v2.get-oracle-price",
                 version="1.1",
                 display_name="Aave V2 - Query price oracle for main market - in ETH",
-                description="Price Token / ETH",
+                description="Price of Token / ETH",
                 input=Token,
                 output=Price)
 class AaveV2GetOraclePrice(Model):
@@ -128,9 +129,7 @@ class AaveV2GetOraclePrice(Model):
         oracle = Contract(**self.context.models.aave_v2.get_price_oracle())
         price = oracle.functions.getAssetPrice(input.address).call()
         source = oracle.functions.getSourceOfAsset(input.address).call()
-
-        return Price(price=price / 1e18,
-                     src=f'{self.slug}|{source}')
+        return Price(price=price / 1e18, src=f'{self.slug}|{source}')
 
 
 def get_eip1967_implementation(context, logger, token_address):
