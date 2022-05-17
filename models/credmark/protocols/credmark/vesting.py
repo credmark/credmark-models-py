@@ -110,7 +110,7 @@ class CMKGetVestingByAccount(Model):
         token = Token(symbol="CMK")
         claims = []
         current_price = Price(**self.context.models.uniswap_v3.get_average_price(
-                        input={"symbol":"CMK"})).price
+            input={"symbol": "CMK"})).price
         for vesting_contract in vesting_contracts:
             if vesting_contract.functions.getElapsedVestingTime(input.address).call() == 0:
                 continue
@@ -138,23 +138,23 @@ class CMKGetVestingByAccount(Model):
                     vesting_contract.functions.getClaimableAmount(input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
-            claims_all= [
+            claims_all = [
                 dict(d['args']) for d in
                 vesting_contract.events.AllocationClaimed.createFilter(
                     fromBlock=0, toBlock=self.context.block_number
-                    ).get_all_entries()]
+                ).get_all_entries()]
             for c in claims_all:
                 if c['account'] == input.address:
                     c['amount'] = Token(symbol="CMK").scaled(c['amount'])
                     c['value_at_claim_time'] = c['amount'] * self.context.run_model(
                         slug="uniswap-v3.get-average-price",
-                        input={"symbol":"CMK"},
+                        input={"symbol": "CMK"},
                         block_number=self.context.block_number.from_timestamp(c['timestamp']),
                         return_type=Price).price
                     c['value_now'] = c['amount'] * current_price
                     claims.append(c)
         result.claims = claims
-        
+
         return result
 
 
