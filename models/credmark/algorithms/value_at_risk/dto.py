@@ -2,6 +2,7 @@ from typing import List
 
 from credmark.dto import (
     DTO,
+    DTOField,
     IterableListGenericDTO,
     PrivateAttr,
     cross_examples,
@@ -31,6 +32,7 @@ class ContractVaRInput(DTO):
     window: str
     interval: int
     confidences: List[float]
+    price_model: str = DTOField('token.price', description='price model slug')
 
     class Config:
         schema_extra = {
