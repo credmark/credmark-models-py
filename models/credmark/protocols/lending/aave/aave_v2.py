@@ -1,6 +1,3 @@
-from queue import Empty
-from typing import List, Optional
-
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token, Price
@@ -122,8 +119,8 @@ class AaveV2GetPriceOracle(Model):
 
 @Model.describe(slug="aave-v2.get-oracle-price",
                 version="1.1",
-                display_name="Aave V2 - Query price oracle for main market",
-                description="Aave V2 - Query price oracle for main market",
+                display_name="Aave V2 - Query price oracle for main market - in ETH",
+                description="Price Token / ETH",
                 input=Token,
                 output=Price)
 class AaveV2GetOraclePrice(Model):
@@ -132,8 +129,7 @@ class AaveV2GetOraclePrice(Model):
         price = oracle.functions.getAssetPrice(input.address).call()
         source = oracle.functions.getSourceOfAsset(input.address).call()
 
-        weth_usd = Price(**self.context.models.chainlink.eth_usd())
-        return Price(price=price / 1e18 * weth_usd.price,
+        return Price(price=price / 1e18,
                      src=f'{self.slug}|{source}')
 
 
