@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token
+from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token, Price
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
@@ -117,6 +117,31 @@ class AaveV2GetPriceOracle(Model):
         price_oracle_address = lending_pool_provider.functions.getPriceOracle().call()
         price_oracle_contract = Contract(address=price_oracle_address)
         return price_oracle_contract
+
+
+@Model.describe(slug="aave-v2.get-oracle-price",
+                version="1.1",
+                display_name="Aave V2 - Get price oracle for main market",
+                description="Aave V2 - Get price oracle for main market",
+                input=Token,
+                output=Price)
+class AaveV2GetOraclePrice(Model):
+    CHAINLINK_ETH_USD = {
+        1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+        4: '0x8A753747A1Fa494EC906cE90E9f37563A8AF630e',  # Rinkeby
+        42: '0x9326BFA02ADD2366b30bacB125260Af641031331',  # Kovan
+    }
+
+    def run(self, input: Token) -> Price:
+        oracle = Contract(**self.context.models.aave_v2.get_price_oracle())
+        price = oracle.functions.getAssetPrice(input.address).call()
+        source = oracle.functions.getSourceOfAsset(input.address).call()
+
+        eth_usd_oracle = Contract(address=self.CHAINLINK_ETH_USD[self.context.chain_id])
+        _roundId, answer, _startedAt, _updatedAt, _answeredInRound = eth_usd_oracle.functions.latestRoundData().call()
+        decimals = eth_usd_oracle.functions.decimals().call()
+        return Price(price=price / 1e18 * answer / (10 ** decimals),
+                     src=f'{self.slug}|{source}')
 
 
 def get_eip1967_implementation(context, logger, token_address):
