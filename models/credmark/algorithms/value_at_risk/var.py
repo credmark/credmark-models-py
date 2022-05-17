@@ -116,7 +116,6 @@ class VaREngineHistorical(Model):
         for conf in input.confidences:
             output[conf] = calc_var(all_ppl_vec, conf)
 
-        breakpoint()
         output['total_value'] = total_value
         output['value_list'] = value_list
         return output
