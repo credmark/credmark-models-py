@@ -94,7 +94,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Contract,

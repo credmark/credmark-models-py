@@ -104,7 +104,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug="sushiswap.get-pool-info",
-                version="1.0",
+                version="1.1",
                 display_name="Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
                 input=Contract,
