@@ -18,3 +18,13 @@ You can browse the models that are already deployed at the [Credmark Model Docum
 
 # Credmark API
 The Credmark Framework provides access to remote models and access to on-chain data via Credmark API. Please find more details on the API [here](https://developer-docs.credmark.com/en/latest/api.html).
+
+# Model Error Handling
+When running a model, the top level framework code will catch any exceptions, convert it to a ModelRunError if needed, and output an error object in the response. Please find more details on this [here](https://developer-docs.credmark.com/en/latest/errors.html#).
+
+# Bugs, Issues and Support
+The Credmark Model Framework is under active development, thus there will be some bugs or issues that may cause problems. 
+
+We encourage all modelers to join our [Discord](https://discord.com/invite/3dSfMqP3d4), pick the role "Engineering" and post any issues the in the channel [#framework-help](https://discord.com/channels/827615638540910622/965655586513485835). The Discord shall be the place to ask general questions about how to do something or if you have data-related questions.
+
+If you want to report a bug, unexpected behavior, or feature request, you can raise an issue in Github directly but we encourage you in this case as well to notify the community in Discord.

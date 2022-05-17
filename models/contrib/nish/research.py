@@ -6,11 +6,15 @@ from credmark.cmf.types import (
     Contract,
     Token,
 )
+from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import (
     DTO,
 )
 
 
+from models.tmp_abi_lookup import (
+    UNISWAP_V3_POOL_ABI,
+)
 # Function to catch naming error while fetching mandatory data
 def try_or(func, default=None, expected_exc=(Exception,)):
     try:
@@ -19,20 +23,18 @@ def try_or(func, default=None, expected_exc=(Exception,)):
         return default
 
 
-
 class PoolVolumeInfo(Contract):
     name: str
     address: Address
-    coin_balances : dict
-    prices : dict
-    tvl : float
-    volume24h : float
+    coin_balances: dict
+    prices: dict
+    tvl: float
+    volume24h: float
 
 
 class PoolVolumeInfoHistoricalInput(DTO):
     pool_address: Contract
     date_range: Tuple[date, date]
-
 
 
 @Model.describe(slug="contrib.curve-get-tvl-and-volume",
@@ -42,7 +44,7 @@ class PoolVolumeInfoHistoricalInput(DTO):
                 input=Contract,
                 output=PoolVolumeInfo)
 class CurveGetTVLAndVolume(Model):
-    def run(self, input) -> PoolVolumeInfo:
+    def run(self, input: Contract) -> PoolVolumeInfo:
         # Converting to CheckSum Address
         pool = Address(input.address).checksum
         # Pool name
@@ -77,9 +79,7 @@ class CurveGetTVLAndVolume(Model):
                                 input = token0_instance
                             )
         tvl += token0_balance * token0_price['price']
-        prices.update({token0_symbol : token0_price['price']})
-
-
+        prices.update({token0_symbol: token0_price['price']})
         token1_instance = Token(address=token1)
         token1_name, token1_symbol = token1_instance.name, token1_instance.symbol
         token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
@@ -89,7 +89,7 @@ class CurveGetTVLAndVolume(Model):
                                 input = token1_instance
                             )
         tvl += token1_balance * token1_price['price']
-        prices.update({token1_symbol : token1_price['price']})
+        prices.update({token1_symbol: token1_price['price']})
 
         # Pool Name
         pool_name = 'Curve.fi : {}-{}/{}-{}'.format(
@@ -141,22 +141,20 @@ class CurveGetTVLAndVolume(Model):
 
         # Calculating Volume in 24 Hours
 
-
-
         return PoolVolumeInfo(
-                name = pool_name,
-                address = Address(pool),
-                coin_balances = coin_balances,
-                prices = prices,
-                tvl = tvl,
-                volume24h = volume24h
+            name=pool_name,
+            address=Address(pool),
+            coin_balances=coin_balances,
+            prices=prices,
+            tvl=tvl,
+            volume24h=volume24h
         )
 
 
 @Model.describe(slug="contrib.curve-get-tvl-and-volume-historical",
                 version="1.0",
-                display_name="Compound pools value history",
-                description="Compound pools value history",
+                display_name="Curve pool - TVL and Volume Historical",
+                description="Runs contrib.curve-get-tvl-and-volume per day",
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class CurveGetTVLAndVolumeHistorical(Model):
@@ -209,6 +207,12 @@ class UniSushiGetTVLAndVolume(Model):
         volume24h = float(0)
         # Initiating the contract instance
         pool_contract_instance = Contract(address=pool)
+
+        try:
+            pool_contract_instance.abi
+        except ModelDataError:
+            pool_contract_instance = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
+
         # fetching token adresses of each asset in pool
         token0 = Token(address=pool_contract_instance.functions.token0().call())
         token1 = Token(address=pool_contract_instance.functions.token1().call())
@@ -245,12 +249,12 @@ class UniSushiGetTVLAndVolume(Model):
         # Calculating Volume in 24 Hours
 
         return PoolVolumeInfo(
-                name = pool_name,
-                address = Address(pool),
-                coin_balances = coin_balances,
-                prices = prices,
-                tvl = tvl,
-                volume24h = volume24h
+            name=pool_name,
+            address=Address(pool),
+            coin_balances=coin_balances,
+            prices=prices,
+            tvl=tvl,
+            volume24h=volume24h
         )
 
 
@@ -263,16 +267,17 @@ class UniSushiGetTVLAndVolume(Model):
 class SushiswapGetTVLAndVolume(Model):
     def run(self, input: Contract) -> PoolVolumeInfo:
         pool_info = self.context.run_model(
-            slug = 'contrib.uni-sushi-get-tvl-and-volume',
-            input = input)
-        pool_info['name'] = 'Sushiswap : ' + str(pool_info['name'])
+            slug='contrib.uni-sushi-get-tvl-and-volume',
+            input=input,
+            return_type=PoolVolumeInfo)
+        pool_info.name = f'Sushiswap : {pool_info.name}'
         return pool_info
 
 
 @Model.describe(slug="contrib.sushiswap-get-tvl-and-volume-historical",
                 version="1.0",
-                display_name="Compound pools value history",
-                description="Compound pools value history",
+                display_name="Sushiswap TVL and Volume Historical",
+                description="Runs contrib.sushiswap-get-tvl-and-volume per day",
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class SushiswapGetTVLAndVolumeHistorical(Model):
@@ -303,7 +308,7 @@ class SushiswapGetTVLAndVolumeHistorical(Model):
 
 @Model.describe(slug="contrib.uniswap-get-tvl-and-volume",
                 version="1.0",
-                display_name="uniswap get details for a pool",
+                display_name="Uniswap TVL and Volume",
                 description="Returns the token details of the pool",
                 input=Contract,
                 output=PoolVolumeInfo)
@@ -315,15 +320,17 @@ class UniswapGetTVLAndVolume(Model):
         fee = pool_contract_instance.functions.fee().call()
         # Pool TVL and Volume Info
         pool_info = self.context.run_model(
-            slug = 'contrib.uni-sushi-get-tvl-and-volume',
-            input = input)
-        pool_info['name'] = 'Uniswap V3 : '+ str(pool_info['name']) + '-' + str(fee)
+            slug='contrib.uni-sushi-get-tvl-and-volume',
+            input=input,
+            return_type=PoolVolumeInfo)
+        pool_info.name = f'Uniswap V3 : {pool_info.name}-{fee}'
         return pool_info
+
 
 @Model.describe(slug="contrib.uniswap-get-tvl-and-volume-historical",
                 version="1.0",
-                display_name="Compound pools value history",
-                description="Compound pools value history",
+                display_name="Uniswap TVL and Volume Historical",
+                description="Runs contrib.uniswap-get-tvl-and-volume per day",
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class UniswapGetTVLAndVolumeHistorical(Model):
