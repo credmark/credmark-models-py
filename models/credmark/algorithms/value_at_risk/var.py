@@ -28,21 +28,22 @@ class VaRPortfolio(Model):
         pl_assets = set()
         for position in portfolio:
             if position.asset.address not in pl_assets:
-                hp = self.context.historical.run_model_historical(model_slug='token.price',
-                                                                  model_input=position.asset,
-                                                                  window=input.window,
-                                                                  model_return_type=Price)
-                if len(hp.series) > 1:
-                    assert hp.series[0].blockNumber < hp.series[1].blockNumber
+                historial_price = self.context.historical.run_model_historical(
+                    model_slug='token.price',
+                    model_input=position.asset,
+                    window=input.window,
+                    model_return_type=Price)
+                if len(historial_price.series) > 1:
+                    assert historial_price.series[0].blockNumber < historial_price.series[1].blockNumber
                 # Reverse the order of data so the recent in the front.
-                ps = [p.output.price for p in hp if p.output.price is not None][::-1]
-                if len(ps) < len(hp.series):
+                ps = [p.output.price for p in historial_price if p.output.price is not None][::-1]
+                if len(ps) < len(historial_price.series):
                     raise ModelRunError('Received None output for token price.'
                                         'Check the series '
                                         f'{[(p.output.price,p.blockNumber) for p in hp]}')
                 pl = PriceList(prices=ps,
                                tokenAddress=position.asset.address,
-                               src=list({p.output.src for p in hp})[0])
+                               src=list({p.output.src for p in historial_price})[0])
                 pls.append(pl)
                 pl_assets.add(position.asset.address)
 
