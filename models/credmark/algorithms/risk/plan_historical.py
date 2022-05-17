@@ -84,7 +84,8 @@ class GenericHistoricalPlan(Model):
         df_table = hp_plan.execute()
 
         if input.save_file is not None and isinstance(input.save_file, str):
-            df_table.to_csv(input.save_file)
-            self.logger.info(f'Saved result({df_table.shape}) to {input.save_file}')
+            df_table.to_csv(input.save_file + '.csv.gz')
+            df_table.to_pickle(input.save_file + '.pkl.gz')
+            self.logger.info(f'Saved result({df_table.shape}) to {input.save_file}.csv/pkl.gz')
 
         return df_table.to_dict()
