@@ -33,7 +33,7 @@ class ChainLinkFeedPrice(Model):
     GBP = Address('0x{:040x}'.format(826))
     EUR = Address('0x{:040x}'.format(978))
 
-    def run(self, input) -> Contract:
+    def run(self, input: Token) -> Price:
         registry = Contract(**self.context.models.chainlink.get_feed_registry())
         (_roundId, answer,
          _startedAt, _updatedAt,
@@ -46,4 +46,5 @@ class ChainLinkFeedPrice(Model):
         time_diff = self.context.block_number.timestamp - _updatedAt
         round_diff = _answeredInRound - _roundId
         return Price(price=answer / (10 ** decimals),
-                     src=f'{self.slug}|{description}|{feed}|v{version}|{isFeedEnabled}|t:{time_diff}s|r:{round_diff}')
+                     src=(f'{self.slug}|{description}|{feed}|v{version}|'
+                          f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
