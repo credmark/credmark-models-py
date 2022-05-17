@@ -1,6 +1,7 @@
 from typing import List, Union
 
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types.series import BlockSeries
 
 from credmark.dto import (
@@ -28,7 +29,12 @@ class GenericHistoricalInput(DTO):
 
 
 def hp_post_proc(_context, output_from_chef: BlockSeries[dict]) -> pd.DataFrame:
-    return output_from_chef.to_df()
+    if 'price' in output_from_chef.series[0]['output']:
+        return output_from_chef.to_df(fields=[('price', lambda p: p['price'])])
+    elif 'min_risk_rate' in output_from_chef.series[0]['output']:
+        return output_from_chef.to_df(fields=[('min_risk_rate', lambda p: p['min_risk_rate'])])
+    else:
+        raise ModelRunError(f"Unknown output {output_from_chef.series[0]['output']}")
 
 
 @Model.describe(slug="finance.historical-plan",
@@ -84,7 +90,7 @@ class GenericHistoricalPlan(Model):
         df_table = hp_plan.execute()
 
         if input.save_file is not None and isinstance(input.save_file, str):
-            df_table.to_csv(input.save_file + '.csv.gz')
+            df_table.to_csv(input.save_file + '.csv')
             df_table.to_pickle(input.save_file + '.pkl.gz')
             self.logger.info(f'Saved result({df_table.shape}) to {input.save_file}.csv/pkl.gz')
 
