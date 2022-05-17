@@ -207,6 +207,9 @@ class GeneralHistoricalPlan(Plan[ChefT, PlanT]):
         kwargs['name'] = f'{self.__class__.__name__}.{kwargs["name"]}'
         super().__init__(**kwargs)
 
+    def post_proc(self, _context, output_from_chef: ChefT) -> PlanT:
+        return self._input_to_plan['post_proc'](_context, output_from_chef)
+
     def define(self) -> PlanT:
         method = 'run_model[blocks]'
         model_slug = self._input_to_plan['slug']

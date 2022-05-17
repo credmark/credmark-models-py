@@ -12,6 +12,7 @@ from models.credmark.algorithms.risk import (
     GeneralHistoricalPlan,
 )
 
+import pandas as pd
 
 from datetime import date, datetime, timezone
 
@@ -24,6 +25,10 @@ class GenericHistoricalInput(DTO):
     window: str
     interval: str
     save_file: Union[None, str]
+
+
+def hp_post_proc(_context, output_from_chef: BlockSeries[dict]) -> pd.DataFrame:
+    return output_from_chef.to_df()
 
 
 @Model.describe(slug="finance.historical-plan",
@@ -67,19 +72,16 @@ class GenericHistoricalPlan(Model):
             name=model_slug,
             use_kitchen=use_kitchen,
             chef_return_type=BlockSeries[dict],
-            plan_return_type=dict,
+            plan_return_type=pd.DataFrame,
             context=self.context,
             verbose=verbose,
             slug=model_slug,
             input=model_input,
             block_numbers=block_numbers,
             input_keys=input_keys,
+            post_proc=hp_post_proc
         )
-        hp = hp_plan.execute()
-
-        for block_numbers, result in hp['data']:
-            for k, v in result.items():
-                df_table.loc[df_table.blockNumber == block_numbers, k] = v
+        df_table = hp_plan.execute()
 
         if input.save_file is not None and isinstance(input.save_file, str):
             df_table.to_csv(input.save_file)

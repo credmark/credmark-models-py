@@ -2,6 +2,9 @@ import atexit
 import pickle
 import hashlib
 import os
+
+from credmark.cmf.types import BlockNumber
+
 from credmark.cmf.model.errors import (
     ModelRunError,
     ModelDataError,
@@ -277,13 +280,19 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                     chef_return_type=sub_type,
                     plan_return_type=sub_type
                 )
+
                 sub_results = []
                 for block_number in block_numbers:
                     rec_copy.cache_keywords = rec_cache_keywords + [block_number]
                     rec_copy.input['block_number'] = block_number
                     result = self.cook(rec_copy)
-                    sub_results.append((block_number, result))
-                return ChefStatus.SUCCESS, rec.chef_return_type(data=sub_results)
+                    block_timestamp = BlockNumber(block_number).timestamp
+                    sub_results.append({'blockNumber': block_number,
+                                        'blockTimestamp': block_timestamp,
+                                        'sampleTimestamp': BlockNumber(block_number).timestamp,
+                                        'output': result, })
+
+                return ChefStatus.SUCCESS, rec.chef_return_type(series=sub_results)
 
             elif rec.method == 'run_model_historical':
                 assert self.verify_input_and_key('model_version', rec)
