@@ -1,6 +1,6 @@
 
 from typing import List
-from credmark.cmf.types import Address
+from credmark.cmf.types import Address, Token
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 
 
@@ -39,5 +39,6 @@ class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
 
 
 class PoolPriceAggregatorInput(PoolPriceInfos):
+    token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
     price_src: str
