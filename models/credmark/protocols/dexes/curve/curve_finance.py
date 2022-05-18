@@ -99,56 +99,83 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.3",
+                version="1.4",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
                 output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(Model):
+    def check_token_address(self, addrs):
+        token_list = Tokens()
+        symbols_list = []
+
+        for addr in addrs:
+            tok_addr = Address(addr)
+            if tok_addr != Address.null():
+                tok = Token(address=tok_addr.checksum)
+                token_list.append(tok)
+                try:
+                    symbols_list.append(tok.symbol)
+                except ModelDataError:
+                    if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                        symbols_list.append('eeeETH')
+                    else:
+                        raise
+        return token_list, symbols_list
+
     def run(self, input: Contract) -> CurveFiPoolInfo:
         registry = Contract(**self.context.models.curve_fi.get_registry())
 
-        tokens = Tokens()
-        tokens_symbol = []
-        underlying = Tokens()
-        underlying_symbol = []
         balances = []
 
-        # Equivalent to input.functions.coins(ii).call()
-        coins = registry.functions.get_coins(input.address.checksum).call()
-        for tok_addr_raw in coins:
-            tok_addr = Address(tok_addr_raw)
-            if tok_addr != Address.null():
-                tok = Token(address=tok_addr.checksum)
-                tokens.append(tok)
-                try:
-                    tokens_symbol.append(tok.symbol)
-                except ModelDataError:
-                    if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                        tokens_symbol.append('eeeETH')
-                    else:
-                        raise
+        # The default is to use registry
+        use_registry = True
 
         # Equivalent to input.functions.balances(ii).call()
-        balances_ret = registry.functions.get_balances(input.address.checksum).call()
-        for ii in range(len(tokens_symbol)):
-            # tokens.tokens[ii].scaled(balances_ret[ii])
-            balances.append(balances_ret[ii])
+        try:
+            balances_tokens = registry.functions.get_balances(input.address.checksum).call()
+        except ContractLogicError:
+            try:
+                minter_addr = input.functions.minter().call()
+                return self.context.run_model(self.slug,
+                                              input=Contract(address=Address(minter_addr)),
+                                              return_type=CurveFiPoolInfo)
+            except ABIFunctionNotFound:
+                pass
 
-        # However, input.functions.underlying_coins(ii).call() is empty for some pools
-        underlying_coins = registry.functions.get_underlying_coins(input.address.checksum).call()
-        for und_addr_raw in underlying_coins:
-            und_addr = Address(und_addr_raw)
-            if und_addr != Address.null():
-                und = Token(address=und_addr.checksum)
-                underlying.append(und)
+            balances_tokens = []
+            use_registry = False
+
+        if use_registry:
+            # Equivalent to input.functions.coins(ii).call()
+            coins = registry.functions.get_coins(input.address.checksum).call()
+            tokens, tokens_symbol = self.check_token_address(coins)
+
+            # However, input.functions.underlying_coins(ii).call() is empty for some pools
+            underlying_coins = (registry.functions.get_underlying_coins(input.address.checksum)
+                                .call())
+            underlying, underlying_symbol = self.check_token_address(underlying_coins)
+            balances = balances_tokens[:len(tokens_symbol)]
+        else:
+            tokens = Tokens()
+            tokens_symbol = []
+            underlying = Tokens()
+            underlying_symbol = []
+            for i in range(8):
                 try:
-                    underlying_symbol.append(und.symbol)
-                except ModelDataError:
-                    if und.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                        underlying_symbol.append('eeeETH')
-                    else:
-                        raise
+                    tok_addr = Address(input.functions.coins(i).call())
+                    token = Token(address=tok_addr)
+                    tokens.append(token)
+                    tokens_symbol.append(token.symbol)
+                    balances.append(input.functions.balances(i).call())
+                    try:
+                        und = input.functions.underlying_coins(i).call()
+                        underlying.append(und)
+                        underlying_symbol.append(und.symbol)
+                    except (ABIFunctionNotFound, ContractLogicError):
+                        pass
+                except ContractLogicError:
+                    break
 
         try:
             a = input.functions.A().call()
@@ -158,7 +185,7 @@ class CurveFinancePoolInfo(Model):
             a = 0
 
         is_meta = registry.functions.is_meta(input.address.checksum).call()
-        registry.functions.get_underlying_coins(input.address.checksum).call()
+
         try:
             name = input.functions.name().call()
         except Exception as _err:
@@ -210,11 +237,11 @@ class CurveFinancePoolInfo(Model):
                                pool_token_addr=pool_token_addr)
 
 
-@Model.describe(slug="curve-fi.all-pools-info",
-                version="1.2",
-                display_name="Curve Finance Pool Liqudity - All",
-                description="The amount of Liquidity for Each Token in a Curve Pool - All",
-                output=CurveFiPoolInfos)
+@ Model.describe(slug="curve-fi.all-pools-info",
+                 version="1.2",
+                 display_name="Curve Finance Pool Liqudity - All",
+                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
+                 output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(Model):
     def run(self, input) -> CurveFiPoolInfos:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
@@ -297,10 +324,10 @@ class CurveFinanceGaugeRewardsCRV(Model):
         return {"yields": yields}
 
 
-@Model.describe(slug='curve-fi.gauge-yield',
-                version='1.2',
-                input=Contract,
-                output=dict)
+@ Model.describe(slug='curve-fi.gauge-yield',
+                 version='1.2',
+                 input=Contract,
+                 output=dict)
 class CurveFinanceAverageGaugeYield(Model):
     CRV_PRICE = 3.0
 
@@ -364,7 +391,7 @@ class CurveFinanceAverageGaugeYield(Model):
         return {"crv_yield": avg_yield}
 
 
-@Model.describe(slug='curve-fi.all-yield',
+@ Model.describe(slug='curve-fi.all-yield',
                  version='1.2',
                  description="Yield from all Gauges",
                  input=EmptyInput,
