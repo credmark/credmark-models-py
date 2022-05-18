@@ -1,5 +1,3 @@
-import json
-
 from credmark.cmf.model import Model
 
 from credmark.cmf.types import (
@@ -56,13 +54,12 @@ class DemoContractVaR(Model):
 
     # Demo command
     credmark-dev run finance.example-var-contract --input \
-    '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
+    '{"window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
     -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
     """
 
     def run(self, input: ContractVaRInput) -> dict:
-        # Get the portfolio as of the input.asOf. Below is example input.
         portfolio = Portfolio(
             positions=[
                 Position(asset=Token(symbol='AAVE'), amount=100),
@@ -72,17 +69,15 @@ class DemoContractVaR(Model):
 
         pls = []
         pl_assets = set()
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=pos.asset,
-                                                              window=input.window,
-                                                              asOf=input.asOf)
-                # json.loads(dto.json()) is to marshal date type to JSON
+        for position in portfolio:
+            if position.asset.address not in pl_assets:
+                historical_price_input = HistoricalPriceInput(token=position.asset,
+                                                              window=input.window)
                 pl = self.context.run_model(slug='finance.example-historical-price',
-                                            input=json.loads(historical_price_input.json()),
+                                            input=historical_price_input,
                                             return_type=PriceList)
                 pls.append(pl)
-                pl_assets.add(pos.asset.address)
+                pl_assets.add(position.asset.address)
 
         var_input = VaRHistoricalInput(
             portfolio=portfolio,
