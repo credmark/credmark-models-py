@@ -1,22 +1,16 @@
-import json
-
 from credmark.cmf.model import Model
-
-from credmark.cmf.model.errors import ModelRunError
 
 from credmark.cmf.types import (
     Portfolio,
     Token,
     Position,
     PriceList,
-    Price,
 )
 
 from models.credmark.algorithms.value_at_risk.dto import (
     HistoricalPriceInput,
     VaRHistoricalInput,
     ContractVaRInput,
-    PortfolioVaRInput,
 )
 
 
@@ -43,48 +37,6 @@ class VaRPriceHistorical(Model):
         )
 
 
-@Model.describe(slug='finance.var-portfolio',
-                version='1.0',
-                display_name='Value at Risk - for a portfolio',
-                description='Calculate VaR based on input portfolio',
-                input=PortfolioVaRInput,
-                output=dict)
-class VaRPortfolio(Model):
-    def run(self, input: PortfolioVaRInput) -> dict:
-        # Get the portfolio as of the input.asOf. Below is example input.
-        portfolio = input.portfolio
-
-        pls = []
-        pl_assets = set()
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
-                hp = self.context.historical.run_model_historical(model_slug='token.price',
-                                                                  model_input=pos.asset,
-                                                                  window=input.window,
-                                                                  model_return_type=Price)
-                ps = [p.output.price for p in hp if p.output.price is not None][::-1]
-                if len(ps) < len(hp.series):
-                    raise ModelRunError('Received None output for token price.'
-                                        'Check the series '
-                                        f'{[(p.output.price,p.blockNumber) for p in hp]}')
-                pl = PriceList(prices=ps,
-                               tokenAddress=pos.asset.address,
-                               src=list({p.output.src for p in hp})[0])
-                pls.append(pl)
-                pl_assets.add(pos.asset.address)
-
-        var_input = VaRHistoricalInput(
-            portfolio=portfolio,
-            priceLists=pls,
-            interval=input.interval,
-            confidences=input.confidences,
-        )
-
-        return self.context.run_model(slug='finance.var-engine-historical',
-                                      input=var_input,
-                                      return_type=dict)
-
-
 @Model.describe(slug='finance.example-var-contract',
                 version='1.1',
                 display_name='Value at Risk',
@@ -102,13 +54,12 @@ class DemoContractVaR(Model):
 
     # Demo command
     credmark-dev run finance.example-var-contract --input \
-    '{"asOf": "2022-02-17", "window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
+    '{"window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
     -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
     """
 
     def run(self, input: ContractVaRInput) -> dict:
-        # Get the portfolio as of the input.asOf. Below is example input.
         portfolio = Portfolio(
             positions=[
                 Position(asset=Token(symbol='AAVE'), amount=100),
@@ -118,17 +69,15 @@ class DemoContractVaR(Model):
 
         pls = []
         pl_assets = set()
-        for pos in portfolio:
-            if pos.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=pos.asset,
-                                                              window=input.window,
-                                                              asOf=input.asOf)
-                # json.loads(dto.json()) is to marshal date type to JSON
+        for position in portfolio:
+            if position.asset.address not in pl_assets:
+                historical_price_input = HistoricalPriceInput(token=position.asset,
+                                                              window=input.window)
                 pl = self.context.run_model(slug='finance.example-historical-price',
-                                            input=json.loads(historical_price_input.json()),
+                                            input=historical_price_input,
                                             return_type=PriceList)
                 pls.append(pl)
-                pl_assets.add(pos.asset.address)
+                pl_assets.add(position.asset.address)
 
         var_input = VaRHistoricalInput(
             portfolio=portfolio,

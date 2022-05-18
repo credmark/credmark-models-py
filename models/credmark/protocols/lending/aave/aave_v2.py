@@ -1,8 +1,7 @@
 from typing import List, Optional
-
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token
+from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token, Price
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
@@ -59,6 +58,12 @@ class AaveV2GetLendingPoolProviders(Model):
         address_providers = address_provider_registry.functions.getAddressesProvidersList().call()
         return Contracts(contracts=address_providers)
 
+# PriceOracle
+# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
+# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
+# getSourceOfAsset()
+# getFallbackOracle()
+
 
 @Model.describe(slug="aave-v2.get-lending-pool-provider",
                 version="1.1",
@@ -113,6 +118,20 @@ class AaveV2GetPriceOracle(Model):
         return price_oracle_contract
 
 
+@Model.describe(slug="aave-v2.get-oracle-price",
+                version="1.1",
+                display_name="Aave V2 - Query price oracle for main market - in ETH",
+                description="Price of Token / ETH",
+                input=Token,
+                output=Price)
+class AaveV2GetOraclePrice(Model):
+    def run(self, input: Token) -> Price:
+        oracle = Contract(**self.context.models.aave_v2.get_price_oracle())
+        price = oracle.functions.getAssetPrice(input.address).call()
+        source = oracle.functions.getSourceOfAsset(input.address).call()
+        return Price(price=price / 1e18, src=f'{self.slug}|{source}')
+
+
 def get_eip1967_implementation(context, logger, token_address):
     # pylint:disable=locally-disabled,protected-access
     """
@@ -128,7 +147,6 @@ def get_eip1967_implementation(context, logger, token_address):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
-
     proxy_address = context.web3.eth.get_storage_at(
         token.address,
         '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
