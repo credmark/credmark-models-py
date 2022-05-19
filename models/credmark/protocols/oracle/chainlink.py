@@ -42,8 +42,13 @@ class ChainLinkFeedPrice(Model):
             # BNB: bnb-usd.data.eth
             Address('0xB8c77482e45F1F44dE1745F52C74426C631bDD52'):
             '0x14e613ac84a31f709eadbdf89c6cc390fdc9540a',
+            # WBTC:
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
+            '0xf4030086522a5beea4988f8ca5b36dbc97bee88c',
+            # WETH:
+            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
+            '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'
         }
-
     }
 
     def run(self, input: Token) -> Price:
