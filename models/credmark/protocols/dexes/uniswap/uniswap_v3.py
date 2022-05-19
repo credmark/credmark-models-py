@@ -43,6 +43,10 @@ class UniswapV3PoolInfo(DTO):
     fee: int
     token0: Token
     token1: Token
+    token0_balance: float
+    token1_balance: float
+    token0_symbol: str
+    token1_symbol: str
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
@@ -90,7 +94,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Contract,
@@ -119,6 +123,11 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
         token0 = Token(address=token0_addr)
         token1 = Token(address=token1_addr)
+        token0_symbol = token0.symbol
+        token1_symbol = token1.symbol
+
+        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
+        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
 
         # Liquidity for virutal amount of x and y
         liquidity = pool.functions.liquidity().call()
@@ -170,6 +179,10 @@ class UniswapV3GetPoolInfo(Model):
             "unlocked": slot0[6],
             "token0": token0,
             "token1": token1,
+            'token0_balance': token0_balance,
+            'token1_balance': token1_balance,
+            'token0_symbol': token0_symbol,
+            'token1_symbol': token1_symbol,
             "liquidity": liquidity,
             'tick_liquidity_token0': adjusted_amount0,
             'tick_liquidity_token1': adjusted_amount1,
