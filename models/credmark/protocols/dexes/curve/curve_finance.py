@@ -82,9 +82,7 @@ class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
     tokens_symbol: List[str]
-    balances: List[float]  # exclude fee
-    balances_token: List[float]  # include fee
-    admin_fees: List[float]
+    balances: List[int]
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
     A: int
@@ -157,9 +155,7 @@ class CurveFinancePoolInfo(Model):
             underlying_coins = (registry.functions.get_underlying_coins(input.address.checksum)
                                 .call())
             underlying, underlying_symbol = self.check_token_address(underlying_coins)
-            balances_raw = balances_tokens[:len(tokens_symbol)]
-
-            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
+            balances = balances_tokens[:len(tokens_symbol)]
         else:
             tokens = Tokens()
             tokens_symbol = []
@@ -171,7 +167,7 @@ class CurveFinancePoolInfo(Model):
                     token = Token(address=tok_addr)
                     tokens.append(token)
                     tokens_symbol.append(token.symbol)
-                    balances.append(token.scaled(input.functions.balances(i).call()))
+                    balances.append(input.functions.balances(i).call())
                     try:
                         und = input.functions.underlying_coins(i).call()
                         underlying.append(und)
@@ -180,9 +176,6 @@ class CurveFinancePoolInfo(Model):
                         pass
                 except ContractLogicError:
                     break
-
-        balances_token = [t.scaled(t.functions.balanceOf(input.address).call()) for t in tokens]
-        admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
         try:
             a = input.functions.A().call()
@@ -233,8 +226,6 @@ class CurveFinancePoolInfo(Model):
                                tokens=tokens,
                                tokens_symbol=tokens_symbol,
                                balances=balances,
-                               balances_token=balances_token,
-                               admin_fees=admin_fees,
                                underlying_tokens=underlying,
                                underlying_tokens_symbol=underlying_symbol,
                                A=a,
@@ -243,8 +234,7 @@ class CurveFinancePoolInfo(Model):
                                lp_token_name=lp_token_name,
                                lp_token_addr=lp_token_addr,
                                pool_token_name=pool_token_name,
-                               pool_token_addr=pool_token_addr,
-                               )
+                               pool_token_addr=pool_token_addr)
 
 
 @ Model.describe(slug="curve-fi.all-pools-info",

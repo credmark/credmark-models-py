@@ -27,8 +27,8 @@ class ENSDomainName(DTO):
 
 @Model.describe(slug='chainlink.price-by-ens',
                 version="1.0",
-                display_name="Chainlink - Price by ens",
-                description="",
+                display_name="Chainlink - Price by ENS",
+                description="Use ENS domain name for a token pair",
                 input=ENSDomainName,
                 output=Price)
 class ChainLinkPriceByENS(Model):
@@ -45,7 +45,7 @@ class ChainLinkPriceByENS(Model):
 @ Model.describe(slug='chainlink.price-by-feed',
                  version="1.0",
                  display_name="Chainlink - Price by feed",
-                 description="Need to input a Chainlink valid feed",
+                 description="Input a Chainlink valid feed",
                  input=Account,
                  output=Price)
 class ChainLinkPriceByFeed(Model):
@@ -69,8 +69,8 @@ class ChainLinkPriceByFeed(Model):
 
 @ Model.describe(slug='chainlink.price-by-registry',
                  version="1.0",
-                 display_name="Chainlink - Price by Token Address pair",
-                 description="Input two tokens\' addresses",
+                 display_name="Chainlink - Price by Registry",
+                 description="Looking up Registry for two tokens\' addresses",
                  input=Tokens,
                  output=Price)
 class ChainLinkPriceByRegistry(Model):
@@ -102,7 +102,7 @@ class ChainLinkPriceByRegistry(Model):
 @ Model.describe(slug='chainlink.price-usd',
                  version="1.0",
                  display_name="Chainlink - Price for Token / USD pair",
-                 description="",
+                 description="Input a Token",
                  input=Token,
                  output=Price)
 class ChainLinkFeedPriceUSD(Model):
