@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Price, Token, Tokens, Account, Accounts, Address
+from credmark.cmf.types import Contract, Price, Token, Tokens, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
 from ens import ENS
 
@@ -48,7 +48,7 @@ class ChainLinkPriceByENS(Model):
                  description="Need to input a Chainlink valid feed",
                  input=Account,
                  output=Price)
-class ChainLinkFeedPrice(Model):
+class ChainLinkPriceByFeed(Model):
     def run(self, input: Account) -> Price:
         feed_contract = Contract(address=input.address)
         (_roundId, answer,
@@ -67,18 +67,21 @@ class ChainLinkFeedPrice(Model):
                           f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
 
 
-@ Model.describe(slug='chainlink.price-by-registry-feed',
+@ Model.describe(slug='chainlink.price-by-registry',
                  version="1.0",
                  display_name="Chainlink - Price by Token Address pair",
                  description="Input two tokens\' addresses",
                  input=Tokens,
                  output=Price)
-class ChainLinkRegistryPrice(Model):
+class ChainLinkPriceByRegistry(Model):
     def run(self, input: Tokens) -> Price:
         token0_address = input.tokens[0].address
         token1_address = input.tokens[1].address
 
-        registry = Contract(**self.context.models.chainlink.get_feed_registry())
+        registry = self.context.run_model('chainlink.get-feed-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+
         (_roundId, answer,
             _startedAt, _updatedAt,
             _answeredInRound) = (registry.functions.latestRoundData(token0_address, token1_address)
@@ -142,6 +145,6 @@ class ChainLinkFeedPriceUSD(Model):
                                           return_type=Price)
         else:
             tokens = [Token(address=input.address), Token(address=self.USD)]
-            return self.context.run_model('chainlink.price-by-registry-feed',
+            return self.context.run_model('chainlink.price-by-registry',
                                           input=Tokens(tokens=tokens),
                                           return_type=Price)
