@@ -1,5 +1,6 @@
 # pylint: disable=locally-disabled, unused-import
 
+from itertools import chain
 import pandas as pd
 from typing import List
 from credmark.cmf.model import Model
@@ -15,7 +16,12 @@ from credmark.cmf.types import (
     Contracts,
     Token,
     Tokens,
+    Portfolio,
+    Position,
+    Price,
 )
+
+from models.dtos.defi import TVLInfo
 
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
@@ -101,7 +107,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.4",
+                version="1.6",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -115,14 +121,11 @@ class CurveFinancePoolInfo(Model):
             tok_addr = Address(addr)
             if tok_addr != Address.null():
                 tok = Token(address=tok_addr.checksum)
-                token_list.append(tok)
-                try:
+                if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                    symbols_list.append('ETH')
+                else:
                     symbols_list.append(tok.symbol)
-                except ModelDataError:
-                    if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                        symbols_list.append('eeeETH')
-                    else:
-                        raise
+                token_list.append(tok)
         return token_list, symbols_list
 
     def run(self, input: Contract) -> CurveFiPoolInfo:
@@ -159,7 +162,12 @@ class CurveFinancePoolInfo(Model):
             underlying, underlying_symbol = self.check_token_address(underlying_coins)
             balances_raw = balances_tokens[:len(tokens_symbol)]
 
-            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
+            balances = [
+                t.scaled(bal)
+                if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+                else float(self.context.web3.fromWei(bal, 'ether'))
+                for bal, t in zip(balances_raw, tokens)
+            ]
         else:
             tokens = Tokens()
             tokens_symbol = []
@@ -181,7 +189,12 @@ class CurveFinancePoolInfo(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.scaled(t.functions.balanceOf(input.address).call()) for t in tokens]
+        balances_token = [
+            t.scaled(t.functions.balanceOf(input.address).call())
+            if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+            else float(self.context.web3.fromWei(self.context.web3.eth.get_balance(input.address),
+                                                 'ether'))
+            for t in tokens]
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
         try:
@@ -247,13 +260,138 @@ class CurveFinancePoolInfo(Model):
                                )
 
 
+# TODO: A temporary model to get the price of 3CRV LP token.
+@Model.describe(slug="curve-fi.price-3crv",
+                version="1.0",
+                display_name="Curve Finance Pool - Price for 3Crv",
+                description="Weighted average from 3Pool",
+                input=EmptyInput,
+                output=Price)
+class CurveFinanceCRV3Price(Model):
+    CRV_3CRV = {
+        1: '0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'
+    }
+    CRV_3POOL = {
+        1: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7'
+    }
+
+    def run(self, _) -> Price:
+        crv_3pool = Contract(address=Address(self.CRV_3POOL[self.context.chain_id]))
+        pool_tvl = self.context.run_model('curve-fi.pool-info-tvl',
+                                          input=crv_3pool,
+                                          return_type=TVLInfo)
+        total_amount = 0.0
+        for position in pool_tvl.portfolio.positions:
+            total_amount += position.amount
+        return Price(price=pool_tvl.tvl/total_amount, src=self.slug)
+
+
+# TODO: Temporary price model for stablecoins on Curve
+@Model.describe(slug="curve-fi.price",
+                version="1.0",
+                display_name="Curve Finance Pool - Price for stablecoins",
+                description="For those stablecoins primarily traded in curve",
+                input=EmptyInput,
+                output=Price)
+class CurveFinancePrice(Model):
+    CRV_STABLECOINS = {
+        1: {
+            'cyDAI': Address('0x8e595470ed749b85c6f7669de83eae304c2ec68f'),
+            'cyUSDC': Address('0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c'),
+            'cyUSDT': Address('0x48759f220ed983db51fa7a8c0d2aab8f3ce4166a'),
+        }
+    }
+
+    def run(self, _) -> Price:
+        return Price(price=1.0, src=self.slug)
+
+
+@Model.describe(slug="curve-fi.pool-info-tvl",
+                version="1.0",
+                display_name="Curve Finance Pool - TVL",
+                description="Total amount of TVL",
+                input=Contract,
+                output=TVLInfo)
+class CurveFinancePoolInfoTVL(Model):
+    def run(self, input: Contract) -> TVLInfo:
+        pool_info = self.context.run_model('curve-fi.pool-info',
+                                           input=input,
+                                           return_type=CurveFiPoolInfo)
+        positions = []
+        prices = []
+        tvl = 0.0
+        for tok, bal in zip(pool_info.tokens.tokens, pool_info.balances):
+            positions.append(Position(amount=bal, asset=tok))
+
+            if tok.address == Address(CurveFinanceCRV3Price.CRV_3CRV[self.context.chain_id]):
+                tok_price = self.context.run_model('curve-fi.crv3-price',
+                                                   input=EmptyInput(),
+                                                   return_type=Price)
+            elif tok.address in CurveFinancePrice.CRV_STABLECOINS[self.context.chain_id].values():
+                tok_price = self.context.run_model('curve-fi.price',
+                                                   input=EmptyInput(),
+                                                   return_type=Price)
+            else:
+                try:
+                    tok_price = self.context.run_model('chainlink.price-usd',
+                                                       input=tok,
+                                                       return_type=Price)
+                except ModelRunError as err:
+                    if 'Feed not found' in str(err):
+                        tok_price = self.context.run_model('token.price',
+                                                           input=tok,
+                                                           return_type=Price)
+                    else:
+                        raise err
+
+            prices.append(tok_price)
+            tvl += bal * tok_price.price
+
+        tvl_info = TVLInfo(
+            address=input.address,
+            name=pool_info.name,
+            portfolio=Portfolio(positions=positions),
+            tokens_symbol=pool_info.tokens_symbol,
+            prices=prices,
+            tvl=tvl
+        )
+
+        return tvl_info
+
+
+class HistoricalPoolInfoTVLInput(Contract):
+    tvl_model_slug: str
+    window: str
+
+
+@Model.describe(slug="historical.pool-info-tvl",
+                version="1.0",
+                display_name="Run Pool Info TVL for historical",
+                description="",
+                input=HistoricalPoolInfoTVLInput,
+                output=dict)
+class HistoricalPoolInfoTVL(Model):
+    def run(self, input: HistoricalPoolInfoTVLInput) -> dict:
+        window = input.window
+        interval = '1 day'
+
+        pool_infos = self.context.historical.run_model_historical(
+            model_slug=input.tvl_model_slug,
+            model_input=Contract(address=input.address),
+            model_return_type=TVLInfo,
+            window=window,
+            interval=interval,
+            end_timestamp=self.context.block_number.timestamp)
+        return {'pool_infos': pool_infos}
+
+
 @ Model.describe(slug="curve-fi.all-pools-info",
                  version="1.2",
                  display_name="Curve Finance Pool Liqudity - All",
                  description="The amount of Liquidity for Each Token in a Curve Pool - All",
                  output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(Model):
-    def run(self, input) -> CurveFiPoolInfos:
+    def run(self, _) -> CurveFiPoolInfos:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
                                                 return_type=Contracts)

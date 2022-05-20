@@ -82,6 +82,7 @@ class ChainLinkPriceByRegistry(Model):
                                           input=EmptyInput(),
                                           return_type=Contract)
 
+        feed = registry.functions.getFeed(token0_address, token1_address).call()
         (_roundId, answer,
             _startedAt, _updatedAt,
             _answeredInRound) = (registry.functions.latestRoundData(token0_address, token1_address)
@@ -89,7 +90,6 @@ class ChainLinkPriceByRegistry(Model):
         decimals = registry.functions.decimals(token0_address, token1_address).call()
         description = registry.functions.description(token0_address, token1_address).call()
         version = registry.functions.version(token0_address, token1_address).call()
-        feed = registry.functions.getFeed(token0_address, token1_address).call()
         isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
         time_diff = self.context.block_number.timestamp - _updatedAt
