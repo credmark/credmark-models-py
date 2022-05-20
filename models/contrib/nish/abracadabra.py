@@ -24,34 +24,6 @@ def try_or(func, default=0, expected_exc=(Exception,)):
         return default
 
 
-# Get token balance of an address on ethereum chain
-def ethereum_token_balance_of_address(contract_address, account_address):
-    '''
-            Get token balance of an address method
-            Args::
-                contract_address: Ethereum Address of the token contract
-                account_address: Ethereum Address of account whose token balance is to be fetched
-                _apiKey: Etherscan API Key
-            Returns::
-                _name: Name of token
-                _balance: Token Balance of Account
-    '''
-
-    contract_address = Address(contract_address).checksum
-
-    _contract = Token(address=contract_address)
-
-    _name = _contract.functions.name().call()
-    _balance = _contract.functions.balanceOf(account_address).call()
-    _decimals = _contract.functions.decimals().call()
-    _symbol = _contract.functions.symbol().call()
-
-    _balance = float(_balance)/pow(10, _decimals)
-
-    return (_name, _symbol, _balance)
-
-
-
 ## Vaults' addresses on ethereum chain
 BENTOBOX_ADDRESS_ETH = Address("0xF5BCE5077908a1b7370B9ae04AdC565EBd643966").checksum
 DEGENBOX_ADDRESS_ETH = Address("0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce").checksum
