@@ -2,11 +2,11 @@ echo_cmd ""
 echo_cmd "Run TVL Examples"
 echo_cmd ""
 
-curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry
+curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry,curve-fi.price-3crv
 
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.crv3-price '{}' ${curve_pool_info_tvl}
+test_model 0 curve-fi.price-3crv '{}' ${curve_pool_info_tvl}
 
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}' ${curve_pool_info_tvl}
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}

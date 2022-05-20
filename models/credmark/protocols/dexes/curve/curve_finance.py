@@ -324,7 +324,7 @@ class CurveFinancePoolInfoTVL(Model):
             positions.append(Position(amount=bal, asset=tok))
 
             if tok.address == Address(CurveFinanceCRV3Price.CRV_3CRV[self.context.chain_id]):
-                tok_price = self.context.run_model('curve-fi.crv3-price',
+                tok_price = self.context.run_model('curve-fi.price-3crv',
                                                    input=EmptyInput(),
                                                    return_type=Price)
             elif tok.address in CurveFinancePrice.CRV_STABLECOINS[self.context.chain_id].values():
