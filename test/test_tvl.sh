@@ -33,7 +33,7 @@ test_model 0 historical.pool-info-tvl '{"address":"0x5a6A4D54456819380173272A5E8
 test_model 0 historical.pool-info-tvl '{"address":"0x93054188d876f558f4a66B2EF1d97d16eDf0895B","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
 test_model 0 historical.pool-info-tvl '{"address":"0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
 test_model 0 historical.pool-info-tvl '{"address":"0x9D0464996170c6B9e75eED71c68B99dDEDf279e8","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xd658A338613198204DCa1143Ac3F01A722b5d94A","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
+test_model 1 historical.pool-info-tvl '{"address":"0xd658A338613198204DCa1143Ac3F01A722b5d94A","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
 
 # UniV3
 # 0x5777d92f208679db4b9778590fa3cab3ac9e2168 (DAI/USDC)
