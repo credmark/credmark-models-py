@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import List, Optional, Union
 
 from credmark.cmf.model.errors import ModelBaseError
@@ -41,7 +42,7 @@ class _ExampleModelOutput(DTO):
         self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 
     def _log(self, message: str):
-        print(message)
+        logging.info(message)
 
     def log(self, message: str):
         self._log('\n' + TermColors.apply(message, TermColors.BLUE))
