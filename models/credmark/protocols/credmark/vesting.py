@@ -109,7 +109,7 @@ class CMKGetVestingByAccount(Model):
         result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
         claims = []
-        current_price = Price(**self.context.models.uniswap_v3.get_average_price(
+        current_price = Price(**self.context.models.uniswap_v3.get_weighted_price(
             input={"symbol": "CMK"})).price
         for vesting_contract in vesting_contracts:
             if vesting_contract.functions.getElapsedVestingTime(input.address).call() == 0:
@@ -138,11 +138,31 @@ class CMKGetVestingByAccount(Model):
                     vesting_contract.functions.getClaimableAmount(input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
-            claims_all = [
-                dict(d['args']) for d in
-                vesting_contract.events.AllocationClaimed.createFilter(
-                    fromBlock=0, toBlock=self.context.block_number
-                ).get_all_entries()]
+            try:
+                allocation_claimed_events = vesting_contract.events.AllocationClaimed.createFilter(
+                    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
+            except ValueError:
+                try:
+                    # pylint:disable=locally-disabled,protected-access
+                    event_abi = vesting_contract.events.AllocationClaimed._get_event_abi()
+
+                    __data_filter_set, event_filter_params = construct_event_filter_params(
+                        abi_codec=self.context.web3.codec,
+                        event_abi=event_abi,
+                        address=input.address.checksum,
+                        fromBlock=0,
+                        toBlock=self.context.block_number
+                    )
+                    allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
+                    allocation_claimed_events = [
+                        get_event_data(self.context.web3.codec, event_abi, s)
+                        for s in allocation_claimed_events]
+                except (ReadTimeoutError, ReadTimeout):
+                    raise ModelRunError(
+                        f'There was timeout error when reading logs for {input.address}')
+
+            claims_all = [dict(d['args']) for d in allocation_claimed_events]
+
             for c in claims_all:
                 if c['account'] == input.address:
                     c['amount'] = Token(symbol="CMK").scaled(c['amount'])
