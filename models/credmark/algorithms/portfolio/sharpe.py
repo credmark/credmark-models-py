@@ -15,7 +15,7 @@ class SharpRatioInput(DTO):
 
 
 @Model.describe(slug="finance.sharpe-ratio-token",
-                version="1.1",
+                version="1.2",
                 display_name="Sharpe ratio for a token's historical price performance",
                 description=("Sharpe ratio is return (averaged returns, annualized) "
                              "versus risk (std. dev. of return)"),
@@ -59,18 +59,24 @@ class SharpeRatioToken(Model):
         daily_return = np_historical_prices[:-1] / np_historical_prices[1:] - 1
 
         annualized_return = daily_return * np.sqrt(365)
-        avg_6m_ret = (pd.Series(annualized_return)
+        avg_rolling_ret = (pd.Series(annualized_return)
                       .rolling(return_rolling_interval)
                       .mean()[return_rolling_interval-1:])
 
-        st_dev = (avg_6m_ret.rolling(return_rolling_interval)
+        st_dev = (avg_rolling_ret.rolling(return_rolling_interval)
                   .std()
                   [(return_rolling_interval-1):])
 
-        sharpe_ratio = (avg_6m_ret[return_rolling_interval-1:] - risk_free_rate) / st_dev
+        avg_ret = avg_rolling_ret[return_rolling_interval-1:]
+        avg_ret_minus_risk_free = avg_ret - risk_free_rate
+
+        sharpe_ratio = avg_ret_minus_risk_free / st_dev
 
         ret_dict = {'token_address': input.token.address,
                     'sharpe_ratio': sharpe_ratio.to_list()[0],
+                    'avg_return': avg_ret,
+                    'risk_free_rate': risk_free_rate,
+                    'ret_stdev': st_dev,
                     'return_rolling_interval': return_rolling_interval,
                     'blockTime': str(df_pl.blockTime[0]),
                     'block_number': int(df_pl.blockNumber[0]),
