@@ -25,6 +25,7 @@ class ENSDomainName(DTO):
     domain: str = DTOField(description='ENS Domain nam')
 
 
+# TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
                 version="1.0",
                 display_name="Chainlink - Price by ENS",
