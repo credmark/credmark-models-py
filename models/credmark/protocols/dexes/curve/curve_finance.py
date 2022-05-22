@@ -70,8 +70,7 @@ class CurveFinanceGetGauge(Model):
                 description="Query the registry for all pools",
                 output=Contracts)
 class CurveFinanceAllPools(Model):
-
-    def run(self, input) -> Contracts:
+    def run(self, _) -> Contracts:
         registry = self.context.run_model('curve-fi.get-registry',
                                           input=EmptyInput(),
                                           return_type=Contract)
