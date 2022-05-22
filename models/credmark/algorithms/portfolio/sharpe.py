@@ -65,15 +65,15 @@ class SharpeRatioToken(Model):
 
         st_dev = (avg_rolling_ret.rolling(return_rolling_interval)
                   .std()
-                  [(return_rolling_interval-1):])
+                  [(return_rolling_interval-1):]).to_list()[0]
 
-        avg_ret = avg_rolling_ret[return_rolling_interval-1:]
+        avg_ret = avg_rolling_ret[return_rolling_interval-1:].to_list()[0]
         avg_ret_minus_risk_free = avg_ret - risk_free_rate
 
         sharpe_ratio = avg_ret_minus_risk_free / st_dev
 
         ret_dict = {'token_address': input.token.address,
-                    'sharpe_ratio': sharpe_ratio.to_list()[0],
+                    'sharpe_ratio': sharpe_ratio,
                     'avg_return': avg_ret,
                     'risk_free_rate': risk_free_rate,
                     'ret_stdev': st_dev,
