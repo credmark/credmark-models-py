@@ -381,6 +381,7 @@ class HistoricalPoolInfoTVL(Model):
             window=window,
             interval=interval,
             end_timestamp=self.context.block_number.timestamp)
+
         return {'pool_infos': pool_infos}
 
 
