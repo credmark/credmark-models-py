@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
 
-from credmark.cmf.types import Token, Price
+from credmark.cmf.types import Contract, Token, Price
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,11 @@ import pandas as pd
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+
+
+from models.tmp_abi_lookup import (
+    UNISWAP_V3_POOL_ABI,
+)
 
 
 @Model.describe(slug="finance.var-dex-lp",
@@ -20,11 +25,17 @@ from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 class UniswapPoolVaR(Model):
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
-    It then calculate the LP position's VaR from both price change and quantity change from IL.
+    It then calculate the LP position's VaR from both price change and quantity change from IL
+    for a portfolio worth of $1.
     """
 
     def run(self, input: UniswapPoolVaRInput) -> dict:
         pool = input.pool
+
+        try:
+            _ = pool.abi
+        except ModelDataError:
+            pool = Contract(address=input.pool.address, abi=UNISWAP_V3_POOL_ABI)
 
         if not isinstance(pool.abi, list):
             raise ModelRunError('Pool abi can not be loaded.')
@@ -116,7 +127,7 @@ class UniswapPoolVaR(Model):
         else:
             impermenant_loss_vector = ((2*np.sqrt(ratio_change) - 1 - ratio_change) /
                                        (1 + ratio_change - np.sqrt(1-input.lower_range) -
-                                           ratio_change * np.sqrt(1 / (1 + input.uppper_range))))
+                                           ratio_change * np.sqrt(1 / (1 + input.upper_range))))
 
         # IL check
         # import matplotlib.pyplot as plt
@@ -128,10 +139,12 @@ class UniswapPoolVaR(Model):
 
         # Count in both portfolio PnL and IL for the total Pnl vector
         total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1
-        total_pnl_without_il_vector = (1 + portfolio_pnl_vector) - 1
+        total_pnl_without_il_vector = portfolio_pnl_vector
+        total_pnl_il_vector = impermenant_loss_vector
 
         var = {}
         var_without_il = {}
+        var_il = {}
         for conf in input.confidences:
             var_result = calc_var(total_pnl_vector, conf)
             var[conf] = {
@@ -141,6 +154,7 @@ class UniswapPoolVaR(Model):
                 'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
                 'weights': var_result.weights
             }
+
             var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
             var_without_il[conf] = {
                 'var': var_result_without_il.var,
@@ -150,10 +164,20 @@ class UniswapPoolVaR(Model):
                 'weights': var_result_without_il.weights
             }
 
+            var_result_il = calc_var(total_pnl_il_vector, conf)
+            var_il[conf] = {
+                'var': var_result_il.var,
+                'scenarios': (token0_historical_price.blockTime
+                              .iloc[var_result_il.unsorted_index, ].to_list()),
+                'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
+                'weights': var_result_il.weights
+            }
+
             # For V3, as existing assumptions, we need to cap the loss at -100%.
             if impermenant_loss_type == 'V3':
                 var[conf]['var'] = np.max([-1, var[conf]['var']])
                 var_without_il[conf]['var'] = np.max([-1, var_without_il[conf]['var']])
+                var_il[conf]['var'] = np.max([-1, var_il[conf]['var']])
 
         return {
             'pool': input.pool,
@@ -161,6 +185,9 @@ class UniswapPoolVaR(Model):
             'tokens_symbol': [token0.symbol, token1.symbol],
             'ratio': current_ratio,
             'IL_type': impermenant_loss_type,
+            'range': ([] if impermenant_loss_type == 'V2'
+                      else [input.lower_range, input.upper_range]),
             'var': var,
             'var_without_il': var_without_il,
+            'var_il': var_il,
         }
