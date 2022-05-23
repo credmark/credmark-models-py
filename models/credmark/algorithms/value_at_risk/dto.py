@@ -58,6 +58,6 @@ class PortfolioVaRInput(ContractVaRInput):
 
 
 class UniswapPoolVaRInput(ContractVaRInput):
-    lower_range: float = DTOField(description='Lower bound to the current price')
-    upper_range: float = DTOField(description="Upper bound to the current price")
+    lower_range: float = DTOField(description='Lower bound to the current price for V3 pool')
+    upper_range: float = DTOField(description="Upper bound to the current price for V3 pool")
     pool: Contract
