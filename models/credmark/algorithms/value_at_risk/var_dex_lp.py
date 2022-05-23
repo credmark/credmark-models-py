@@ -53,7 +53,8 @@ class UniswapPoolVaR(Model):
                                        window=input.window,
                                        model_return_type=Price)
                                    .to_dataframe(fields=[('price', lambda p:p.price)])
-                                   .sort_values('blockNumber', ascending=False))
+                                   .sort_values('blockNumber', ascending=False)
+                                   .reset_index(drop=True))
 
         token1_historical_price = (self.context.historical
                                    .run_model_historical(
@@ -62,7 +63,8 @@ class UniswapPoolVaR(Model):
                                        window=input.window,
                                        model_return_type=Price)
                                    .to_dataframe(fields=[('price', lambda p:p.price)])
-                                   .sort_values('blockNumber', ascending=False))
+                                   .sort_values('blockNumber', ascending=False)
+                                   .reset_index(drop=True))
 
         df = pd.DataFrame({
             'TOKEN0/USD': token0_historical_price.price.to_numpy(),
@@ -101,9 +103,8 @@ class UniswapPoolVaR(Model):
         portfolio_pnl_vector = (1 + ratio_change_0_over_1) / 2 * token1_change - 1
 
         # Impermenant loss
-        # Note:
-        # If we change the order for getting the ratio,
-        # impermenant_loss_vector_v2/v3 will be very close (invariant for the order)
+        # If we change the order of token0 and token1 to obtain the ratio,
+        # impermenant_loss_vector shall be very close to each other (invariant for the order)
         # i.e. For V2
         # np.allclose(
         #   2*np.sqrt(ratio_change)/(1+ratio_change)-1,
@@ -127,22 +128,39 @@ class UniswapPoolVaR(Model):
 
         # Count in both portfolio PnL and IL for the total Pnl vector
         total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1
+        total_pnl_without_il_vector = (1 + portfolio_pnl_vector) - 1
 
-        var_output = {}
+        var = {}
+        var_without_il = {}
         for conf in input.confidences:
-            var_output[conf], index_var, var_weight = calc_var(total_pnl_vector, conf)
+            var_result = calc_var(total_pnl_vector, conf)
+            var[conf] = {
+                'var': var_result.var,
+                'scenarios': (token0_historical_price.blockTime
+                              .iloc[var_result.unsorted_index, ].to_list()),
+                'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
+                'weights': var_result.weights
+            }
+            var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
+            var_without_il[conf] = {
+                'var': var_result_without_il.var,
+                'scenarios': (token0_historical_price.blockTime
+                              .iloc[var_result_without_il.unsorted_index, ].to_list()),
+                'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
+                'weights': var_result_without_il.weights
+            }
+
             # For V3, as existing assumptions, we need to cap the loss at -100%.
             if impermenant_loss_type == 'V3':
-                var_output[conf] = np.max([-1, var_output[conf]])
+                var[conf]['var'] = np.max([-1, var[conf]['var']])
+                var_without_il[conf]['var'] = np.max([-1, var_without_il[conf]['var']])
 
-        breakpoint()
         return {
             'pool': input.pool,
             'tokens_address': [token0.address, token1.address],
             'tokens_symbol': [token0.symbol, token1.symbol],
             'ratio': current_ratio,
             'IL_type': impermenant_loss_type,
-            'var': var_output,
-            'scenario': [],
-            'weights': var_weight
+            'var': var,
+            'var_without_il': var_without_il,
         }
