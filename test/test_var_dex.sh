@@ -9,8 +9,6 @@ for range_of_pool in 0.01 0.05 0.1 0.2 0.4 0.6 0.8 1.0; do
     "window":"280 days", "interval":10, "confidences": [0.01], "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}', "price_model":"chainlink.price-usd"}' -b 13909787 -j --api_url=http://localhost:8700
 done
 
-exit
-
 # Uniswap V2: 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
 # Uniswap V3: 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
 
