@@ -50,7 +50,8 @@ univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
             0x4e68ccd3e89f51c3074ca5072bbac773960dfa36
             0x97e7d56a0408570ba1a7852de36350f7713906ec
             0x7379e81228514a1d2a6cf7559203998e20598346
-            0x99ac8ca7087fa4a2a1fb6357269965a2014abc35"
+            0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
+            0x4674abc5796e1334B5075326b39B748bee9EaA34"
 
 for pool in $sushi_pools $univ2_pools $univ3_pools; do
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
