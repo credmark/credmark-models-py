@@ -19,7 +19,8 @@ from models.credmark.algorithms.value_at_risk.risk_method import calc_var
                 output=dict)
 class UniswapPoolVaR(Model):
     """
-    This model takes
+    This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
+    It then calculate the LP position's VaR from both price change and quantity change from IL.
     """
 
     def run(self, input: UniswapPoolVaRInput) -> dict:
@@ -68,20 +69,36 @@ class UniswapPoolVaR(Model):
             'TOKEN1/USD': token1_historical_price.price.to_numpy(),
         })
 
-        df.loc[:, 'ratio'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
-        ratio_change = df.ratio[:-input.interval].to_numpy() / df.ratio[input.interval:].to_numpy()
-        _token0_change = df['TOKEN0/USD'][:-input.interval].to_numpy() / df['TOKEN0/USD'][input.interval:].to_numpy()
-        token1_change = df['TOKEN1/USD'][:-input.interval].to_numpy() / df['TOKEN1/USD'][input.interval:].to_numpy()
+        df.loc[:, 'ratio_0_over_1'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
+        ratio_init = df.ratio_0_over_1[:-input.interval].to_numpy()
+        ratio_tail = df.ratio_0_over_1[input.interval:].to_numpy()
+        ratio_change_0_over_1 = ratio_init / ratio_tail
+
+        df.loc[:, 'ratio_1_over_0'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
+        ratio_init = df.ratio_1_over_0[:-input.interval].to_numpy()
+        ratio_tail = df.ratio_1_over_0[input.interval:].to_numpy()
+        _ratio_change_1_over_0 = ratio_init / ratio_tail
+
+        token0_init = df['TOKEN0/USD'][:-input.interval].to_numpy()
+        token0_tail = df['TOKEN0/USD'][input.interval:].to_numpy()
+        _token0_change = token0_init / token0_tail
+
+        token1_init = df['TOKEN1/USD'][:-input.interval].to_numpy()
+        token1_tail = df['TOKEN1/USD'][input.interval:].to_numpy()
+        token1_change = token1_init / token1_tail
+
+        ratio_change = ratio_change_0_over_1
 
         # Assume we hold a set of tokens on time 0, we could become a LP provider or do nothing.
-        # Impermanent loss is the loss relative to the holding's value on time 1 of the do-nothing case.
-        # While the value of the holding on time 1 will have PnL relative to time 0.
-        # This goes to the portfolio_pnl_vector.
+        # Case of Do nothing: we are only subject to price change
+        # Case of LP: we are subjected to both price change quantity change from IL.
+        # Impermanent loss is the loss relative to the holding's value of no quantity change.
+        # The change in value from price change is counted in `portfolio_pnl_vector`.
 
         # For portfolio PnL vector, we need to match either
-        # ratio = Token1 / Token0 with Token0's price change, or
-        # ratio = Token0 / Token1 with Token1's price change.
-        portfolio_pnl_vector = (1 + ratio_change) / 2 * token1_change - 1
+        # ratio_0_over_1 with Token1's price change, or
+        # ratio_1_over_0 with Token1's price change.
+        portfolio_pnl_vector = (1 + ratio_change_0_over_1) / 2 * token1_change - 1
 
         # Impermenant loss
         # Note:
@@ -119,6 +136,7 @@ class UniswapPoolVaR(Model):
         if impermenant_loss_type == 'V3':
             var_output = {k: (v if v >= -1 else -1) for k, v in var_output.items()}
 
+        breakpoint()
         return {
             'pool': input.pool,
             'ratio': current_ratio,
