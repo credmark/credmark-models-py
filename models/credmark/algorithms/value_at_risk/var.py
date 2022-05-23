@@ -62,7 +62,7 @@ class VaRPortfolio(Model):
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 input=VaRHistoricalInput,
