@@ -74,7 +74,7 @@ class UniswapPoolVaR(Model):
         ratio_tail = df.ratio_0_over_1[input.interval:].to_numpy()
         ratio_change_0_over_1 = ratio_init / ratio_tail
 
-        df.loc[:, 'ratio_1_over_0'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
+        df.loc[:, 'ratio_1_over_0'] = df['TOKEN1/USD'] / df['TOKEN0/USD']
         ratio_init = df.ratio_1_over_0[:-input.interval].to_numpy()
         ratio_tail = df.ratio_1_over_0[input.interval:].to_numpy()
         _ratio_change_1_over_0 = ratio_init / ratio_tail
@@ -130,15 +130,19 @@ class UniswapPoolVaR(Model):
 
         var_output = {}
         for conf in input.confidences:
-            var_output[conf] = calc_var(total_pnl_vector, conf)
-
-        # For V3, as existing assumptions, we cap the loss at -100%.
-        if impermenant_loss_type == 'V3':
-            var_output = {k: (v if v >= -1 else -1) for k, v in var_output.items()}
+            var_output[conf], index_var, var_weight = calc_var(total_pnl_vector, conf)
+            # For V3, as existing assumptions, we need to cap the loss at -100%.
+            if impermenant_loss_type == 'V3':
+                var_output[conf] = np.max([-1, var_output[conf]])
 
         breakpoint()
         return {
             'pool': input.pool,
+            'tokens_address': [token0.address, token1.address],
+            'tokens_symbol': [token0.symbol, token1.symbol],
             'ratio': current_ratio,
             'IL_type': impermenant_loss_type,
-            'var': var_output}
+            'var': var_output,
+            'scenario': [],
+            'weights': var_weight
+        }
