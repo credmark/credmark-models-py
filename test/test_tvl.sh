@@ -8,32 +8,31 @@ test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b4830
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
 test_model 0 curve-fi.price-3crv '{}' ${curve_pool_info_tvl}
 
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xCEAF7747579696A2F0bb206a14210e3c9e6fB269"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xD51a44d3FaE010294C616388b506AcdA1bfAAE46"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xCEAF7747579696A2F0bb206a14210e3c9e6fB269"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0x5a6A4D54456819380173272A5E8E9B9904BdF41B"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0x93054188d876f558f4a66B2EF1d97d16eDf0895B"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.pool-info-tvl '{"address":"0x9D0464996170c6B9e75eED71c68B99dDEDf279e8"}' ${curve_pool_info_tvl}
-test_model 1 curve-fi.pool-info-tvl '{"address":"0xd658A338613198204DCa1143Ac3F01A722b5d94A"}' ${curve_pool_info_tvl}
+curve_pools="0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 \
+0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7 \
+0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B \
+0xCEAF7747579696A2F0bb206a14210e3c9e6fB269 \
+0xD51a44d3FaE010294C616388b506AcdA1bfAAE46 \
+0x5a6A4D54456819380173272A5E8E9B9904BdF41B \
+0x93054188d876f558f4a66B2EF1d97d16eDf0895B \
+0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF \
+0x9D0464996170c6B9e75eED71c68B99dDEDf279e8 \
+0xd658A338613198204DCa1143Ac3F01A722b5d94A"
+
+for pool_addr in $curve_pools; do
+    test_model 0 curve-fi.pool-info-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
+done
 
 echo_cmd ""
 echo_cmd "Run TVL Historical cases"
 echo_cmd ""
-test_model 0 historical.pool-info-tvl '{"address":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xCEAF7747579696A2F0bb206a14210e3c9e6fB269","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xD51a44d3FaE010294C616388b506AcdA1bfAAE46","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0xCEAF7747579696A2F0bb206a14210e3c9e6fB269","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0x5a6A4D54456819380173272A5E8E9B9904BdF41B","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0x93054188d876f558f4a66B2EF1d97d16eDf0895B","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 0 historical.pool-info-tvl '{"address":"0x9D0464996170c6B9e75eED71c68B99dDEDf279e8","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
-test_model 1 historical.pool-info-tvl '{"address":"0xd658A338613198204DCa1143Ac3F01A722b5d94A","tvl_model_slug":"curve-fi.pool-info-tvl","window":"100 days"}' ${curve_pool_info_tvl}
+
+for pool_addr in $curve_pools; do
+    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
+    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' ${curve_pool_info_tvl}
+done
+
+exit
 
 # UniV3
 # 0x5777d92f208679db4b9778590fa3cab3ac9e2168 (DAI/USDC)

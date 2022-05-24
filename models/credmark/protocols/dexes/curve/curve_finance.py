@@ -2,7 +2,7 @@
 
 from itertools import chain
 import pandas as pd
-from typing import List
+from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types.ledger import TransactionTable
@@ -306,7 +306,7 @@ class CurveFinancePrice(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tvl",
-                version="1.0",
+                version="1.1",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 input=Contract,
@@ -346,9 +346,15 @@ class CurveFinancePoolInfoTVL(Model):
             prices.append(tok_price)
             tvl += bal * tok_price.price
 
+        pool_name = pool_info.name
+        if pool_info.name == '':
+            pool_name = pool_info.lp_token_name
+            if pool_name == '':
+                pool_name = pool_info.pool_token_name
+
         tvl_info = TVLInfo(
             address=input.address,
-            name=pool_info.name,
+            name=pool_name,
             portfolio=Portfolio(positions=positions),
             tokens_symbol=pool_info.tokens_symbol,
             prices=prices,
@@ -358,31 +364,33 @@ class CurveFinancePoolInfoTVL(Model):
         return tvl_info
 
 
-class HistoricalPoolInfoTVLInput(Contract):
-    tvl_model_slug: str
+class HistoricalRunModelInput(DTO):
+    model_slug: str
+    model_input: dict
     window: str
+    interval: str
 
 
-@Model.describe(slug="historical.pool-info-tvl",
+# TODO: Pre-composer model
+@Model.describe(slug="historical.run-model",
                 version="1.0",
-                display_name="Run Pool Info TVL for historical",
+                display_name="Run Any model for historical",
                 description="",
-                input=HistoricalPoolInfoTVLInput,
+                input=HistoricalRunModelInput,
                 output=dict)
-class HistoricalPoolInfoTVL(Model):
-    def run(self, input: HistoricalPoolInfoTVLInput) -> dict:
+class HistoricalRunModel(Model):
+    def run(self, input: HistoricalRunModelInput) -> dict:
         window = input.window
-        interval = '1 day'
+        interval = input.interval
 
-        pool_infos = self.context.historical.run_model_historical(
-            model_slug=input.tvl_model_slug,
-            model_input=Contract(address=input.address),
-            model_return_type=TVLInfo,
+        result = self.context.historical.run_model_historical(
+            model_slug=input.model_slug,
+            model_input=input.model_input,
             window=window,
             interval=interval,
             end_timestamp=self.context.block_number.timestamp)
 
-        return {'pool_infos': pool_infos}
+        return {'result': result}
 
 
 @ Model.describe(slug="curve-fi.all-pools-info",
