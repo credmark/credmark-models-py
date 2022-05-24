@@ -91,7 +91,7 @@ class AccountsPortfolio(Model):
             except Exception as _err:
                 # TODO: currently skip NFTs
                 pass
-        
+
         positions.append(
             NativePosition(
                 amount=native_balance,
