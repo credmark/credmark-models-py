@@ -83,6 +83,7 @@ class ChainLinkPriceByRegistry(Model):
                                           input=EmptyInput(),
                                           return_type=Contract)
 
+        feed = registry.functions.getFeed(token0_address, token1_address).call()
         (_roundId, answer,
             _startedAt, _updatedAt,
             _answeredInRound) = (registry.functions.latestRoundData(token0_address, token1_address)
@@ -90,7 +91,6 @@ class ChainLinkPriceByRegistry(Model):
         decimals = registry.functions.decimals(token0_address, token1_address).call()
         description = registry.functions.description(token0_address, token1_address).call()
         version = registry.functions.version(token0_address, token1_address).call()
-        feed = registry.functions.getFeed(token0_address, token1_address).call()
         isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
         time_diff = self.context.block_number.timestamp - _updatedAt
@@ -101,7 +101,7 @@ class ChainLinkPriceByRegistry(Model):
 
 
 @Model.describe(slug='chainlink.price-usd',
-                version="1.0",
+                version="1.1",
                 display_name="Chainlink - Price for Token / USD pair",
                 description="Input a Token",
                 input=Token,
@@ -137,6 +137,7 @@ class ChainLinkFeedPriceUSD(Model):
             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'
         }
     }
+
     ROUTING_FEED = {
         1: {
             Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E'):
@@ -151,6 +152,15 @@ class ChainLinkFeedPriceUSD(Model):
             Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
             ['0x84a24deca415acc0c395872a9e6a63e27d6225c8',  # tribe-eth.data.eth
              '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+        }
+    }
+
+    CONVERT_FOR_TOKEN_PRICE = {
+        1: {
+            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
+            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
         }
     }
 
@@ -177,6 +187,9 @@ class ChainLinkFeedPriceUSD(Model):
                                               input=Tokens(tokens=tokens),
                                               return_type=Price)
         except ModelRunError:
-            return self.context.run_model('token.price',
-                                          input=input,
-                                          return_type=Price)
+            convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
+                             .get(input.address, None))
+            return self.context.run_model(
+                'token.price',
+                input=Token(address=convert_token) if convert_token is not None else input,
+                return_type=Price)

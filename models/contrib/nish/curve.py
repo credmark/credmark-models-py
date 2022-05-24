@@ -231,9 +231,11 @@ class CurveGetDepeggingAmount(Model):
             amount_required=amount_required
         )
 
+
 class CurvePeggingRatioChangeInput(DTO):
     pool: Contract
     amounts: dict
+
 
 @Model.describe(slug="contrib.curve-get-pegging-ratio-change",
                 version="1.0",
@@ -244,8 +246,8 @@ class CurvePeggingRatioChangeInput(DTO):
 class CurveGetPeggingRatioChange(Model):
     def run(self, input: CurvePeggingRatioChangeInput) -> CurvePoolPeggingInfo:
         pool_info = self.context.run_model(
-            slug = 'contrib.curve-get-pegging-ratio',
-            input = input.pool)
+            slug='contrib.curve-get-pegging-ratio',
+            input=input.pool)
 
         # Tokens and their current balances as feetched from contract
         coin_balances = pool_info["coin_balances"]
@@ -253,7 +255,7 @@ class CurveGetPeggingRatioChange(Model):
         n = len(coins)
         # Amount of tokens to be added or removed as fetched from contract
         coins_to_be_changed = list(input.amounts.keys())
-        m =  len(coins_to_be_changed)
+        m = len(coins_to_be_changed)
         # Appending balances of tokens with response to input provided
         for i in range(m):
             coin = coins_to_be_changed[i]
@@ -273,9 +275,9 @@ class CurveGetPeggingRatioChange(Model):
         chi = pool_info['A'] * ratio
 
         return CurvePoolPeggingInfo(
-            address= pool_info['address'],
-            name= pool_info['name'],
-            coin_balances= coin_balances,
-            A= pool_info['A'],
-            chi= chi,
-            ratio= ratio)
+            address=pool_info['address'],
+            name=pool_info['name'],
+            coin_balances=coin_balances,
+            A=pool_info['A'],
+            chi=chi,
+            ratio=ratio)

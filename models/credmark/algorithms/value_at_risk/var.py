@@ -62,7 +62,7 @@ class VaRPortfolio(Model):
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.2',
+                version='1.3',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 input=VaRHistoricalInput,
@@ -114,7 +114,8 @@ class VaREngineHistorical(Model):
 
         output = {}
         for conf in input.confidences:
-            output[conf], _index_var, _var_weight = calc_var(all_ppl_vec, conf)
+            var_result = calc_var(all_ppl_vec, conf)
+            output[conf] = var_result.var
 
         output['total_value'] = total_value
         output['value_list'] = value_list

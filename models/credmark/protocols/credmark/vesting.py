@@ -100,7 +100,7 @@ class CMKGetVestingAccounts(Model):
 
 @describe(
     slug="cmk.get-vesting-info-by-account",
-    version="1.0",
+    version="1.1",
     input=Account,
     output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
@@ -167,7 +167,7 @@ class CMKGetVestingByAccount(Model):
                 if c['account'] == input.address:
                     c['amount'] = Token(symbol="CMK").scaled(c['amount'])
                     c['value_at_claim_time'] = c['amount'] * self.context.run_model(
-                        slug="uniswap-v3.get-average-price",
+                        slug="uniswap-v3.get-weighted-price",
                         input={"symbol": "CMK"},
                         block_number=self.context.block_number.from_timestamp(c['timestamp']),
                         return_type=Price).price
