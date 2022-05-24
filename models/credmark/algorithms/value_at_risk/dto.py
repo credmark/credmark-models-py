@@ -10,6 +10,7 @@ from credmark.dto import (
 
 from credmark.cmf.types import (
     Portfolio,
+    Contract,
     Token,
     PriceList,
 )
@@ -32,7 +33,7 @@ class ContractVaRInput(DTO):
     window: str
     interval: int
     confidences: List[float]
-    price_model: str = DTOField('token.price', description='price model slug')
+    price_model: str = DTOField('chainlink.price-usd', description='price model slug')
 
     class Config:
         schema_extra = {
@@ -54,3 +55,9 @@ class PortfolioVaRInput(ContractVaRInput):
                                            for v in Portfolio.Config.schema_extra['examples']],
                                        limit=10)
         }
+
+
+class UniswapPoolVaRInput(ContractVaRInput):
+    lower_range: float = DTOField(description='Lower bound to the current price for V3 pool')
+    upper_range: float = DTOField(description="Upper bound to the current price for V3 pool")
+    pool: Contract

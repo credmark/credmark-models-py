@@ -25,6 +25,7 @@ class ENSDomainName(DTO):
     domain: str = DTOField(description='ENS Domain nam')
 
 
+# TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
                 version="1.0",
                 display_name="Chainlink - Price by ENS",
@@ -99,12 +100,12 @@ class ChainLinkPriceByRegistry(Model):
                           f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
 
 
-@ Model.describe(slug='chainlink.price-usd',
-                 version="1.0",
-                 display_name="Chainlink - Price for Token / USD pair",
-                 description="Input a Token",
-                 input=Token,
-                 output=Price)
+@Model.describe(slug='chainlink.price-usd',
+                version="1.0",
+                display_name="Chainlink - Price for Token / USD pair",
+                description="Input a Token",
+                input=Token,
+                output=Price)
 class ChainLinkFeedPriceUSD(Model):
     ETH = Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
     BTC = Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB')
@@ -136,15 +137,46 @@ class ChainLinkFeedPriceUSD(Model):
             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'
         }
     }
+    ROUTING_FEED = {
+        1: {
+            Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E'):
+            ['0xf600984cca37cd562e74e3ee514289e3613ce8e4',  # ilv-eth.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+            Address('0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5'):
+            ['0x7b33ebfa52f215a30fad5a71b3fee57a4831f1f0',  # bit-usd.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+            Address('0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5'):
+            ['0x90c2098473852e2f07678fe1b6d595b1bd9b16ed',  # ohm-eth.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+            Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
+            ['0x84a24deca415acc0c395872a9e6a63e27d6225c8',  # tribe-eth.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+        }
+    }
 
     def run(self, input: Token) -> Price:
         override_feed = self.OVERRIDE_FEED[self.context.chain_id].get(input.address, None)
-        if override_feed is not None:
-            return self.context.run_model('chainlink.price-by-feed',
-                                          input=Account(address=Address(override_feed)),
-                                          return_type=Price)
-        else:
-            tokens = [Token(address=input.address), Token(address=self.USD)]
-            return self.context.run_model('chainlink.price-by-registry',
-                                          input=Tokens(tokens=tokens),
+        routing_feed = self.ROUTING_FEED[self.context.chain_id].get(input.address, None)
+        try:
+            if override_feed is not None:
+                return self.context.run_model('chainlink.price-by-feed',
+                                              input=Account(address=Address(override_feed)),
+                                              return_type=Price)
+            elif routing_feed is not None:
+                p = Price(price=1.0, src='')
+                for rout in routing_feed:
+                    new_piece = self.context.run_model('chainlink.price-by-feed',
+                                                       input=Account(address=Address(rout)),
+                                                       return_type=Price)
+                    p.price *= new_piece.price
+                    p.src = f'{p.src},{new_piece.src}'
+                return p
+            else:
+                tokens = [Token(address=input.address), Token(address=self.USD)]
+                return self.context.run_model('chainlink.price-by-registry',
+                                              input=Tokens(tokens=tokens),
+                                              return_type=Price)
+        except ModelRunError:
+            return self.context.run_model('token.price',
+                                          input=input,
                                           return_type=Price)

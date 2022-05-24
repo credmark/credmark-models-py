@@ -15,7 +15,7 @@ import numpy as np
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -62,7 +62,7 @@ class VaRPortfolio(Model):
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 input=VaRHistoricalInput,
@@ -114,7 +114,7 @@ class VaREngineHistorical(Model):
 
         output = {}
         for conf in input.confidences:
-            output[conf] = calc_var(all_ppl_vec, conf)
+            output[conf], _index_var, _var_weight = calc_var(all_ppl_vec, conf)
 
         output['total_value'] = total_value
         output['value_list'] = value_list
