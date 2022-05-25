@@ -313,7 +313,7 @@ class CurveFinancePrice(Model):
                 )
 
     def run(self, input: Token) -> Price:
-        if input.address in self.CRV_STABLECOINS[self.context.chain_id]:
+        if input.address in self.CRV_STABLECOINS[self.context.chain_id].values():
             return Price(price=1.0, src=self.slug)
 
         derived_info = self.CRV_DERIVED[self.context.chain_id].get(input.address)
