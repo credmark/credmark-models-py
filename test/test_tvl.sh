@@ -6,7 +6,8 @@ curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink
 
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
-test_model 0 curve-fi.price-3crv '{}' ${curve_pool_info_tvl}
+test_model 0 curve-fi.price '{"address":"0xFEEf77d3f69374f66429C91d732A244f074bdf74"}'
+test_model 0 curve-fi.price '{"address":"0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"}'
 
 curve_pools="0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 \
 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7 \
@@ -28,11 +29,9 @@ echo_cmd "Run TVL Historical cases"
 echo_cmd ""
 
 for pool_addr in $curve_pools; do
-    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
+    # credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
     test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
-
-exit
 
 # UniV3
 # 0x5777d92f208679db4b9778590fa3cab3ac9e2168 (DAI/USDC)
