@@ -12,6 +12,7 @@ from models.credmark.algorithms.value_at_risk.dto import (
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
 import numpy as np
+import scipy.stats as sps
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
@@ -62,7 +63,7 @@ class VaRPortfolio(Model):
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.3',
+                version='1.4',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 input=VaRHistoricalInput,
@@ -78,6 +79,8 @@ class VaREngineHistorical(Model):
         all_ppl_vec = None
         total_value = 0
         value_list = []
+
+        all_ppl_arr = np.array([])
         for pos in input.portfolio.positions:
             token = pos.asset
             amount = pos.amount
@@ -100,19 +103,29 @@ class VaREngineHistorical(Model):
             ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
             # ppl: potential profit&loss
             ppl_vector = value * ret_series
-            if all_ppl_vec is None:
-                all_ppl_vec = ppl_vector
+
+            if all_ppl_arr.shape[0] == 0:
+                all_ppl_arr = ppl_vector
             else:
                 ppl_vec_len = ppl_vector.shape[0]
-                all_ppl_vec_len = all_ppl_vec.shape[0]
+                all_ppl_vec_len = all_ppl_arr.shape[0]
                 if all_ppl_vec_len != ppl_vec_len:
                     raise ModelRunError(
                         f'Input priceList for {token.address} has '
                         f'difference lengths has {ppl_vec_len} != {all_ppl_vec_len}')
 
-                all_ppl_vec += ppl_vector
+                all_ppl_arr = np.column_stack([all_ppl_arr, ppl_vector])
 
         output = {}
+
+        all_ppl_vec = all_ppl_arr.sum(axis=1)
+        weights = np.ones(len(input.portfolio.positions))
+        for i in range(len(input.portfolio.positions)):
+            linreg_result = sps.linregress(all_ppl_arr[:, i], all_ppl_vec)
+            weights[i] = linreg_result.slope
+        weights /= weights.sum()
+
+        output['cvar'] = weights
         for conf in input.confidences:
             var_result = calc_var(all_ppl_vec, conf)
             output[conf] = var_result.var
