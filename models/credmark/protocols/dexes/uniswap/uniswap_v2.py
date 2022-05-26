@@ -220,10 +220,10 @@ class UniswapV2PoolTVL(Model):
         prices = []
         tvl = 0.0
 
-        breakpoint()
-
         prices = []
-        for token_info, tok_price, bal in zip(pool_info['tokens']['tokens'], pool_info['tokens_price'], pool_info['tokens_balance']):
+        for token_info, tok_price, bal in zip(pool_info['tokens']['tokens'],
+                                              pool_info['tokens_price'],
+                                              pool_info['tokens_balance']):
             tvl += bal * tok_price
             positions.append(Position(asset=Token(**token_info), amount=bal))
 
