@@ -38,7 +38,7 @@ class VaRPriceHistorical(Model):
 
 
 @Model.describe(slug='finance.example-var-contract',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
                 input=ContractVaRInput,
@@ -83,7 +83,7 @@ class DemoContractVaR(Model):
             portfolio=portfolio,
             priceLists=pls,
             interval=input.interval,
-            confidences=input.confidences,
+            confidence=input.confidence
         )
 
         return self.context.run_model(slug='finance.var-engine-historical',

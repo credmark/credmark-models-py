@@ -16,7 +16,7 @@ import scipy.stats as sps
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.2',
+                version='1.3',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -54,7 +54,7 @@ class VaRPortfolio(Model):
             portfolio=portfolio,
             priceLists=price_lists,
             interval=input.interval,
-            confidences=input.confidences,
+            confidence=input.confidence,
         )
 
         return self.context.run_model(slug='finance.var-engine-historical',
@@ -126,9 +126,8 @@ class VaREngineHistorical(Model):
         weights /= weights.sum()
 
         output['cvar'] = weights
-        for conf in input.confidences:
-            var_result = calc_var(all_ppl_vec, conf)
-            output[conf] = var_result.var
+        var_result = calc_var(all_ppl_vec, input.confidence)
+        output['var'] = var_result.var
 
         output['total_value'] = total_value
         output['value_list'] = value_list
