@@ -7,10 +7,12 @@ class TokenTradingVolume(DTO):
     token: Token
     sellAmount: float
     buyAmount: float
+    sellValue: float
+    buyValue: float
 
     @classmethod
     def default(cls, token):
-        return cls(token=token, sellAmount=0, buyAmount=0)
+        return cls(token=token, sellAmount=0, buyAmount=0, sellValue=0, buyValue=0)
 
 
 class TradingVolume(IterableListGenericDTO[TokenTradingVolume]):
@@ -19,6 +21,7 @@ class TradingVolume(IterableListGenericDTO[TokenTradingVolume]):
 
 
 class VolumeInput(Contract):
+    pool_info_model: str
     block_offset: int = DTOField(le=0, description="Offset to the current block (<=0)")
 
     def split(self, block_end, chunk_size):

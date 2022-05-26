@@ -186,10 +186,13 @@ class ChainLinkFeedPriceUSD(Model):
                 return self.context.run_model('chainlink.price-by-registry',
                                               input=Tokens(tokens=tokens),
                                               return_type=Price)
-        except ModelRunError:
-            convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
-                             .get(input.address, None))
-            return self.context.run_model(
-                'token.price',
-                input=Token(address=convert_token) if convert_token is not None else input,
-                return_type=Price)
+        except ModelRunError as err:
+            if 'Feed not found' in str(err):
+                convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
+                                 .get(input.address, None))
+                return self.context.run_model(
+                    'token.price',
+                    input=Token(address=convert_token) if convert_token is not None else input,
+                    return_type=Price)
+            else:
+                raise err

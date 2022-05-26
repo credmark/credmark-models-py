@@ -6,7 +6,7 @@
 # run_model_historical("finance.var-dex-lp", model_input={"pool": {"address":"0x4674abc5796e1334B5075326b39B748bee9EaA34"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, window="120 days")
 # models.finance.var_dex_lp({"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, block_number=14830357)
 
-echo Dex LP VaR
+echo Test Pool TVL/Volume/VaR
 sushi_pools="0x6a091a3406E0073C3CD6340122143009aDac0EDa
             0x397ff1542f962076d0bfe58ea045ffa2d347aca0
             0xceff51756c56ceffca006cd410b03ffc46dd3a58
@@ -18,7 +18,8 @@ sushi_pools="0x6a091a3406E0073C3CD6340122143009aDac0EDa
             0xdB06a76733528761Eda47d356647297bC35a98BD
             0x795065dcc9f64b5614c407a6efdc400da6221fb0"
 
-univ2_pools="0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc
+univ2_pools="0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc
+            0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc
             0x21b8065d10f73ee2e260e5b47d3344d3ced7596e
             0x9928e4046d7c6513326ccea028cd3e7a91c7590a
             0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852
@@ -28,7 +29,8 @@ univ2_pools="0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc
             0x3041cbd36888becc7bbcbc0045e3b1f144466f5f
             0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1
             0x61b62c5d56ccd158a38367ef2f539668a06356ab
-            0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"
+            0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
+            0x3da1313ae46132a397d90d95b1424a9a7e3e0fce"
 
 univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
             0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
@@ -42,13 +44,56 @@ univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
             0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
             0x4674abc5796e1334B5075326b39B748bee9EaA34"
 
-# for pool in $sushi_pools $univ2_pools $univ3_pools; do
-for pool in $univ3_pools; do
-    credmark-dev run uniswap-v2.pool-volume -i '{"block_offset":-61714,"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+# for pool in $univ3_pools; do
+# for pool in $sushi_pools $univ2_pools; do
+for pool in $sushi_pools $univ2_pools $univ3_pools; do
+    credmark-dev run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' -j --api_url=http://localhost:8700
     exit_code=$?
-    if [ $gen_mode -eq 0 ];
+    if [ $exit_code -ne 0 ]; then
         exit
     fi
+
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.get-pool-info", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
-"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}' -b 14830357 -j --api_url=http://localhost:8700
+"window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}' -b 14830357 -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
 done
+
+echo_cmd ""
+echo_cmd "Run Curve TVL/Volume"
+echo_cmd ""
+
+curve_pools="0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 \
+0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7 \
+0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B \
+0xCEAF7747579696A2F0bb206a14210e3c9e6fB269 \
+0xD51a44d3FaE010294C616388b506AcdA1bfAAE46 \
+0x5a6A4D54456819380173272A5E8E9B9904BdF41B \
+0x93054188d876f558f4a66B2EF1d97d16eDf0895B \
+0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF \
+0x9D0464996170c6B9e75eED71c68B99dDEDf279e8 \
+0xd658A338613198204DCa1143Ac3F01A722b5d94A"
+
+curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry,curve-fi.price-3crv
+
+for pool in $curve_pools; do
+    credmark-dev run uniswap-v2.pool-volume -i '{"pool_info_model":"curve-fi.pool-info", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+
+    test_model 0 curve-fi.pool-info-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+fi

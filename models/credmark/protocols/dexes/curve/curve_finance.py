@@ -22,6 +22,11 @@ from credmark.cmf.types import (
 )
 
 from models.dtos.tvl import TVLInfo
+from models.dtos.volume import (
+    TradingVolume,
+    TokenTradingVolume,
+    VolumeInput,
+)
 
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
@@ -372,7 +377,7 @@ class CurveFinancePrice(Model):
         raise ModelRunError(f'{self.slug} does not support {input=}')
 
 
-@ Model.describe(slug="curve-fi.pool-info-tvl",
+@ Model.describe(slug="curve-fi.pool-tvl",
                  version="1.1",
                  display_name="Curve Finance Pool - TVL",
                  description="Total amount of TVL",
@@ -394,18 +399,9 @@ class CurveFinancePoolTVL(Model):
                                                    input=tok,
                                                    return_type=Price)
             else:
-                try:
-                    tok_price = self.context.run_model('chainlink.price-usd',
-                                                       input=tok,
-                                                       return_type=Price)
-                except ModelRunError as err:
-                    if 'Feed not found' in str(err):
-                        tok_price = self.context.run_model('token.price',
-                                                           input=tok,
-                                                           return_type=Price)
-                    else:
-                        raise err
-
+                tok_price = self.context.run_model('chainlink.price-usd',
+                                                   input=tok,
+                                                   return_type=Price)
             prices.append(tok_price)
             tvl += bal * tok_price.price
 
