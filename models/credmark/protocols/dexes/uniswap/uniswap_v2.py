@@ -10,6 +10,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.types import (
     Price,
     Token,
+    Tokens,
     Address,
     Contract,
     Contracts,
@@ -31,6 +32,10 @@ from models.tmp_abi_lookup import (
 )
 
 import pandas as pd
+
+from models.dtos.tvl import TVLInfo
+from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
+
 
 class UniswapV2PoolMeta:
     @staticmethod
@@ -155,15 +160,100 @@ class UniswapV2GetAveragePrice(Model, UniswapPoolPriceInfoMeta):
                                          pricer_slug='uniswap-v2.get-weighted-price')
 
 
+@Model.describe(slug="uniswap-v2.get-pool-info",
+                version="1.0",
+                display_name="Uniswap/Sushiswap get details for a pool",
+                description="Returns the token details of the pool",
+                input=Contract,
+                output=dict)
+class SushiswapGetPairDetails(Model):
+    def run(self, input: Contract) -> dict:
+        contract = input
+        contract._meta.abi = UNISWAP_V2_POOL_ABI  # pylint:disable=protected-access
+        token0 = Token(address=contract.functions.token0().call())
+        token1 = Token(address=contract.functions.token1().call())
+        # getReserves = contract.functions.getReserves().call()
+
+        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
+        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
+        # token0_reserve = token0.scaled(getReserves[0])
+        # token1_reserve = token1.scaled(getReserves[1])
+
+        output = {'pool+address': input.address,
+                  'tokens': Tokens(tokens=[token0, token1]),
+                  'tokens_name': [token0.name, token1.name],
+                  'tokens_symbol': [token0.symbol, token1.symbol],
+                  'tokens_decimals': [token0.decimals, token1.decimals],
+                  'tokens_balance': [token0_balance, token1_balance],
+                  }
+
+        return output
+
+
+@Model.describe(slug='uniswap-v2.pool-tvl',
+                version='1.0',
+                display_name='Uniswap/Sushiswap Token Pool TVL',
+                description='Gather price and liquidity information from pools',
+                input=Contract,
+                output=TVLInfo)
+class UniswapV2PoolTVL(Model):
+    def run(self, input: Contract) -> TVLInfo:
+        pool_info = self.context.run_model('uniswap-v2.get-pool-info', input=input)
+        positions = []
+        prices = []
+        tvl = 0.0
+
+        for tok, bal in zip(pool_info.tokens.tokens, pool_info.balances):
+            positions.append(Position(amount=bal, asset=tok))
+
+            if tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+                tok_price = self.context.run_model('curve-fi.price',
+                                                   input=tok,
+                                                   return_type=Price)
+            else:
+                try:
+                    tok_price = self.context.run_model('chainlink.price-usd',
+                                                       input=tok,
+                                                       return_type=Price)
+                except ModelRunError as err:
+                    if 'Feed not found' in str(err):
+                        tok_price = self.context.run_model('token.price',
+                                                           input=tok,
+                                                           return_type=Price)
+                    else:
+                        raise err
+
+            prices.append(tok_price)
+            tvl += bal * tok_price.price
+
+        pool_name = pool_info.name
+        if pool_info.name == '':
+            pool_name = pool_info.lp_token_name
+            if pool_name == '':
+                pool_name = pool_info.pool_token_name
+
+        tvl_info = TVLInfo(
+            address=input.address,
+            name=pool_name,
+            portfolio=Portfolio(positions=positions),
+            tokens_symbol=pool_info.tokens_symbol,
+            prices=prices,
+            tvl=tvl
+        )
+
+        return tvl_info
+
+
 @Model.describe(slug='uniswap-v2.pool-volume',
                 version='1.2',
-                display_name='Uniswap v2 Pool Swap Volumes',
+                display_name='Uniswap/Sushiswap Pool Swap Volumes',
                 description='The volume of each token swapped in a pool in a window',
                 input=VolumeInput,
                 output=TradingVolume)
 class UniswapV2PoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> TradingVolume:
         pool = Contract(address=input.address)
+        pool._meta.abi = UNISWAP_V2_POOL_ABI  # pylint:disable=protected-access
 
         token0 = Token(address=pool.functions.token0().call())
         token1 = Token(address=pool.functions.token1().call())

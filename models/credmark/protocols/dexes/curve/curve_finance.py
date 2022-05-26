@@ -21,7 +21,7 @@ from credmark.cmf.types import (
     Price,
 )
 
-from models.dtos.defi import TVLInfo
+from models.dtos.tvl import TVLInfo
 
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
@@ -378,7 +378,7 @@ class CurveFinancePrice(Model):
                  description="Total amount of TVL",
                  input=Contract,
                  output=TVLInfo)
-class CurveFinancePoolInfoTVL(Model):
+class CurveFinancePoolTVL(Model):
     def run(self, input: Contract) -> TVLInfo:
         pool_info = self.context.run_model('curve-fi.pool-info',
                                            input=input,
