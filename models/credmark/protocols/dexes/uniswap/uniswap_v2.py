@@ -376,21 +376,21 @@ class UniswapV2PoolSwapVolume(Model):
             df_all_swaps.loc[:, f'token{n}_price'] = pool_info['prices'][n]['price']  # type: ignore
 
             if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                def scale_func(bal):  # type: ignore
-                    return tokens[n].scaled(bal)
+                def scale_func(bal, n_tok):  # type: ignore
+                    return tokens[n_tok].scaled(bal)
             else:
-                def scale_func(bal):
+                def scale_func(bal, _):
                     return float(self.context.web3.fromWei(bal, 'ether'))
 
             pool_volume.tokenVolumes[n].sellAmount = scale_func(
-                df_all_swaps.loc[:, f'inp_amount{n}out'].sum())
+                df_all_swaps.loc[:, f'inp_amount{n}out'].sum(), n)
             pool_volume.tokenVolumes[n].buyAmount = scale_func(
-                df_all_swaps.loc[:, f'inp_amount{n}in'].sum())
+                df_all_swaps.loc[:, f'inp_amount{n}in'].sum(), n)
             pool_volume.tokenVolumes[n].sellValue = scale_func(
                 (df_all_swaps.loc[:, f'inp_amount{n}out'] *
-                 df_all_swaps.loc[:, f'token{n}_price']).sum())
+                 df_all_swaps.loc[:, f'token{n}_price']).sum(), n)
             pool_volume.tokenVolumes[n].buyValue = scale_func(
                 (df_all_swaps.loc[:, f'inp_amount{n}in'] *
-                 df_all_swaps.loc[:, f'token{n}_price']).sum())
+                 df_all_swaps.loc[:, f'token{n}_price']).sum(), n)
 
         return pool_volume
