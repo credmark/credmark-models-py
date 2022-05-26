@@ -2,9 +2,6 @@ from web3.exceptions import (
     BadFunctionCallOutput
 )
 
-from web3._utils.filters import construct_event_filter_params
-from web3._utils.events import get_event_data
-
 from credmark.cmf.model.errors import (
     ModelRunError,
 )
@@ -15,13 +12,15 @@ from credmark.cmf.types import (
     Token,
     Address,
     Contract,
-    Contracts
+    Contracts,
+    ContractLedger
 )
 from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 
 from models.dtos.volume import (
     TradingVolume,
     TokenTradingVolume,
+    VolumeInput,
 )
 
 from models.tmp_abi_lookup import (
@@ -31,6 +30,7 @@ from models.tmp_abi_lookup import (
     USDT_ADDRESS,
 )
 
+import pandas as pd
 
 class UniswapV2PoolMeta:
     @staticmethod
@@ -156,45 +156,51 @@ class UniswapV2GetAveragePrice(Model, UniswapPoolPriceInfoMeta):
 
 
 @Model.describe(slug='uniswap-v2.pool-volume',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v2 Pool Swap Volumes',
                 description='The volume of each token swapped in a pool in a window',
-                input=Contract,
+                input=VolumeInput,
                 output=TradingVolume)
 class UniswapV2PoolSwapVolume(Model):
-    def run(self, input: Contract) -> TradingVolume:
-        input = Contract(address=input.address)
+    def run(self, input: VolumeInput) -> TradingVolume:
+        pool = Contract(address=input.address)
 
-        token0 = Token(address=input.functions.token0().call())
-        token1 = Token(address=input.functions.token1().call())
+        token0 = Token(address=pool.functions.token0().call())
+        token1 = Token(address=pool.functions.token1().call())
 
-        try:
-            swaps = input.events.Swap.createFilter(
-                fromBlock=self.context.block_number - int(86400 / 14),
-                toBlock=self.context.block_number).get_all_entries()
-        except ValueError:
-            # Some node server does not support newer eth_newFilter method
-            # pylint:disable=locally-disabled,protected-access
-            swap_event_abi = input.events.Swap._get_event_abi()
+        all_swaps = []
+        for range_start, range_end in input.split(int(self.context.block_number), 1000):
+            df_swaps = (pool.ledger.events.Swap(columns=[
+                ContractLedger.Events.Columns.EVT_HASH,
+                ContractLedger.Events.InputCol('amount0in'),
+                ContractLedger.Events.InputCol('amount1in'),
+                ContractLedger.Events.InputCol('amount0out'),
+                ContractLedger.Events.InputCol('amount1out')],
+                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} >= {range_start} AND '
+                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {range_end}'),
+                order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}')
+                .to_dataframe())
 
-            __data_filter_set, event_filter_params = construct_event_filter_params(
-                abi_codec=self.context.web3.codec,
-                event_abi=swap_event_abi,
-                address=input.address.checksum,
-                fromBlock=self.context.block_number - int(86400 * 10 / 14),
-                toBlock=self.context.block_number
-            )
-            swaps = self.context.web3.eth.get_logs(event_filter_params)
-            swaps = [get_event_data(self.context.web3.codec, swap_event_abi, s) for s in swaps]
+            if not df_swaps.empty:
+                all_swaps.append(df_swaps)
+
+        if len(all_swaps) == 0:
+            return TradingVolume(
+                tokenVolumes=[
+                    TokenTradingVolume.default(token=token0),
+                    TokenTradingVolume.default(token=token1)
+                ])
+
+        df_all_swaps = pd.concat(all_swaps).reset_index(drop=True)
 
         return TradingVolume(
             tokenVolumes=[
                 TokenTradingVolume(
                     token=token0,
-                    sellAmount=sum([s['args']['amount0In'] for s in swaps]),
-                    buyAmount=sum([s['args']['amount0Out'] for s in swaps])),
+                    sellAmount=token0.scaled(df_all_swaps.inp_amount0out.sum()),
+                    buyAmount=token0.scaled(df_all_swaps.inp_amount0in.sum())),
                 TokenTradingVolume(
                     token=token1,
-                    sellAmount=sum([s['args']['amount1In'] for s in swaps]),
-                    buyAmount=sum([s['args']['amount1Out'] for s in swaps]))
+                    sellAmount=token1.scaled(df_all_swaps.inp_amount1out.sum()),
+                    buyAmount=token1.scaled(df_all_swaps.inp_amount1in.sum()))
             ])
