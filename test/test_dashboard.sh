@@ -1,12 +1,35 @@
+echo
+echo "Longer Test for LP VaR"
+echo
+
+credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
+"window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}' -b 13909787 -j --api_url=http://localhost:8700
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+    exit
+fi
+
+for range_of_pool in 0.01 0.05 0.1 0.2 0.4 0.6 0.8 1.0; do
+    echo LP VaR Range: ${range_of_pool}
+    credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
+    "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}', "price_model":"chainlink.price-usd"}' -b 13909787 -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+done
+
 # Uniswap V2: 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
 # Uniswap V3: 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
-
-# Uniswap V3:0x4674abc5796e1334B5075326b39B748bee9EaA34
+# Uniswap V3: 0x4674abc5796e1334B5075326b39B748bee9EaA34
 
 # run_model_historical("finance.var-dex-lp", model_input={"pool": {"address":"0x4674abc5796e1334B5075326b39B748bee9EaA34"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, window="120 days")
 # models.finance.var_dex_lp({"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, block_number=14830357)
 
+echo
 echo Test Pool TVL/Volume/VaR
+echo
+
 sushi_pools="0x6a091a3406E0073C3CD6340122143009aDac0EDa
             0x397ff1542f962076d0bfe58ea045ffa2d347aca0
             0xceff51756c56ceffca006cd410b03ffc46dd3a58
@@ -44,9 +67,17 @@ univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
             0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
             0x4674abc5796e1334B5075326b39B748bee9EaA34"
 
+0x61b62c5d56ccd158a38367ef2f539668a06356ab
+
 # for pool in $univ3_pools; do
 # for pool in $sushi_pools $univ2_pools; do
 for pool in $sushi_pools $univ2_pools $univ3_pools; do
+    credmark-dev run uniswap-v2.get-pool-info -i '{"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+
     credmark-dev run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' -j --api_url=http://localhost:8700
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
@@ -91,7 +122,7 @@ for pool in $curve_pools; do
         exit
     fi
 
-    test_model 0 curve-fi.pool-info-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
+    test_model 0 curve-fi.pool-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit

@@ -14,6 +14,7 @@ from credmark.cmf.types import (
     Contract,
     Contracts,
     Portfolio,
+    Position,
     Price,
     Token,
     Tokens,
@@ -178,7 +179,6 @@ class SushiswapGetPairDetails(Model):
         except ModelDataError:
             contract = Contract(address=input.address, abi=UNISWAP_V2_POOL_ABI)
 
-        # abc
         token0 = Token(address=contract.functions.token0().call())
         token1 = Token(address=contract.functions.token1().call())
         # getReserves = contract.functions.getReserves().call()
@@ -208,7 +208,7 @@ class SushiswapGetPairDetails(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 input=Contract,
@@ -220,9 +220,12 @@ class UniswapV2PoolTVL(Model):
         prices = []
         tvl = 0.0
 
+        breakpoint()
+
         prices = []
-        for tok_price, bal in zip(pool_info['tokens_price'], pool_info['tokens_balance']):
+        for token_info, tok_price, bal in zip(pool_info['tokens']['tokens'], pool_info['tokens_price'], pool_info['tokens_balance']):
             tvl += bal * tok_price
+            positions.append(Position(asset=Token(**token_info), amount=bal))
 
         pool_name = input.functions.name().call()
 
@@ -344,7 +347,6 @@ class UniswapV2PoolSwapVolume(Model):
                 df_all_swaps.loc[df_all_swaps.inp_sold_id != n, f'inp_amount{n}in'] = 0                # type: ignore
                 df_all_swaps.loc[df_all_swaps.inp_bought_id != n, f'inp_amount{n}out'] = 0               # type: ignore
 
-            breakpoint()
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
 
