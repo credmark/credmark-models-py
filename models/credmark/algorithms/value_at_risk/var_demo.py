@@ -54,7 +54,7 @@ class DemoContractVaR(Model):
 
     # Demo command
     credmark-dev run finance.example-var-contract --input \
-    '{"window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
+    '{"window": "30 days", "interval": 3, "confidence": 0.01}' \
     -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
     """
