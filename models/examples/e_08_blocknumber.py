@@ -1,14 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelInputError, ModelRunError
-from credmark.cmf.types.block_number import (BlockNumber,
-                                             BlockNumberOutOfRangeError)
+from credmark.cmf.model.errors import ModelInputError, ModelRunError, BlockNumberOutOfRangeError
 from credmark.dto import EmptyInput
 from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
 
 
-@Model.describe(
+@ Model.describe(
     slug='example.block-number',
     version='1.2',
     display_name='Example - BlockNumber',
@@ -48,8 +46,8 @@ class ExampleBlockNumber(Model):
                       output=(block_number - 1000).timestamp_datetime)
         output.log_io(input="block_number.from_datetime(block_number.timestamp - 3600)",
                       output=block_number.from_timestamp(block_number.timestamp - 3600))
-        output.log_io(input="BlockNumber.from_datetime(block_number.timestamp - 3600)",
-                      output=BlockNumber.from_timestamp(block_number.timestamp - 3600))
+        output.log_io(input="self.context.BlockNumber.from_datetime(block_number.timestamp - 3600)",
+                      output=self.context.BlockNumber.from_timestamp(block_number.timestamp - 3600))
 
         # NOTE: THE FOLLOWING IS FOR DEMONSTRATION ONLY.
         # You should NOT catch BlockNumberOutOfRangeError or
@@ -68,7 +66,7 @@ class ExampleBlockNumber(Model):
                              "context's block_number raises BlockNumberOutOfRangeError")
 
         try:
-            BlockNumber(-1)
+            self.context.BlockNumber(-1)
             raise ModelRunError(
                 message="BlockNumbers cannot be negative, an exception was NOT caught, "
                 "and the example has FAILED")
@@ -103,38 +101,41 @@ class ExampleBlockTime(Model):
         output.log("The default input.blockTime is set to 2022/02/19 "
                    "so we can run this example with a past block number >= 14233162")
 
-        block_time = input.blockTime.replace(tzinfo=timezone.utc)
-        output.log_io(input="Input blockTime", output=block_time)
+        block_datetime = input.blockTime.replace(tzinfo=timezone.utc)
+        output.log_io(input="Input blockTime", output=block_datetime)
 
         output.log("CMF's BlockNumber is used to get Block Number from datetime or timestamp")
-        block_number = BlockNumber.from_timestamp(block_time)
+        block_number = self.context.BlockNumber.from_timestamp(block_datetime)
         output.log("BlockNumber's timestamp might be different from the input timestamp,")
         output.log("as the last block before the datetime is returned")
-        output.log_io(input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
+        output.log_io(input=f"BlockNumber.from_timestamp({block_datetime})", output=block_number)
 
         output.log_io(input="block_number.timestamp_datetime",
                       output=block_number.timestamp_datetime)
 
         output.log("Block Number can also be obtained from unix timestamp.")
         output.log("If timezone is not provided, python defaults to UTC timezone")
-        output.log(f"{block_time} = {block_time.timestamp()}s")
-        output.log_io(input=f"BlockNumber.from_timestamp({block_time.timestamp()})",
-                      output=BlockNumber.from_timestamp(block_time.timestamp()))
+        output.log(f"{block_datetime} = {block_datetime.timestamp()}s")
+        output.log_io(
+            input=f"self.context.BlockNumber.from_timestamp({block_datetime.timestamp()})",
+            output=self.context.BlockNumber.from_timestamp(block_datetime.timestamp()))
 
         # To run this code when we are on the latest
         if self.context.web3.eth.get_block_number() - self.context.block_number < 100:
             output.log("Querying block number for a future timestamp "
                        "returns the latest block number")
-            future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
-            output.log_io(input="future_block_time", output=future_block_time)
-            output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
-                          output=BlockNumber.from_timestamp(future_block_time))
+            future_block_datetime = (datetime.utcnow().replace(tzinfo=timezone.utc) +
+                                     timedelta(days=10))
+            output.log_io(input="future_block_datetime", output=future_block_datetime)
+            output.log_io(
+                input=f"self.context.BlockNumber.from_timestamp({future_block_datetime})",
+                output=self.context.BlockNumber.from_timestamp(future_block_datetime))
 
-        block_time_without_tz = block_time.replace(tzinfo=None)
-        output.log_io(input="block_time_without_tz", output=block_time_without_tz)
+        block_datetime_without_tz = block_datetime.replace(tzinfo=None)
+        output.log_io(input="block_datetime_without_tz", output=block_datetime_without_tz)
 
         try:
-            BlockNumber.from_timestamp(block_time_without_tz)
+            self.context.BlockNumber.from_timestamp(block_datetime_without_tz)
             raise ModelRunError(
                 message='BlockNumber cannot be converted from a datetime without timezone, '
                 'an exception was NOT caught, and the example has FAILED')

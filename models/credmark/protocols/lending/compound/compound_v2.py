@@ -13,13 +13,7 @@ from datetime import (
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 
-from credmark.cmf.types import (
-    Address,
-    Token,
-    Contract,
-    Price,
-    BlockNumber,
-)
+from credmark.cmf.types import Address, Token, Contract, Price
 
 from credmark.dto import (
     DTO,
@@ -491,8 +485,9 @@ class CompoundV2PoolsValueHistorical(Model):
 
         for pl in pool_infos:
             pl_output = pl.output
+            block_datetime = self.context.BlockNumber(pl_output.block_number).timestamp_datetime
             self.logger.info(f'{pl_output.block_number=}:'
-                             f'{BlockNumber(pl_output.block_number).timestamp_datetime}')
+                             f'{block_datetime}')
             pool_value = self.context.run_model(
                 slug='compound-v2.pool-value',
                 input=pl_output,

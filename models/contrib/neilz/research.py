@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, Token
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import EmptyInput
 
@@ -34,7 +34,8 @@ class RedactedVotiumCashflow(Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
+            block_time = self.context.BlockNumber(transfer['block_number']).timestamp_datetime
+            transfer['block_time'] = str(block_time)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
 
@@ -72,6 +73,7 @@ class RedactedConvexCashflow(Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
+            block_time = self.context.BlockNumber(transfer['block_number']).timestamp_datetime
+            transfer['block_time'] = str(block_time)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()

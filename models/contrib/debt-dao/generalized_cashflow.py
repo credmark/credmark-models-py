@@ -1,7 +1,8 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, Token
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import DTO
+
 
 class GCInput(DTO):
     sender_address: Address
@@ -12,6 +13,7 @@ class GCInput(DTO):
             'examples': [{'sender_address': '0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A',
                           'receiver_address': '0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e'}]
         }
+
 
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
@@ -41,6 +43,7 @@ class GeneralizedCashflow(Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
+            block_timestamp = self.context.BlockNumber(transfer['block_number']).timestamp_datetime
+            transfer['block_time'] = str(block_timestamp)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
