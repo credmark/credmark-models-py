@@ -8,8 +8,8 @@ test_model 0 chainlink.price-by-ens '{"domain":"avax-usd.data.eth"}'
 test_model 0 chainlink.price-by-ens '{"domain":"bnb-usd.data.eth"}'
 test_model 0 chainlink.price-by-ens '{"domain":"sol-usd.data.eth"}'
 
-test_model 0 chainlink.price-by-registry '{"tokens":[{"symbol":"AAVE"},{"address":"0x0000000000000000000000000000000000000348"}]}'
-test_model 0 chainlink.price-by-registry '{"tokens":[{"symbol":"AAVE"},{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}]}'
+test_model 0 chainlink.price-by-registry '{"base":{"symbol":"AAVE"},"quote":{"address":"0x0000000000000000000000000000000000000348"}}'
+test_model 0 chainlink.price-by-registry '{"base":{"symbol":"AAVE"},"quote":{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
 
 test_model 0 chainlink.price-usd '{"symbol":"AAVE"}'
 test_model 0 chainlink.price-usd '{"symbol":"WETH"}'

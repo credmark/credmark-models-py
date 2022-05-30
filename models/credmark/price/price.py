@@ -17,7 +17,7 @@ from credmark.cmf.types import (
 
 from credmark.dto import DTO, IterableListGenericDTO, DTOField
 
-from models.dtos.price import PriceInput
+from models.dtos.price import PriceInput, TokenOrCode
 
 
 @Model.describe(slug='price.oracle-chainlink',
@@ -53,26 +53,14 @@ class PriceOracle(Model):
         }
     }
 
-    ROUTING_FEED = {
-        1: {
-            Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E'):
-            ['0xf600984cca37cd562e74e3ee514289e3613ce8e4',  # ilv-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',
-             'USD'],
-            Address('0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5'):
-            ['0x7b33ebfa52f215a30fad5a71b3fee57a4831f1f0',  # bit-usd.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',
-             'USD'],
-            Address('0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5'):
-            ['0x90c2098473852e2f07678fe1b6d595b1bd9b16ed',  # ohm-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',
-             'USD'],
-            Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
-            ['0x84a24deca415acc0c395872a9e6a63e27d6225c8',  # tribe-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',
-             'USD'],
-        }
-    }
+    # ilv-eth.data.eth
+    # Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E')
+    # bit-usd.data.eth
+    # Address('0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5')
+    # ohm-eth.data.eth
+    # Address('0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5')
+    # tribe-eth.data.eth
+    # Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
 
     CONVERT_FOR_TOKEN_PRICE = {
         1: {
@@ -95,7 +83,7 @@ class PriceOracle(Model):
     def cross_price(self, price0: Price, price1: Price) -> Price:
         return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
 
-    def run(self, _: PriceInput) -> Price:
+    def run(self, _: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
         base = _.base
         if _.quote is None:
             quote = Token(address=self.NATIVE_TOKEN[self.context.chain_id])
@@ -117,41 +105,53 @@ class PriceOracle(Model):
                 p.price = 1 / p.price
                 p.src = f'{p.src}|Inverse'
                 return p
-            except:
-                override_feed = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
-                routing_feed = self.ROUTING_FEED[self.context.chain_id].get(quote.address, None)
+            except ModelRunError:
+                override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
+                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
 
-                if override_feed is not None:
+                if override_base is not None:
                     p0 = self.context.run_model('chainlink.price-by-feed',
-                                                input=Account(address=Address(override_feed[0])),
+                                                input=Account(address=Address(override_base[0])),
                                                 return_type=Price)
-                    p1 = self.context.run_model(self.slug,
-                                                input={'base': override_feed[1], 'quote': quote},
-                                                return_type=Price)
-                    return self.cross_price(p0, p1)
+                    if TokenOrCode.validate(override_base[-1]) == quote:
+                        return p0
+                    else:
+                        p1 = self.context.run_model(
+                            self.slug,
+                            input={'base': override_base[-1], 'quote': quote},
+                            return_type=Price)
+                        return self.cross_price(p0, p1)
 
-                elif routing_feed is not None:
-                    p0 = Price(price=1.0, src='')
-                    for rout in routing_feed[:-1]:
-                        new_price = self.context.run_model('chainlink.price-by-feed',
-                                                           input=Account(address=Address(rout)),
-                                                           return_type=Price)
-                        p0 = self.cross_price(p0, new_price)
-
-                    p1 = self.context.run_model(self.slug,
-                                                input={'base': routing_feed[-1], 'quote': quote},
+                if override_quote is not None:
+                    p0 = self.context.run_model('chainlink.price-by-feed',
+                                                input=Account(address=Address(override_quote[0])),
                                                 return_type=Price)
+                    p0.price = 1 / p0.price
+                    p0.src = f'{p0.src}|Inverse'
+                    if TokenOrCode.validate(override_quote[-1]) == base:
+                        return p0
+                    else:
+                        p1 = self.context.run_model(
+                            self.slug,
+                            input={'base': override_quote[-1], 'quote': base},
+                            return_type=Price)
+                        p1.price = 1 / p1.price
+                        p1.src = f'{p1.src}|Inverse'
                     return self.cross_price(p0, p1)
 
                 for routing_token in self.ROUTING_TOKEN:
-                    if routing_token != quote:
-                        p0 = self.context.run_model('chainlink.price-by-registry',
-                                                    input={'base': base, 'quote': routing_token},
-                                                    return_type=Price)
-                        print(routing_token, quote)
-                        p1 = self.context.run_model('chainlink.price-by-registry',
-                                                    input={'base': routing_token, 'quote': quote},
-                                                    return_type=Price)
+                    if routing_token not in [quote, base]:
+                        try:
+                            p0 = self.context.run_model(
+                                self.slug,
+                                input={'base': base, 'quote': routing_token},
+                                return_type=Price)
+                            p1 = self.context.run_model(
+                                self.slug,
+                                input={'base': routing_token, 'quote': quote},
+                                return_type=Price)
+                        except ModelRunError:
+                            continue
                         return self.cross_price(p0, p1)
 
-                raise ModelRunError(f'No possible routing for token pair {base}/quote')
+                raise ModelRunError(f'No possible routing for token pair {base}/{quote}')

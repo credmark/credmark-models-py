@@ -8,7 +8,7 @@ def to_hex_address(code):
     return Address('0x{:040x}'.format(code))
 
 
-class StrToToken(Token):
+class TokenOrCode(Token):
     TRIPLET_CONVERSION: ClassVar[Dict[str, Address]] = {
         # 0x0000000000000000000000000000000000000348
         'USD': to_hex_address(840),
@@ -42,7 +42,7 @@ class StrToToken(Token):
     @classmethod
     def validate(cls, val):
         if isinstance(val, str):
-            tok = Token(address=cls.TRIPLET_CONVERSION.get(val, None))
+            tok = Token(address=cls.TRIPLET_CONVERSION.get(val.upper(), None))
             if tok is None:
                 raise ModelDataError(f'Unsupported currency code {val}')
             return tok
@@ -52,17 +52,28 @@ class StrToToken(Token):
 
 class PriceInput(DTO):
     """
-    In FX, the pair is quoted as (x FOR/DOM) for x DOM = 1 FOR.
-    FOR is the base currency to get the value for.
-    DOM is the quote currency to determine the value of the base currency, i.e. FOR.
+    In FX, the pair is quoted as base/quote for 1 base = x quote
     e.g. 1883.07 ETH / USD means 1883.07 USD for 1 ETH.
 
-    If DOM is not provided, default to the native token of each chain.
+    *Base* token to get the value in the quote token
+    *Quote* token to determine the value of the base token.
+
+    If quote is not provided, default to the native token of the chain, i.e. ETH for Ethereum.
 
     Fiat is expressed in the currency code in ISO 4217.
+
+    Base and quote can be either Token (symbol or address)
+    or code (BTC, ETH, and all fiat, like USD, EUR, CNY, etc.)
+
+    For fiat, with USD being the most active traded currency.
+    It's direct quoting with (x USD/DOM) for x DOM = 1 USD, e.g. USD/JPY;
+    and indirect quoting with (x DOM/USD) for x USD = 1 DOM, e.g. GBP/USD.
+
+    For DeFi, we call it a direct quoting when the native token is the base.
+    e.g. ETH / USD
     """
-    base: StrToToken = DTOField(description='Base token to get the value for')
-    quote: Union[None, StrToToken] = DTOField(None, description='Quote token to count the value')
+    base: TokenOrCode = DTOField(description='Base token to get the value for')
+    quote: Union[None, TokenOrCode] = DTOField(None, description='Quote token to count the value')
 
 
 class PoolPriceInfo(DTO):
