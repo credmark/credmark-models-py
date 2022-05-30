@@ -1,8 +1,10 @@
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types import Contract, Price, Token, Tokens, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
 from ens import ENS
+
+from models.dtos.price import PriceInput
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -69,15 +71,17 @@ class ChainLinkPriceByFeed(Model):
 
 
 @ Model.describe(slug='chainlink.price-by-registry',
-                 version="1.0",
+                 version="1.1",
                  display_name="Chainlink - Price by Registry",
                  description="Looking up Registry for two tokens\' addresses",
-                 input=Tokens,
+                 input=PriceInput,
                  output=Price)
 class ChainLinkPriceByRegistry(Model):
-    def run(self, input: Tokens) -> Price:
-        token0_address = input.tokens[0].address
-        token1_address = input.tokens[1].address
+    def run(self, input: PriceInput) -> Price:
+        token0_address = input.base.address
+        if input.quote is None:
+            raise ModelDataError('quote must not be None.')
+        token1_address = input.quote.address
 
         registry = self.context.run_model('chainlink.get-feed-registry',
                                           input=EmptyInput(),
@@ -109,13 +113,6 @@ class ChainLinkPriceByRegistry(Model):
 class ChainLinkFeedPriceUSD(Model):
     ETH = Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
     BTC = Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB')
-
-    # 0x0000000000000000000000000000000000000348
-    USD = Address('0x{:040x}'.format(840))
-    # 0x000000000000000000000000000000000000033a
-    GBP = Address('0x{:040x}'.format(826))
-    # 0x00000000000000000000000000000000000003d2
-    EUR = Address('0x{:040x}'.format(978))
 
     # TODO: need to find the address to find the feed in registry
     OVERRIDE_FEED = {
@@ -182,9 +179,9 @@ class ChainLinkFeedPriceUSD(Model):
                     p.src = f'{p.src},{new_piece.src}'
                 return p
             else:
-                tokens = [Token(address=input.address), Token(address=self.USD)]
                 return self.context.run_model('chainlink.price-by-registry',
-                                              input=Tokens(tokens=tokens),
+                                              input={'base': Token(address=input.address),
+                                                     'quote': 'USD'},
                                               return_type=Price)
         except ModelRunError:
             convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
