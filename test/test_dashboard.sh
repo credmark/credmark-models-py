@@ -27,7 +27,10 @@ for pool in $curve_pools; do
     if [ $exit_code -ne 0 ]; then
         exit
     fi
+
+    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"10 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
+
 
 # Uniswap V2: 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
 # Uniswap V3: 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
