@@ -1,8 +1,11 @@
+import sys
+from ens import ENS
+from web3.exceptions import ContractLogicError
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
-from credmark.cmf.types import Contract, Price, Token, Tokens, Account, Address
+from credmark.cmf.types import Contract, Price, Token, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
-from ens import ENS
 
 from models.dtos.price import PriceInput
 
@@ -86,22 +89,30 @@ class ChainLinkPriceByRegistry(Model):
         registry = self.context.run_model('chainlink.get-feed-registry',
                                           input=EmptyInput(),
                                           return_type=Contract)
+        try:
+            sys.tracebacklimit = 0
+            feed = registry.functions.getFeed(token0_address, token1_address).call()
+            (_roundId, answer,
+                _startedAt, _updatedAt,
+                _answeredInRound) = (registry.functions
+                                     .latestRoundData(token0_address, token1_address)
+                                     .call())
+            decimals = registry.functions.decimals(token0_address, token1_address).call()
+            description = registry.functions.description(token0_address, token1_address).call()
+            version = registry.functions.version(token0_address, token1_address).call()
+            isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
-        feed = registry.functions.getFeed(token0_address, token1_address).call()
-        (_roundId, answer,
-            _startedAt, _updatedAt,
-            _answeredInRound) = (registry.functions.latestRoundData(token0_address, token1_address)
-                                 .call())
-        decimals = registry.functions.decimals(token0_address, token1_address).call()
-        description = registry.functions.description(token0_address, token1_address).call()
-        version = registry.functions.version(token0_address, token1_address).call()
-        isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
-
-        time_diff = self.context.block_number.timestamp - _updatedAt
-        round_diff = _answeredInRound - _roundId
-        return Price(price=answer / (10 ** decimals),
-                     src=(f'{self.slug}|{description}|{feed}|v{version}|'
-                          f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
+            time_diff = self.context.block_number.timestamp - _updatedAt
+            round_diff = _answeredInRound - _roundId
+            return Price(price=answer / (10 ** decimals),
+                         src=(f'{self.slug}|{description}|{feed}|v{version}|'
+                              f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
+        except ContractLogicError as err:
+            if 'Feed not found' in str(err):
+                raise ModelRunError(f'No feed found for {token0_address}/{token1_address}')
+            raise err
+        finally:
+            del sys.tracebacklimit
 
 
 @Model.describe(slug='chainlink.price-usd',
@@ -111,47 +122,6 @@ class ChainLinkPriceByRegistry(Model):
                 input=Token,
                 output=Price)
 class ChainLinkFeedPriceUSD(Model):
-    ETH = Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
-    BTC = Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB')
-
-    # TODO: need to find the address to find the feed in registry
-    OVERRIDE_FEED = {
-        1: {
-            # WAVAX: avax-usd.data.eth
-            Address('0x85f138bfEE4ef8e540890CFb48F620571d67Eda3'):
-            '0xFF3EEb22B5E3dE6e705b44749C2559d704923FD7',
-            # WSOL: sol-usd.data.eth
-            Address('0xD31a59c85aE9D8edEFeC411D448f90841571b89c'):
-            '0x4ffc43a60e009b551865a93d232e33fce9f01507',
-            # BNB: bnb-usd.data.eth
-            Address('0xB8c77482e45F1F44dE1745F52C74426C631bDD52'):
-            '0x14e613ac84a31f709eadbdf89c6cc390fdc9540a',
-            # WBTC:
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
-            '0xf4030086522a5beea4988f8ca5b36dbc97bee88c',
-            # WETH:
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
-            '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'
-        }
-    }
-
-    ROUTING_FEED = {
-        1: {
-            Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E'):
-            ['0xf600984cca37cd562e74e3ee514289e3613ce8e4',  # ilv-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
-            Address('0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5'):
-            ['0x7b33ebfa52f215a30fad5a71b3fee57a4831f1f0',  # bit-usd.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
-            Address('0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5'):
-            ['0x90c2098473852e2f07678fe1b6d595b1bd9b16ed',  # ohm-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
-            Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
-            ['0x84a24deca415acc0c395872a9e6a63e27d6225c8',  # tribe-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
-        }
-    }
-
     CONVERT_FOR_TOKEN_PRICE = {
         1: {
             Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
@@ -162,27 +132,11 @@ class ChainLinkFeedPriceUSD(Model):
     }
 
     def run(self, input: Token) -> Price:
-        override_feed = self.OVERRIDE_FEED[self.context.chain_id].get(input.address, None)
-        routing_feed = self.ROUTING_FEED[self.context.chain_id].get(input.address, None)
         try:
-            if override_feed is not None:
-                return self.context.run_model('chainlink.price-by-feed',
-                                              input=Account(address=Address(override_feed)),
-                                              return_type=Price)
-            elif routing_feed is not None:
-                p = Price(price=1.0, src='')
-                for rout in routing_feed:
-                    new_piece = self.context.run_model('chainlink.price-by-feed',
-                                                       input=Account(address=Address(rout)),
-                                                       return_type=Price)
-                    p.price *= new_piece.price
-                    p.src = f'{p.src},{new_piece.src}'
-                return p
-            else:
-                return self.context.run_model('chainlink.price-by-registry',
-                                              input={'base': Token(address=input.address),
-                                                     'quote': 'USD'},
-                                              return_type=Price)
+            return self.context.run_model('price.oracle-chainlink',
+                                          input={'base': Token(address=input.address),
+                                                 'quote': 'USD'},
+                                          return_type=Price)
         except ModelRunError:
             convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
                              .get(input.address, None))
