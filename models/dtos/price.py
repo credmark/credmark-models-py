@@ -19,7 +19,7 @@ class ChainlinkAddress(Address):
     """
     Extension to the existing Address to accept code
     """
-    CODE_CONVERSION: ClassVar[Dict[str, str]] = CHAINLINK_CODE
+    CHAINLINK_CODE: ClassVar[Dict[str, str]] = CHAINLINK_CODE
 
     @classmethod
     def validate(cls, addr: str):
@@ -27,7 +27,7 @@ class ChainlinkAddress(Address):
 
     def __new__(cls, addr: str):
         if isinstance(addr, str):
-            new_addr = cls.CODE_CONVERSION.get(addr.upper(), None)
+            new_addr = cls.CHAINLINK_CODE.get(addr.upper(), None)
             if new_addr is not None:
                 return super().__new__(cls, new_addr)
         return super().__new__(cls, addr)
