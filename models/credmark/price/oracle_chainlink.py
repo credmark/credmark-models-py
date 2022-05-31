@@ -17,7 +17,7 @@ from models.dtos.price import PriceInput, ChainlinkAddress
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.0',
+                version='1.2',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 input=PriceInput,
@@ -28,7 +28,8 @@ class PriceOracle(Model):
         1: Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
     }
 
-    # TODO: need to find the address to find the feed in registry
+    # The native token on other chain, give a direct address of feed.
+    # TODO: find the token address so to find the feed in Chainlink's registry
     OVERRIDE_FEED = {
         1: {
             # WAVAX: avax-usd.data.eth
@@ -40,9 +41,18 @@ class PriceOracle(Model):
             # BNB: bnb-usd.data.eth
             Address('0xB8c77482e45F1F44dE1745F52C74426C631bDD52'):
             ('0x14e613ac84a31f709eadbdf89c6cc390fdc9540a', 'USD'),
-            # WBTC:
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
-            ('0xf4030086522a5beea4988f8ca5b36dbc97bee88c', 'USD'),
+            # WCELO:
+            Address('0xE452E6Ea2dDeB012e20dB73bf5d3863A3Ac8d77a'):
+            ('0x10d35efa5c26c3d994c511576641248405465aef', 'USD'),
+            # BTM
+            Address('0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750'):
+            ('0x9fccf42d21ab278e205e7bb310d8979f8f4b5751', 'USD'),
+            # IOST
+            Address('0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab'):
+            ('0xd0935838935349401c73a06fcde9d63f719e84e5', 'USD'),
+            # WBTC: only with BTC for WBTC/BTC
+            # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
+            # ('0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23', 'BTC'),
             # WETH:
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
             ('0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419', 'USD')
@@ -51,7 +61,8 @@ class PriceOracle(Model):
 
     ROUTING_ADDRESSES = [
         Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),  # ETH
-        Address('0x0000000000000000000000000000000000000348')  # USD
+        Address('0x0000000000000000000000000000000000000348'),  # USD
+        Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),  # BTC
     ]
 
     WRAP_TOKEN = {
@@ -127,19 +138,52 @@ class PriceOracle(Model):
                         p1.src = f'{p1.src}|Inverse'
                     return self.cross_price(p0, p1)
 
-                for routing_addr in self.ROUTING_ADDRESSES:
-                    if routing_addr not in [quote, base]:
-                        try:
-                            p0 = self.context.run_model(
-                                self.slug,
-                                input={'base': base, 'quote': routing_addr},
-                                return_type=Price)
-                            p1 = self.context.run_model(
-                                self.slug,
-                                input={'base': routing_addr, 'quote': quote},
-                                return_type=Price)
-                        except ModelRunError:
-                            continue
-                        return self.cross_price(p0, p1)
+                for r1 in self.ROUTING_ADDRESSES:
+                    for r2 in self.ROUTING_ADDRESSES:
+                        p0 = None
+                        p1 = None
+                        if r1 != quote:
+                            try:
+                                p0 = self.context.run_model(
+                                    'chainlink.price-by-registry',
+                                    input={'base': base, 'quote': r1},
+                                    return_type=Price)
+                            except ModelRunError:
+                                try:
+                                    p0 = self.context.run_model(
+                                        'chainlink.price-by-registry',
+                                        input={'base': r1, 'quote': base},
+                                        return_type=Price)
+                                    p0.price = 1 / p0.price
+                                    p0.src = f'{p0.src}|Inverse'
+                                except ModelRunError:
+                                    continue
+
+                        if r2 != base:
+                            try:
+                                p1 = self.context.run_model(
+                                    'chainlink.price-by-registry',
+                                    input={'base': r2, 'quote': quote},
+                                    return_type=Price)
+                            except ModelRunError:
+                                try:
+                                    p1 = self.context.run_model(
+                                        'chainlink.price-by-registry',
+                                        input={'base': quote, 'quote': r2},
+                                        return_type=Price)
+                                    p1.price = 1 / p1.price
+                                    p1.src = f'{p1.src}|Inverse'
+                                except ModelRunError:
+                                    p1 = None
+
+                        if p0 is not None and p1 is not None:
+                            if r1 == r2:
+                                return self.cross_price(p0, p1)
+                            else:
+                                bridge_price = self.context.run_model(
+                                    self.slug,
+                                    input={'base': r1, 'quote': r2},
+                                    return_type=Price)
+                                return self.cross_price(self.cross_price(p0, bridge_price), p1)
 
                 raise ModelRunError(f'No possible routing for token pair {base}/{quote}')

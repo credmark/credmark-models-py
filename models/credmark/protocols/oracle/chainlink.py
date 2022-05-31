@@ -7,7 +7,7 @@ from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types import Contract, Price, Token, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
 
-from models.dtos.price import PriceInput, ChainlinkAddress
+from models.dtos.price import PriceInput
 
 
 @Model.describe(slug='chainlink.get-feed-registry',

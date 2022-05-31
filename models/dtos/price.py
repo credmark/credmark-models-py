@@ -1,3 +1,5 @@
+import os
+import yaml
 from typing import List, Union, ClassVar, Dict
 from credmark.cmf.types import Address, Token
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
@@ -7,36 +9,17 @@ def to_hex_address(code):
     return '0x{:040x}'.format(code)
 
 
+with open(os.path.join(os.path.dirname(__file__), 'chainlink_code.yaml')) as fp:
+    codes = yaml.safe_load(fp)['codes']
+    CHAINLINK_CODE = {k['name']: to_hex_address(k['code']) if 'code' in k else k['address']
+                      for k in codes}
+
+
 class ChainlinkAddress(Address):
     """
     Extension to the existing Address to accept code
     """
-    CODE_CONVERSION: ClassVar[Dict[str, str]] = {
-        # 0x0000000000000000000000000000000000000348
-        'USD': to_hex_address(840),
-        # 0x000000000000000000000000000000000000033a
-        'GBP': to_hex_address(826),
-        # 0x00000000000000000000000000000000000003d2
-        'EUR': to_hex_address(978),
-        'JPY': to_hex_address(392),
-        'CNY': to_hex_address(156),
-        'AUD': to_hex_address(36),
-        'KRW': to_hex_address(410),
-        'BRL': to_hex_address(986),
-        'CAD': to_hex_address(124),
-        'CHF': to_hex_address(756),
-        'IDR': to_hex_address(360),
-        'INR': to_hex_address(356),
-        'NGN': to_hex_address(566),
-        'NZD': to_hex_address(554),
-        'PHP': to_hex_address(608),
-        'SGD': to_hex_address(702),
-        'TRY': to_hex_address(949),
-        'ZAR': to_hex_address(710),
-        'XDR': to_hex_address(960),
-        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'BTC': '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
-    }
+    CODE_CONVERSION: ClassVar[Dict[str, str]] = CHAINLINK_CODE
 
     @classmethod
     def validate(cls, addr: str):

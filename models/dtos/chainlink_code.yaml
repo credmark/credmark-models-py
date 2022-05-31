@@ -1,0 +1,50 @@
+codes:
+  - name: USD
+    code: 840
+    address: '0x0000000000000000000000000000000000000348'
+  - name: GBP
+    code: 826
+    address: '0x000000000000000000000000000000000000033a'
+  - name: EUC
+    code: 978
+    address: '0x00000000000000000000000000000000000003d2'
+  - name: JPY
+    code: 392
+  - name: CNY
+    code: 156
+  - name: AUD
+    code: 36
+  - name: KRW
+    code: 410
+  - name: BRL
+    code: 986
+  - name: CAD
+    code: 124
+  - name: CHF
+    code: 756
+  - name: IDR
+    code: 360
+  - name: INR
+    code: 356
+  - name: NGN
+    code: 566
+  - name: NZD
+    code: 554
+  - name: PHP
+    code: 608
+  - name: SGD
+    code: 702
+  - name: TRY
+    code: 949
+  - name: ZAR
+    code: 710
+  - name: XAG
+    code: 961
+  - name: XAU
+    code: 959
+  - name: XDR
+    code: 960
+  - name: ETH
+    address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  - name: BTC
+    address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
