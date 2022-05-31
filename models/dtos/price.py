@@ -33,6 +33,7 @@ class ChainlinkAddress(Address):
         'SGD': to_hex_address(702),
         'TRY': to_hex_address(949),
         'ZAR': to_hex_address(710),
+        'XDR': to_hex_address(960),
         'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
         'BTC': '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
     }
@@ -40,12 +41,6 @@ class ChainlinkAddress(Address):
     @classmethod
     def validate(cls, addr: str):
         return cls.__new__(cls, addr)
-
-        if isinstance(addr, str):
-            new_addr = cls.CODE_CONVERSION.get(addr.upper(), None)
-            if new_addr is not None:
-                return super().validate(new_addr)
-        return super().validate(addr)
 
     def __new__(cls, addr: str):
         if isinstance(addr, str):
