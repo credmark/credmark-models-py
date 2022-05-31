@@ -1,15 +1,17 @@
 from typing import List, Union, ClassVar, Dict
 from credmark.cmf.types import Address, Token
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from credmark.cmf.model.errors import ModelDataError
 
 
 def to_hex_address(code):
-    return Address('0x{:040x}'.format(code))
+    return '0x{:040x}'.format(code)
 
 
-class TokenOrCode(Token):
-    TRIPLET_CONVERSION: ClassVar[Dict[str, Address]] = {
+class ChainlinkAddress(Address):
+    """
+    Extension to the existing Address to accept code
+    """
+    CODE_CONVERSION: ClassVar[Dict[str, str]] = {
         # 0x0000000000000000000000000000000000000348
         'USD': to_hex_address(840),
         # 0x000000000000000000000000000000000000033a
@@ -31,23 +33,26 @@ class TokenOrCode(Token):
         'SGD': to_hex_address(702),
         'TRY': to_hex_address(949),
         'ZAR': to_hex_address(710),
-        'ETH': Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
-        'BTC': Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'BTC': '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
     }
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def validate(cls, addr: str):
+        return cls.__new__(cls, addr)
 
-    @classmethod
-    def validate(cls, val):
-        if isinstance(val, str):
-            tok = Token(address=cls.TRIPLET_CONVERSION.get(val.upper(), None))
-            if tok is None:
-                raise ModelDataError(f'Unsupported currency code {val}')
-            return tok
-        else:
-            return Token.validate(val)
+        if isinstance(addr, str):
+            new_addr = cls.CODE_CONVERSION.get(addr.upper(), None)
+            if new_addr is not None:
+                return super().validate(new_addr)
+        return super().validate(addr)
+
+    def __new__(cls, addr: str):
+        if isinstance(addr, str):
+            new_addr = cls.CODE_CONVERSION.get(addr.upper(), None)
+            if new_addr is not None:
+                return super().__new__(cls, new_addr)
+        return super().__new__(cls, addr)
 
 
 class PriceInput(DTO):
@@ -72,8 +77,9 @@ class PriceInput(DTO):
     For DeFi, we call it a direct quoting when the native token is the base.
     e.g. ETH / USD
     """
-    base: TokenOrCode = DTOField(description='Base token to get the value for')
-    quote: Union[None, TokenOrCode] = DTOField(None, description='Quote token to count the value')
+    base: ChainlinkAddress = DTOField(description='Base token address to get the value for')
+    quote: Union[None, ChainlinkAddress] = \
+        DTOField(None, description='Quote token address to count the value')
 
 
 class PoolPriceInfo(DTO):

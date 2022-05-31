@@ -14,8 +14,8 @@ token_addrs="0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B"
 
 for token_addr in $token_addrs; do
-    test_model 0 chainlink.price-usd '{"address": "'${token_addr}'"}'
-    test_model 0 price.oracle-chainlink '{"base": {"address": "'${token_addr}'"}, "quote": "USD"}'
-    test_model 0 price.oracle-chainlink '{"base": {"address": "'${token_addr}'"}, "quote": "JPY"}'
-    test_model 0 price.oracle-chainlink '{"base": {"address": "'${token_addr}'"}, "quote": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}'
+    test_model 0 chainlink.price-usd '{"address": "'${token_addr}'"}' __all__
+    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "USD"}' __all__
+    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "JPY"}' __all__
+    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}' __all__
 done
