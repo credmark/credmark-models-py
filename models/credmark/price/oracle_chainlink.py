@@ -1,19 +1,16 @@
-# pylint: disable=locally-disabled, unused-import
-from typing import List, Union
-import pandas as pd
-
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
     Account,
     Address,
-    Token,
     Price,
 )
 
-from credmark.dto import DTO, IterableListGenericDTO, DTOField
-
 from models.dtos.price import PriceInput, ChainlinkAddress
+
+PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
+    code=ModelDataError.Codes.NO_DATA,
+    code_desc='No pools to aggregate for token price')
 
 
 @Model.describe(slug='price.oracle-chainlink',
