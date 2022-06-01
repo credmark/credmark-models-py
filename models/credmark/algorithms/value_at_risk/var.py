@@ -105,7 +105,7 @@ class VaREngineHistorical(Model):
             ppl_vector = value * ret_series
 
             if all_ppl_arr.shape[0] == 0:
-                all_ppl_arr = ppl_vector
+                all_ppl_arr = ppl_vector[:, np.newaxis]
             else:
                 ppl_vec_len = ppl_vector.shape[0]
                 all_ppl_vec_len = all_ppl_arr.shape[0]
@@ -119,6 +119,7 @@ class VaREngineHistorical(Model):
         output = {}
 
         all_ppl_vec = all_ppl_arr.sum(axis=1)
+
         weights = np.ones(len(input.portfolio.positions))
         for i in range(len(input.portfolio.positions)):
             linreg_result = sps.linregress(all_ppl_arr[:, i], all_ppl_vec)
