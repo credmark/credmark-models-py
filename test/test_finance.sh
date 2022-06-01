@@ -2,9 +2,29 @@ echo_cmd ""
 echo_cmd "Run VaR examples"
 echo_cmd ""
 
+test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+  "portfolio": {"positions":
+  [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}]}}' __all__
+
+test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+  "portfolio": {"positions":
+  [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
+   {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
+  ]}}'
+
+test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+  "portfolio": {"positions":
+  [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
+   {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
+   {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
+  ]}}'
+
+test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+  "portfolio": {"positions":
+  [{"amount": 10, "asset": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}]}}' __all__
+
 test_model 0 finance.var-portfolio-historical \
 '{"window": "20 days", "interval": 1, "confidence": 0.01,
-  "price_model": "chainlink.price-usd",
   "portfolio": {"positions":
   [{"amount": 80394, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
    {"amount": 39914, "asset": {"symbol": "BNB"}},
@@ -12,6 +32,19 @@ test_model 0 finance.var-portfolio-historical \
    {"amount": 23555590, "asset": {"symbol": "USDC"}},
    {"amount": 1937554, "asset": {"address": "0x85f138bfEE4ef8e540890CFb48F620571d67Eda3"}}
   ]}}'
+
+test_model 0 finance.var-portfolio-historical \
+'{"window": "100 days", "interval": 1, "confidence": 0.01,
+  "portfolio": {"positions":
+  [{"amount": 39914, "asset": {"symbol": "BNB"}},
+   {"amount": 26281671, "asset": {"symbol": "AAVE"}},
+   {"amount": 23555590, "asset": {"symbol": "USDC"}},
+   {"amount": 1937554, "asset": {"symbol": "LINK"}},
+   {"amount": 1937554, "asset": {"symbol": "FRAX"}},
+   {"amount": 1937554, "asset": {"symbol": "BAT"}},
+   {"amount": 1937554, "asset": {"symbol": "SNX"}}
+  ]}}'
+
 
 test_model 0 finance.var-portfolio-historical '{"window": "20 days", "interval": 1, "confidence": 0.01, "portfolio": {"positions": [{"amount": "0.5", "asset": {"symbol": "WBTC"}}, {"amount": "0.5", "asset": {"symbol": "WETH"}}]}}'
 test_model 0 finance.var-aave '{"window": "30 days", "interval": 3, "confidence": 0.01}' finance.var-portfolio-historical
