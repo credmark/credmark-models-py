@@ -1,4 +1,5 @@
 # pylint: disable=locally-disabled, unused-import
+from abc import abstractmethod
 import pandas as pd
 from typing import List
 
@@ -50,6 +51,10 @@ class PriceWeight:
 
 
 class DexWeightedPrice(Model, PriceWeight):
+    @abstractmethod
+    def run(self, input):
+        ...
+
     def aggregate_pool(self, model_slug, input: Token):
         pool_price_infos = self.context.run_model(model_slug,
                                                   input=input)
@@ -98,7 +103,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
         return self.aggregate_pool('sushiswap.get-pool-price-info', input)
 
 
-@ Model.describe(slug='price.dex',
+@ Model.describe(slug='price.dex-blended',
                  version='1.2',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',

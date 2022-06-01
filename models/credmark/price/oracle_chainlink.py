@@ -6,19 +6,20 @@ from credmark.cmf.types import (
     Price,
 )
 
-from models.dtos.price import PriceInput, ChainlinkAddress
+from models.dtos.price import ChainlinkPriceInput, ChainlinkAddress
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
-    code_desc='No pools to aggregate for token price')
+    code_desc='No possible feed/routing for token pair')
 
 
 @Model.describe(slug='price.oracle-chainlink',
                 version='1.2',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
-                input=PriceInput,
-                output=Price)
+                input=ChainlinkPriceInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceOracle(Model):
 
     NATIVE_TOKEN = {
@@ -79,7 +80,12 @@ class PriceOracle(Model):
     def cross_price(self, price0: Price, price1: Price) -> Price:
         return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
 
-    def run(self, _: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
+    def inverse_price(self, price: Price) -> Price:
+        price.price = 1 / price.price
+        price.src = f'{price.src}|Inverse'
+        return price
+
+    def run(self, _: ChainlinkPriceInput) -> Price:  # pylint: disable=too-many-return-statements)
         base = _.base
         if _.quote is None:
             quote = self.NATIVE_TOKEN[self.context.chain_id]
@@ -98,9 +104,7 @@ class PriceOracle(Model):
                 p = self.context.run_model('chainlink.price-by-registry',
                                            input={'base': quote, 'quote': base},
                                            return_type=Price)
-                p.price = 1 / p.price
-                p.src = f'{p.src}|Inverse'
-                return p
+                return self.inverse_price(p)
             except ModelRunError:
                 override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base, None)
                 override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote, None)
@@ -122,8 +126,7 @@ class PriceOracle(Model):
                     p0 = self.context.run_model('chainlink.price-by-feed',
                                                 input=Account(address=Address(override_quote[0])),
                                                 return_type=Price)
-                    p0.price = 1 / p0.price
-                    p0.src = f'{p0.src}|Inverse'
+                    p0 = self.inverse_price(p0)
                     if ChainlinkAddress(override_quote[-1]) == base:
                         return p0
                     else:
@@ -131,8 +134,7 @@ class PriceOracle(Model):
                             self.slug,
                             input={'base': override_quote[-1], 'quote': base},
                             return_type=Price)
-                        p1.price = 1 / p1.price
-                        p1.src = f'{p1.src}|Inverse'
+                        p1 = self.inverse_price(p1)
                     return self.cross_price(p0, p1)
 
                 for r1 in self.ROUTING_ADDRESSES:
@@ -151,10 +153,9 @@ class PriceOracle(Model):
                                         'chainlink.price-by-registry',
                                         input={'base': r1, 'quote': base},
                                         return_type=Price)
-                                    p0.price = 1 / p0.price
-                                    p0.src = f'{p0.src}|Inverse'
+                                    p0 = self.inverse_price(p0)
                                 except ModelRunError:
-                                    continue
+                                    break
 
                         if r2 != base:
                             try:
@@ -168,8 +169,7 @@ class PriceOracle(Model):
                                         'chainlink.price-by-registry',
                                         input={'base': quote, 'quote': r2},
                                         return_type=Price)
-                                    p1.price = 1 / p1.price
-                                    p1.src = f'{p1.src}|Inverse'
+                                    p1 = self.inverse_price(p1)
                                 except ModelRunError:
                                     p1 = None
 
@@ -183,4 +183,4 @@ class PriceOracle(Model):
                                     return_type=Price)
                                 return self.cross_price(self.cross_price(p0, bridge_price), p1)
 
-                raise ModelRunError(f'No possible routing for token pair {base}/{quote}')
+                raise ModelRunError(f'No possible feed/routing for token pair {base}/{quote}')

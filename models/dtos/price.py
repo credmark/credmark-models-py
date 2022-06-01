@@ -17,7 +17,7 @@ with open(os.path.join(os.path.dirname(__file__), 'chainlink_code.yaml')) as fp:
 
 class ChainlinkAddress(Address):
     """
-    Extension to the existing Address to accept code
+    Extension to the existing Address to accept currency code and convert to an address
     """
     CHAINLINK_CODE: ClassVar[Dict[str, str]] = CHAINLINK_CODE
 
@@ -33,7 +33,7 @@ class ChainlinkAddress(Address):
         return super().__new__(cls, addr)
 
 
-class PriceInput(DTO):
+class ChainlinkPriceInput(DTO):
     """
     In FX, the pair is quoted as base/quote for 1 base = x quote
     e.g. 1883.07 ETH / USD means 1883.07 USD for 1 ETH.
@@ -58,6 +58,17 @@ class PriceInput(DTO):
     base: ChainlinkAddress = DTOField(description='Base token address to get the value for')
     quote: Union[None, ChainlinkAddress] = \
         DTOField(None, description='Quote token address to count the value')
+
+    class Config:
+        schema_extra = {
+            'examples': [{'base': 'USD'}, {'base': 'ETH', 'quote': 'USD'}]
+        }
+
+
+class TokenPriceInput(DTO):
+    address: ChainlinkAddress = DTOField(description='Base token address to get the value for')
+    quote_address: ChainlinkAddress = \
+        DTOField(ChainlinkAddress('USD'), description='Quote token address to count the value')
 
 
 class PoolPriceInfo(DTO):
