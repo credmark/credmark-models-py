@@ -38,7 +38,7 @@ class VaRPriceHistorical(Model):
 
 
 @Model.describe(slug='finance.example-var-contract',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
                 input=ContractVaRInput,
@@ -54,7 +54,7 @@ class DemoContractVaR(Model):
 
     # Demo command
     credmark-dev run finance.example-var-contract --input \
-    '{"window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
+    '{"window": "30 days", "interval": 3, "confidence": 0.01}' \
     -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
     """
@@ -83,7 +83,7 @@ class DemoContractVaR(Model):
             portfolio=portfolio,
             priceLists=pls,
             interval=input.interval,
-            confidences=input.confidences,
+            confidence=input.confidence
         )
 
         return self.context.run_model(slug='finance.var-engine-historical',

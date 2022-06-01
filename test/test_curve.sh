@@ -2,6 +2,11 @@ echo_cmd ""
 echo_cmd "Run Curve Examples"
 echo_cmd ""
 
+test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
+test_model 0 curve-fi.pool-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
+test_model 0 curve-fi.price '{"address":"0xFEEf77d3f69374f66429C91d732A244f074bdf74"}'
+test_model 0 curve-fi.price '{"address":"0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"}'
+
 test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry,curve-fi.get-provider
 
 test_model 0 curve-fi.all-pools-info '{}' __all__
