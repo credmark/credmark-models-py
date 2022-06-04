@@ -16,7 +16,6 @@ from credmark.cmf.types import (
 class CurveFinanceVeCRVLockup(Model):
     def run(self, input):
         crv_token = Token(address=Address("0xD533a949740bb3306d119CC777fa900bA034cd52"))
-        decimals = crv_token.decimals
         total_supply = crv_token.total_supply
         crv_locked = crv_token.functions.balanceOf("0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2").call()
         crv_vested = crv_token.functions.balanceOf("0xd2D43555134dC575BF7279F4bA18809645dB0F1D").call()
