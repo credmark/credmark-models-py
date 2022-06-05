@@ -25,21 +25,21 @@ class VaRHistoricalInput(IterableListGenericDTO[PriceList]):
     portfolio: Portfolio
     priceLists: List[PriceList]
     interval: int
-    confidences: List[float]
+    confidence: float
     _iterator: str = PrivateAttr('priceLists')
 
 
 class ContractVaRInput(DTO):
     window: str
     interval: int
-    confidences: List[float]
+    confidence: float
 
     class Config:
         schema_extra = {
             'examples': [
                 {'window': '2 days',
                  'interval': 1,
-                 'confidences': [0.01, 0.05]
+                 'confidence': 0.01
                  }]
         }
 

@@ -17,7 +17,7 @@ from models.tmp_abi_lookup import (
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.0",
+                version="1.1",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 input=UniswapPoolVaRInput,
@@ -147,39 +147,39 @@ class UniswapPoolVaR(Model):
         var = {}
         var_without_il = {}
         var_il = {}
-        for conf in input.confidences:
-            var_result = calc_var(total_pnl_vector, conf)
-            var[conf] = {
-                'var': var_result.var,
-                'scenarios': (token0_historical_price.blockTime
-                              .iloc[var_result.unsorted_index, ].to_list()),
-                'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
-                'weights': var_result.weights
-            }
+        conf = input.confidence
+        var_result = calc_var(total_pnl_vector, conf)
+        var = {
+            'var': var_result.var,
+            'scenarios': (token0_historical_price.blockTime
+                          .iloc[var_result.unsorted_index, ].to_list()),
+            'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
+            'weights': var_result.weights
+        }
 
-            var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
-            var_without_il[conf] = {
-                'var': var_result_without_il.var,
-                'scenarios': (token0_historical_price.blockTime
-                              .iloc[var_result_without_il.unsorted_index, ].to_list()),
-                'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
-                'weights': var_result_without_il.weights
-            }
+        var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
+        var_without_il = {
+            'var': var_result_without_il.var,
+            'scenarios': (token0_historical_price.blockTime
+                          .iloc[var_result_without_il.unsorted_index, ].to_list()),
+            'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
+            'weights': var_result_without_il.weights
+        }
 
-            var_result_il = calc_var(total_pnl_il_vector, conf)
-            var_il[conf] = {
-                'var': var_result_il.var,
-                'scenarios': (token0_historical_price.blockTime
-                              .iloc[var_result_il.unsorted_index, ].to_list()),
-                'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
-                'weights': var_result_il.weights
-            }
+        var_result_il = calc_var(total_pnl_il_vector, conf)
+        var_il = {
+            'var': var_result_il.var,
+            'scenarios': (token0_historical_price.blockTime
+                          .iloc[var_result_il.unsorted_index, ].to_list()),
+            'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
+            'weights': var_result_il.weights
+        }
 
-            # For V3, as existing assumptions, we need to cap the loss at -100%.
-            if impermenant_loss_type == 'V3':
-                var[conf]['var'] = np.max([-1, var[conf]['var']])
-                var_without_il[conf]['var'] = np.max([-1, var_without_il[conf]['var']])
-                var_il[conf]['var'] = np.max([-1, var_il[conf]['var']])
+        # For V3, as existing assumptions, we need to cap the loss at -100%.
+        if impermenant_loss_type == 'V3':
+            var['var'] = np.max([-1, var['var']])
+            var_without_il['var'] = np.max([-1, var_without_il['var']])
+            var_il['var'] = np.max([-1, var_il['var']])
 
         return {
             'pool': input.pool,

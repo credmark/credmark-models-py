@@ -18,8 +18,6 @@ from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
 )
 from models.dtos.price import PoolPriceInfos
 
-from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
-
 
 @Model.describe(slug="sushiswap.get-v2-factory",
                 version="1.0",
@@ -101,49 +99,6 @@ class SushiswapGetPair(Model):
             return {'pool': pair_pool}
         else:
             return {}
-
-
-@Model.describe(slug="sushiswap.get-pool-info",
-                version="1.1",
-                display_name="Sushiswap get details for a pool",
-                description="Returns the token details of the pool",
-                input=Contract,
-                output=dict)
-class SushiswapGetPairDetails(Model):
-    def run(self, input: Contract) -> dict:
-        contract = input
-        contract._meta.abi = UNISWAP_V2_POOL_ABI  # pylint:disable=protected-access
-        token0 = Token(address=contract.functions.token0().call())
-        token1 = Token(address=contract.functions.token1().call())
-        getReserves = contract.functions.getReserves().call()
-
-        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
-        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
-
-        _token0_name = token0.name
-        _token0_symbol = token0.symbol
-        _token0_decimals = token0.decimals
-
-        _token1_name = token1.name
-        _token1_symbol = token1.symbol
-        _token1_decimals = token1.decimals
-
-        token0_reserve = token0.scaled(getReserves[0])
-        token1_reserve = token1.scaled(getReserves[1])
-
-        output = {'pairAddress': input.address,
-                  'token0': token0,
-                  'token0_name': _token0_name,
-                  'token0_symbol': _token0_symbol,
-                  'token0_reserve': token0_reserve,
-                  'token0_balance': token0_balance,
-                  'token1': token1,
-                  'token1_name': _token1_name,
-                  'token1_symbol': _token1_symbol,
-                  'token1_reserve': token1_reserve,
-                  'token1_balance': token1_balance}
-
-        return output
 
 
 @Model.describe(slug='sushiswap.get-pool-price-info',
