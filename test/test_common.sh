@@ -206,5 +206,5 @@ echo_cmd () {
     fi
 }
 
-token_price_deps='token.price,token.price,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
-var_deps=finance.var-engine,finance.var-reference,token.price,finance.get-one,${token_price_deps}
+token_price_deps='price.cmf,price.cmf,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
+var_deps=finance.var-engine,finance.var-reference,price.cmf,finance.get-one,${token_price_deps}

@@ -114,7 +114,7 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = Price(**self.context.models.token.price(input.token))
+        token_price = Price(**self.context.models.price.cmf(input.token))
         if token_price is None:
             raise ModelDataError(f"No Price for {response.token}")
         for c in response.categories:

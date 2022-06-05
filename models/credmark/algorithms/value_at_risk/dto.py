@@ -33,7 +33,6 @@ class ContractVaRInput(DTO):
     window: str
     interval: int
     confidences: List[float]
-    price_model: str = DTOField('chainlink.price-usd', description='price model slug')
 
     class Config:
         schema_extra = {

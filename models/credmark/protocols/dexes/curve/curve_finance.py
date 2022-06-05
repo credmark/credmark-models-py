@@ -27,6 +27,7 @@ from credmark.cmf.types import (
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import TradingVolume, TokenTradingVolume, VolumeInput
 
+
 class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
@@ -277,7 +278,7 @@ class CurveFinancePoolTVL(Model):
         for tok, bal in zip(pool_info.tokens.tokens, pool_info.balances):
             positions.append(Position(amount=bal, asset=tok))
 
-            tok_price = self.context.run_model('token.price',
+            tok_price = self.context.run_model('price.cmf',
                                                input=tok,
                                                return_type=Price)
             prices.append(tok_price)

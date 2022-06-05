@@ -113,34 +113,3 @@ class ChainLinkPriceByRegistry(Model):
             raise err
         finally:
             del sys.tracebacklimit
-
-
-@Model.describe(slug='chainlink.price-usd',
-                version="1.1",
-                display_name="Chainlink - Price for Token / USD pair",
-                description="Input a Token",
-                input=Token,
-                output=Price)
-class ChainLinkFeedPriceUSD(Model):
-    CONVERT_FOR_TOKEN_PRICE = {
-        1: {
-            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
-        }
-    }
-
-    def run(self, input: Token) -> Price:
-        try:
-            return self.context.run_model('price.oracle-chainlink',
-                                          input={'base': input.address,
-                                                 'quote': 'USD'},
-                                          return_type=Price)
-        except ModelRunError:
-            convert_token = (self.CONVERT_FOR_TOKEN_PRICE[self.context.chain_id]
-                             .get(input.address, None))
-            return self.context.run_model(
-                'token.price',
-                input=Token(address=convert_token) if convert_token is not None else input,
-                return_type=Price)

@@ -3,7 +3,7 @@ echo_cmd "Run Uniswap Examples:"
 echo_cmd ""
 test_model 0 uniswap.tokens '{}'
 test_model 0 uniswap.exchange '{}'
-test_model 0 uniswap.quoter-price-usd '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
+test_model 0 uniswap.quoter-price-dai '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
 test_model 0 uniswap.router-price-usd '{}'
 
 echo_cmd ""

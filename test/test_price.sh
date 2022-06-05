@@ -22,7 +22,7 @@ block_number='-b 14878712'
 
 for token_addr in $token_addrs; do
     if [[ "$token_addr" =~ ^0x ]]; then
-        test_model 0 chainlink.price-usd '{"address": "'${token_addr}'"}' __all__
+        test_model 0 price.cmf '{"address": "'${token_addr}'"}' __all__
     fi
 
     test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "USD"}' __all__

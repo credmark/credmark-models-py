@@ -23,6 +23,8 @@ from models.tmp_abi_lookup import (
                 input=UniswapPoolVaRInput,
                 output=dict)
 class UniswapPoolVaR(Model):
+    PRICE_MODEL = 'price.cmf'
+
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
     It then calculate the LP position's VaR from both price change and quantity change from IL
@@ -54,12 +56,12 @@ class UniswapPoolVaR(Model):
         # Current price
         current_ratio = bal1 / bal0
 
-        _token0_price = self.context.run_model(input.price_model, input=token0)
-        _token1_price = self.context.run_model(input.price_model, input=token1)
+        _token0_price = self.context.run_model(self.PRICE_MODEL, input=token0)
+        _token1_price = self.context.run_model(self.PRICE_MODEL, input=token1)
 
         token0_historical_price = (self.context.historical
                                    .run_model_historical(
-                                       model_slug=input.price_model,
+                                       model_slug=self.PRICE_MODEL,
                                        model_input=token0,
                                        window=input.window,
                                        model_return_type=Price)
@@ -69,7 +71,7 @@ class UniswapPoolVaR(Model):
 
         token1_historical_price = (self.context.historical
                                    .run_model_historical(
-                                       model_slug=input.price_model,
+                                       model_slug=self.PRICE_MODEL,
                                        model_input=token1,
                                        window=input.window,
                                        model_return_type=Price)

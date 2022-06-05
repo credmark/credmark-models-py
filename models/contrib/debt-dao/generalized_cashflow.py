@@ -3,6 +3,7 @@ from credmark.cmf.types import Address, Token, BlockNumber
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import DTO
 
+
 class GCInput(DTO):
     sender_address: Address
     receiver_address: Address
@@ -12,6 +13,7 @@ class GCInput(DTO):
             'examples': [{'sender_address': '0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A',
                           'receiver_address': '0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e'}]
         }
+
 
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
@@ -34,7 +36,7 @@ class GeneralizedCashflow(Model):
             token = Token(address=transfer['token_address']).info
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    'price.cmf', input=token, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:

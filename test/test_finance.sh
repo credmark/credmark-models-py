@@ -4,7 +4,6 @@ echo_cmd ""
 
 test_model 0 finance.var-portfolio-historical \
 '{"window": "20 days", "interval": 1, "confidences": [0.01],
-  "price_model": "chainlink.price-usd",
   "portfolio": {"positions":
   [{"amount": 80394, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
    {"amount": 39914, "asset": {"symbol": "BNB"}},

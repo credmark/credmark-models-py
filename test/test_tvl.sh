@@ -2,7 +2,7 @@ echo_cmd ""
 echo_cmd "Run TVL Examples"
 echo_cmd ""
 
-curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry,curve-fi.price-3crv
+curve_pool_info_tvl=curve-fi.pool-info,price.cmf,chainlink.price-by-registry,curve-fi.price-3crv
 
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
 test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}

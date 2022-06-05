@@ -5,7 +5,7 @@ from credmark.cmf.types import (
 
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from models.dtos.price import TokenPriceInput, ChainlinkAddress
+from models.dtos.price import TokenPriceInput, ChainlinkAddress, Address
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -15,19 +15,19 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 @Model.describe(slug='price',
                 version='1.0',
                 display_name='Token Price',
-                description='DEPRECATED - use token.price',
+                description='DEPRECATED - use price.cmf',
                 input=Token,
                 output=Price)
 class PriceModel(Model):
     """
-    Return token's price (DEPRECATED) - use token.price
+    Return token's price (DEPRECATED) - use price.cmf
     """
 
     def run(self, input: Token) -> Price:
-        return self.context.run_model('token.price', input, return_type=Price)
+        return self.context.run_model('price.cmf', input, return_type=Price)
 
 
-@Model.describe(slug='token.price',
+@Model.describe(slug='price.cmf',
                 version='1.2',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
@@ -39,6 +39,14 @@ class TokenPriceModel(Model):
     """
     Return token's price
     """
+    CONVERT_FOR_TOKEN_PRICE = {
+        1: {
+            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
+            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
+        }
+    }
 
     def cross_price(self, price0: Price, price1: Price) -> Price:
         return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')

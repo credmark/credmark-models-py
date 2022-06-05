@@ -198,7 +198,7 @@ class UniswapGetPoolInfo(Model):
 
         prices = []
         for tok in [token0, token1]:
-            tok_price = self.context.run_model('chainlink.price-usd',
+            tok_price = self.context.run_model('token.price',
                                                input=tok,
                                                return_type=Price)
             prices.append(tok_price)
@@ -366,7 +366,7 @@ class UniswapV2PoolSwapVolume(Model):
         # for n in range(tokens_n):
         #     for n_row, row in all_blocks[::-1].iterrows():
         #         all_blocks.loc[n_row, f'token{n}_price'] = self.context.run_model(
-        #             'chainlink.price-usd',
+        #             'token.price',
         #             input=tokens[n], block_number=row.evt_block_number, return_type=Price).price
 
         # df_all_swaps = df_all_swaps.merge(all_blocks, on=['evt_block_number'], how='left')
