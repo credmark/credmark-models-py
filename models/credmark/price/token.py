@@ -1,11 +1,12 @@
 from credmark.cmf.types import (
     Token,
-    Price
+    Price,
+    FiatCurrency,
 )
 
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from models.dtos.price import TokenPriceInput, ChainlinkAddress, Address
+from models.dtos.price import PriceInput, Address
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -32,7 +33,7 @@ class PriceModel(Model):
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
-                input=TokenPriceInput,
+                input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class TokenPriceModel(Model):
@@ -56,36 +57,35 @@ class TokenPriceModel(Model):
         price.src = f'{price.src}|Inverse'
         return price
 
-    def run(self, input: TokenPriceInput) -> Price:
-        base = input.address
-        quote = input.quote_address
-
-        breakpoint()
-
+    def run(self, input: PriceInput) -> Price:
         try:
             return self.context.run_model('price.oracle-chainlink',
-                                          input={'base': base, 'quote': quote},
+                                          input=input,
                                           return_type=Price)
         except ModelRunError:
+            if isinstance(input.base, FiatCurrency) and isinstance(input.quote, FiatCurrency):
+                raise ModelDataError(f'No feed available for '
+                                     f'{input.base.symbol}/{input.quote.symbol}')
             try:
-                price_usd = self.context.run_model('price.oracle-chainlink',
-                                                   input={'base': base, 'quote': 'USD'},
-                                                   return_type=Price)
+                price_usd = self.context.run_model(
+                    'price.oracle-chainlink',
+                    input={'base': input.base, 'quote': FiatCurrency()},
+                    return_type=Price)
             except ModelRunError:
                 try:
                     price_usd = self.context.run_model('price.dex-curve-fi',
-                                                       input=input,
+                                                       input=input.base,
                                                        return_type=Price)
                 except ModelRunError:
                     price_usd = self.context.run_model('price.dex-blended',
-                                                       input=input,
+                                                       input=input.base,
                                                        return_type=Price)
 
-            if quote == ChainlinkAddress('USD'):
+            if input.quote.symbol == FiatCurrency().symbol:
                 return price_usd
             else:
                 quote_usd = self.context.run_model(
                     self.slug,
-                    {'address': quote, 'quote_address': 'USD'},
+                    {'base': input.quote},
                     return_type=Price)
                 return self.cross_price(price_usd, self.inverse_price(quote_usd))

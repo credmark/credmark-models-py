@@ -7,7 +7,7 @@ from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types import Contract, Price, Token, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
 
-from models.dtos.price import ChainlinkPriceInput
+from models.dtos.price import PriceInput
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -77,10 +77,10 @@ class ChainLinkPriceByFeed(Model):
                  version="1.1",
                  display_name="Chainlink - Price by Registry",
                  description="Looking up Registry for two tokens\' addresses",
-                 input=ChainlinkPriceInput,
+                 input=PriceInput,
                  output=Price)
 class ChainLinkPriceByRegistry(Model):
-    def run(self, input: ChainlinkPriceInput) -> Price:
+    def run(self, input: PriceInput) -> Price:
         token0_address = input.base
         if input.quote is None:
             raise ModelDataError('quote must not be None.')

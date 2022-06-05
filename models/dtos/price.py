@@ -1,7 +1,7 @@
 import os
 import yaml
-from typing import List, Union, ClassVar, Dict
-from credmark.cmf.types import Address, Token
+from typing import List, Union, Dict
+from credmark.cmf.types import Address, Token, FiatCurrency
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 
 
@@ -11,29 +11,13 @@ def to_hex_address(code):
 
 with open(os.path.join(os.path.dirname(__file__), 'chainlink_code.yaml')) as fp:
     codes = yaml.safe_load(fp)['codes']
-    CHAINLINK_CODE = {k['name']: to_hex_address(k['code']) if 'code' in k else k['address']
-                      for k in codes}
+    CHAINLINK_CODE: Dict[str, Address] = ({k['name']: Address(to_hex_address(k['code'])
+                                                              if 'code' in k
+                                                              else k['address'])
+                                           for k in codes})
 
 
-class ChainlinkAddress(Address):
-    """
-    Extension to the existing Address to accept currency code and convert to an address
-    """
-    CHAINLINK_CODE: ClassVar[Dict[str, str]] = CHAINLINK_CODE
-
-    @classmethod
-    def validate(cls, addr: str):
-        return cls.__new__(cls, addr)
-
-    def __new__(cls, addr: str):
-        if isinstance(addr, str):
-            new_addr = cls.CHAINLINK_CODE.get(addr.upper(), None)
-            if new_addr is not None:
-                return super().__new__(cls, new_addr)
-        return super().__new__(cls, addr)
-
-
-class ChainlinkPriceInput(DTO):
+class PriceInput(DTO):
     """
     In FX, the pair is quoted as base/quote for 1 base = x quote
     e.g. 1883.07 ETH / USD means 1883.07 USD for 1 ETH.
@@ -55,20 +39,19 @@ class ChainlinkPriceInput(DTO):
     For DeFi, we call it a direct quoting when the native token is the base.
     e.g. ETH / USD
     """
-    base: ChainlinkAddress = DTOField(description='Base token address to get the value for')
-    quote: Union[None, ChainlinkAddress] = \
-        DTOField(None, description='Quote token address to count the value')
+
+    base: Union[Token, FiatCurrency] = \
+        DTOField(description='Base token address to get the value for')
+    quote: Union[Token, FiatCurrency] = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
 
     class Config:
         schema_extra = {
-            'examples': [{'base': 'USD'}, {'base': 'ETH', 'quote': 'USD'}]
+            'examples': [{'base': {'address': 'USD'}},
+                         {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
+                          'quote': {'symbol': ''}}]
         }
-
-
-class TokenPriceInput(DTO):
-    address: ChainlinkAddress = DTOField(description='Base token address to get the value for')
-    quote_address: ChainlinkAddress = \
-        DTOField(ChainlinkAddress('USD'), description='Quote token address to count the value')
 
 
 class PoolPriceInfo(DTO):

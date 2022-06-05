@@ -4,9 +4,10 @@ from credmark.cmf.types import (
     Account,
     Address,
     Price,
+    Token,
 )
 
-from models.dtos.price import ChainlinkPriceInput, ChainlinkAddress
+from models.dtos.price import CHAINLINK_CODE, PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -17,11 +18,10 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 version='1.2',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
-                input=ChainlinkPriceInput,
+                input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceOracle(Model):
-
     NATIVE_TOKEN = {
         1: Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
     }
@@ -77,6 +77,17 @@ class PriceOracle(Model):
     Return the value of base token in amount of quote tokens
     """
 
+    def fiat_currency_address(self, symbol) -> Address:
+        """
+        Extension to the existing Address to accept currency code and convert to an address
+        """
+
+        new_addr = CHAINLINK_CODE.get(symbol.upper(), None)
+        if new_addr is not None:
+            return Address(new_addr)
+        else:
+            raise ModelDataError('')
+
     def cross_price(self, price0: Price, price1: Price) -> Price:
         return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
 
@@ -85,12 +96,15 @@ class PriceOracle(Model):
         price.src = f'{price.src}|Inverse'
         return price
 
-    def run(self, _: ChainlinkPriceInput) -> Price:  # pylint: disable=too-many-return-statements)
-        base = _.base
-        if _.quote is None:
-            quote = self.NATIVE_TOKEN[self.context.chain_id]
+    def run(self, _: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
+        if isinstance(_.base, Token):
+            base = _.base.address
         else:
-            quote = _.quote
+            base = self.fiat_currency_address(_.base)
+        if isinstance(_.quote, Token):
+            quote = _.quote.address
+        else:
+            quote = self.fiat_currency_address(_.quote)
 
         if base == quote:
             return Price(price=1, src=f'{self.slug}|Equal')
@@ -113,7 +127,7 @@ class PriceOracle(Model):
                     p0 = self.context.run_model('chainlink.price-by-feed',
                                                 input=Account(address=Address(override_base[0])),
                                                 return_type=Price)
-                    if ChainlinkAddress(override_base[-1]) == quote:
+                    if self.fiat_currency_address(override_base[-1]) == quote:
                         return p0
                     else:
                         p1 = self.context.run_model(
@@ -127,7 +141,7 @@ class PriceOracle(Model):
                                                 input=Account(address=Address(override_quote[0])),
                                                 return_type=Price)
                     p0 = self.inverse_price(p0)
-                    if ChainlinkAddress(override_quote[-1]) == base:
+                    if self.fiat_currency_address(override_quote[-1]) == base:
                         return p0
                     else:
                         p1 = self.context.run_model(
