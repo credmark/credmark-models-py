@@ -28,8 +28,8 @@ echo_cmd "Run TVL Historical cases"
 echo_cmd ""
 
 for pool_addr in $curve_pools; do
-    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
-    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' ${curve_pool_info_tvl}
+    # credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
+    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"20 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
 
 exit
