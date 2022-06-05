@@ -125,7 +125,10 @@ class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
     def run(self, input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
-        return comptroller._meta.proxy_implementation
+        if comptroller._meta.proxy_implementation is not None:
+            return comptroller._meta.proxy_implementation
+        else:
+            raise ModelRunError('proxy implementation is missing.')
 
 
 @ Model.describe(slug="compound-v2.get-pools",
