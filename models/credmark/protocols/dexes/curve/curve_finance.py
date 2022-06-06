@@ -213,10 +213,13 @@ class CurveFinancePoolInfo(Model):
         ratio = product_balance / np.power(avg_balance, n_asset)
 
         try:
-            pool_A = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
         except Exception as _err:
             virtual_price = (10**18)
+
+        try:
+            pool_A = input.functions.A().call()
+        except Exception as _err:
             pool_A = 0
 
         # Calculating 'chi'
