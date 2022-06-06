@@ -113,7 +113,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.7",
+                version="1.8",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -235,23 +235,26 @@ class CurveFinancePoolInfo(Model):
         lp_token_addr = Address.null()
         lp_token_name = ''
         try:
-            lp_token_addr = Address(input.functions.lp_token().call())
-            lp_token = Token(address=lp_token_addr.checksum)
-            lp_token_name = lp_token.name
+            lp_token_addr = Address(registry.functions.get_lp_token(input.address).call())
         except ABIFunctionNotFound:
             try:
-                provider = self.context.run_model('curve-fi.get-provider',
-                                                  input=EmptyInput(),
-                                                  return_type=Contract)
-                pool_info_addr = Address(provider.functions.get_address(1).call())
-                pool_info_contract = Contract(address=pool_info_addr.checksum)
-                pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
-                             .call())
-                lp_token_addr = Address(pool_info[5])
-                lp_token = Token(address=lp_token_addr.checksum)
-                lp_token_name = lp_token.name
-            except ContractLogicError:
-                pass
+                lp_token_addr = Address(input.functions.lp_token().call())
+            except ABIFunctionNotFound:
+                try:
+                    provider = self.context.run_model('curve-fi.get-provider',
+                                                      input=EmptyInput(),
+                                                      return_type=Contract)
+                    pool_info_addr = Address(provider.functions.get_address(1).call())
+                    pool_info_contract = Contract(address=pool_info_addr.checksum)
+                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
+                                 .call())
+                    lp_token_addr = Address(pool_info[5])
+                except ContractLogicError:
+                    pass
+
+        if lp_token_addr != Address.null():
+            lp_token = Token(address=lp_token_addr.checksum)
+            lp_token_name = lp_token.name
 
         pool_token_addr = Address.null()
         pool_token_name = ''
