@@ -98,6 +98,8 @@ class CurveFiPoolInfo(Contract):
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
     A: int
+    chi: float
+    ratio: float
     is_meta: bool
     name: str
     lp_token_name: str
@@ -199,14 +201,26 @@ class CurveFinancePoolInfo(Model):
             else float(self.context.web3.fromWei(self.context.web3.eth.get_balance(input.address),
                                                  'ether'))
             for t in tokens]
+
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
+        np_balance = np.array(balances_token)
+        n_asset = np_balance.shape[0]
+        product_balance = np_balance.prod()
+        avg_balance = np_balance.mean()
+
+        # Calculating ratio, this gives information about peg
+        ratio = product_balance / np.power(avg_balance, n_asset)
+
         try:
-            a = input.functions.A().call()
+            pool_A = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
         except Exception as _err:
             virtual_price = (10**18)
-            a = 0
+            pool_A = 0
+
+        # Calculating 'chi'
+        chi = pool_A * ratio
 
         is_meta = registry.functions.is_meta(input.address.checksum).call()
 
@@ -254,7 +268,9 @@ class CurveFinancePoolInfo(Model):
                                admin_fees=admin_fees,
                                underlying_tokens=underlying,
                                underlying_tokens_symbol=underlying_symbol,
-                               A=a,
+                               A=pool_A,
+                               ratio=ratio,
+                               chi=chi,
                                is_meta=is_meta,
                                name=name,
                                lp_token_name=lp_token_name,
