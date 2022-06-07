@@ -26,6 +26,9 @@ test_model 0 curve-fi.pool-info '{"address":"0xF9440930043eb3997fc70e1339dBb11F3
 # Curve.fi Curve.fi ETH/rETH (rCRV) LP: 0x53a901d48795C58f485cBB38df08FA96a24669D5
 test_model 0 curve-fi.pool-info '{"address":"0x53a901d48795C58f485cBB38df08FA96a24669D5"}'
 
+# Curve.fi Curve.fi ETH/stETH LP: 0x06325440d014e39736583c165c2963ba99faf14e
+test_model 0 curve-fi.pool-info '{"address":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}'
+
 # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
 test_model 0 curve-fi.gauge-yield '{"address":"0x11137B10C210b579405c21A07489e28F3c040AB1"}' curve-fi.get-gauge-stake-and-claimable-rewards
 # Curve.fi tbtc2/sbtcCRV-f Gauge Deposit: 0x29284d30bcb70e86a6c3f84cbc4de0ce16b0f1ca
