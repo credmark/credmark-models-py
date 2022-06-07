@@ -101,44 +101,6 @@ class SushiswapGetPair(Model):
             return {}
 
 
-@Model.describe(slug="sushiswap.get-pool-info",
-                version="1.0",
-                display_name="Sushiswap get details for a pool",
-                description="Returns the token details of the pool",
-                input=Contract)
-class SushiswapGetPairDetails(Model):
-    def run(self, input: Contract):
-        output = {}
-        self.logger.info(f'{input=}')
-        contract = Contract(address=input.address.checksum)
-        token0 = Token(address=contract.functions.token0().call())
-        token1 = Token(address=contract.functions.token1().call())
-        getReserves = contract.functions.getReserves().call()
-
-        _token0_name = token0.name
-        _token0_symbol = token0.symbol
-        _token0_decimals = token0.decimals
-
-        _token1_name = token1.name
-        _token1_symbol = token1.symbol
-        _token1_decimals = token1.decimals
-
-        token0_reserve = getReserves[0]/pow(10, _token0_decimals)
-        token1_reserve = getReserves[1]/pow(10, _token1_decimals)
-
-        output = {'pairAddress': input.address,
-                  'token0': token0,
-                  'token0_name': _token0_name,
-                  'token0_symbol': _token0_symbol,
-                  'token0_reserve': token0_reserve,
-                  'token1': token1,
-                  'token1_name': _token1_name,
-                  'token1_symbol': _token1_symbol,
-                  'token1_reserve': token1_reserve}
-
-        return output
-
-
 @Model.describe(slug='sushiswap.get-pool-price-info',
                 version='1.0',
                 display_name='Sushiswap Token Pools Price ',

@@ -69,22 +69,20 @@ echo Start from: $start_n
 
 if [ "${test_mode}" == 'test' ]; then
     cmk_dev='python test/test.py'
-    # Use prod for test:
-    # api_url=' --api_url=http://localhost:8700'
-    api_url=''
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
+	api_url=' --api_url=http://localhost:8700'
     echo In test mode, using ${cmk_dev} and ${api_url}
-elif [ "${test_mode}" == 'prod' ];
-then
+elif [ "${test_mode}" == 'prod' ]; then
     cmk_dev='credmark-dev'
-    api_url=''  # no api url param uses the gateway api
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
+	api_url=''
     echo Using installed credmark-dev and gateway api.
 else
     exit
 fi
 
 block_number='-b 14234904'
+block_number='-b 14249443'
 
 if [ $gen_mode -eq 1 ]; then
     echo "Sending commands to ${cmd_file}"
@@ -104,6 +102,10 @@ run_model () {
     input=$2
     local_models=$3
 
+    if [ "${local_models}" == "__all__" ]; then
+        local_models=*
+    fi
+
     if [ $# -eq 2 ]; then
         if [ $gen_mode -eq 1 ]; then
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}" >> $cmd_file
@@ -116,15 +118,24 @@ run_model () {
             echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
         else
             if [ $gen_mode -eq 1 ]; then
-                echo "${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}" >> $cmd_file
+                if [ "${api_url}" == "" ]; then
+                    echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts} -l '${local_models}'" >> $cmd_file
+                else
+                    echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}'" >> $cmd_file
+                fi
             else
-                echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}"
-                ${cmk_dev} run ${model} --input "${input}" -l ${local_models} ${block_number}${api_url}${other_opts}
+                if [ "${api_url}" == "" ]; then
+                    echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts} -l '${local_models}'"
+                    ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}${other_opts} -l "${local_models}"
+                else
+                    echo "Running ($count_pass): ${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
+                    ${cmk_dev} run ${model} --input "${input}" ${block_number}${api_url}${other_opts}
+                fi
             fi
         fi
     elif [ $# -eq 4 ]; then
         if [ "$4" == 'print-command' ]; then
-            echo "${cmk_dev} run ${model} --input '${input}' -l ${local_models} ${block_number}${api_url}${other_opts}"
+            echo "${cmk_dev} run ${model} --input '${input}' ${block_number}${api_url}${other_opts}"
         else
             echo "Got unexpected test arguments=$*"
             exit

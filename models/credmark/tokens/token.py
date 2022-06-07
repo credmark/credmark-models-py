@@ -16,7 +16,7 @@ from credmark.dto import DTO, IterableListGenericDTO
 
 @Model.describe(
     slug="token.info",
-    version="1.0",
+    version="1.1",
     display_name="Token Information",
     developer="Credmark",
     input=Token,

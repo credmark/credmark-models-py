@@ -44,7 +44,9 @@ fi
 
 source $SCRIPT_DIRECTORY/test_examples.sh
 source $SCRIPT_DIRECTORY/test_account_token.sh
+source $SCRIPT_DIRECTORY/test_chainlink.sh
 source $SCRIPT_DIRECTORY/test_cmk.sh
+source $SCRIPT_DIRECTORY/test_tvl.sh
 source $SCRIPT_DIRECTORY/test_aave.sh
 source $SCRIPT_DIRECTORY/test_compound.sh
 source $SCRIPT_DIRECTORY/test_uniswap.sh
