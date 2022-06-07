@@ -24,8 +24,7 @@ from credmark.cmf.types import (
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (
     TradingVolume,
-    TokenTradingVolume,
-    VolumeInput,
+    TokenTradingVolume
 )
 
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
