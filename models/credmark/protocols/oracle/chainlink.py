@@ -106,7 +106,7 @@ class ChainLinkPriceByRegistry(Model):
 
 
 @Model.describe(slug='chainlink.price-usd',
-                version="1.1",
+                version="1.2",
                 display_name="Chainlink - Price for Token / USD pair",
                 description="Input a Token",
                 input=Token,
