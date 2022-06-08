@@ -97,6 +97,8 @@ class CurveFiPoolInfo(Contract):
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
     A: int
+    chi: float
+    ratio: float
     is_meta: bool
     name: str
     lp_token_name: str
@@ -110,7 +112,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.7",
+                version="1.8",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -198,14 +200,29 @@ class CurveFinancePoolInfo(Model):
             else float(self.context.web3.fromWei(self.context.web3.eth.get_balance(input.address),
                                                  'ether'))
             for t in tokens]
+
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
+        np_balance = np.array(balances_token)
+        n_asset = np_balance.shape[0]
+        product_balance = np_balance.prod()
+        avg_balance = np_balance.mean()
+
+        # Calculating ratio, this gives information about peg
+        ratio = product_balance / np.power(avg_balance, n_asset)
+
         try:
-            a = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
         except Exception as _err:
             virtual_price = (10**18)
-            a = 0
+
+        try:
+            pool_A = input.functions.A().call()
+        except Exception as _err:
+            pool_A = 0
+
+        # Calculating 'chi'
+        chi = pool_A * ratio
 
         is_meta = registry.functions.is_meta(input.address.checksum).call()
 
@@ -217,23 +234,26 @@ class CurveFinancePoolInfo(Model):
         lp_token_addr = Address.null()
         lp_token_name = ''
         try:
-            lp_token_addr = Address(input.functions.lp_token().call())
-            lp_token = Token(address=lp_token_addr.checksum)
-            lp_token_name = lp_token.name
+            lp_token_addr = Address(registry.functions.get_lp_token(input.address).call())
         except ABIFunctionNotFound:
             try:
-                provider = self.context.run_model('curve-fi.get-provider',
-                                                  input=EmptyInput(),
-                                                  return_type=Contract)
-                pool_info_addr = Address(provider.functions.get_address(1).call())
-                pool_info_contract = Contract(address=pool_info_addr.checksum)
-                pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
-                             .call())
-                lp_token_addr = Address(pool_info[5])
-                lp_token = Token(address=lp_token_addr.checksum)
-                lp_token_name = lp_token.name
-            except ContractLogicError:
-                pass
+                lp_token_addr = Address(input.functions.lp_token().call())
+            except ABIFunctionNotFound:
+                try:
+                    provider = self.context.run_model('curve-fi.get-provider',
+                                                      input=EmptyInput(),
+                                                      return_type=Contract)
+                    pool_info_addr = Address(provider.functions.get_address(1).call())
+                    pool_info_contract = Contract(address=pool_info_addr.checksum)
+                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
+                                 .call())
+                    lp_token_addr = Address(pool_info[5])
+                except ContractLogicError:
+                    pass
+
+        if lp_token_addr != Address.null():
+            lp_token = Token(address=lp_token_addr.checksum)
+            lp_token_name = lp_token.name
 
         pool_token_addr = Address.null()
         pool_token_name = ''
@@ -253,7 +273,9 @@ class CurveFinancePoolInfo(Model):
                                admin_fees=admin_fees,
                                underlying_tokens=underlying,
                                underlying_tokens_symbol=underlying_symbol,
-                               A=a,
+                               A=pool_A,
+                               ratio=ratio,
+                               chi=chi,
                                is_meta=is_meta,
                                name=name,
                                lp_token_name=lp_token_name,
