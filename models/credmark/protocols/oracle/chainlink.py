@@ -58,7 +58,12 @@ class ChainLinkPriceByFeed(Model):
         decimals = feed_contract.functions.decimals().call()
         description = feed_contract.functions.description().call()
         version = feed_contract.functions.version().call()
-        feed = feed_contract.functions.aggregator().call()
+        if feed_contract.abi is not None:
+            abi_funcs = [x['name'] for x in feed_contract.abi if 'name' in x]
+            if 'aggregator' in abi_funcs:
+                feed = feed_contract.functions.aggregator().call()
+        else:
+            feed = input.address
         isFeedEnabled = None
 
         time_diff = self.context.block_number.timestamp - _updatedAt
@@ -143,12 +148,12 @@ class ChainLinkFeedPriceUSD(Model):
             Address('0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E'):
             ['0xf600984cca37cd562e74e3ee514289e3613ce8e4',  # ilv-eth.data.eth
              '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
-            Address('0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5'):
-            ['0x7b33ebfa52f215a30fad5a71b3fee57a4831f1f0',  # bit-usd.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+            Address('0x383518188C0C6d7730D91b2c03a03C837814a899'):  # OHM v1
+            ['0x90c2098473852e2f07678fe1b6d595b1bd9b16ed',   # ohm-eth.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],  # eth-usd.data.eth
             Address('0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5'):
-            ['0x90c2098473852e2f07678fe1b6d595b1bd9b16ed',  # ohm-eth.data.eth
-             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
+            ['0x9a72298ae3886221820b1c878d12d872087d3a23',   # ohmv2-eth.data.eth
+             '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],  # eth-usd.data.eth
             Address('0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'):
             ['0x84a24deca415acc0c395872a9e6a63e27d6225c8',  # tribe-eth.data.eth
              '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419'],
@@ -173,13 +178,15 @@ class ChainLinkFeedPriceUSD(Model):
                                               input=Account(address=Address(override_feed)),
                                               return_type=Price)
             elif routing_feed is not None:
+                sources = []
                 p = Price(price=1.0, src='')
                 for rout in routing_feed:
                     new_piece = self.context.run_model('chainlink.price-by-feed',
                                                        input=Account(address=Address(rout)),
                                                        return_type=Price)
                     p.price *= new_piece.price
-                    p.src = f'{p.src},{new_piece.src}'
+                    sources.append(new_piece.src)
+                p.src = '.'.join(sources)
                 return p
             else:
                 tokens = [Token(address=input.address), Token(address=self.USD)]
