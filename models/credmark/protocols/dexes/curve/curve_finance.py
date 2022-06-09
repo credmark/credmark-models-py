@@ -1,5 +1,6 @@
 # pylint: disable=locally-disabled, unused-import
 
+from datetime import timedelta
 import pandas as pd
 import numpy as np
 from typing import List, Union
@@ -482,7 +483,7 @@ class HistoricalRunModelInput(DTO):
 
 # TODO: Pre-composer model
 @ Model.describe(slug="historical.run-model",
-                 version="1.0",
+                 version="1.1",
                  display_name="Run Any model for historical",
                  description="",
                  input=HistoricalRunModelInput,
@@ -492,12 +493,16 @@ class HistoricalRunModel(Model):
         window = input.window
         interval = input.interval
 
+        # TODO: add two days to the end as work-around to current start-end-window
+        dt_end = (self.context.block_number.timestamp_datetime + timedelta(days=1))
+        ts_end = int(dt_end.timestamp())
+
         result = self.context.historical.run_model_historical(
             model_slug=input.model_slug,
             model_input=input.model_input,
             window=window,
             interval=interval,
-            end_timestamp=self.context.block_number.timestamp)
+            end_timestamp=ts_end)
 
         return {'result': result}
 
