@@ -11,8 +11,8 @@ test_model 0 chainlink.price-by-ens '{"domain":"sol-usd.data.eth"}'
 test_model 0 chainlink.price-by-registry '{"tokens":[{"symbol":"AAVE"},{"address":"0x0000000000000000000000000000000000000348"}]}'
 test_model 0 chainlink.price-by-registry '{"tokens":[{"symbol":"AAVE"},{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}]}'
 
-test_model 0 chainlink.price-by-feed '{"address":"0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"}'
-test_model 0 chainlink.price-by-feed '{"address":"0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}'
+test_model 0 chainlink.price-by-feed '{"address":"0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"}' # simple feed
+test_model 0 chainlink.price-by-feed '{"address":"0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}' # aggregator
 
 test_model 0 chainlink.price-usd '{"symbol":"AAVE"}'
 test_model 0 chainlink.price-usd '{"symbol":"WETH"}'

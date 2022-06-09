@@ -112,7 +112,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.8",
+                version="1.9",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -203,7 +203,19 @@ class CurveFinancePoolInfo(Model):
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
-        np_balance = np.array(balances_token)
+        token_prices = []
+        for tok in tokens:
+            if tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+                tok_price = self.context.run_model('curve-fi.price',
+                                                   input=tok,
+                                                   return_type=Price)
+            else:
+                tok_price = self.context.run_model('chainlink.price-usd',
+                                                   input=tok,
+                                                   return_type=Price)
+            token_prices.append(tok_price.price)
+
+        np_balance = np.array(balances_token) * np.array(token_prices)
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
         avg_balance = np_balance.mean()
