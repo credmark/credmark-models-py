@@ -32,6 +32,10 @@ test_model 0 curve-fi.pool-info '{"address":"0xDC24316b9AE028F1497c275EB9192a3Ea
 # Curve.fi Factory Plain Pool: cvxCRV (cvxcrv-f)
 test_model 0 curve-fi.pool-info '{"address":"0x9D0464996170c6B9e75eED71c68B99dDEDf279e8"}'
 
+# Curve.fi cyDAI/cyUSDC/cyUSDT 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
+test_model 0 curve-fi.pool-info '{"address":"0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"}'
+
+
 # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
 test_model 0 curve-fi.gauge-yield '{"address":"0x11137B10C210b579405c21A07489e28F3c040AB1"}' curve-fi.get-gauge-stake-and-claimable-rewards
 # Curve.fi tbtc2/sbtcCRV-f Gauge Deposit: 0x29284d30bcb70e86a6c3f84cbc4de0ce16b0f1ca
