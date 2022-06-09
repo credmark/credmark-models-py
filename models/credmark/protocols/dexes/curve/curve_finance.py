@@ -24,8 +24,7 @@ from credmark.cmf.types import (
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (
     TradingVolume,
-    TokenTradingVolume,
-    VolumeInput,
+    TokenTradingVolume
 )
 
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
@@ -113,7 +112,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.8",
+                version="1.10",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -198,13 +197,25 @@ class CurveFinancePoolInfo(Model):
         balances_token = [
             t.scaled(t.functions.balanceOf(input.address).call())
             if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            else float(self.context.web3.fromWei(self.context.web3.eth.get_balance(input.address),
-                                                 'ether'))
+            else float(self.context.web3.fromWei(
+                self.context.web3.eth.get_balance(input.address), 'ether'))
             for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
-        np_balance = np.array(balances_token)
+        token_prices = []
+        for tok in tokens:
+            if tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+                tok_price = self.context.run_model('curve-fi.price',
+                                                   input=tok,
+                                                   return_type=Price)
+            else:
+                tok_price = self.context.run_model('chainlink.price-usd',
+                                                   input=tok,
+                                                   return_type=Price)
+            token_prices.append(tok_price.price)
+
+        np_balance = np.array(balances_token) * np.array(token_prices)
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
         avg_balance = np_balance.mean()
@@ -288,7 +299,7 @@ class CurveFinancePoolInfo(Model):
 
 # TODO: Temporary price model for stablecoins on Curve
 @Model.describe(slug="curve-fi.price",
-                version="1.1",
+                version="1.2",
                 display_name="Curve Finance Pool - Price for stablecoins",
                 description="For those stablecoins primarily traded in curve",
                 input=Token,
@@ -304,7 +315,7 @@ class CurveFinancePrice(Model):
     Reference for LP token:
     - Chainlink: https://blog.chain.link/using-chainlink-oracles-to-securely-utilize-curve-lp-pools/
     """
-    CRV_STABLECOINS = {
+    CRV_CTOKENS = {
         1: {
             'cyDAI': Address('0x8e595470ed749b85c6f7669de83eae304c2ec68f'),
             'cyUSDC': Address('0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c'),
@@ -334,14 +345,31 @@ class CurveFinancePrice(Model):
 
     @staticmethod
     def supported_coins(chain_id):
-        return (list(CurveFinancePrice.CRV_STABLECOINS[chain_id].values()) +
+        return (list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
                 list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
                 list(CurveFinancePrice.CRV_LP[chain_id].keys())
                 )
 
     def run(self, input: Token) -> Price:
-        if input.address in self.CRV_STABLECOINS[self.context.chain_id].values():
-            return Price(price=1.0, src=self.slug)
+        if input.address in self.CRV_CTOKENS[self.context.chain_id].values():
+            ctoken = Token(address=input.address)
+            ctoken_decimals = ctoken.decimals
+            underlying_addr = ctoken.functions.underlying().call()
+            underlying_token = Token(address=Address(underlying_addr))
+            underlying_token_decimals = underlying_token.decimals
+
+            mantissa = 18 + underlying_token_decimals - ctoken_decimals
+            exchange_rate_stored = ctoken.functions.exchangeRateStored().call()
+            exchange_rate = exchange_rate_stored / 10**mantissa
+
+            price_underlying = self.context.run_model('chainlink.price-usd',
+                                                      input=underlying_token,
+                                                      return_type=Price)
+
+            price_underlying.price *= exchange_rate
+            if price_underlying.src is not None:
+                price_underlying.src = price_underlying.src + '|cToken'
+            return price_underlying
 
         derived_info = self.CRV_DERIVED[self.context.chain_id].get(input.address)
         if derived_info is not None:
