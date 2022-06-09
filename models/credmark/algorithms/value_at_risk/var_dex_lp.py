@@ -4,18 +4,16 @@ from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types import Contract, Token, Price
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
-
-import numpy as np
-import pandas as pd
-
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
-
 from models.tmp_abi_lookup import (
     UNISWAP_V3_POOL_ABI,
 )
+
+import numpy as np
+import pandas as pd
 
 
 @Model.describe(slug="finance.var-dex-lp",
@@ -142,12 +140,15 @@ class UniswapPoolVaR(Model):
                 (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
                 (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
 
-            impermenant_loss_vector_between = ((2*np.sqrt(ratio_change) - 1 - ratio_change) /
-                                               (1 + ratio_change - np.sqrt(1-input.lower_range) -
-                                                ratio_change * np.sqrt(1 / (1 + input.upper_range))))
+            impermenant_loss_vector_between = (
+                (2*np.sqrt(ratio_change) - 1 - ratio_change) /
+                (1 + ratio_change - np.sqrt(1-input.lower_range) -
+                 ratio_change * np.sqrt(1 / (1 + input.upper_range))))
 
-            impermenant_loss_vector_above = (np.sqrt(p_b) - np.sqrt(p_a)) / (
-                (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
+            impermenant_loss_vector_above = (
+                np.sqrt(p_b) - np.sqrt(p_a)) / (
+                (np.sqrt(p_b) - np.sqrt(p_0)) / (
+                    np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
                 (np.sqrt(p_0) - np.sqrt(p_a))) - 1
 
             impermenant_loss_vector = impermenant_loss_vector_between.copy()
