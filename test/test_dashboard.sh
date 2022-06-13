@@ -25,7 +25,7 @@ for pool in $curve_pools; do
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":1, "address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
@@ -105,7 +105,7 @@ for pool in $sushi_pools $univ2_pools $univ3_pools; do
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":1, "address":"'${pool}'"}' -j --api_url=http://localhost:8700
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
