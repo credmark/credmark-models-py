@@ -270,7 +270,7 @@ class Chef(Generic[ChefT, PlanT], RiskObject):  # pylint:disable=too-many-instan
                 type_hints = get_type_hints(rec.chef_return_type)
                 sub_type = get_type_hints(type_hints['series'].__args__[0])['output']
 
-                rec_copy = Recipe[sub_type, sub_type](
+                rec_copy = Recipe(
                     cache_keywords=rec_cache_keywords,
                     target_key=rec.target_key,
                     method='run_model',
