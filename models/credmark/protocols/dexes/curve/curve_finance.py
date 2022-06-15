@@ -89,7 +89,6 @@ class CurveFinanceAllPools(Model):
 
 
 class CurveFiPoolInfo(Contract):
-    virtualPrice: int
     tokens: Tokens
     tokens_symbol: List[str]
     balances: List[float]  # exclude fee
@@ -97,6 +96,7 @@ class CurveFiPoolInfo(Contract):
     admin_fees: List[float]
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
+    virtualPrice: int
     A: int
     chi: float
     ratio: float
