@@ -20,11 +20,6 @@ class TradingVolume(IterableListGenericDTO[TokenTradingVolume]):
     _iterator: str = "tokenVolumes"
 
 
-class TradingVolumes(IterableListGenericDTO[TradingVolume]):
-    tradingVolumes: List[TradingVolume]
-    _iterator: str = "tradingVolume"
-
-
 class VolumeInput(Contract):
     pool_info_model: str
     interval: int = DTOField(7200, gt=0,
