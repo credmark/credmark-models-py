@@ -30,6 +30,7 @@ from models.dtos.volume import (
     TradingVolume,
     TokenTradingVolume,
     VolumeInput,
+    VolumeInputHistorical,
 )
 
 from models.tmp_abi_lookup import (
@@ -255,13 +256,14 @@ class UniswapV2PoolTVL(Model):
         return tvl_info
 
 
-@Model.describe(slug='dex.pool-volume',
-                version='1.6',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
-                description='The volume of each token swapped in a pool in a window',
-                input=VolumeInput,
+@Model.describe(slug='dex.pool-volume-historical',
+                version='1.0',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                input=VolumeInputHistorical,
                 output=BlockSeries[TradingVolume])
-class UniswapV2PoolSwapVolume(Model):
+class DexPoolSwapVolumeHistorical(Model):
     def run(self, input: VolumeInput) -> BlockSeries[TradingVolume]:
         # pylint:disable=locally-disabled,protected-access,line-too-long
         pool = Contract(address=input.address)
@@ -412,7 +414,10 @@ class UniswapV2PoolSwapVolume(Model):
 
         # Use current block's price, instead.
         for cc in range(input.count):
-            block_number = df_all_swaps.loc[cc, 'max_block_number']  # type: ignore
+            block_number = df_all_swaps.loc[df_all_swaps.interval_n == cc, 'max_block_number']  # type: ignore
+            if block_number.empty:
+                continue
+            block_number = block_number.to_list()[0]
             pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
             for n in range(tokens_n):
                 token_out = df_all_swaps.loc[cc, f'inp_amount{n}_out']  # type: ignore
@@ -426,8 +431,8 @@ class UniswapV2PoolSwapVolume(Model):
                     def scale_func(bal, _):
                         return float(self.context.web3.fromWei(bal, 'ether'))
 
-                pool_volume_history.series[cc].blockNumber = block_number
-                pool_volume_history.series[cc].blockTimestamp = BlockNumber(block_number).timestamp
+                pool_volume_history.series[cc].blockNumber = int(block_number)
+                pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
                 pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
                 pool_volume_history.series[cc].output[n].sellAmount = scale_func(token_out, n)
                 pool_volume_history.series[cc].output[n].buyAmount = scale_func(token_in, n)
@@ -437,3 +442,19 @@ class UniswapV2PoolSwapVolume(Model):
                 pool_volume_history.series[cc].output[n].buyValue = scale_func(token_in * token_price, n)
 
         return pool_volume_history
+
+
+@Model.describe(slug='dex.pool-volume',
+                version='1.7',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current'),
+                input=VolumeInput,
+                output=TradingVolume)
+class DexPoolSwapVolume(Model):
+    def run(self, input: VolumeInput) -> TradingVolume:
+        input_historical = VolumeInputHistorical(**input.dict(), count=1)
+        volumes = self.context.run_model('dex.pool-volume-historical',
+                                         input=input_historical,
+                                         return_type=BlockSeries[TradingVolume])
+        return volumes.series[0].output
