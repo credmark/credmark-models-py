@@ -3,21 +3,21 @@ from credmark.cmf.model.errors import ModelRunError, ModelDataError
 
 from credmark.cmf.types import Contract, Token, Price
 
-import numpy as np
-import pandas as pd
-
+from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
-
 
 from models.tmp_abi_lookup import (
     UNISWAP_V3_POOL_ABI,
 )
 
+import numpy as np
+import pandas as pd
+
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.1",
+                version="1.2",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 input=UniswapPoolVaRInput,
@@ -54,7 +54,15 @@ class UniswapPoolVaR(Model):
         bal1 = token1.scaled(token1.functions.balanceOf(pool.address).call())
 
         # Current price
-        current_ratio = bal1 / bal0
+        if impermenant_loss_type == 'V2':
+            p_0 = bal1 / bal0
+        else:
+            v3_info = self.context.run_model('uniswap-v3.get-pool-info',
+                                             input=pool,
+                                             return_type=UniswapV3PoolInfo)
+            scale_multiplier = (10 ** (v3_info.token0.decimals - v3_info.token1.decimals))
+            # p_0 = tick_price = token0 / token1
+            p_0 = 1.0001 ** v3_info.tick * scale_multiplier
 
         _token0_price = self.context.run_model(self.PRICE_MODEL, input=token0)
         _token1_price = self.context.run_model(self.PRICE_MODEL, input=token1)
@@ -127,9 +135,31 @@ class UniswapPoolVaR(Model):
         if impermenant_loss_type == 'V2':
             impermenant_loss_vector = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
         else:
-            impermenant_loss_vector = ((2*np.sqrt(ratio_change) - 1 - ratio_change) /
-                                       (1 + ratio_change - np.sqrt(1-input.lower_range) -
-                                           ratio_change * np.sqrt(1 / (1 + input.upper_range))))
+            p_a = (1-input.lower_range) * p_0
+            p_b = (1+input.upper_range) * p_0
+
+            impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
+                (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
+                (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
+
+            impermenant_loss_vector_between = (
+                (2*np.sqrt(ratio_change) - 1 - ratio_change) /
+                (1 + ratio_change - np.sqrt(1-input.lower_range) -
+                 ratio_change * np.sqrt(1 / (1 + input.upper_range))))
+
+            impermenant_loss_vector_above = (
+                np.sqrt(p_b) - np.sqrt(p_a)) / (
+                (np.sqrt(p_b) - np.sqrt(p_0)) / (
+                    np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
+                (np.sqrt(p_0) - np.sqrt(p_a))) - 1
+
+            impermenant_loss_vector = impermenant_loss_vector_between.copy()
+            impermenant_loss_vector[
+                (ratio_change < 1 - input.lower_range)] = impermenant_loss_vector_under[
+                    (ratio_change < 1 - input.lower_range)]
+            impermenant_loss_vector[
+                (ratio_change > 1 + input.upper_range)] = impermenant_loss_vector_above[
+                    (ratio_change > 1 + input.lower_range)]
 
         # IL check
         # import matplotlib.pyplot as plt
@@ -185,7 +215,7 @@ class UniswapPoolVaR(Model):
             'pool': input.pool,
             'tokens_address': [token0.address, token1.address],
             'tokens_symbol': [token0.symbol, token1.symbol],
-            'ratio': current_ratio,
+            'ratio': p_0,
             'IL_type': impermenant_loss_type,
             'range': ([] if impermenant_loss_type == 'V2'
                       else [input.lower_range, input.upper_range]),

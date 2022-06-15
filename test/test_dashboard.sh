@@ -2,6 +2,9 @@ echo ""
 echo "Run Curve TVL/Volume"
 echo ""
 
+# set 0 to do quick test
+quick_test=1
+
 curve_pools="0xd658A338613198204DCa1143Ac3F01A722b5d94A
 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
@@ -13,7 +16,7 @@ curve_pools="0xd658A338613198204DCa1143Ac3F01A722b5d94A
 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
 0x9D0464996170c6B9e75eED71c68B99dDEDf279e8"
 
-curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry,curve-fi.price-3crv
+curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-usd,token.price,chainlink.price-by-registry
 
 for pool in $curve_pools; do
     credmark-dev run curve-fi.pool-tvl -i '{"address":"'$pool'"}' -j --api_url=http://localhost:8700 -l "*"
@@ -29,6 +32,11 @@ for pool in $curve_pools; do
     fi
 
     test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"10 days","interval":"1 day"}' ${curve_pool_info_tvl}
+
+	if [ $quick_test -eq 0 ]; then
+		break
+	fi
+
 done
 
 
@@ -36,8 +44,8 @@ done
 # Uniswap V3: 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
 # Uniswap V3: 0x4674abc5796e1334B5075326b39B748bee9EaA34
 
-# run_model_historical("finance.var-dex-lp", model_input={"pool": {"address":"0x4674abc5796e1334B5075326b39B748bee9EaA34"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, window="120 days")
-# models.finance.var_dex_lp({"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}, block_number=14830357)
+# run_model_historical("finance.var-dex-lp", model_input={"pool": {"address":"0x4674abc5796e1334B5075326b39B748bee9EaA34"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}, window="120 days")
+# models.finance.var_dex_lp({"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}, block_number=14830357)
 
 echo
 echo Test Pool TVL/Volume/VaR
@@ -104,11 +112,16 @@ for pool in $sushi_pools $univ2_pools $univ3_pools; do
     fi
 
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
-"window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}' -b 14830357 -j --api_url=http://localhost:8700
+"window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 14830357 -j --api_url=http://localhost:8700
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
+
+	if [ $quick_test -eq 0 ]; then
+		break
+	fi
+
 done
 
 echo
@@ -116,7 +129,7 @@ echo "Longer Test for LP VaR"
 echo
 
 credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
-"window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01, "price_model":"chainlink.price-usd"}' -b 13909787 -j --api_url=http://localhost:8700
+"window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 13909787 -j --api_url=http://localhost:8700
 exit_code=$?
 if [ $exit_code -ne 0 ]; then
     exit
@@ -125,9 +138,16 @@ fi
 for range_of_pool in 0.01 0.05 0.1 0.2 0.4 0.6 0.8 1.0; do
     echo LP VaR Range: ${range_of_pool}
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
-    "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}', "price_model":"chainlink.price-usd"}' -b 13909787 -j --api_url=http://localhost:8700
+    "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}'}' -b 13909787 -j --api_url=http://localhost:8700
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
+
+	if [ $quick_test -eq 0 ]; then
+		break
+	fi
 done
+
+unset quick_test
+echo $quick_test

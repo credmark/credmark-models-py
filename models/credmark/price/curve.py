@@ -35,7 +35,7 @@ class CurveFinancePrice(Model):
     Reference for LP token:
     - Chainlink: https://blog.chain.link/using-chainlink-oracles-to-securely-utilize-curve-lp-pools/
     """
-    CRV_STABLECOINS = {
+    CRV_CTOKENS = {
         1: {
             'cyDAI': Address('0x8e595470ed749b85c6f7669de83eae304c2ec68f'),
             'cyUSDC': Address('0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c'),
@@ -65,14 +65,31 @@ class CurveFinancePrice(Model):
 
     @staticmethod
     def supported_coins(chain_id):
-        return (list(CurveFinancePrice.CRV_STABLECOINS[chain_id].values()) +
+        return (list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
                 list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
                 list(CurveFinancePrice.CRV_LP[chain_id].keys())
                 )
 
     def run(self, input: Token) -> Price:
-        if input.address in self.CRV_STABLECOINS[self.context.chain_id].values():
-            return Price(price=1.0, src=self.slug)
+        if input.address in self.CRV_CTOKENS[self.context.chain_id].values():
+            ctoken = Token(address=input.address)
+            ctoken_decimals = ctoken.decimals
+            underlying_addr = ctoken.functions.underlying().call()
+            underlying_token = Token(address=Address(underlying_addr))
+            underlying_token_decimals = underlying_token.decimals
+
+            mantissa = 18 + underlying_token_decimals - ctoken_decimals
+            exchange_rate_stored = ctoken.functions.exchangeRateStored().call()
+            exchange_rate = exchange_rate_stored / 10**mantissa
+
+            price_underlying = self.context.run_model('price.quote',
+                                                      input=underlying_token,
+                                                      return_type=Price)
+
+            price_underlying.price *= exchange_rate
+            if price_underlying.src is not None:
+                price_underlying.src = price_underlying.src + '|cToken'
+            return price_underlying
 
         derived_info = self.CRV_DERIVED[self.context.chain_id].get(input.address)
         if derived_info is not None:
@@ -93,7 +110,7 @@ class CurveFinancePrice(Model):
                                                            n_token_other,
                                                            10**input.decimals).call() / 1e18
                     price_other = self.context.run_model('price.quote',
-                                                         input=other_token,
+                                                         input={'base': other_token},
                                                          return_type=Price).price
                     price_to_others.append(ratio_to_other * price_other)
 

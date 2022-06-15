@@ -22,10 +22,6 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceOracle(Model):
-    NATIVE_TOKEN = {
-        1: Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
-    }
-
     # The native token on other chain, give a direct address of feed.
     # TODO: find the token address so to find the feed in Chainlink's registry
     OVERRIDE_FEED = {
@@ -53,7 +49,7 @@ class PriceOracle(Model):
             # ('0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23', 'BTC'),
             # WETH:
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
-            ('0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419', 'USD')
+            ('ETH')
         }
     }
 
@@ -73,6 +69,16 @@ class PriceOracle(Model):
             Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
         }
     }
+
+    CONVERT_FOR_TOKEN_PRICE = {
+        1: {
+            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
+            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
+        }
+    }
+
     """
     Return the value of base token in amount of quote tokens
     """

@@ -1,16 +1,11 @@
 # pylint: disable=locally-disabled, unused-import
 
-from typing import List, Union
-
-import pandas as pd
-import numpy as np
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError
-
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
-from credmark.cmf.types.ledger import TransactionTable
-from credmark.dto import DTO, EmptyInput
-
+from models.dtos.volume import (
+    TradingVolume,
+    TokenTradingVolume
+)
+from models.dtos.volume import TradingVolume, TokenTradingVolume, VolumeInput
+from models.dtos.tvl import TVLInfo
 from credmark.cmf.types import (
     Address,
     Account,
@@ -23,9 +18,75 @@ from credmark.cmf.types import (
     Position,
     Price,
 )
+from credmark.dto import DTO, EmptyInput
+from credmark.cmf.types.ledger import TransactionTable
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
+from credmark.cmf.model import Model
+from web3.exceptions import ABIFunctionNotFound, ContractLogicError
+import numpy as np
+import pandas as pd
+from datetime import timedelta
+from typing import List, Union
 
-from models.dtos.tvl import TVLInfo
-from models.dtos.volume import TradingVolume, TokenTradingVolume, VolumeInput
+
+@Model.describe(slug='curve-fi.get-provider',
+                version='1.2',
+                display_name='Curve Finance - Get Provider',
+                description='Get provider contract',
+                input=EmptyInput,
+                output=Contract)
+class CurveFinanceGetProvider(Model):
+    CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
+
+    def run(self, _) -> Contract:
+        provider = Contract(address=Address(self.CURVE_PROVIDER_ALL_NETWORK).checksum)
+        return provider
+
+
+@Model.describe(slug='curve-fi.get-registry',
+                version='1.2',
+                display_name='Curve Finance - Get Registry',
+                description='Query provider to get the registry',
+                input=EmptyInput,
+                output=Contract)
+class CurveFinanceGetRegistry(Model):
+    def run(self, _) -> Contract:
+        provider = Contract(**self.context.models.curve_fi.get_provider())
+        reg_addr = provider.functions.get_registry().call()
+        return Contract(address=Address(reg_addr).checksum)
+
+
+@Model.describe(slug="curve-fi.get-gauge-controller",
+                version='1.2',
+                display_name="Curve Finance - Get Gauge Controller",
+                description="Query the registry for the guage controller")
+class CurveFinanceGetGauge(Model):
+    def run(self, input):
+        registry = Contract(**self.context.models.curve_fi.get_registry())
+        gauge_addr = registry.functions.gauge_controller().call()
+        return Contract(address=Address(gauge_addr).checksum)
+
+
+@Model.describe(slug="curve-fi.all-pools",
+                version="1.2",
+                display_name="Curve Finance - Get all pools",
+                description="Query the registry for all pools",
+                output=Contracts)
+class CurveFinanceAllPools(Model):
+    def run(self, _) -> Contracts:
+        registry = self.context.run_model('curve-fi.get-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+
+        total_pools = registry.functions.pool_count().call()
+        pool_contracts = [
+            Contract(address=registry.functions.pool_list(i).call())
+            for i in range(0, total_pools)]
+
+        return Contracts(contracts=pool_contracts)
+
+
+>>>>>> > origin/main
 
 
 class CurveFiPoolInfo(Contract):
@@ -38,6 +99,8 @@ class CurveFiPoolInfo(Contract):
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
     A: int
+    chi: float
+    ratio: float
     is_meta: bool
     name: str
     lp_token_name: str
@@ -108,7 +171,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.7",
+                version="1.10",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -193,17 +256,39 @@ class CurveFinancePoolInfo(Model):
         balances_token = [
             t.scaled(t.functions.balanceOf(input.address).call())
             if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            else float(self.context.web3.fromWei(self.context.web3.eth.get_balance(input.address),
-                                                 'ether'))
+            else float(self.context.web3.fromWei(
+                self.context.web3.eth.get_balance(input.address), 'ether'))
             for t in tokens]
+
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
+        token_prices = []
+        for tok in tokens:
+            tok_price = self.context.run_model('price.quote',
+                                               input={'base': tok},
+                                               return_type=Price)
+            token_prices.append(tok_price.price)
+
+        np_balance = np.array(balances_token) * np.array(token_prices)
+        n_asset = np_balance.shape[0]
+        product_balance = np_balance.prod()
+        avg_balance = np_balance.mean()
+
+        # Calculating ratio, this gives information about peg
+        ratio = product_balance / np.power(avg_balance, n_asset)
+
         try:
-            a = input.functions.A().call()
             virtual_price = input.functions.get_virtual_price().call()
         except Exception as _err:
             virtual_price = (10**18)
-            a = 0
+
+        try:
+            pool_A = input.functions.A().call()
+        except Exception as _err:
+            pool_A = 0
+
+        # Calculating 'chi'
+        chi = pool_A * ratio
 
         is_meta = registry.functions.is_meta(input.address.checksum).call()
 
@@ -215,23 +300,26 @@ class CurveFinancePoolInfo(Model):
         lp_token_addr = Address.null()
         lp_token_name = ''
         try:
-            lp_token_addr = Address(input.functions.lp_token().call())
-            lp_token = Token(address=lp_token_addr.checksum)
-            lp_token_name = lp_token.name
+            lp_token_addr = Address(registry.functions.get_lp_token(input.address).call())
         except ABIFunctionNotFound:
             try:
-                provider = self.context.run_model('curve-fi.get-provider',
-                                                  input=EmptyInput(),
-                                                  return_type=Contract)
-                pool_info_addr = Address(provider.functions.get_address(1).call())
-                pool_info_contract = Contract(address=pool_info_addr.checksum)
-                pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
-                             .call())
-                lp_token_addr = Address(pool_info[5])
-                lp_token = Token(address=lp_token_addr.checksum)
-                lp_token_name = lp_token.name
-            except ContractLogicError:
-                pass
+                lp_token_addr = Address(input.functions.lp_token().call())
+            except ABIFunctionNotFound:
+                try:
+                    provider = self.context.run_model('curve-fi.get-provider',
+                                                      input=EmptyInput(),
+                                                      return_type=Contract)
+                    pool_info_addr = Address(provider.functions.get_address(1).call())
+                    pool_info_contract = Contract(address=pool_info_addr.checksum)
+                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
+                                 .call())
+                    lp_token_addr = Address(pool_info[5])
+                except ContractLogicError:
+                    pass
+
+        if lp_token_addr != Address.null():
+            lp_token = Token(address=lp_token_addr.checksum)
+            lp_token_name = lp_token.name
 
         pool_token_addr = Address.null()
         pool_token_name = ''
@@ -251,7 +339,9 @@ class CurveFinancePoolInfo(Model):
                                admin_fees=admin_fees,
                                underlying_tokens=underlying,
                                underlying_tokens_symbol=underlying_symbol,
-                               A=a,
+                               A=pool_A,
+                               ratio=ratio,
+                               chi=chi,
                                is_meta=is_meta,
                                name=name,
                                lp_token_name=lp_token_name,
@@ -311,7 +401,7 @@ class HistoricalRunModelInput(DTO):
 
 # TODO: Pre-composer model
 @ Model.describe(slug="historical.run-model",
-                 version="1.0",
+                 version="1.1",
                  display_name="Run Any model for historical",
                  description="",
                  input=HistoricalRunModelInput,
@@ -321,12 +411,16 @@ class HistoricalRunModel(Model):
         window = input.window
         interval = input.interval
 
+        # TODO: add two days to the end as work-around to current start-end-window
+        dt_end = (self.context.block_number.timestamp_datetime + timedelta(days=1))
+        ts_end = int(dt_end.timestamp())
+
         result = self.context.historical.run_model_historical(
             model_slug=input.model_slug,
             model_input=input.model_input,
             window=window,
             interval=interval,
-            end_timestamp=self.context.block_number.timestamp)
+            end_timestamp=ts_end)
 
         return {'result': result}
 

@@ -40,8 +40,8 @@ class SushiswapV2Factory(Model):
 
 @Model.describe(slug='sushiswap.get-pools',
                 version='1.1',
-                display_name='Uniswap v2 Token Pools',
-                description='The Uniswap v2 pools that support a token contract',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
                 input=Token,
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):

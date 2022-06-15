@@ -254,7 +254,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @Model.describe(slug='dex.pool-volume',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
                 description='The volume of each token swapped in a pool in a window',
                 input=VolumeInput,

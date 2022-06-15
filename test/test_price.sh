@@ -2,6 +2,24 @@ echo_cmd ""
 echo_cmd "Price"
 echo_cmd ""
 
+token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
+0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"
+
+for token_addr in $token_addrs; do
+    test_model 0 price.dex-curve-fi '{"address":"'${token_addr}'"}'
+    test_model 0 price.quote '{"base": {"address":"'${token_addr}'"}}'
+done
+
+
+echo_cmd ""
+echo_cmd "Chainlink Oracle Price"
+echo_cmd ""
+
+# 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E ilv
+# 0x383518188C0C6d7730D91b2c03a03C837814a899 ohm-eth.data.eth
+# 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5 ohmv2-eth.data.eth
+# 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B tribe-eth.data.eth
+
 token_addrs="0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
 0xD31a59c85aE9D8edEFeC411D448f90841571b89c
 0xB8c77482e45F1F44dE1745F52C74426C631bDD52
@@ -12,6 +30,7 @@ token_addrs="0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5
 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B
 0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
+0x383518188C0C6d7730D91b2c03a03C837814a899
 BTC
 USD
 ETH

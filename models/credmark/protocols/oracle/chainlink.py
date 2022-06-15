@@ -63,7 +63,17 @@ class ChainLinkPriceByFeed(Model):
         decimals = feed_contract.functions.decimals().call()
         description = feed_contract.functions.description().call()
         version = feed_contract.functions.version().call()
-        feed = feed_contract.functions.aggregator().call()
+
+        feed = None
+        if feed_contract.abi is not None:
+            abi_funcs = [x['name'].lower()  # type: ignore
+                         for x in feed_contract.abi
+                         if 'name' in x]
+            if 'aggregator'.lower() in abi_funcs:
+                feed = feed_contract.functions.aggregator().call()
+
+        if feed is None:
+            feed = input.address
         isFeedEnabled = None
 
         time_diff = self.context.block_number.timestamp - _updatedAt
