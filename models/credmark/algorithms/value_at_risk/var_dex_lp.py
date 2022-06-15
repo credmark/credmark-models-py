@@ -23,7 +23,7 @@ from models.tmp_abi_lookup import (
                 input=UniswapPoolVaRInput,
                 output=dict)
 class UniswapPoolVaR(Model):
-    PRICE_MODEL = 'price.cmf'
+    PRICE_MODEL = 'price.quote'
 
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.

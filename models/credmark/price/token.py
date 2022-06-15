@@ -16,19 +16,19 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 @Model.describe(slug='price',
                 version='1.0',
                 display_name='Token Price',
-                description='DEPRECATED - use price.cmf',
+                description='DEPRECATED - use price.quote',
                 input=Token,
                 output=Price)
 class PriceModel(Model):
     """
-    Return token's price (DEPRECATED) - use price.cmf
+    Return token's price (DEPRECATED) - use price.quote
     """
 
     def run(self, input: Token) -> Price:
-        return self.context.run_model('price.cmf', input, return_type=Price)
+        return self.context.run_model('price.quote', input, return_type=Price)
 
 
-@Model.describe(slug='price.cmf',
+@Model.describe(slug='price.quote',
                 version='1.2',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',

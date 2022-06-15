@@ -278,7 +278,7 @@ class CurveFinancePoolTVL(Model):
         for tok, bal in zip(pool_info.tokens.tokens, pool_info.balances):
             positions.append(Position(amount=bal, asset=tok))
 
-            tok_price = self.context.run_model('price.cmf',
+            tok_price = self.context.run_model('price.quote',
                                                input=tok,
                                                return_type=Price)
             prices.append(tok_price)

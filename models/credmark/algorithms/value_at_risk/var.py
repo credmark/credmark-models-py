@@ -30,7 +30,7 @@ class VaRPortfolio(Model):
         for position in portfolio:
             if position.asset.address not in pl_assets:
                 historial_price = self.context.historical.run_model_historical(
-                    model_slug='price.cmf',
+                    model_slug='price.quote',
                     model_input=position.asset,
                     window=input.window,
                     model_return_type=Price)

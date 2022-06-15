@@ -384,7 +384,7 @@ class CompoundV2GetPoolInfo(Model):
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        tokenprice = self.context.run_model(slug='price.cmf', input=token, return_type=Price)
+        tokenprice = self.context.run_model(slug='price.quote', input=token, return_type=Price)
 
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')

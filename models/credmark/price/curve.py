@@ -92,7 +92,7 @@ class CurveFinancePrice(Model):
                     ratio_to_other = pool.functions.get_dy(n_token_input,
                                                            n_token_other,
                                                            10**input.decimals).call() / 1e18
-                    price_other = self.context.run_model('price.cmf',
+                    price_other = self.context.run_model('price.quote',
                                                          input=other_token,
                                                          return_type=Price).price
                     price_to_others.append(ratio_to_other * price_other)
@@ -113,7 +113,7 @@ class CurveFinancePrice(Model):
 
             price_tokens = []
             for tok in pool_info.tokens:
-                price_tok = self.context.run_model('price.cmf',
+                price_tok = self.context.run_model('price.quote',
                                                    input=tok,
                                                    return_type=Price).price
                 price_tokens.append(price_tok)
