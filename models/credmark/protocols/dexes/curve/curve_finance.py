@@ -29,66 +29,6 @@ from datetime import timedelta
 from typing import List, Union
 
 
-@Model.describe(slug='curve-fi.get-provider',
-                version='1.2',
-                display_name='Curve Finance - Get Provider',
-                description='Get provider contract',
-                input=EmptyInput,
-                output=Contract)
-class CurveFinanceGetProvider(Model):
-    CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
-
-    def run(self, _) -> Contract:
-        provider = Contract(address=Address(self.CURVE_PROVIDER_ALL_NETWORK).checksum)
-        return provider
-
-
-@Model.describe(slug='curve-fi.get-registry',
-                version='1.2',
-                display_name='Curve Finance - Get Registry',
-                description='Query provider to get the registry',
-                input=EmptyInput,
-                output=Contract)
-class CurveFinanceGetRegistry(Model):
-    def run(self, _) -> Contract:
-        provider = Contract(**self.context.models.curve_fi.get_provider())
-        reg_addr = provider.functions.get_registry().call()
-        return Contract(address=Address(reg_addr).checksum)
-
-
-@Model.describe(slug="curve-fi.get-gauge-controller",
-                version='1.2',
-                display_name="Curve Finance - Get Gauge Controller",
-                description="Query the registry for the guage controller")
-class CurveFinanceGetGauge(Model):
-    def run(self, input):
-        registry = Contract(**self.context.models.curve_fi.get_registry())
-        gauge_addr = registry.functions.gauge_controller().call()
-        return Contract(address=Address(gauge_addr).checksum)
-
-
-@Model.describe(slug="curve-fi.all-pools",
-                version="1.2",
-                display_name="Curve Finance - Get all pools",
-                description="Query the registry for all pools",
-                output=Contracts)
-class CurveFinanceAllPools(Model):
-    def run(self, _) -> Contracts:
-        registry = self.context.run_model('curve-fi.get-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract)
-
-        total_pools = registry.functions.pool_count().call()
-        pool_contracts = [
-            Contract(address=registry.functions.pool_list(i).call())
-            for i in range(0, total_pools)]
-
-        return Contracts(contracts=pool_contracts)
-
-
->>>>>> > origin/main
-
-
 class CurveFiPoolInfo(Contract):
     virtualPrice: int
     tokens: Tokens
