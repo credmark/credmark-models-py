@@ -2,24 +2,28 @@ echo_cmd ""
 echo_cmd "Run VaR examples"
 echo_cmd ""
 
-test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+test_model 0 finance.var-portfolio-historical \
+'{"window": "100 days", "interval": 1, "confidence": 0.01,
   "portfolio": {"positions":
   [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}]}}' __all__
 
-test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+test_model 0 finance.var-portfolio-historical \
+'{"window": "100 days", "interval": 1, "confidence": 0.01,
   "portfolio": {"positions":
   [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
    {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
   ]}}'
 
-test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+test_model 0 finance.var-portfolio-historical \
+'{"window": "100 days", "interval": 1, "confidence": 0.01,
   "portfolio": {"positions":
   [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
    {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
    {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
   ]}}'
 
-test_model 0 finance.var-portfolio-historical '{"window": "100 days", "interval": 1, "confidence": 0.01,
+test_model 0 finance.var-portfolio-historical \
+'{"window": "100 days", "interval": 1, "confidence": 0.01,
   "portfolio": {"positions":
   [{"amount": 10, "asset": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}]}}' __all__
 
@@ -46,8 +50,13 @@ test_model 0 finance.var-portfolio-historical \
   ]}}'
 
 
-test_model 0 finance.var-portfolio-historical '{"window": "20 days", "interval": 1, "confidence": 0.01, "portfolio": {"positions": [{"amount": "0.5", "asset": {"symbol": "WBTC"}}, {"amount": "0.5", "asset": {"symbol": "WETH"}}]}}'
-test_model 0 finance.var-aave '{"window": "30 days", "interval": 3, "confidence": 0.01}' finance.var-portfolio-historical
+test_model 0 finance.var-portfolio-historical \
+'{"window": "20 days", "interval": 1, "confidence": 0.01,
+"portfolio": {"positions":
+[{"amount": "0.5", "asset": {"symbol": "WBTC"}},
+{"amount": "0.5", "asset": {"symbol": "WETH"}}]}}'
+test_model 0 finance.var-aave \
+'{"window": "30 days", "interval": 3, "confidence": 0.01}' finance.var-portfolio-historical
 test_model 0 finance.var-compound '{"window": "30 days", "interval": 3, "confidence": 0.01}' finance.var-portfolio-historical
 test_model 0 finance.example-var-contract '{"window": "30 days", "interval": 3, "confidence": 0.01}' finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical
 
@@ -57,7 +66,9 @@ echo_cmd ""
 test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
 test_model 0 finance.min-risk-rate '{}' compound-v2.get-pool-info,compound-v2.all-pools-info
 
-test_model 0 finance.sharpe-ratio-token '{"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}, "prices": {"series": [
+test_model 0 finance.sharpe-ratio-token \
+'{"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
+"prices": {"series": [
 {"blockNumber": "10", "blockTimestamp": "10", "sampleTimestamp": "10", "output": {"price": 4.2, "src": ""}},
 {"blockNumber": "9", "blockTimestamp": "9", "sampleTimestamp": "9", "output": {"price": 3.2, "src": ""}},
 {"blockNumber": "8", "blockTimestamp": "8", "sampleTimestamp": "8", "output": {"price": 6.2, "src": ""}},

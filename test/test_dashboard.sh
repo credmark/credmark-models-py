@@ -25,7 +25,13 @@ for pool in $curve_pools; do
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
@@ -77,18 +83,17 @@ univ2_pools="0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc
             0x3da1313ae46132a397d90d95b1424a9a7e3e0fce"
 
 univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
-            0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
-            0xc63b0708e2f7e69cb8a1df0e1389a98c35a76d52
-            0x4e68ccd3e89f51c3074ca5072bbac773960dfa36
-            0x97e7d56a0408570ba1a7852de36350f7713906ec
-            0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
-            "
-univ3_pools_no_l2
-# 0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168
-# 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640
-# 0x3416cf6c708da44db2624d63ea0aaef7113527c6
-# 0x7379e81228514a1d2a6cf7559203998e20598346
-# 0x4674abc5796e1334B5075326b39B748bee9EaA34
+0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
+0xc63b0708e2f7e69cb8a1df0e1389a98c35a76d52
+0x4e68ccd3e89f51c3074ca5072bbac773960dfa36
+0x97e7d56a0408570ba1a7852de36350f7713906ec
+0x99ac8ca7087fa4a2a1fb6357269965a2014abc35
+0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168
+0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640
+0x3416cf6c708da44db2624d63ea0aaef7113527c6
+0x7379e81228514a1d2a6cf7559203998e20598346
+0x4674abc5796e1334B5075326b39B748bee9EaA34
+"
 
 # for pool in $univ3_pools; do
 # for pool in $sushi_pools $univ2_pools; do
@@ -105,7 +110,13 @@ for pool in $sushi_pools $univ2_pools $univ3_pools; do
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "block_offset":-7200,"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        exit
+    fi
+
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "address":"'${pool}'"}' -j --api_url=http://localhost:8700
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit

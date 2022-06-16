@@ -89,7 +89,6 @@ class CurveFinanceAllPools(Model):
 
 
 class CurveFiPoolInfo(Contract):
-    virtualPrice: int
     tokens: Tokens
     tokens_symbol: List[str]
     balances: List[float]  # exclude fee
@@ -97,6 +96,7 @@ class CurveFiPoolInfo(Contract):
     admin_fees: List[float]
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
+    virtualPrice: int
     A: int
     chi: float
     ratio: float
@@ -113,7 +113,7 @@ class CurveFiPoolInfos(DTO):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.10",
+                version="1.11",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -206,7 +206,14 @@ class CurveFinancePoolInfo(Model):
 
         token_prices = []
         for tok in tokens:
-            if tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+            derived_info = CurveFinancePrice.CRV_DERIVED[self.context.chain_id].get(tok.address)
+            if derived_info is not None:
+                tok_price = CurveFinancePrice.price_for_derived(self,
+                                                                tok,
+                                                                input,
+                                                                tokens,
+                                                                tokens_symbol)
+            elif tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
                 tok_price = self.context.run_model('curve-fi.price',
                                                    input=tok,
                                                    return_type=Price)
@@ -351,6 +358,29 @@ class CurveFinancePrice(Model):
                 list(CurveFinancePrice.CRV_LP[chain_id].keys())
                 )
 
+    @staticmethod
+    def price_for_derived(model, input, pool, pool_tokens, pool_tokens_symbol):
+        n_token_input = np.where([tok == input for tok in pool_tokens])[0].tolist()
+        if len(n_token_input) != 1:
+            raise ModelRunError(
+                f'{model.slug} does not find {input=} in pool {pool.address=}')
+        n_token_input = n_token_input[0]
+
+        price_to_others = []
+        for n_token_other, other_token in enumerate(pool_tokens):
+            if n_token_other != n_token_input:
+                ratio_to_other = pool.functions.get_dy(n_token_input,
+                                                       n_token_other,
+                                                       10**input.decimals).call() / 1e18
+                price_other = model.context.run_model('chainlink.price-usd',
+                                                      input=other_token,
+                                                      return_type=Price).price
+                price_to_others.append(ratio_to_other * price_other)
+
+        n_price_min = np.where(price_to_others)[0][0]
+        return Price(price=np.min(price_to_others),
+                     src=f'{model.slug}|{pool.address}|{pool_tokens_symbol[n_price_min]}')
+
     def run(self, input: Token) -> Price:
         if input.address in self.CRV_CTOKENS[self.context.chain_id].values():
             ctoken = Token(address=input.address)
@@ -378,26 +408,11 @@ class CurveFinancePrice(Model):
             pool_info = self.context.run_model('curve-fi.pool-info',
                                                input=pool,
                                                return_type=CurveFiPoolInfo)
-            n_token_input = np.where([tok == input for tok in pool_info.tokens])[0].tolist()
-            if len(n_token_input) != 1:
-                raise ModelRunError(
-                    f'{self.slug} does not find {input=} in pool {pool.address=}')
-            n_token_input = n_token_input[0]
-
-            price_to_others = []
-            for n_token_other, other_token in enumerate(pool_info.tokens):
-                if n_token_other != n_token_input:
-                    ratio_to_other = pool.functions.get_dy(n_token_input,
-                                                           n_token_other,
-                                                           10**input.decimals).call() / 1e18
-                    price_other = self.context.run_model('chainlink.price-usd',
-                                                         input=other_token,
-                                                         return_type=Price).price
-                    price_to_others.append(ratio_to_other * price_other)
-
-            n_price_min = np.where(price_to_others)[0][0]
-            return Price(price=np.min(price_to_others),
-                         src=f'{self.slug}|{pool.address}|{pool_info.tokens_symbol[n_price_min]}')
+            return self.price_for_derived(self,
+                                          input,
+                                          pool,
+                                          pool_info.tokens,
+                                          pool_info.tokens_symbol)
 
         lp_token_info = self.CRV_LP[self.context.chain_id].get(input.address)
         if lp_token_info is not None:

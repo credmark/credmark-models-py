@@ -31,7 +31,6 @@ class CurveFinanceHistoricalReserve(Model):
 
         balances = []
         for r in res:
-
             balances.append({
                 "name": r.output['name'],
                 "balances": r.output['balances'],
@@ -40,5 +39,4 @@ class CurveFinanceHistoricalReserve(Model):
                 "blocknumber": r.blockNumber,
                 "block_time": str(BlockNumber(r.blockNumber).timestamp_datetime)
             })
-
         return {'balances': balances}
