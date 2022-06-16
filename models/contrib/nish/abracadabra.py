@@ -10,6 +10,7 @@ from credmark.cmf.types import (
     Contract,
     Token,
 )
+from credmark.cmf.types.series import BlockSeries
 from credmark.dto import (
     DTO,
     EmptyInput,
@@ -167,9 +168,9 @@ class AbracadabraHistoricalInput(DTO):
                 display_name="Get TVL for abracadabra",
                 description="Get TVL for abracadabra",
                 input=AbracadabraHistoricalInput,
-                output=dict)
+                output=BlockSeries[AbracadabraOutput])
 class AbracadabraGetTVLHistorical(Model):
-    def run(self, input: AbracadabraHistoricalInput) -> dict:
+    def run(self, input: AbracadabraHistoricalInput) -> BlockSeries[AbracadabraOutput]:
         d_start, d_end = input.date_range
         if d_start > d_end:
             d_start, d_end = d_end, d_start

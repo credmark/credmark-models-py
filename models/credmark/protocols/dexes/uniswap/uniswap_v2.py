@@ -269,7 +269,7 @@ class UniswapV2PoolTVL(Model):
                 input=VolumeInputHistorical,
                 output=BlockSeries[TradingVolume])
 class DexPoolSwapVolumeHistorical(Model):
-    def run(self, input: VolumeInput) -> BlockSeries[TradingVolume]:
+    def run(self, input: VolumeInputHistorical) -> BlockSeries[TradingVolume]:
         # pylint:disable=locally-disabled,protected-access,line-too-long
         pool = Contract(address=input.address)
 
@@ -326,11 +326,6 @@ class DexPoolSwapVolumeHistorical(Model):
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history
-
-            df_all_swaps.loc[:, 'start_block_number'] = (
-                int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
-            df_all_swaps.loc[:, 'end_block_number'] = (
-                int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
 
             if event_swap_args == sorted(['amount0in', 'amount1in', 'amount0out', 'amount1out']):
                 df_all_swaps = (df_all_swaps.drop(columns=([f'sum_neg_inp_amount{n}in' for n in range(tokens_n)] +  # type: ignore
@@ -395,17 +390,17 @@ class DexPoolSwapVolumeHistorical(Model):
                                   'max_block_number': ['max'],
                                   'count_block_number': ['sum']} |
                                  {f'inp_amount{n}_in': ['sum'] for n in range(tokens_n)} |
-                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)})
-                            .sort_values('interval_n')
-                            .reset_index(drop=True))
-
+                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)}))
             df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
-            df_all_swaps.loc[:, 'start_block_number'] = (
-                int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
-            df_all_swaps.loc[:, 'end_block_number'] = (
-                int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
+            df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
+
+        df_all_swaps.loc[:, 'interval_n'] = input.count - df_all_swaps.loc[:, 'interval_n'] - 1
+        df_all_swaps.loc[:, 'start_block_number'] = (
+            int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
+        df_all_swaps.loc[:, 'end_block_number'] = (
+            int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
 
         # TODO: get price for each block when composer model is ready
         # all_blocks = df_all_swaps.loc[:, ['evt_block_number']]  # type: ignore
@@ -419,14 +414,20 @@ class DexPoolSwapVolumeHistorical(Model):
 
         # Use current block's price, instead.
         for cc in range(input.count):
-            block_number = df_all_swaps.loc[df_all_swaps.interval_n == cc, 'max_block_number']  # type: ignore
-            if block_number.empty:
+            df_swap_sel = df_all_swaps.loc[df_all_swaps.interval_n == cc, :]
+
+            if df_swap_sel.empty:  # type: ignore
+                block_number = self.context.block_number + (cc - input.count + 1) * input.interval
+                pool_volume_history.series[cc].blockNumber = int(block_number)
+                pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
+                pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
                 continue
-            block_number = block_number.to_list()[0]
+
+            block_number = df_swap_sel.max_block_number.to_list()[0]  # type: ignore
             pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
             for n in range(tokens_n):
-                token_out = df_all_swaps.loc[cc, f'inp_amount{n}_out']  # type: ignore
-                token_in = df_all_swaps.loc[cc, f'inp_amount{n}_in']  # type: ignore
+                token_out = df_swap_sel[f'inp_amount{n}_out']  # type: ignore
+                token_in = df_swap_sel[f'inp_amount{n}_in']  # type: ignore
                 token_price = pool_info_past['prices'][n]['price']  # type: ignore
 
                 if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
