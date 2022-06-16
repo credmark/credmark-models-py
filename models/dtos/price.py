@@ -1,20 +1,6 @@
-import os
-import yaml
-from typing import List, Union, Dict
-from credmark.cmf.types import Address, Token, FiatCurrency
+from typing import List
+from credmark.cmf.types import Address, Currency, FiatCurrency, Token
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-
-
-def to_hex_address(code):
-    return '0x{:040x}'.format(code)
-
-
-with open(os.path.join(os.path.dirname(__file__), 'chainlink_code.yaml')) as fp:
-    codes = yaml.safe_load(fp)['codes']
-    CHAINLINK_CODE: Dict[str, Address] = ({k['name']: Address(to_hex_address(k['code'])
-                                                              if 'code' in k
-                                                              else k['address'])
-                                           for k in codes})
 
 
 class PriceInput(DTO):
@@ -40,17 +26,20 @@ class PriceInput(DTO):
     e.g. ETH / USD
     """
 
-    base: Union[Token, FiatCurrency] = \
+    base: Currency = \
         DTOField(description='Base token address to get the value for')
-    quote: Union[Token, FiatCurrency] = \
+    quote: Currency = \
         DTOField(FiatCurrency(symbol='USD'),
                  description='Quote token address to count the value')
 
+    def invert(self):
+        return PriceInput(base=self.quote, quote=self.base)
+
     class Config:
         schema_extra = {
-            'examples': [{'base': {'address': 'USD'}},
+            'examples': [{'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
-                          'quote': {'symbol': ''}}]
+                          'quote': {'symbol': 'USD'}}]
         }
 
 

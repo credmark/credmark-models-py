@@ -24,8 +24,9 @@ from credmark.dto import DTO, EmptyInput
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.model import Model
+
 from models.dtos.tvl import TVLInfo
-from models.credmark.price.curve import CurveFinancePrice
+from models.credmark.price.curve_helper import CRV_DERIVED, curve_price_for_derived_token
 
 
 class CurveFiPoolInfo(Contract):
@@ -203,17 +204,13 @@ class CurveFinancePoolInfo(Model):
 
         token_prices = []
         for tok in tokens:
-            derived_info = CurveFinancePrice.CRV_DERIVED[self.context.chain_id].get(tok.address)
+            derived_info = CRV_DERIVED[self.context.chain_id].get(tok.address)
             if derived_info is not None:
-                tok_price = CurveFinancePrice.price_for_derived(self,
-                                                                tok,
-                                                                input,
-                                                                tokens,
-                                                                tokens_symbol)
-            elif tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
-                tok_price = self.context.run_model('curve-fi.price',
-                                                   input=tok,
-                                                   return_type=Price)
+                tok_price = curve_price_for_derived_token(self,
+                                                          tok,
+                                                          input,
+                                                          tokens,
+                                                          tokens_symbol)
             else:
                 tok_price = self.context.run_model('price.quote',
                                                    input=tok,

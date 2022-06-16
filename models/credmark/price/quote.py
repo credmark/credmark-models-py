@@ -30,8 +30,8 @@ class PriceModel(Model):
 
 @Model.describe(slug='price.quote',
                 version='1.2',
-                display_name='Token price - Credmark',
-                description='The Current Credmark Supported Price Algorithms',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 input=PriceInput,
                 output=Price,

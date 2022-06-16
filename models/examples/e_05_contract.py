@@ -59,10 +59,12 @@ class ExampleContract(Model):
             ).get_all_entries()
 
             output.log_io(input="""
-    vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
-                fromBlock=0,
-                toBlock=self.context.block_number
-            ).get_all_entries()""", output=vesting_added_events)
+vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
+    fromBlock=0,
+    toBlock=self.context.block_number
+).get_all_entries()
+        """, output=vesting_added_events)
+
         except (ValueError, socket.timeout, ReadTimeoutError, ReadTimeout):
             # Some Eth node does not support the newer eth_newFilter method
             try:
@@ -79,11 +81,8 @@ class ExampleContract(Model):
                 vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
                 vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                                         for s in vesting_added_events]
-            except (ReadTimeoutError, ReadTimeout):
-                output.log_error('There was timeout error when reading logs for '
-                                 f'{contract.address}')
 
-            output.log_io(input="""
+                output.log_io(input="""
 event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi() # pylint:disable=locally-disabled,protected-access
 
 __data_filter_set, event_filter_params = construct_event_filter_params(
@@ -96,11 +95,14 @@ __data_filter_set, event_filter_params = construct_event_filter_params(
 vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
 vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                         for s in vesting_added_events]
-""", output=vesting_added_events)
+                    """, output=vesting_added_events)
 
-        output.log("And to map the events to list of accounts")
-        output.log_io(input="[event['args']['account'] for event in vesting_added_events]",
-                      output=[event['args']['account'] for event in vesting_added_events])
+                output.log("And to map the events to list of accounts")
+                output.log_io(input="[event['args']['account'] for event in vesting_added_events]",
+                              output=[event['args']['account'] for event in vesting_added_events])
+            except (ReadTimeoutError, ReadTimeout):
+                output.log_error('There was timeout error when reading logs for '
+                                 f'{contract.address}')
 
         # Contract ledger queries
         output.log("You can query ledger data for contract function calls")
@@ -112,15 +114,14 @@ contract.ledger.functions.addVestingSchedule(columns=[
     ],
     order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
     limit='5')
-        """,
-                      output=contract.ledger.functions.addVestingSchedule(
-                          columns=[
-                              ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
-                              ContractLedger.Functions.InputCol('account'),
-                              ContractLedger.Functions.InputCol('allocation')
-                          ],
-                          order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
-                          limit='5'))
+        """, output=contract.ledger.functions.addVestingSchedule(
+            columns=[
+                ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
+                ContractLedger.Functions.InputCol('account'),
+                ContractLedger.Functions.InputCol('allocation')
+            ],
+            order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
+            limit='5'))
 
         output.log("You can query ledger data for contract events")
         output.log_io(input="""
@@ -131,14 +132,13 @@ contract.ledger.events.VestingScheduleAdded(columns=[
     ],
     order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
     limit='5')
-        """,
-                      output=contract.ledger.events.VestingScheduleAdded(
-                          columns=[
-                              ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
-                              ContractLedger.Events.InputCol('account'),
-                              ContractLedger.Events.InputCol('allocation')
-                          ],
-                          order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
-                          limit='5'))
+        """, output=contract.ledger.events.VestingScheduleAdded(
+            columns=[
+                ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
+                ContractLedger.Events.InputCol('account'),
+                ContractLedger.Events.InputCol('allocation')
+            ],
+            order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
+            limit='5'))
 
         return output

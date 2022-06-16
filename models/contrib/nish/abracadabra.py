@@ -194,7 +194,7 @@ class AbracadabraGetTVLHistorical(Model):
             interval=interval,
             end_timestamp=ts_as_of_end_dt)
 
-        return output.dict()
+        return output
 
 
 class AbracadabraVaultPortfolio(Contract):

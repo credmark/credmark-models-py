@@ -91,25 +91,23 @@ class ChainLinkPriceByFeed(Model):
                  output=Price)
 class ChainLinkPriceByRegistry(Model):
     def run(self, input: PriceInput) -> Price:
-        token0_address = input.base
-        if input.quote is None:
-            raise ModelDataError('quote must not be None.')
-        token1_address = input.quote
+        base_address = input.base.address
+        quote_address = input.quote.address
 
         registry = self.context.run_model('chainlink.get-feed-registry',
                                           input=EmptyInput(),
                                           return_type=Contract)
         try:
             sys.tracebacklimit = 0
-            feed = registry.functions.getFeed(token0_address, token1_address).call()
+            feed = registry.functions.getFeed(base_address, quote_address).call()
             (_roundId, answer,
                 _startedAt, _updatedAt,
                 _answeredInRound) = (registry.functions
-                                     .latestRoundData(token0_address, token1_address)
+                                     .latestRoundData(base_address, quote_address)
                                      .call())
-            decimals = registry.functions.decimals(token0_address, token1_address).call()
-            description = registry.functions.description(token0_address, token1_address).call()
-            version = registry.functions.version(token0_address, token1_address).call()
+            decimals = registry.functions.decimals(base_address, quote_address).call()
+            description = registry.functions.description(base_address, quote_address).call()
+            version = registry.functions.version(base_address, quote_address).call()
             isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
             time_diff = self.context.block_number.timestamp - _updatedAt
@@ -119,7 +117,7 @@ class ChainLinkPriceByRegistry(Model):
                               f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                raise ModelRunError(f'No feed found for {token0_address}/{token1_address}')
+                raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
             raise err
         finally:
             del sys.tracebacklimit

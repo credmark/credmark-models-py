@@ -4,10 +4,10 @@ from credmark.cmf.types import (
     Account,
     Address,
     Price,
-    Token,
+    Currency,
 )
 
-from models.dtos.price import CHAINLINK_CODE, PriceInput
+from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -28,28 +28,34 @@ class PriceOracle(Model):
         1: {
             # WAVAX: avax-usd.data.eth
             Address('0x85f138bfEE4ef8e540890CFb48F620571d67Eda3'):
-            ('0xFF3EEb22B5E3dE6e705b44749C2559d704923FD7', 'USD'),
+            ({'address': '0xFF3EEb22B5E3dE6e705b44749C2559d704923FD7'},
+             {'symbol': 'USD'}),
             # WSOL: sol-usd.data.eth
             Address('0xD31a59c85aE9D8edEFeC411D448f90841571b89c'):
-            ('0x4ffc43a60e009b551865a93d232e33fce9f01507', 'USD'),
+            ({'address': '0x4ffc43a60e009b551865a93d232e33fce9f01507'},
+             {'symbol': 'USD'}),
             # BNB: bnb-usd.data.eth
             Address('0xB8c77482e45F1F44dE1745F52C74426C631bDD52'):
-            ('0x14e613ac84a31f709eadbdf89c6cc390fdc9540a', 'USD'),
+            ({'address': '0x14e613ac84a31f709eadbdf89c6cc390fdc9540a'},
+             {'symbol': 'USD'}),
             # WCELO:
             Address('0xE452E6Ea2dDeB012e20dB73bf5d3863A3Ac8d77a'):
-            ('0x10d35efa5c26c3d994c511576641248405465aef', 'USD'),
+            ({'address': '0x10d35efa5c26c3d994c511576641248405465aef'},
+             {'symbol': 'USD'}),
             # BTM
             Address('0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750'):
-            ('0x9fccf42d21ab278e205e7bb310d8979f8f4b5751', 'USD'),
+            ({'address': '0x9fccf42d21ab278e205e7bb310d8979f8f4b5751'},
+             {'symbol': 'USD'}),
             # IOST
             Address('0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab'):
-            ('0xd0935838935349401c73a06fcde9d63f719e84e5', 'USD'),
+            ({'address': '0xd0935838935349401c73a06fcde9d63f719e84e5'},
+             {'symbol': 'USD'}),
             # WBTC: only with BTC for WBTC/BTC
             # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
             # ('0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23', 'BTC'),
             # WETH:
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
-            ('ETH')
+            ({'symbol': 'ETH'},)
         }
     }
 
@@ -83,17 +89,6 @@ class PriceOracle(Model):
     Return the value of base token in amount of quote tokens
     """
 
-    def fiat_currency_address(self, symbol) -> Address:
-        """
-        Extension to the existing Address to accept currency code and convert to an address
-        """
-
-        new_addr = CHAINLINK_CODE.get(symbol.upper(), None)
-        if new_addr is not None:
-            return Address(new_addr)
-        else:
-            raise ModelDataError('')
-
     def cross_price(self, price0: Price, price1: Price) -> Price:
         return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
 
@@ -102,38 +97,35 @@ class PriceOracle(Model):
         price.src = f'{price.src}|Inverse'
         return price
 
-    def run(self, _: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
-        if isinstance(_.base, Token):
-            base = _.base.address
-        else:
-            base = self.fiat_currency_address(_.base)
-        if isinstance(_.quote, Token):
-            quote = _.quote.address
-        else:
-            quote = self.fiat_currency_address(_.quote)
+    def run(self, input: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
+        base = input.base
+        quote = input.quote
+
+        if base.address is None or quote.address is None:
+            raise ModelDataError(f'{input} does not carry valid address')
 
         if base == quote:
             return Price(price=1, src=f'{self.slug}|Equal')
 
         try:
             return self.context.run_model('chainlink.price-by-registry',
-                                          input={'base': base, 'quote': quote},
+                                          input=input,
                                           return_type=Price)
         except ModelRunError:
             try:
                 p = self.context.run_model('chainlink.price-by-registry',
-                                           input={'base': quote, 'quote': base},
+                                           input=input.invert(),
                                            return_type=Price)
                 return self.inverse_price(p)
             except ModelRunError:
-                override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base, None)
-                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote, None)
+                override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
+                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
 
                 if override_base is not None:
                     p0 = self.context.run_model('chainlink.price-by-feed',
                                                 input=Account(address=Address(override_base[0])),
                                                 return_type=Price)
-                    if self.fiat_currency_address(override_base[-1]) == quote:
+                    if Currency(symbol=override_base[-1]).address == quote.address:
                         return p0
                     else:
                         p1 = self.context.run_model(
@@ -147,7 +139,7 @@ class PriceOracle(Model):
                                                 input=Account(address=Address(override_quote[0])),
                                                 return_type=Price)
                     p0 = self.inverse_price(p0)
-                    if self.fiat_currency_address(override_quote[-1]) == base:
+                    if Currency(**override_quote[-1]).address == base.address:
                         return p0
                     else:
                         p1 = self.context.run_model(
@@ -165,13 +157,13 @@ class PriceOracle(Model):
                             try:
                                 p0 = self.context.run_model(
                                     'chainlink.price-by-registry',
-                                    input={'base': base, 'quote': r1},
+                                    input={'base': base, 'quote': {"address": r1}},
                                     return_type=Price)
                             except ModelRunError:
                                 try:
                                     p0 = self.context.run_model(
                                         'chainlink.price-by-registry',
-                                        input={'base': r1, 'quote': base},
+                                        input={'base': {"address": r1}, 'quote': base},
                                         return_type=Price)
                                     p0 = self.inverse_price(p0)
                                 except ModelRunError:
@@ -181,13 +173,13 @@ class PriceOracle(Model):
                             try:
                                 p1 = self.context.run_model(
                                     'chainlink.price-by-registry',
-                                    input={'base': r2, 'quote': quote},
+                                    input={'base': {"address": r2}, 'quote': quote},
                                     return_type=Price)
                             except ModelRunError:
                                 try:
                                     p1 = self.context.run_model(
                                         'chainlink.price-by-registry',
-                                        input={'base': quote, 'quote': r2},
+                                        input={'base': quote, 'quote': {"address": r2}},
                                         return_type=Price)
                                     p1 = self.inverse_price(p1)
                                 except ModelRunError:
@@ -199,7 +191,7 @@ class PriceOracle(Model):
                             else:
                                 bridge_price = self.context.run_model(
                                     self.slug,
-                                    input={'base': r1, 'quote': r2},
+                                    input={'base': {"address": r1}, 'quote': {"address": r2}},
                                     return_type=Price)
                                 return self.cross_price(self.cross_price(p0, bridge_price), p1)
 
