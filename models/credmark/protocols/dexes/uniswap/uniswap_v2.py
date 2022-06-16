@@ -257,7 +257,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -446,7 +446,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 
 @Model.describe(slug='dex.pool-volume',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current'),
