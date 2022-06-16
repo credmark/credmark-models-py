@@ -1,11 +1,13 @@
 # pylint: disable=locally-disabled, unused-import
 
-from models.dtos.volume import (
-    TradingVolume,
-    TokenTradingVolume
-)
-from models.dtos.volume import TradingVolume, TokenTradingVolume, VolumeInput
-from models.dtos.tvl import TVLInfo
+from typing import List, Union
+from datetime import timedelta
+
+import numpy as np
+import pandas as pd
+
+from web3.exceptions import ABIFunctionNotFound, ContractLogicError
+
 from credmark.cmf.types import (
     Address,
     Account,
@@ -22,11 +24,8 @@ from credmark.dto import DTO, EmptyInput
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.model import Model
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError
-import numpy as np
-import pandas as pd
-from datetime import timedelta
-from typing import List, Union
+from models.dtos.tvl import TVLInfo
+from models.credmark.price.curve import CurveFinancePrice
 
 
 class CurveFiPoolInfo(Contract):
