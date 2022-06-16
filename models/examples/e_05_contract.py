@@ -1,6 +1,5 @@
 from credmark.cmf.model import Model, EmptyInput
 from credmark.cmf.types import Contract, ContractLedger
-from credmark.cmf.model.errors import ModelRunError
 from models.dtos.example import ExampleModelOutput
 
 from web3._utils.filters import construct_event_filter_params
@@ -51,6 +50,8 @@ class ExampleContract(Model):
 
         output.log("You can get events by creating filters. To get all vested accounts, "
                    "we can query \"VestingScheduleAdded\" events.")
+
+        vesting_added_events = []
         try:
             vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
                 fromBlock=0,
@@ -79,8 +80,8 @@ class ExampleContract(Model):
                 vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                                         for s in vesting_added_events]
             except (ReadTimeoutError, ReadTimeout):
-                raise ModelRunError(
-                    f'There was timeout error when reading logs for {contract.address}')
+                output.log_error('There was timeout error when reading logs for '
+                                 f'{contract.address}')
 
             output.log_io(input="""
 event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi() # pylint:disable=locally-disabled,protected-access

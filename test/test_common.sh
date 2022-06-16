@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ "`which realpath`" == '' ]
+then
+   FULL_PATH_TO_SCRIPT="${BASH_SOURCE[0]}"
+else
+   FULL_PATH_TO_SCRIPT="$(realpath "${BASH_SOURCE[-1]}")"
+fi
+
+SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
+
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
     echo -e "\nRun model tests\n"
@@ -66,9 +75,8 @@ fi
 start_n=`expr $start_n + 1 - 1`
 echo Start from: $start_n
 
-
 if [ "${test_mode}" == 'test' ]; then
-    cmk_dev='python test/test.py'
+    cmk_dev="python $SCRIPT_DIRECTORY/test.py --model_path xxxx"
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
 	api_url=' --api_url=http://localhost:8700'
     echo In test mode, using ${cmk_dev} and ${api_url}

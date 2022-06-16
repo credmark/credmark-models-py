@@ -30,7 +30,6 @@ from typing import List, Union
 
 
 class CurveFiPoolInfo(Contract):
-    virtualPrice: int
     tokens: Tokens
     tokens_symbol: List[str]
     balances: List[float]  # exclude fee
@@ -38,6 +37,7 @@ class CurveFiPoolInfo(Contract):
     admin_fees: List[float]
     underlying_tokens: Tokens
     underlying_tokens_symbol: List[str]
+    virtualPrice: int
     A: int
     chi: float
     ratio: float
@@ -111,7 +111,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.10",
+                version="1.11",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -204,9 +204,21 @@ class CurveFinancePoolInfo(Model):
 
         token_prices = []
         for tok in tokens:
-            tok_price = self.context.run_model('price.quote',
-                                               input={'base': tok},
-                                               return_type=Price)
+            derived_info = CurveFinancePrice.CRV_DERIVED[self.context.chain_id].get(tok.address)
+            if derived_info is not None:
+                tok_price = CurveFinancePrice.price_for_derived(self,
+                                                                tok,
+                                                                input,
+                                                                tokens,
+                                                                tokens_symbol)
+            elif tok.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+                tok_price = self.context.run_model('curve-fi.price',
+                                                   input=tok,
+                                                   return_type=Price)
+            else:
+                tok_price = self.context.run_model('price.quote',
+                                                   input=tok,
+                                                   return_type=Price)
             token_prices.append(tok_price.price)
 
         np_balance = np.array(balances_token) * np.array(token_prices)

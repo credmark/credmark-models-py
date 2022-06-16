@@ -10,6 +10,7 @@ from credmark.cmf.model.errors import (
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import (
+    BlockNumber,
     Address,
     ContractLedger,
     Contract,
@@ -21,12 +22,15 @@ from credmark.cmf.types import (
     Tokens,
 )
 
+from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
+
 from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (
     TradingVolume,
     TokenTradingVolume,
     VolumeInput,
+    VolumeInputHistorical,
 )
 
 from models.tmp_abi_lookup import (
@@ -38,7 +42,6 @@ from models.tmp_abi_lookup import (
     UNISWAP_V3_POOL_ABI,
 )
 
-import json
 import pandas as pd
 
 
@@ -253,111 +256,149 @@ class UniswapV2PoolTVL(Model):
         return tvl_info
 
 
-@Model.describe(slug='dex.pool-volume',
-                version='1.5',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
-                description='The volume of each token swapped in a pool in a window',
-                input=VolumeInput,
-                output=TradingVolume)
-class UniswapV2PoolSwapVolume(Model):
-    def run(self, input: VolumeInput) -> TradingVolume:
+@Model.describe(slug='dex.pool-volume-historical',
+                version='1.0',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                input=VolumeInputHistorical,
+                output=BlockSeries[TradingVolume])
+class DexPoolSwapVolumeHistorical(Model):
+    def run(self, input: VolumeInput) -> BlockSeries[TradingVolume]:
         # pylint:disable=locally-disabled,protected-access,line-too-long
         pool = Contract(address=input.address)
 
-        if input.pool_info_model == 'uniswap-v2.pool-tvl':
-            try:
-                pool.abi
-            except ModelDataError:
-                pool._meta.abi = json.loads(UNISWAP_V3_POOL_ABI)
+        try:
+            pool.abi
+        except ModelDataError:
+            if input.pool_info_model == 'uniswap-v2.pool-tvl':
+                pool.set_abi(UNISWAP_V3_POOL_ABI)
+            else:
+                raise
 
-        if pool.abi is None or not isinstance(pool.abi, list):
+        if pool.abi is None:
             raise ModelRunError('Input contract\'s ABI is empty')
 
         pool_info = self.context.run_model(input.pool_info_model, input=input)
         tokens_n = len(pool_info['portfolio']['positions'])
 
-        tokens = []
-        for n, token_info in enumerate(pool_info['portfolio']['positions']):
-            tokens.append(Token(**token_info['asset']))
+        tokens = [Token(**token_info['asset'])
+                  for token_info in pool_info['portfolio']['positions']]
 
         # initialize empty TradingVolume
-        pool_volume = TradingVolume(
-            tokenVolumes=[TokenTradingVolume.default(token=tok) for tok in tokens])
+        pool_volume_history = BlockSeries(
+            series=[BlockSeriesRow(blockNumber=0,
+                                   blockTimestamp=0,
+                                   sampleTimestamp=0,
+                                   output=TradingVolume(tokenVolumes=[TokenTradingVolume.default(token=tok) for tok in tokens]))
+                    for _ in range(input.count)],
+            errors=[])
 
         if input.pool_info_model == 'uniswap-v2.pool-tvl':
-            event_swap = [i for i in pool.abi if 'type' in i and i['type'] == 'event' and
-                          'name' in i and i['name'].lower() == 'Swap'.lower()]
-            event_swap_args = sorted([x['name'].lower() for x in event_swap[0]['inputs']
-                                      if x['name'].startswith('amount')])
+            event_swap_args = sorted(
+                [c.lower() for c in pool.abi.events.Swap.args if c.lower().startswith('amount')])  # type: ignore
+            df_all_swaps = (pool.ledger.events.Swap(
+                columns=[],
+                aggregates=(
+                    [self.context.ledger.Aggregate(
+                        f'sum((sign({ContractLedger.Events.InputCol(field)})+1) / 2 * {ContractLedger.Events.InputCol(field)})',
+                        f'sum_pos_{ContractLedger.Events.InputCol(field)}')
+                     for field in event_swap_args] +
+                    [self.context.ledger.Aggregate(
+                        f'sum((sign({ContractLedger.Events.InputCol(field)})-1) / 2 * {ContractLedger.Events.InputCol(field)})',
+                        f'sum_neg_{ContractLedger.Events.InputCol(field)}')
+                     for field in event_swap_args] +
+                    [self.context.ledger.Aggregate(
+                        f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                        'interval_n')] +
+                    [self.context.ledger.Aggregate(
+                        f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                     for func in ['min', 'max', 'count']]),
+                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                group_by=f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)')
+                .to_dataframe())
 
-            all_swaps = []
-            for range_start, range_end in input.split(int(self.context.block_number), 1000):
-                df_swaps = (pool.ledger.events.Swap(columns=[
-                    ContractLedger.Events.Columns.EVT_HASH,
-                    ContractLedger.Events.Columns.EVT_BLOCK_NUMBER] +
-                    [ContractLedger.Events.InputCol(field) for field in event_swap_args],
-                    where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} >= {range_start} AND '
-                           f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {range_end}'),
-                    order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}')
-                    .to_dataframe())
+            if len(df_all_swaps) == 0:
+                return pool_volume_history
 
-                if not df_swaps.empty:
-                    all_swaps.append(df_swaps)
+            df_all_swaps.loc[:, 'start_block_number'] = (
+                int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
+            df_all_swaps.loc[:, 'end_block_number'] = (
+                int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
 
-            if len(all_swaps) == 0:
-                return pool_volume
-
-            df_all_swaps = pd.concat(all_swaps).reset_index(drop=True)
             if event_swap_args == sorted(['amount0in', 'amount1in', 'amount0out', 'amount1out']):
-                for n in range(tokens_n):
-                    for col in [f'inp_amount{n}in', f'inp_amount{n}out']:
-                        df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
+                df_all_swaps = (df_all_swaps.drop(columns=([f'sum_neg_inp_amount{n}in' for n in range(tokens_n)] +  # type: ignore
+                                                           [f'sum_neg_inp_amount{n}out' for n in range(tokens_n)]))  # type: ignore
+                                .rename(columns=(
+                                    {f'sum_pos_inp_amount{n}in': f'inp_amount{n}_in' for n in range(tokens_n)} |
+                                    {f'sum_pos_inp_amount{n}out': f'inp_amount{n}_out' for n in range(tokens_n)}))
+                                .sort_values('min_block_number')
+                                .reset_index(drop=True))
             else:
-                for n in range(tokens_n):
-                    for col in ['inp_amount0', 'inp_amount1']:
-                        df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
-                        df_all_swaps.loc[:, f'{col}in'] = df_all_swaps.loc[:, col]         # type: ignore
-                        df_all_swaps.loc[:, f'{col}out'] = df_all_swaps.loc[:, col]        # type: ignore
-                        df_all_swaps.loc[df_all_swaps.loc[:, col] < 0, f'{col}in'] = 0     # type: ignore
-                        df_all_swaps.loc[df_all_swaps.loc[:, col] > 0, f'{col}out'] = 0    # type: ignore
-                        df_all_swaps.loc[df_all_swaps.loc[:, col] < 0, f'{col}out'] *= -1  # type: ignore
+                df_all_swaps = (df_all_swaps.rename(columns=(
+                    {f'sum_pos_inp_amount{n}': f'inp_amount{n}_in' for n in range(tokens_n)} |
+                    {f'sum_neg_inp_amount{n}': f'inp_amount{n}_out' for n in range(tokens_n)}))
+                    .sort_values('min_block_number')
+                    .reset_index(drop=True))
+
+            for n in range(tokens_n):
+                for col in [f'inp_amount{n}_in', f'inp_amount{n}_out']:
+                    df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
+
         elif input.pool_info_model == 'curve-fi.pool-tvl':
-            event_tokenexchange = [i for i in pool.abi
-                                   if 'type' in i and i['type'] == 'event' and
-                                   'name' in i and i['name'].lower() == 'TokenExchange'.lower()]
-            event_tokenexchange_args = sorted([x['name'].lower()
-                                              for x in event_tokenexchange[0]['inputs']])
+            event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchange.args]
+            assert sorted(event_tokenexchange_args) == sorted(
+                ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
 
-            all_swaps = []
-            for range_start, range_end in input.split(int(self.context.block_number), 1000):
-                df_swaps = (pool.ledger.events.TokenExchange(columns=[
-                    ContractLedger.Events.Columns.EVT_HASH,
-                    ContractLedger.Events.Columns.EVT_BLOCK_NUMBER] +
-                    [ContractLedger.Events.InputCol(field) for field in event_tokenexchange_args],
-                    where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} >= {range_start} AND '
-                           f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {range_end}'),
-                    order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}')
-                    .to_dataframe())
+            df_all_swaps = (pool.ledger.events.TokenExchange(
+                columns=[ContractLedger.Events.InputCol("SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
+                aggregates=(
+                    [self.context.ledger.Aggregate(
+                        f'sum({ContractLedger.Events.InputCol(field)})',
+                        f'{ContractLedger.Events.InputCol(field)}')
+                        for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                    [self.context.ledger.Aggregate(
+                        f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                        'interval_n')] +
+                    [self.context.ledger.Aggregate(
+                        f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                        for func in ['min', 'max', 'count']]),
+                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                          f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
+                .to_dataframe())
 
-                if not df_swaps.empty:
-                    all_swaps.append(df_swaps)
+            if len(df_all_swaps) == 0:
+                return pool_volume_history
 
-            if len(all_swaps) == 0:
-                return pool_volume
-
-            df_all_swaps = pd.concat(all_swaps).reset_index(drop=True)
             for col in ['inp_tokens_bought', 'inp_tokens_sold']:
                 df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
             for n in range(tokens_n):
                 # In: Sold to the pool
                 # Out: Bought from the pool
-                df_all_swaps.loc[:, f'inp_amount{n}in'] = df_all_swaps.loc[:, 'inp_tokens_sold']       # type: ignore
-                df_all_swaps.loc[:, f'inp_amount{n}out'] = df_all_swaps.loc[:,  # type: ignore
-                                                                            'inp_tokens_bought']
-                df_all_swaps.loc[df_all_swaps.inp_sold_id != n, f'inp_amount{n}in'] = 0                # type: ignore
-                df_all_swaps.loc[df_all_swaps.inp_bought_id != n, f'inp_amount{n}out'] = 0               # type: ignore
+                df_all_swaps.loc[:, f'inp_amount{n}_in'] = df_all_swaps.loc[:, 'inp_tokens_sold']       # type: ignore
+                df_all_swaps.loc[:, f'inp_amount{n}_out'] = df_all_swaps.loc[:, 'inp_tokens_bought']    # type: ignore
+                df_all_swaps.loc[df_all_swaps.inp_sold_id != n, f'inp_amount{n}_in'] = 0                # type: ignore
+                df_all_swaps.loc[df_all_swaps.inp_bought_id != n, f'inp_amount{n}_out'] = 0             # type: ignore
 
+            df_all_swaps = (df_all_swaps
+                            .groupby(['interval_n'], as_index=False)
+                            .agg({'min_block_number': ['min'],
+                                  'max_block_number': ['max'],
+                                  'count_block_number': ['sum']} |
+                                 {f'inp_amount{n}_in': ['sum'] for n in range(tokens_n)} |
+                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)})
+                            .sort_values('interval_n')
+                            .reset_index(drop=True))
+
+            df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
+            df_all_swaps.loc[:, 'start_block_number'] = (
+                int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
+            df_all_swaps.loc[:, 'end_block_number'] = (
+                int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
 
@@ -372,25 +413,48 @@ class UniswapV2PoolSwapVolume(Model):
         # df_all_swaps = df_all_swaps.merge(all_blocks, on=['evt_block_number'], how='left')
 
         # Use current block's price, instead.
-        for n in range(tokens_n):
-            df_all_swaps.loc[:, f'token{n}_price'] = pool_info['prices'][n]['price']  # type: ignore
+        for cc in range(input.count):
+            block_number = df_all_swaps.loc[df_all_swaps.interval_n == cc, 'max_block_number']  # type: ignore
+            if block_number.empty:
+                continue
+            block_number = block_number.to_list()[0]
+            pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
+            for n in range(tokens_n):
+                token_out = df_all_swaps.loc[cc, f'inp_amount{n}_out']  # type: ignore
+                token_in = df_all_swaps.loc[cc, f'inp_amount{n}_in']  # type: ignore
+                token_price = pool_info_past['prices'][n]['price']  # type: ignore
 
-            if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                def scale_func(bal, n_tok):  # type: ignore
-                    return tokens[n_tok].scaled(bal)
-            else:
-                def scale_func(bal, _):
-                    return float(self.context.web3.fromWei(bal, 'ether'))
+                if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                    def scale_func(bal, n_tok):  # type: ignore
+                        return tokens[n_tok].scaled(bal)
+                else:
+                    def scale_func(bal, _):
+                        return float(self.context.web3.fromWei(bal, 'ether'))
 
-            pool_volume.tokenVolumes[n].sellAmount = scale_func(
-                df_all_swaps.loc[:, f'inp_amount{n}out'].sum(), n)
-            pool_volume.tokenVolumes[n].buyAmount = scale_func(
-                df_all_swaps.loc[:, f'inp_amount{n}in'].sum(), n)
-            pool_volume.tokenVolumes[n].sellValue = scale_func(
-                (df_all_swaps.loc[:, f'inp_amount{n}out'] *
-                 df_all_swaps.loc[:, f'token{n}_price']).sum(), n)
-            pool_volume.tokenVolumes[n].buyValue = scale_func(
-                (df_all_swaps.loc[:, f'inp_amount{n}in'] *
-                 df_all_swaps.loc[:, f'token{n}_price']).sum(), n)
+                pool_volume_history.series[cc].blockNumber = int(block_number)
+                pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
+                pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
+                pool_volume_history.series[cc].output[n].sellAmount = scale_func(token_out, n)
+                pool_volume_history.series[cc].output[n].buyAmount = scale_func(token_in, n)
 
-        return pool_volume
+                pool_volume_history.series[cc].output[n].sellValue = scale_func(
+                    token_out * token_price, n)
+                pool_volume_history.series[cc].output[n].buyValue = scale_func(token_in * token_price, n)
+
+        return pool_volume_history
+
+
+@Model.describe(slug='dex.pool-volume',
+                version='1.7',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current'),
+                input=VolumeInput,
+                output=TradingVolume)
+class DexPoolSwapVolume(Model):
+    def run(self, input: VolumeInput) -> TradingVolume:
+        input_historical = VolumeInputHistorical(**input.dict(), count=1)
+        volumes = self.context.run_model('dex.pool-volume-historical',
+                                         input=input_historical,
+                                         return_type=BlockSeries[TradingVolume])
+        return volumes.series[0].output
