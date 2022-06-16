@@ -68,6 +68,11 @@ class UniswapV2PoolMeta:
                 pair_address = factory.functions.getPair(model_input.address, token.address).call()
                 if not pair_address == Address.null():
                     contracts.append(Contract(address=pair_address))
+                else:
+                    pair_address = factory.functions.getPair(token.address, model_input.address).call()
+                    if not pair_address == Address.null():
+                        contracts.append(Contract(address=pair_address))
+
             return Contracts(contracts=contracts)
         except BadFunctionCallOutput:
             # Or use this condition: if self.context.block_number < 10000835 # Uniswap V2
