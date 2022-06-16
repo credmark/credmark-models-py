@@ -52,10 +52,8 @@ class PriceOracle(Model):
              {'symbol': 'USD'}),
             # WBTC: only with BTC for WBTC/BTC
             # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
-            # ('0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23', 'BTC'),
-            # WETH:
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
-            ({'symbol': 'ETH'},)
+            # ({'address':'0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23'},
+            #  {'symbol':'BTC'}),
         }
     }
 
@@ -67,12 +65,12 @@ class PriceOracle(Model):
 
     WRAP_TOKEN = {
         1: {
-            # ETH => WETH
-            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-            # BTC => WBTC
-            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
+            # WETH => ETH
+            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
+            {'symbol': 'ETH'},
+            # BTC => WBTC: there is feed for BTC
+            # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
+            # Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
         }
     }
 
@@ -107,6 +105,12 @@ class PriceOracle(Model):
         if base == quote:
             return Price(price=1, src=f'{self.slug}|Equal')
 
+        if input.base.address in self.WRAP_TOKEN[self.context.chain_id]:
+            input.base = Currency(**self.WRAP_TOKEN[self.context.chain_id][input.base.address])
+
+        if input.quote.address in self.WRAP_TOKEN[self.context.chain_id]:
+            input.quote = Currency(**self.WRAP_TOKEN[self.context.chain_id][input.quote.address])
+
         try:
             return self.context.run_model('chainlink.price-by-registry',
                                           input=input,
@@ -119,13 +123,12 @@ class PriceOracle(Model):
                 return self.inverse_price(p)
             except ModelRunError:
                 override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
-                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
 
                 if override_base is not None:
                     p0 = self.context.run_model('chainlink.price-by-feed',
-                                                input=Account(address=Address(override_base[0])),
+                                                input=Currency(**override_base[0]),
                                                 return_type=Price)
-                    if Currency(symbol=override_base[-1]).address == quote.address:
+                    if Currency(**override_base[-1]).address == quote.address:
                         return p0
                     else:
                         p1 = self.context.run_model(
@@ -134,9 +137,10 @@ class PriceOracle(Model):
                             return_type=Price)
                         return self.cross_price(p0, p1)
 
+                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
                 if override_quote is not None:
                     p0 = self.context.run_model('chainlink.price-by-feed',
-                                                input=Account(address=Address(override_quote[0])),
+                                                input=Currency(**override_quote[0]),
                                                 return_type=Price)
                     p0 = self.inverse_price(p0)
                     if Currency(**override_quote[-1]).address == base.address:

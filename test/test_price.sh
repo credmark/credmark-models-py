@@ -20,7 +20,15 @@ echo_cmd ""
 # 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5 ohmv2-eth.data.eth
 # 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B tribe-eth.data.eth
 
-token_addrs="0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
+token_addrs="
+BTC
+USD
+ETH
+CNY
+USDC
+GBP
+0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
+0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750
 0xD31a59c85aE9D8edEFeC411D448f90841571b89c
 0xB8c77482e45F1F44dE1745F52C74426C631bDD52
 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
@@ -31,26 +39,34 @@ token_addrs="0x85f138bfEE4ef8e540890CFb48F620571d67Eda3
 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B
 0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
 0x383518188C0C6d7730D91b2c03a03C837814a899
-BTC
-USD
-ETH
-CNY"
+"
 
 block_number_backup=${block_number}
 block_number='-b 14878712'
 
-for token_addr in $token_addrs; do
-    if [[ "$token_addr" =~ ^0x ]]; then
-        test_model 0 price.quote '{"address": "'${token_addr}'"}' __all__
-    fi
+models="price.quote price.oracle-chainlink"
 
-    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "USD"}' __all__
-    test_model 0 price.oracle-chainlink '{"quote": "'${token_addr}'", "base": "USD"}' __all__
-    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "JPY"}' __all__
-    test_model 0 price.oracle-chainlink '{"quote": "'${token_addr}'", "base": "JPY"}' __all__
-    test_model 0 price.oracle-chainlink '{"base": "'${token_addr}'", "quote": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}' __all__
-    test_model 0 price.oracle-chainlink '{"quote": "'${token_addr}'", "base": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}' __all__
+for price_model in $models; do
+    for token_addr in $token_addrs; do
+        if [[ "$token_addr" =~ ^0x ]]; then
+            token_addr_ext='{"address":"'${token_addr}'"}'
+        else
+            token_addr_ext='{"symbol":"'${token_addr}'"}'
+        fi
+
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"USD"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"JPY"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"JPY"}}' __all__
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"GBP"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"GBP"}}' __all__
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
+    done
 done
+
+exit
+
 
 echo_cmd ""
 echo_cmd "Price2"
@@ -180,7 +196,6 @@ for tok in "0x111111111117dC0aa78b770fA6A738034120C302 0" \
 "0xAE12C5930881c53715B369ceC7606B70d8EB229f 0" \
 "0xE452E6Ea2dDeB012e20dB73bf5d3863A3Ac8d77a 0" \
 "0x491604c0FDF08347Dd1fa4Ee062a822A5DD06B5D 0" \
-
 
 do
     set -- $tok
