@@ -338,6 +338,11 @@ class CurveFinancePrice(Model):
                 'name': 'cvxFXS',
                 'pool_address': '0xd658A338613198204DCa1143Ac3F01A722b5d94A'
             },
+            Address('0xADF15Ec41689fc5b6DcA0db7c53c9bFE7981E655'):
+            {
+                'name': 'tFXS',
+                'pool_address': '0x961226B64AD373275130234145b96D100Dc0b655'
+            }
         }
     }
 

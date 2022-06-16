@@ -5,7 +5,8 @@ echo ""
 # set 0 to do quick test
 quick_test=1
 
-curve_pools="0xd658A338613198204DCa1143Ac3F01A722b5d94A
+curve_pools="0x961226b64ad373275130234145b96d100dc0b655
+0xd658A338613198204DCa1143Ac3F01A722b5d94A
 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
 0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B
@@ -37,9 +38,8 @@ for pool in $curve_pools; do
         exit
     fi
 
-    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"10 days","interval":"1 day"}' ${curve_pool_info_tvl}
-
-	if [ $quick_test -eq 0 ]; then
+    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool'"},"window":"3 days","interval":"1 day"}' -j --api_url=http://localhost:8700 -l "*"
+	if [ $exit_code -eq 0 ]; then
 		break
 	fi
 
@@ -128,10 +128,6 @@ for pool in $sushi_pools $univ2_pools $univ3_pools; do
     if [ $exit_code -ne 0 ]; then
         exit
     fi
-
-	if [ $quick_test -eq 0 ]; then
-		break
-	fi
 
 done
 
