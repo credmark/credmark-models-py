@@ -125,7 +125,7 @@ class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
     def run(self, input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
-        return comptroller._meta.proxy_implementation
+        return comptroller._meta.proxy_implementation  # type: ignore
 
 
 @ Model.describe(slug="compound-v2.get-pools",
