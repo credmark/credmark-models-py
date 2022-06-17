@@ -262,7 +262,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.0',
+                version='1.2',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -426,9 +426,9 @@ class DexPoolSwapVolumeHistorical(Model):
             block_number = df_swap_sel.max_block_number.to_list()[0]  # type: ignore
             pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
             for n in range(tokens_n):
-                token_out = df_swap_sel[f'inp_amount{n}_out']  # type: ignore
-                token_in = df_swap_sel[f'inp_amount{n}_in']  # type: ignore
                 token_price = pool_info_past['prices'][n]['price']  # type: ignore
+                token_out = df_swap_sel[f'inp_amount{n}_out'].sum()  # type: ignore
+                token_in = df_swap_sel[f'inp_amount{n}_in'].sum()  # type: ignore
 
                 if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
                     def scale_func(bal, n_tok):  # type: ignore
@@ -440,9 +440,9 @@ class DexPoolSwapVolumeHistorical(Model):
                 pool_volume_history.series[cc].blockNumber = int(block_number)
                 pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
                 pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
+
                 pool_volume_history.series[cc].output[n].sellAmount = scale_func(token_out, n)
                 pool_volume_history.series[cc].output[n].buyAmount = scale_func(token_in, n)
-
                 pool_volume_history.series[cc].output[n].sellValue = scale_func(
                     token_out * token_price, n)
                 pool_volume_history.series[cc].output[n].buyValue = scale_func(token_in * token_price, n)
@@ -451,7 +451,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 
 @Model.describe(slug='dex.pool-volume',
-                version='1.7',
+                version='1.9',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current'),
