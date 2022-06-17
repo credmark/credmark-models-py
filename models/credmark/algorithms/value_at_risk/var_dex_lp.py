@@ -1,27 +1,23 @@
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
-
-from credmark.cmf.types import Contract, Token, Price
-
-from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
-from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
-
-from models.credmark.algorithms.value_at_risk.risk_method import calc_var
-
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_POOL_ABI,
-)
-
 import numpy as np
 import pandas as pd
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Contract, Price, Token
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
+from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+from models.credmark.protocols.dexes.uniswap.uniswap_v3 import (
+    UniswapV3PoolInfo
+)
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
-@Model.describe(slug="finance.var-dex-lp",
-                version="1.2",
-                display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
-                description="Working for UniV2, V3 and Sushiswap pools",
-                input=UniswapPoolVaRInput,
-                output=dict)
+@ Model.describe(slug="finance.var-dex-lp",
+                 version="1.2",
+                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
+                 description="Working for UniV2, V3 and Sushiswap pools",
+                 input=UniswapPoolVaRInput,
+                 output=dict)
 class UniswapPoolVaR(Model):
     PRICE_MODEL = 'price.quote'
 
@@ -64,28 +60,34 @@ class UniswapPoolVaR(Model):
             # p_0 = tick_price = token0 / token1
             p_0 = 1.0001 ** v3_info.tick * scale_multiplier
 
-        _token0_price = self.context.run_model(self.PRICE_MODEL, input=token0)
-        _token1_price = self.context.run_model(self.PRICE_MODEL, input=token1)
+        t_unit, count = self.context.historical.parse_timerangestr(input.window)
+        interval = self.context.historical.range_timestamp(t_unit, 1)
 
-        token0_historical_price = (self.context.historical
-                                   .run_model_historical(
-                                       model_slug=self.PRICE_MODEL,
-                                       model_input=token0,
-                                       window=input.window,
-                                       model_return_type=Price)
-                                   .to_dataframe(fields=[('price', lambda p:p.price)])
-                                   .sort_values('blockNumber', ascending=False)
-                                   .reset_index(drop=True))
+        token0_historical_price = (self.context.run_model(
+            slug='compose.map-block-time-series',
+            input={"modelSlug": self.PRICE_MODEL,
+                   "modelInput": {"base": token0},
+                   "endTimestamp": self.context.block_number.timestamp,
+                   "interval": interval,
+                   "count": count,
+                   "exclusive": "False"},
+            return_type=MapBlockTimeSeriesOutput[Price])
+            .to_dataframe(fields=[('price', lambda p:p.price)])
+            .sort_values('blockNumber', ascending=False)
+            .reset_index(drop=True))
 
-        token1_historical_price = (self.context.historical
-                                   .run_model_historical(
-                                       model_slug=self.PRICE_MODEL,
-                                       model_input=token1,
-                                       window=input.window,
-                                       model_return_type=Price)
-                                   .to_dataframe(fields=[('price', lambda p:p.price)])
-                                   .sort_values('blockNumber', ascending=False)
-                                   .reset_index(drop=True))
+        token1_historical_price = (self.context.run_model(
+            slug='compose.map-block-time-series',
+            input={"modelSlug": self.PRICE_MODEL,
+                   "modelInput": {"base": token1},
+                   "endTimestamp": self.context.block_number.timestamp,
+                   "interval": interval,
+                   "count": count,
+                   "exclusive": "False"},
+            return_type=MapBlockTimeSeriesOutput[Price])
+            .to_dataframe(fields=[('price', lambda p:p.price)])
+            .sort_values('blockNumber', ascending=False)
+            .reset_index(drop=True))
 
         df = pd.DataFrame({
             'TOKEN0/USD': token0_historical_price.price.to_numpy(),

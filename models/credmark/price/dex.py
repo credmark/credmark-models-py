@@ -111,7 +111,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                  input=Token,
                  output=Price,
                  errors=PRICE_DATA_ERROR_DESC)
-class TokenPriceModel(Model, PriceWeight):
+class PriceFromDexModel(Model, PriceWeight):
     """
     Return token's price
     """

@@ -1,13 +1,12 @@
 import sys
-from ens import ENS
-from web3.exceptions import ContractLogicError
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Price, Account, Address
-from credmark.dto import EmptyInput, DTO, DTOField
-
-from models.dtos.price import PriceInput
+from credmark.cmf.types import Account, Address, Contract, Price
+from credmark.dto import DTO, DTOField, EmptyInput
+from ens import ENS
+from models.dtos.price import AddressMaybe, PriceInput, PriceMaybe
+from web3.exceptions import ContractLogicError
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -64,15 +63,10 @@ class ChainLinkPriceByFeed(Model):
         description = feed_contract.functions.description().call()
         version = feed_contract.functions.version().call()
 
-        feed = None
         if feed_contract.abi is not None:
-            abi_funcs = [x['name'].lower()  # type: ignore
-                         for x in feed_contract.abi
-                         if 'name' in x]
-            if 'aggregator'.lower() in abi_funcs:
+            if 'aggregator'.lower() in feed_contract.abi.functions:
                 feed = feed_contract.functions.aggregator().call()
-
-        if feed is None:
+        else:
             feed = input.address
         isFeedEnabled = None
 
@@ -83,12 +77,66 @@ class ChainLinkPriceByFeed(Model):
                           f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
 
 
-@ Model.describe(slug='chainlink.price-by-registry',
-                 version="1.1",
-                 display_name="Chainlink - Price by Registry",
-                 description="Looking up Registry for two tokens\' addresses",
-                 input=PriceInput,
-                 output=Price)
+@Model.describe(slug='chainlink.price-from-registry-maybe',
+                version="1.0",
+                display_name="Chainlink - Price by Registry",
+                description="Looking up Registry for two tokens' addresses",
+                input=PriceInput,
+                output=PriceMaybe)
+class ChainLinkFeedFromRegistryMaybe(Model):
+    def run(self, input: PriceInput) -> dict:
+        price = None
+
+        feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
+                                            input=input,
+                                            return_type=AddressMaybe)
+        if feed_maybe.address is not None:
+            price = self.context.run_model('chainlink.price-by-registry',
+                                           input=input,
+                                           return_type=Price)
+            return PriceMaybe(price=price)
+
+        feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
+                                            input=input.inverse(),
+                                            return_type=AddressMaybe)
+        if feed_maybe.address is not None:
+            price = self.context.run_model('chainlink.price-by-registry',
+                                           input=input.inverse(),
+                                           return_type=Price).inverse()
+            return PriceMaybe(price=price)
+        return PriceMaybe(price=price)
+
+
+@Model.describe(slug='chainlink.feed-from-registry-maybe',
+                version="1.0",
+                display_name="Chainlink - Price by Registry",
+                description="Looking up Registry for two tokens' addresses",
+                input=PriceInput,
+                output=AddressMaybe)
+class ChainLinkFeedFromRegistry(Model):
+    def run(self, input: PriceInput) -> dict:
+        base_address = input.base.address
+        quote_address = input.quote.address
+
+        registry = self.context.run_model('chainlink.get-feed-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract)
+        try:
+            sys.tracebacklimit = 0
+            feed = registry.functions.getFeed(base_address, quote_address).call()
+            return AddressMaybe(address=Address(feed))
+        except ContractLogicError as _err:
+            return AddressMaybe(address=None)
+        finally:
+            del sys.tracebacklimit
+
+
+@Model.describe(slug='chainlink.price-by-registry',
+                version="1.2",
+                display_name="Chainlink - Price by Registry",
+                description="Looking up Registry for two tokens' addresses",
+                input=PriceInput,
+                output=Price)
 class ChainLinkPriceByRegistry(Model):
     def run(self, input: PriceInput) -> Price:
         base_address = input.base.address
@@ -117,6 +165,7 @@ class ChainLinkPriceByRegistry(Model):
                               f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
+                self.logger.error(f'No feed found for {base_address}/{quote_address}')
                 raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
             raise err
         finally:

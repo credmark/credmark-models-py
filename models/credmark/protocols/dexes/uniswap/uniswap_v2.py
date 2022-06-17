@@ -1,48 +1,18 @@
-from web3.exceptions import (
-    BadFunctionCallOutput,
-    ABIFunctionNotFound
-)
-
-from credmark.cmf.model.errors import (
-    ModelDataError,
-    ModelRunError
-)
-
+import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    BlockNumber,
-    Address,
-    ContractLedger,
-    Contract,
-    Contracts,
-    Portfolio,
-    Position,
-    Price,
-    Token,
-    Tokens,
-)
-
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
+                                Contracts, Portfolio, Position, Price, Token,
+                                Tokens)
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
-
 from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 from models.dtos.tvl import TVLInfo
-from models.dtos.volume import (
-    TradingVolume,
-    TokenTradingVolume,
-    VolumeInput,
-    VolumeInputHistorical,
-)
-
-from models.tmp_abi_lookup import (
-    WETH9_ADDRESS,
-    DAI_ADDRESS,
-    USDC_ADDRESS,
-    USDT_ADDRESS,
-    UNISWAP_V2_POOL_ABI,
-    UNISWAP_V3_POOL_ABI,
-)
-
-import pandas as pd
+from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
+                                VolumeInputHistorical)
+from models.tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V2_POOL_ABI,
+                                   UNISWAP_V3_POOL_ABI, USDC_ADDRESS,
+                                   USDT_ADDRESS, WETH9_ADDRESS)
+from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 
 
 class UniswapV2PoolMeta:
@@ -209,7 +179,7 @@ class UniswapGetPoolInfo(Model):
         prices = []
         for tok in [token0, token1]:
             tok_price = self.context.run_model('price.quote',
-                                               input=tok,
+                                               input={'base': tok},
                                                return_type=Price)
             prices.append(tok_price)
 
@@ -264,7 +234,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.2',
+                version='1.3',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -432,22 +402,14 @@ class DexPoolSwapVolumeHistorical(Model):
                 token_out = df_swap_sel[f'inp_amount{n}_out'].sum()  # type: ignore
                 token_in = df_swap_sel[f'inp_amount{n}_in'].sum()  # type: ignore
 
-                if tokens[n].address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                    def scale_func(bal, n_tok):  # type: ignore
-                        return tokens[n_tok].scaled(bal)
-                else:
-                    def scale_func(bal, _):
-                        return float(self.context.web3.fromWei(bal, 'ether'))
-
                 pool_volume_history.series[cc].blockNumber = int(block_number)
                 pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
                 pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
 
-                pool_volume_history.series[cc].output[n].sellAmount = scale_func(token_out, n)
-                pool_volume_history.series[cc].output[n].buyAmount = scale_func(token_in, n)
-                pool_volume_history.series[cc].output[n].sellValue = scale_func(
-                    token_out * token_price, n)
-                pool_volume_history.series[cc].output[n].buyValue = scale_func(token_in * token_price, n)
+                pool_volume_history.series[cc].output[n].sellAmount = tokens[n].scaled(token_out)
+                pool_volume_history.series[cc].output[n].buyAmount = tokens[n].scaled(token_in)
+                pool_volume_history.series[cc].output[n].sellValue = tokens[n].scaled(token_out * token_price)
+                pool_volume_history.series[cc].output[n].buyValue = tokens[n].scaled(token_in * token_price)
 
         return pool_volume_history
 

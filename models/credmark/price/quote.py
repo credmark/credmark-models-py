@@ -36,7 +36,7 @@ class PriceModel(Model):
                 input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
-class TokenPriceModel(Model):
+class PriceQuote(Model):
     """
     Return token's price
     """
@@ -49,14 +49,6 @@ class TokenPriceModel(Model):
         }
     }
 
-    def cross_price(self, price0: Price, price1: Price) -> Price:
-        return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
-
-    def inverse_price(self, price: Price) -> Price:
-        price.price = 1 / price.price
-        price.src = f'{price.src}|Inverse'
-        return price
-
     def run(self, input: PriceInput) -> Price:
         try:
             return self.context.run_model('price.oracle-chainlink',
@@ -66,10 +58,17 @@ class TokenPriceModel(Model):
             if isinstance(input.base, FiatCurrency) and isinstance(input.quote, FiatCurrency):
                 raise ModelDataError(f'No feed available for '
                                      f'{input.base.symbol}/{input.quote.symbol}')
+
+            if isinstance(input.base, FiatCurrency):
+                price_other = self.context.run_model(self.slug,
+                                                     input=input.inverse(),
+                                                     return_type=Price)
+                return price_other.inverse()
+
             try:
                 price_usd = self.context.run_model(
                     'price.oracle-chainlink',
-                    input={'base': input.base, 'quote': FiatCurrency()},
+                    input={'base': input.base, 'quote': FiatCurrency(symbol='USD')},
                     return_type=Price)
             except ModelRunError:
                 try:
@@ -81,11 +80,11 @@ class TokenPriceModel(Model):
                                                        input=input.base,
                                                        return_type=Price)
 
-            if input.quote.symbol == FiatCurrency().symbol:
+            if input.quote == FiatCurrency(symbol='USD'):
                 return price_usd
             else:
                 quote_usd = self.context.run_model(
                     self.slug,
                     {'base': input.quote},
                     return_type=Price)
-                return self.cross_price(price_usd, self.inverse_price(quote_usd))
+                return price_usd.cross(quote_usd.inverse())

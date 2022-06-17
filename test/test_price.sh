@@ -19,8 +19,9 @@ echo_cmd ""
 # 0x383518188C0C6d7730D91b2c03a03C837814a899 ohm-eth.data.eth
 # 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5 ohmv2-eth.data.eth
 # 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B tribe-eth.data.eth
+# 0xFEEf77d3f69374f66429C91d732A244f074bdf74 price-curve
 
-token_addrs="
+tokens="
 BTC
 USD
 ETH
@@ -47,7 +48,7 @@ block_number='-b 14878712'
 models="price.quote price.oracle-chainlink"
 
 for price_model in $models; do
-    for token_addr in $token_addrs; do
+    for token_addr in $tokens; do
         if [[ "$token_addr" =~ ^0x ]]; then
             token_addr_ext='{"address":"'${token_addr}'"}'
         else
@@ -62,6 +63,23 @@ for price_model in $models; do
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"GBP"}}' __all__
         test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
+    done
+done
+
+tokens="0xFEEf77d3f69374f66429C91d732A244f074bdf74"
+
+models="price.quote price.dex-curve-fi"
+
+for price_model in $models; do
+    for token_addr in $tokens; do
+        if [[ "$token_addr" =~ ^0x ]]; then
+            token_addr_ext='{"address":"'${token_addr}'"}'
+        else
+            token_addr_ext='{"symbol":"'${token_addr}'"}'
+        fi
+
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"USD"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
     done
 done
 

@@ -1,12 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (
-    Address,
-    Price,
-    Currency,
-)
-
-from models.dtos.price import PriceInput
+from credmark.cmf.types import Address, Currency, Price
+from models.dtos.price import PriceInput, PriceMaybe
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -14,7 +9,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.2',
+                version='1.3',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 input=PriceInput,
@@ -73,26 +68,9 @@ class PriceOracle(Model):
         }
     }
 
-    CONVERT_FOR_TOKEN_PRICE = {
-        1: {
-            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
-        }
-    }
-
     """
     Return the value of base token in amount of quote tokens
     """
-
-    def cross_price(self, price0: Price, price1: Price) -> Price:
-        return Price(price=price0.price * price1.price, src=f'{price0.src},{price1.src}')
-
-    def inverse_price(self, price: Price) -> Price:
-        price.price = 1 / price.price
-        price.src = f'{price.src}|Inverse'
-        return price
 
     def run(self, input: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
         base = input.base
@@ -110,92 +88,71 @@ class PriceOracle(Model):
         if input.quote.address in self.WRAP_TOKEN[self.context.chain_id]:
             input.quote = Currency(**self.WRAP_TOKEN[self.context.chain_id][input.quote.address])
 
-        try:
-            return self.context.run_model('chainlink.price-by-registry',
-                                          input=input,
-                                          return_type=Price)
-        except ModelRunError:
-            try:
-                p = self.context.run_model('chainlink.price-by-registry',
-                                           input=input.invert(),
-                                           return_type=Price)
-                return self.inverse_price(p)
-            except ModelRunError:
-                override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
+        price_result = self.context.run_model('chainlink.price-from-registry-maybe',
+                                              input=input, return_type=PriceMaybe)
+        if price_result.price is not None:
+            return price_result.price
+        else:
+            override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
 
-                if override_base is not None:
-                    p0 = self.context.run_model('chainlink.price-by-feed',
-                                                input=Currency(**override_base[0]),
-                                                return_type=Price)
-                    if Currency(**override_base[-1]).address == quote.address:
-                        return p0
-                    else:
-                        p1 = self.context.run_model(
-                            self.slug,
-                            input={'base': override_base[-1], 'quote': quote},
-                            return_type=Price)
-                        return self.cross_price(p0, p1)
+            if override_base is not None:
+                p0 = self.context.run_model('chainlink.price-by-feed',
+                                            input=Currency(**override_base[0]),
+                                            return_type=Price)
+                if Currency(**override_base[-1]).address == quote.address:
+                    return p0
+                else:
+                    p1 = self.context.run_model(
+                        self.slug,
+                        input={'base': override_base[-1], 'quote': quote},
+                        return_type=Price)
+                    return p0.cross(p1)
 
-                override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
-                if override_quote is not None:
-                    p0 = self.context.run_model('chainlink.price-by-feed',
-                                                input=Currency(**override_quote[0]),
-                                                return_type=Price)
-                    p0 = self.inverse_price(p0)
-                    if Currency(**override_quote[-1]).address == base.address:
-                        return p0
-                    else:
-                        p1 = self.context.run_model(
-                            self.slug,
-                            input={'base': override_quote[-1], 'quote': base},
-                            return_type=Price)
-                        p1 = self.inverse_price(p1)
-                    return self.cross_price(p0, p1)
+            override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
+            if override_quote is not None:
+                p0 = self.context.run_model('chainlink.price-by-feed',
+                                            input=Currency(**override_quote[0]),
+                                            return_type=Price)
+                p0 = p0.inverse()
+                if Currency(**override_quote[-1]).address == base.address:
+                    return p0
+                else:
+                    p1 = self.context.run_model(
+                        self.slug,
+                        input={'base': override_quote[-1], 'quote': base},
+                        return_type=Price)
+                    p1 = p1.inverse()
+                return p0.cross(p1)
 
-                for r1 in self.ROUTING_ADDRESSES:
-                    for r2 in self.ROUTING_ADDRESSES:
-                        p0 = None
-                        p1 = None
-                        if r1 != quote:
-                            try:
-                                p0 = self.context.run_model(
-                                    'chainlink.price-by-registry',
-                                    input={'base': base, 'quote': {"address": r1}},
-                                    return_type=Price)
-                            except ModelRunError:
-                                try:
-                                    p0 = self.context.run_model(
-                                        'chainlink.price-by-registry',
-                                        input={'base': {"address": r1}, 'quote': base},
-                                        return_type=Price)
-                                    p0 = self.inverse_price(p0)
-                                except ModelRunError:
-                                    break
+            for r1 in self.ROUTING_ADDRESSES:
+                for r2 in self.ROUTING_ADDRESSES:
+                    p0 = None
+                    p1 = None
 
-                        if r2 != base:
-                            try:
-                                p1 = self.context.run_model(
-                                    'chainlink.price-by-registry',
-                                    input={'base': {"address": r2}, 'quote': quote},
-                                    return_type=Price)
-                            except ModelRunError:
-                                try:
-                                    p1 = self.context.run_model(
-                                        'chainlink.price-by-registry',
-                                        input={'base': quote, 'quote': {"address": r2}},
-                                        return_type=Price)
-                                    p1 = self.inverse_price(p1)
-                                except ModelRunError:
-                                    p1 = None
+                    if r1 != quote:
+                        price_input = PriceInput(base=base, quote=Currency(address=r1))
+                        p0_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                          input=price_input, return_type=PriceMaybe)
+                        if p0_maybe.price is None:
+                            break
+                        p0 = p0_maybe.price
 
-                        if p0 is not None and p1 is not None:
-                            if r1 == r2:
-                                return self.cross_price(p0, p1)
-                            else:
-                                bridge_price = self.context.run_model(
-                                    self.slug,
-                                    input={'base': {"address": r1}, 'quote': {"address": r2}},
-                                    return_type=Price)
-                                return self.cross_price(self.cross_price(p0, bridge_price), p1)
+                    if r2 != base:
+                        price_input = PriceInput(base=Currency(address=r2), quote=quote)
+                        p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                          input=price_input, return_type=PriceMaybe)
+                        if p1_maybe.price is None:
+                            break
+                        p1 = p1_maybe.price
 
-                raise ModelRunError(f'No possible feed/routing for token pair {base}/{quote}')
+                    if p0 is not None and p1 is not None:
+                        if r1 == r2:
+                            return p0.cross(p1)
+                        else:
+                            bridge_price = self.context.run_model(
+                                self.slug,
+                                input={'base': {"address": r1}, 'quote': {"address": r2}},
+                                return_type=Price)
+                            return p0.cross(bridge_price).cross(p1)
+
+            raise ModelRunError(f'No possible feed/routing for token pair {base}/{quote}')

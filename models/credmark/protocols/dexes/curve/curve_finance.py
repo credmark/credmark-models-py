@@ -26,27 +26,30 @@ from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.model import Model
 
 from models.dtos.tvl import TVLInfo
-from models.credmark.price.curve_helper import CRV_DERIVED, curve_price_for_derived_token
 
 
-class CurveFiPoolInfo(Contract):
+class CurveFiPoolInfoToken(Contract):
     tokens: Tokens
     tokens_symbol: List[str]
     balances: List[float]  # exclude fee
     balances_token: List[float]  # include fee
     admin_fees: List[float]
-    underlying_tokens: Tokens
-    underlying_tokens_symbol: List[str]
-    virtualPrice: int
-    A: int
-    chi: float
-    ratio: float
-    is_meta: bool
+    underlying: Tokens
+    underlying_symbol: List[str]
     name: str
     lp_token_name: str
     lp_token_addr: Address
     pool_token_name: str
     pool_token_addr: Address
+
+
+class CurveFiPoolInfo(CurveFiPoolInfoToken):
+    token_prices: List[float]
+    virtualPrice: int
+    A: int
+    chi: float
+    ratio: float
+    is_meta: bool
 
 
 class CurveFiPoolInfos(DTO):
@@ -110,14 +113,15 @@ class CurveFinanceAllPools(Model):
         return Contracts(contracts=pool_contracts)
 
 
-@Model.describe(slug="curve-fi.pool-info",
-                version="1.11",
-                display_name="Curve Finance Pool Liqudity",
+@Model.describe(slug="curve-fi.pool-info-tokens",
+                version="1.1",
+                display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
-                output=CurveFiPoolInfo)
-class CurveFinancePoolInfo(Model):
-    def check_token_address(self, addrs):
+                output=CurveFiPoolInfoToken)
+class CurveFinancePoolInfoTokens(Model):
+    @staticmethod
+    def check_token_address(addrs):
         token_list = Tokens()
         symbols_list = []
 
@@ -125,24 +129,32 @@ class CurveFinancePoolInfo(Model):
             tok_addr = Address(addr)
             if tok_addr != Address.null():
                 tok = Token(address=tok_addr.checksum)
-                if tok.address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-                    symbols_list.append('ETH')
-                else:
-                    symbols_list.append(tok.symbol)
+                symbols_list.append(tok.symbol)
                 token_list.append(tok)
         return token_list, symbols_list
 
-    def run(self, input: Contract) -> CurveFiPoolInfo:
+    def run(self, input: Contract) -> CurveFiPoolInfoToken:
         registry = Contract(**self.context.models.curve_fi.get_registry())
 
         balances = []
 
-        # The default is to use registry
-        use_registry = True
-
         # Equivalent to input.functions.balances(ii).call()
         try:
+            # Use Registry
             balances_tokens = registry.functions.get_balances(input.address.checksum).call()
+
+            # Equivalent to input.functions.coins(ii).call()
+            coins = registry.functions.get_coins(input.address.checksum).call()
+            tokens, tokens_symbol = self.__class__.check_token_address(coins)
+
+            # However, input.functions.underlying_coins(ii).call() is empty for some pools
+            underlying_coins = (registry.functions.get_underlying_coins(input.address.checksum)
+                                .call())
+            underlying, underlying_symbol = self.__class__.check_token_address(underlying_coins)
+            balances_raw = balances_tokens[:len(tokens_symbol)]
+
+            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
+
         except ContractLogicError:
             try:
                 minter_addr = input.functions.minter().call()
@@ -152,27 +164,6 @@ class CurveFinancePoolInfo(Model):
             except ABIFunctionNotFound:
                 pass
 
-            balances_tokens = []
-            use_registry = False
-
-        if use_registry:
-            # Equivalent to input.functions.coins(ii).call()
-            coins = registry.functions.get_coins(input.address.checksum).call()
-            tokens, tokens_symbol = self.check_token_address(coins)
-
-            # However, input.functions.underlying_coins(ii).call() is empty for some pools
-            underlying_coins = (registry.functions.get_underlying_coins(input.address.checksum)
-                                .call())
-            underlying, underlying_symbol = self.check_token_address(underlying_coins)
-            balances_raw = balances_tokens[:len(tokens_symbol)]
-
-            balances = [
-                t.scaled(bal)
-                if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-                else float(self.context.web3.fromWei(bal, 'ether'))
-                for bal, t in zip(balances_raw, tokens)
-            ]
-        else:
             tokens = Tokens()
             tokens_symbol = []
             underlying = Tokens()
@@ -193,52 +184,9 @@ class CurveFinancePoolInfo(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [
-            t.scaled(t.functions.balanceOf(input.address).call())
-            if t.address != '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            else float(self.context.web3.fromWei(
-                self.context.web3.eth.get_balance(input.address), 'ether'))
-            for t in tokens]
+        balances_token = [t.balance_of_scaled(input.address) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
-
-        token_prices = []
-        for tok in tokens:
-            derived_info = CRV_DERIVED[self.context.chain_id].get(tok.address)
-            if derived_info is not None:
-                tok_price = curve_price_for_derived_token(self,
-                                                          tok,
-                                                          input,
-                                                          tokens,
-                                                          tokens_symbol)
-            else:
-                tok_price = self.context.run_model('price.quote',
-                                                   input=tok,
-                                                   return_type=Price)
-            token_prices.append(tok_price.price)
-
-        np_balance = np.array(balances_token) * np.array(token_prices)
-        n_asset = np_balance.shape[0]
-        product_balance = np_balance.prod()
-        avg_balance = np_balance.mean()
-
-        # Calculating ratio, this gives information about peg
-        ratio = product_balance / np.power(avg_balance, n_asset)
-
-        try:
-            virtual_price = input.functions.get_virtual_price().call()
-        except Exception as _err:
-            virtual_price = (10**18)
-
-        try:
-            pool_A = input.functions.A().call()
-        except Exception as _err:
-            pool_A = 0
-
-        # Calculating 'chi'
-        chi = pool_A * ratio
-
-        is_meta = registry.functions.is_meta(input.address.checksum).call()
 
         try:
             name = input.functions.name().call()
@@ -278,48 +226,91 @@ class CurveFinancePoolInfo(Model):
         except ABIFunctionNotFound:
             pass
 
-        return CurveFiPoolInfo(**(input.dict()),
+        return CurveFiPoolInfoToken(**(input.dict()),
+                                    tokens=tokens,
+                                    tokens_symbol=tokens_symbol,
+                                    balances=balances,
+                                    balances_token=balances_token,
+                                    admin_fees=admin_fees,
+                                    underlying=underlying,
+                                    underlying_symbol=underlying_symbol,
+                                    name=name,
+                                    lp_token_name=lp_token_name,
+                                    lp_token_addr=lp_token_addr,
+                                    pool_token_name=pool_token_name,
+                                    pool_token_addr=pool_token_addr
+                                    )
+
+
+@Model.describe(slug="curve-fi.pool-info",
+                version="1.13",
+                display_name="Curve Finance Pool Liqudity",
+                description="The amount of Liquidity for Each Token in a Curve Pool",
+                input=Contract,
+                output=CurveFiPoolInfo)
+class CurveFinancePoolInfo(Model):
+    def run(self, input: Contract) -> CurveFiPoolInfo:
+        registry = Contract(**self.context.models.curve_fi.get_registry())
+        pool_info = self.context.run_model('curve-fi.pool-info-tokens',
+                                           input,
+                                           return_type=CurveFiPoolInfoToken)
+
+        token_prices = []
+        for tok in pool_info.tokens:
+            tok_price = self.context.run_model('price.quote',
+                                               input={'base': tok},
+                                               return_type=Price)
+            token_prices.append(tok_price.price)
+
+        np_balance = np.array(pool_info.balances_token) * np.array(token_prices)
+        n_asset = np_balance.shape[0]
+        product_balance = np_balance.prod()
+        avg_balance = np_balance.mean()
+
+        # Calculating ratio, this gives information about peg
+        ratio = product_balance / np.power(avg_balance, n_asset)
+
+        try:
+            virtual_price = input.functions.get_virtual_price().call()
+        except Exception as _err:
+            virtual_price = (10**18)
+
+        try:
+            pool_A = input.functions.A().call()
+        except Exception as _err:
+            pool_A = 0
+
+        # Calculating 'chi'
+        chi = pool_A * ratio
+
+        is_meta = registry.functions.is_meta(input.address.checksum).call()
+
+        return CurveFiPoolInfo(**(pool_info.dict()),
+                               token_prices=token_prices,
                                virtualPrice=virtual_price,
-                               tokens=tokens,
-                               tokens_symbol=tokens_symbol,
-                               balances=balances,
-                               balances_token=balances_token,
-                               admin_fees=admin_fees,
-                               underlying_tokens=underlying,
-                               underlying_tokens_symbol=underlying_symbol,
                                A=pool_A,
                                ratio=ratio,
                                chi=chi,
-                               is_meta=is_meta,
-                               name=name,
-                               lp_token_name=lp_token_name,
-                               lp_token_addr=lp_token_addr,
-                               pool_token_name=pool_token_name,
-                               pool_token_addr=pool_token_addr,
-                               )
+                               is_meta=is_meta)
 
 
-@ Model.describe(slug="curve-fi.pool-tvl",
-                 version="1.1",
-                 display_name="Curve Finance Pool - TVL",
-                 description="Total amount of TVL",
-                 input=Contract,
-                 output=TVLInfo)
+@Model.describe(slug="curve-fi.pool-tvl",
+                version="1.1",
+                display_name="Curve Finance Pool - TVL",
+                description="Total amount of TVL",
+                input=Contract,
+                output=TVLInfo)
 class CurveFinancePoolTVL(Model):
     def run(self, input: Contract) -> TVLInfo:
         pool_info = self.context.run_model('curve-fi.pool-info',
                                            input=input,
                                            return_type=CurveFiPoolInfo)
         positions = []
-        prices = []
         tvl = 0.0
-        for tok, bal in zip(pool_info.tokens.tokens, pool_info.balances):
+        for tok, tok_price, bal in zip(pool_info.tokens.tokens,
+                                       pool_info.token_prices,
+                                       pool_info.balances):
             positions.append(Position(amount=bal, asset=tok))
-
-            tok_price = self.context.run_model('price.quote',
-                                               input=tok,
-                                               return_type=Price)
-            prices.append(tok_price)
             tvl += bal * tok_price.price
 
         pool_name = pool_info.name
@@ -333,7 +324,7 @@ class CurveFinancePoolTVL(Model):
             name=pool_name,
             portfolio=Portfolio(positions=positions),
             tokens_symbol=pool_info.tokens_symbol,
-            prices=prices,
+            prices=pool_info.token_prices,
             tvl=tvl
         )
 

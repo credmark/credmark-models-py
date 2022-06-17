@@ -9,8 +9,7 @@ from credmark.cmf.types import (
 
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfo
-from models.credmark.price.curve_helper import CRV_DERIVED, curve_price_for_derived_token
+from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -43,6 +42,21 @@ class CurveFinancePrice(Model):
         }
     }
 
+    CRV_DERIVED = {
+        1: {
+            Address('0xFEEf77d3f69374f66429C91d732A244f074bdf74'):
+            {
+                'name': 'cvxFXS',
+                'pool_address': '0xd658A338613198204DCa1143Ac3F01A722b5d94A'
+            },
+            Address('0xADF15Ec41689fc5b6DcA0db7c53c9bFE7981E655'):
+            {
+                'name': 'tFXS',
+                'pool_address': '0x961226B64AD373275130234145b96D100Dc0b655'
+            }
+        }
+    }
+
     CRV_LP = {
         1: {
             Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'):
@@ -56,7 +70,7 @@ class CurveFinancePrice(Model):
     @staticmethod
     def supported_coins(chain_id):
         return (list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
-                list(CRV_DERIVED[chain_id].keys()) +
+                list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
                 list(CurveFinancePrice.CRV_LP[chain_id].keys())
                 )
 
@@ -81,24 +95,49 @@ class CurveFinancePrice(Model):
                 price_underlying.src = price_underlying.src + '|cToken'
             return price_underlying
 
-        derived_info = CRV_DERIVED[self.context.chain_id].get(input.address)
+        derived_info = self.CRV_DERIVED[self.context.chain_id].get(input.address)
         if derived_info is not None:
             pool = Contract(address=derived_info['pool_address'])
-            pool_info = self.context.run_model('curve-fi.pool-info',
+            pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
-                                               return_type=CurveFiPoolInfo)
-            return curve_price_for_derived_token(self,
-                                                 input,
-                                                 pool,
-                                                 pool_info.tokens,
-                                                 pool_info.tokens_symbol)
+                                               return_type=CurveFiPoolInfoToken)
+
+            n_token_input = np.where([tok == input for tok in pool_info.tokens])[0].tolist()
+            if len(n_token_input) != 1:
+                raise ModelRunError(
+                    f'{self.slug} does not find {input=} in pool {pool.address=}')
+            n_token_input = n_token_input[0]
+
+            price_to_others = []
+            ratio_to_others = []
+            price_others = []
+            for n_token_other, other_token in enumerate(pool_info.tokens):
+                if n_token_other != n_token_input:
+                    ratio_to_other = other_token.scaled(
+                        pool.functions.get_dy(n_token_input,  # token to send
+                                              n_token_other,  # token to receive
+                                              10**input.decimals  # amount of the token to send
+                                              ).call())
+                    price_other = self.context.run_model('price.quote',
+                                                         input={'base': other_token},
+                                                         return_type=Price).price
+                    price_to_others.append(ratio_to_other * price_other)
+                    ratio_to_others.append(ratio_to_other)
+                    price_others.append(price_other)
+
+            n_price_min = np.where(price_to_others == np.min(price_to_others))[0][0]
+            return Price(
+                price=np.min(price_to_others),
+                src=(f'{self.slug}|{pool.address}|'
+                     f'{pool_info.tokens_symbol[n_price_min]}|{ratio_to_others[n_price_min]}|'
+                     f'{pool_info.tokens[n_price_min].symbol}|{price_others[n_price_min]}'))
 
         lp_token_info = self.CRV_LP[self.context.chain_id].get(input.address)
         if lp_token_info is not None:
             pool = Contract(address=lp_token_info['pool_address'])
-            pool_info = self.context.run_model('curve-fi.pool-info',
+            pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
-                                               return_type=CurveFiPoolInfo)
+                                               return_type=CurveFiPoolInfoToken)
             if pool_info.lp_token_addr != input.address:
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')

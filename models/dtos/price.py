@@ -1,6 +1,14 @@
-from typing import List
-from credmark.cmf.types import Address, Currency, FiatCurrency, Token
+from typing import List, Optional
+from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+
+
+class PriceMaybe(DTO):
+    price: Optional[Price] = DTOField(None)
+
+
+class AddressMaybe(DTO):
+    address: Optional[Address] = DTOField(None)
 
 
 class PriceInput(DTO):
@@ -32,7 +40,7 @@ class PriceInput(DTO):
         DTOField(FiatCurrency(symbol='USD'),
                  description='Quote token address to count the value')
 
-    def invert(self):
+    def inverse(self):
         return PriceInput(base=self.quote, quote=self.base)
 
     class Config:

@@ -1,33 +1,11 @@
-from typing import (
-    List,
-    Tuple,
-)
-
-from datetime import (
-    datetime,
-    date,
-    timezone,
-    timedelta,
-)
-
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
-
-from credmark.cmf.types import (
-    Address,
-    Token,
-    Contract,
-    Price,
-    BlockNumber,
-)
-
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
+from datetime import date, datetime, timedelta, timezone
+from typing import List, Tuple
 
 import numpy as np
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Address, BlockNumber, Contract, Price, Token
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 
 # Pool(Contract)
 # LendingPool(Pool)
