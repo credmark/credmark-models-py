@@ -3,8 +3,8 @@ from ens import ENS
 from web3.exceptions import ContractLogicError
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
-from credmark.cmf.types import Contract, Price, Token, Account, Address
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Contract, Price, Account, Address
 from credmark.dto import EmptyInput, DTO, DTOField
 
 from models.dtos.price import PriceInput

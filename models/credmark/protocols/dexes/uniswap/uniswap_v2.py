@@ -65,11 +65,13 @@ class UniswapV2PoolMeta:
         contracts = []
         try:
             for token in tokens:
-                pair_address = factory.functions.getPair(model_input.address, token.address).call()
+                pair_address = factory.functions.getPair(
+                    model_input.address, token.address).call()
                 if not pair_address == Address.null():
                     contracts.append(Contract(address=pair_address))
                 else:
-                    pair_address = factory.functions.getPair(token.address, model_input.address).call()
+                    pair_address = factory.functions.getPair(
+                        token.address, model_input.address).call()
                     if not pair_address == Address.null():
                         contracts.append(Contract(address=pair_address))
 

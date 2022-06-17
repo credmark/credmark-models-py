@@ -1,7 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
-    Account,
     Address,
     Price,
     Currency,
