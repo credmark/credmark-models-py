@@ -31,8 +31,6 @@ for pool_addr in $curve_pools; do
     test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"20 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
 
-exit
-
 # UniV3
 # 0x5777d92f208679db4b9778590fa3cab3ac9e2168 (DAI/USDC)
 # 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 (USDC/WETH)

@@ -1,19 +1,50 @@
-from credmark.cmf.types import (
-    Token,
-    Price,
-    FiatCurrency,
-)
-from credmark.cmf.types.compose import (
-    MapBlockTimeSeriesOutput
-)
-
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError
-from models.dtos.price import PriceInput, Address, PriceMaybe,  PriceInputHistorical
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import FiatCurrency, Price, Token
+from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
+                                        MapInputsOutput)
+from models.dtos.price import (Address,
+                               PriceHistoricalInput,
+                               PriceHistoricalInputs,
+                               PriceHistoricalOutputs,
+                               PriceInput, PriceInputs,
+                               PriceMaybe, Prices)
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='No pools to aggregate for token price')
+
+
+@Model.describe(slug='price.quote-historical-multiple',
+                version='1.0',
+                display_name='Token Price - Quoted - Historical',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                input=PriceHistoricalInputs,
+                output=PriceHistoricalOutputs,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceQuoteHistoricalMultiple(Model):
+    def run(self, input: PriceHistoricalInputs) -> PriceHistoricalOutputs:
+        partial_input = {'interval': input.interval,
+                         'count': input.count,
+                         'exclusive': input.exclusive}
+        price_historical_result = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'price.quote-historical',
+                   'modelInputs': [one_input.dict() | partial_input for one_input in input.inputs]},
+            return_type=MapInputsOutput[PriceHistoricalInput,
+                                        MapBlockTimeSeriesOutput[Price]])  # type: ignore
+
+        series = []
+        for result in price_historical_result:
+            if result.error is not None:
+                self.logger.error(result.error)
+                raise ModelDataError(result.error.message)
+            if result.output is None:
+                raise ModelRunError(f'None result with {result.input}')
+            series.append(result.output)
+
+        return PriceHistoricalOutputs(series=series)
 
 
 @Model.describe(slug='price.quote-historical',
@@ -21,11 +52,11 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
-                input=PriceInputHistorical,
+                input=PriceHistoricalInput,
                 output=MapBlockTimeSeriesOutput[Price],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteHistorical(Model):
-    def run(self, input: PriceInputHistorical) -> MapBlockTimeSeriesOutput[Price]:
+    def run(self, input: PriceHistoricalInput) -> MapBlockTimeSeriesOutput[Price]:
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote',
@@ -42,6 +73,34 @@ class PriceQuoteHistorical(Model):
                 raise ModelDataError(result.error.message)
 
         return price_historical_result
+
+
+@Model.describe(slug='price.quote-multiple',
+                version='1.3',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                input=PriceInputs,
+                output=Prices,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceQuoteMultiple(Model):
+    def run(self, input: PriceInputs) -> Prices:
+        token_prices_run = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'price.quote', 'modelInputs': input.inputs},
+            return_type=MapInputsOutput[PriceInput, Price])
+
+        print(token_prices_run)
+        prices = []
+        for p in token_prices_run:
+            if p.error is not None:
+                self.logger.error(p.error)
+                raise ModelRunError(p.error.message)
+            if p.output is None:
+                raise ModelRunError(f'Unable to get price for {p.input}')
+            prices.append(p.output)
+
+        return Prices(prices=prices)
 
 
 @ Model.describe(slug='price',

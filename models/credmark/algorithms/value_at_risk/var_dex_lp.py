@@ -2,16 +2,13 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Contract, Price, Token
-from credmark.cmf.types.compose import (
-    MapBlockTimeSeriesOutput,
-    MapInputsInput,
-    MapInputsOutput)
+from credmark.cmf.types import Contract, Token
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import (
     UniswapV3PoolInfo
 )
+from models.dtos.price import PriceHistoricalOutputs
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
@@ -65,31 +62,19 @@ class UniswapPoolVaR(Model):
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         token_historical_prices_run = self.context.run_model(
-            slug='compose.map-inputs',
-            input=MapInputsInput(
-                modelSlug='price.quote-historical',
-                modelInputs=[{"base": token,
-                              "modelSlug": "abc",
-                              "interval": interval,
-                              "count": count,
-                              "exclusive": False}
-                             for token in [token0, token1]]),
-            return_type=MapInputsOutput[dict, MapBlockTimeSeriesOutput[Price]]
-        )
+            slug='price.quote-historical-multiple',
+            input={"inputs": [{'base': tok} for tok in [token0, token1]],
+                   "interval": interval,
+                   "count": count,
+                   "exclusive": False},
+            return_type=PriceHistoricalOutputs)
 
         token_historical_prices = [
-            (hp.output.to_dataframe(fields=[('price', lambda p:p.price)])
+            (hp.to_dataframe(fields=[('price', lambda p:p.price)])
              .sort_values('blockNumber', ascending=False)
              .reset_index(drop=True))
-            for hp in token_historical_prices_run.results
-            if hp.error is None and hp.output is not None
+            for hp in token_historical_prices_run
         ]
-
-        if len(token_historical_prices) < 2:
-            errors = [hp.error
-                      for hp in token_historical_prices_run.results
-                      if hp.error is not None]
-            raise ModelRunError(f'Errors when getting historical prices: {errors}')
 
         df = pd.DataFrame({
             'TOKEN0/USD': token_historical_prices[0].price.to_numpy(),
@@ -97,20 +82,20 @@ class UniswapPoolVaR(Model):
         })
 
         df.loc[:, 'ratio_0_over_1'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
-        ratio_init = df.ratio_0_over_1[:-input.interval].to_numpy()
+        ratio_init = df.ratio_0_over_1[: -input.interval].to_numpy()
         ratio_tail = df.ratio_0_over_1[input.interval:].to_numpy()
         ratio_change_0_over_1 = ratio_init / ratio_tail
 
         df.loc[:, 'ratio_1_over_0'] = df['TOKEN1/USD'] / df['TOKEN0/USD']
-        ratio_init = df.ratio_1_over_0[:-input.interval].to_numpy()
+        ratio_init = df.ratio_1_over_0[: -input.interval].to_numpy()
         ratio_tail = df.ratio_1_over_0[input.interval:].to_numpy()
         _ratio_change_1_over_0 = ratio_init / ratio_tail
 
-        token0_init = df['TOKEN0/USD'][:-input.interval].to_numpy()
+        token0_init = df['TOKEN0/USD'][: -input.interval].to_numpy()
         token0_tail = df['TOKEN0/USD'][input.interval:].to_numpy()
         _token0_change = token0_init / token0_tail
 
-        token1_init = df['TOKEN1/USD'][:-input.interval].to_numpy()
+        token1_init = df['TOKEN1/USD'][: -input.interval].to_numpy()
         token1_tail = df['TOKEN1/USD'][input.interval:].to_numpy()
         token1_change = token1_init / token1_tail
 

@@ -134,7 +134,7 @@ class PriceFromDexModel(Model, PriceWeight):
                     raise ModelRunError(pool_result.error.message)
                 if pool_result.output is None:
                     self.logger.error(pool_result.error)
-                    raise ModelRunError(f'None result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
+                    raise ModelRunError(f'None result for {pool_result.input}')
 
                 all_pool_infos.extend(pool_result.output)
 

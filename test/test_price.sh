@@ -3,6 +3,10 @@ echo_cmd "Price"
 echo_cmd ""
 
 test_model 0 price.quote-historical '{"base": {"symbol": "AAVE"}, "interval": 86400, "count": 1, "exclusive": true}'
+test_model 0 price.quote-multiple '{"inputs": [{"base":{"symbol":"EUR"}},{"base":{"symbol":"JPY"}}]}'
+test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": true}'
+test_model 0 finance.var-dex-lp -i '{"pool": {"address":"0xdB06a76733528761Eda47d356647297bC35a98BD"},"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l "*"
+
 
 token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
 0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"
@@ -86,8 +90,6 @@ for price_model in $models; do
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
     done
 done
-
-exit
 
 
 echo_cmd ""
@@ -225,5 +227,3 @@ do
 done
 
 block_number=${block_number_backup}
-
-exit
