@@ -5,6 +5,7 @@ import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, BlockNumber, Contract, Price, Token
+from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 
 # Pool(Contract)
@@ -118,7 +119,6 @@ class CompoundV2Comptroller(Model):
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
         comptroller = get_comptroller(self)
-
         cTokens = comptroller.functions.getAllMarkets().call()
 
         # Check whether our list is complete
@@ -138,11 +138,23 @@ class CompoundV2AllPoolsInfo(Model):
         pool_infos = []
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
-        for cTokenAddress in pools['cTokens']:
-            pool_info = self.context.run_model(
-                slug='compound-v2.get-pool-info',
-                input=Token(address=cTokenAddress))
-            pool_infos.append(pool_info)
+        all_pool_infos_results = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'compound-v2.get-pool-info',
+                   'modelInputs': [Token(address=cTokenAddress)
+                                   for cTokenAddress in pools['cTokens']]},
+            return_type=MapInputsOutput[dict, dict]
+        )
+
+        pool_infos = []
+        for pool_n, pool_result in enumerate(all_pool_infos_results):
+            if pool_result.error is not None:
+                self.logger.error(pool_result.error)
+                raise ModelRunError(pool_result.error.message)
+            if pool_result.output is None:
+                raise ModelRunError(f'Empty result for {pools["cTokens"][pool_n]}')
+            pool_infos.append(pool_result.output)
+
         ret = CompoundV2PoolInfos(infos=pool_infos)
         return ret
 
@@ -362,7 +374,9 @@ class CompoundV2GetPoolInfo(Model):
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        tokenprice = self.context.run_model(slug='price.quote', input=token, return_type=Price)
+        tokenprice = self.context.run_model(slug='price.quote',
+                                            input={'base': token},
+                                            return_type=Price)
 
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')

@@ -1,7 +1,10 @@
 from typing import List, Optional
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Portfolio, Position, Token, Price
+from credmark.cmf.types import (Address, Contract, Contracts, Portfolio,
+                                Position, Price, Token)
+from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
@@ -228,7 +231,7 @@ class AaveV2GetTokenLiability(Model):
 
 
 @ Model.describe(slug="aave-v2.lending-pool-assets",
-                 version="1.1",
+                 version="1.2",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
                  output=AaveDebtInfos)
@@ -244,11 +247,23 @@ class AaveV2GetAssets(Model):
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         aave_debts_infos = []
-        for asset_address in aave_assets_address:
-            info = self.context.run_model('aave-v2.token-asset',
-                                          input=Token(address=asset_address),
-                                          return_type=AaveDebtInfo)
-            aave_debts_infos.append(info)
+
+        all_pool_infos_results = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'aave-v2.token-asset',
+                   'modelInputs': [Token(address=addr)
+                                   for addr in aave_assets_address]},
+            return_type=MapInputsOutput[dict, AaveDebtInfo]
+        )
+
+        aave_debts_infos = []
+        for pool_n, pool_result in enumerate(all_pool_infos_results):
+            if pool_result.error is not None:
+                self.logger.error(pool_result.error)
+                raise ModelRunError(pool_result.error.message)
+            if pool_result.output is None:
+                raise ModelRunError(f'Empty result for {aave_assets_address[pool_n]}')
+            aave_debts_infos.append(pool_result.output)
 
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
