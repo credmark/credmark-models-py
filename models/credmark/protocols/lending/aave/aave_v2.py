@@ -191,23 +191,22 @@ class AaveV2GetLiability(Model):
 
         aave_assets = aave_lending_pool.functions.getReservesList().call()
 
-        positions = []
-        for asset in aave_assets:
-            # self.logger.info(f'getting info for {asset=}')
-            pos = self.context.run_model(slug='aave-v2.token-liability',
-                                         input=Token(address=asset),
-                                         return_type=Position)
-            positions.append(pos)
+        map_results = self.context.models.compose.map_inputs(
+            modelSlug='aave-v2.token-liability',
+            modelInputs=[Token(address=asset) for asset in aave_assets],
+            return_type=MapInputsOutput[Token, Position])
 
+        positions = [res.output for res in map_results.results if res.error is None]  # type: ignore
+        assert len(positions) == len(aave_assets)
         return Portfolio(positions=positions)
 
 
-@Model.describe(slug="aave-v2.token-liability",
-                version="1.1",
-                display_name="Aave V2 token liability",
-                description="Aave V2 token liability at a given block number",
-                input=Token,
-                output=Position)
+@ Model.describe(slug="aave-v2.token-liability",
+                 version="1.1",
+                 display_name="Aave V2 token liability",
+                 description="Aave V2 token liability at a given block number",
+                 input=Token,
+                 output=Position)
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
@@ -268,12 +267,12 @@ class AaveV2GetAssets(Model):
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
-@Model.describe(slug="aave-v2.token-asset",
-                version="1.1",
-                display_name="Aave V2 token liquidity",
-                description="Aave V2 token liquidity at a given block number",
-                input=Token,
-                output=AaveDebtInfo)
+@ Model.describe(slug="aave-v2.token-asset",
+                 version="1.1",
+                 display_name="Aave V2 token liquidity",
+                 description="Aave V2 token liquidity at a given block number",
+                 input=Token,
+                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def run(self, input: Token) -> AaveDebtInfo:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',

@@ -1,14 +1,18 @@
 echo_cmd ""
-echo_cmd "Price"
+echo_cmd "Price - General"
 echo_cmd ""
 
 test_model 0 price.quote-historical '{"base": {"symbol": "AAVE"}, "interval": 86400, "count": 1, "exclusive": true}'
 test_model 0 price.quote-multiple '{"inputs": [{"base":{"symbol":"EUR"}},{"base":{"symbol":"JPY"}}]}'
 test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": true}'
-test_model 0 finance.var-dex-lp -i '{"pool": {"address":"0xdB06a76733528761Eda47d356647297bC35a98BD"},"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l "*"
+test_model 0 finance.var-dex-lp '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}'
 
+block_number_backup=${block_number}
+block_number='-b 14878712'
+
+# 0xdB06a76733528761Eda47d356647297bC35a98BD
 echo_cmd ""
-echo_cmd "Curve Price"
+echo_cmd "Price - dex-Curve"
 echo_cmd ""
 
 token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
@@ -20,12 +24,19 @@ token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
 "
 
 for token_addr in $token_addrs; do
-    test_model 0 price.dex-curve-fi '{"address":"'${token_addr}'"}'
-    test_model 0 price.quote '{"base": {"address":"'${token_addr}'"}}'
+    if [[ "$token_addr" =~ ^0x ]]; then
+        token_addr_ext='{"address":"'${token_addr}'"}'
+    else
+        token_addr_ext='{"symbol":"'${token_addr}'"}'
+    fi
+
+    test_model 0 price.dex-curve-fi ${token_addr_ext} __all__
+    test_model 0 price.quote '{"base": '${token_addr_ext}', "quote": {"symbol":"USD"}}' __all__
+    test_model 0 price.quote '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
 done
 
 echo_cmd ""
-echo_cmd "Chainlink Oracle Price"
+echo_cmd "Price - Chainlink Oracle"
 echo_cmd ""
 
 # 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E ilv
@@ -55,9 +66,6 @@ GBP
 0x383518188C0C6d7730D91b2c03a03C837814a899
 "
 
-block_number_backup=${block_number}
-block_number='-b 14878712'
-
 models="price.quote price.oracle-chainlink"
 
 for price_model in $models; do
@@ -81,26 +89,8 @@ for price_model in $models; do
     done
 done
 
-tokens="0xFEEf77d3f69374f66429C91d732A244f074bdf74"
-
-models="price.quote price.dex-curve-fi"
-
-for price_model in $models; do
-    for token_addr in $tokens; do
-        if [[ "$token_addr" =~ ^0x ]]; then
-            token_addr_ext='{"address":"'${token_addr}'"}'
-        else
-            token_addr_ext='{"symbol":"'${token_addr}'"}'
-        fi
-
-        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"USD"}}' __all__
-        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
-    done
-done
-
-
 echo_cmd ""
-echo_cmd "Price2"
+echo_cmd "Price - Chainlink more"
 echo_cmd ""
 
 # ALGO BYTOM NEAR
@@ -230,7 +220,18 @@ for tok in "0x111111111117dC0aa78b770fA6A738034120C302 0" \
 
 do
     set -- $tok
-    test_model $2 price.oracle-chainlink '{"base": "'$1'", "quote": "USD"}'
+    test_model $2 price.quote '{"base": {"address":"'$1'"}, "quote": {"symbol": "USD"}}'
+    test_model $2 price.quote '{"quote": {"address":"'$1'"}, "base": {"symbol": "USD"}}'
+    test_model $2 price.oracle-chainlink '{"base": {"address":"'$1'"}, "quote": {"symbol": "USD"}}'
+    test_model $2 price.oracle-chainlink '{"quote": {"address":"'$1'"}, "base": {"symbol": "USD"}}'
+
+    test_model $2 price.quote '{"base": {"address":"'$1'"}, "quote": {"symbol": "EUR"}}'
+    test_model $2 price.quote '{"quote": {"address":"'$1'"}, "base": {"symbol": "EUR"}}'
+    test_model $2 price.oracle-chainlink '{"base": {"address":"'$1'"}, "quote": {"symbol": "EUR"}}'
+    test_model $2 price.oracle-chainlink '{"quote": {"address":"'$1'"}, "base": {"symbol": "EUR"}}'
+
+    test_model $2 price.oracle-chainlink '{"base": {"address":"'$1'"}, "quote": {"symbol": "AAVE"}}'
+    test_model $2 price.oracle-chainlink '{"quote": {"address":"'$1'"}, "base": {"symbol": "AAVE"}}'
 done
 
 block_number=${block_number_backup}

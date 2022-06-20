@@ -16,6 +16,7 @@ quick_test=1
 
 # 13909787 - datetime.datetime(2021, 12, 31, 0, 0, tzinfo=datetime.timezone.utc)
 # 14830357 - datetime.datetime(2022, 5, 23, 15, 26, 40, tzinfo=datetime.timezone.utc)
+prefix=' --model_path xxxx '
 postfix=' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l -'
 
 echo
@@ -63,31 +64,31 @@ univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
 # for pool in $univ3_pools; do
 # for pool in $sushi_pools $univ2_pools; do
 for pool in $sushi_pools $univ2_pools $univ3_pools; do
-    credmark-dev run uniswap-v2.get-pool-info -i '{"address":"'${pool}'"}' ${postfix}
+    credmark-dev ${prefix} run uniswap-v2.get-pool-info -i '{"address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' ${postfix}
+    credmark-dev ${prefix} run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix}
+    credmark-dev ${prefix} run dex.pool-volume-historical -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix}
+    credmark-dev ${prefix} run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
+    credmark-dev ${prefix} run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
 "window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
@@ -112,28 +113,28 @@ curve_pools="0x961226b64ad373275130234145b96d100dc0b655
 0x828b154032950C8ff7CF8085D841723Db2696056
 "
 
-curve_pool_info_tvl=curve-fi.pool-info,token.price,chainlink.price-by-registry
+curve_pool_info_tvl=curve-fi.pool-info,chainlink.price-by-registry
 
 for pool in $curve_pools; do
-    credmark-dev run curve-fi.pool-tvl -i '{"address":"'$pool'"}' ${postfix} -l "*"
+    credmark-dev ${prefix} run curve-fi.pool-tvl -i '{"address":"'$pool'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix} -l "*"
+    credmark-dev ${prefix} run dex.pool-volume-historical -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix} -l "*"
+    credmark-dev ${prefix} run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool'"},"window":"3 days","interval":"1 day"}' ${postfix} -l "*"
+    credmark-dev ${prefix} run historical.run-model -i '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool'"},"window":"3 days","interval":"1 day"}' ${postfix} -l "*"
 	if [ $exit_code -eq 0 ]; then
 		break
 	fi
@@ -143,7 +144,7 @@ echo
 echo "Longer Test for LP VaR"
 echo
 
-credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
+credmark-dev ${prefix} run finance.var-dex-lp -i '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
 "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' ${postfix}
 exit_code=$?
 if [ $exit_code -ne 0 ]; then
@@ -152,7 +153,7 @@ fi
 
 for range_of_pool in 0.01 0.05 0.1 0.2 0.4 0.6 0.8 1.0; do
     echo LP VaR Range: ${range_of_pool}
-    credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
+    credmark-dev ${prefix} run finance.var-dex-lp -i '{"pool": {"address":"0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
     "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}'}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
