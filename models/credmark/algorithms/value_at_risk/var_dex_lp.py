@@ -3,7 +3,10 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Contract, Price, Token
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from credmark.cmf.types.compose import (
+    MapBlockTimeSeriesOutput,
+    MapInputsInput,
+    MapInputsOutput)
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import (
@@ -63,35 +66,36 @@ class UniswapPoolVaR(Model):
         t_unit, count = self.context.historical.parse_timerangestr(input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
-        token0_historical_price = (self.context.run_model(
-            slug='compose.map-block-time-series',
-            input={"modelSlug": self.PRICE_MODEL,
-                   "modelInput": {"base": token0},
-                   "endTimestamp": self.context.block_number.timestamp,
-                   "interval": interval,
-                   "count": count,
-                   "exclusive": "False"},
-            return_type=MapBlockTimeSeriesOutput[Price])
-            .to_dataframe(fields=[('price', lambda p:p.price)])
-            .sort_values('blockNumber', ascending=False)
-            .reset_index(drop=True))
+        token_historical_prices_run = self.context.run_model(
+            slug='compose.map-inputs',
+            input=MapInputsInput(
+                modelSlug='compose.map-block-time-series',
+                modelInputs=[{"modelSlug": self.PRICE_MODEL,
+                              "modelInput": {"base": token},
+                              "endTimestamp": self.context.block_number.timestamp,
+                              "interval": interval,
+                              "count": count,
+                              "exclusive": False} for token in [token0, token1]]),
+            return_type=MapInputsOutput[dict, MapBlockTimeSeriesOutput[Price]]
+        )
 
-        token1_historical_price = (self.context.run_model(
-            slug='compose.map-block-time-series',
-            input={"modelSlug": self.PRICE_MODEL,
-                   "modelInput": {"base": token1},
-                   "endTimestamp": self.context.block_number.timestamp,
-                   "interval": interval,
-                   "count": count,
-                   "exclusive": "False"},
-            return_type=MapBlockTimeSeriesOutput[Price])
-            .to_dataframe(fields=[('price', lambda p:p.price)])
-            .sort_values('blockNumber', ascending=False)
-            .reset_index(drop=True))
+        token_historical_prices = [
+            (hp.output.to_dataframe(fields=[('price', lambda p:p.price)])
+             .sort_values('blockNumber', ascending=False)
+             .reset_index(drop=True))
+            for hp in token_historical_prices_run.results
+            if hp.error is None and hp.output is not None
+        ]
+
+        if len(token_historical_prices) < 2:
+            errors = [hp.error
+                      for hp in token_historical_prices_run.results
+                      if hp.error is not None]
+            raise ModelRunError(f'Errors when getting historical prices: {errors}')
 
         df = pd.DataFrame({
-            'TOKEN0/USD': token0_historical_price.price.to_numpy(),
-            'TOKEN1/USD': token1_historical_price.price.to_numpy(),
+            'TOKEN0/USD': token_historical_prices[0].price.to_numpy(),
+            'TOKEN1/USD': token_historical_prices[1].price.to_numpy(),
         })
 
         df.loc[:, 'ratio_0_over_1'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
@@ -183,7 +187,7 @@ class UniswapPoolVaR(Model):
         var_result = calc_var(total_pnl_vector, conf)
         var = {
             'var': var_result.var,
-            'scenarios': (token0_historical_price.blockTime
+            'scenarios': (token_historical_prices[0].blockTime
                           .iloc[var_result.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
             'weights': var_result.weights
@@ -192,7 +196,7 @@ class UniswapPoolVaR(Model):
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = {
             'var': var_result_without_il.var,
-            'scenarios': (token0_historical_price.blockTime
+            'scenarios': (token_historical_prices[0].blockTime
                           .iloc[var_result_without_il.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
             'weights': var_result_without_il.weights
@@ -201,7 +205,7 @@ class UniswapPoolVaR(Model):
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = {
             'var': var_result_il.var,
-            'scenarios': (token0_historical_price.blockTime
+            'scenarios': (token_historical_prices[0].blockTime
                           .iloc[var_result_il.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
             'weights': var_result_il.weights

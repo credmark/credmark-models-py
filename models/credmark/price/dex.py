@@ -1,21 +1,14 @@
 # pylint: disable=locally-disabled, unused-import
 from abc import abstractmethod
-import pandas as pd
 from typing import List
-
-from credmark.cmf.types import (
-    Token,
-    Price,
-    Contract,
-    Accounts,
-    Contracts,
-)
-
-from credmark.dto import DTO, IterableListGenericDTO
+import pandas as pd
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError
-from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 
+from credmark.cmf.types import Price, Token
+from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
+                                        MapInputsInput, MapInputsOutput)
+from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -115,23 +108,38 @@ class PriceFromDexModel(Model, PriceWeight):
     """
     Return token's price
     """
+    DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-price-info',
+                                             'sushiswap.get-pool-price-info',
+                                             'uniswap-v3.get-pool-price-info']
 
     def run(self, input: Token) -> Price:
-        pool_price_infos_univ2 = self.context.run_model('uniswap-v2.get-pool-price-info',
-                                                        input=input)
-        pool_price_infos_sushi = self.context.run_model('sushiswap.get-pool-price-info',
-                                                        input=input)
-        pool_price_infos_univ3 = self.context.run_model('uniswap-v3.get-pool-price-info',
-                                                        input=input)
-        all_pool_infos = (pool_price_infos_univ2['pool_price_infos'] +
-                          pool_price_infos_sushi['pool_price_infos'] +
-                          pool_price_infos_univ3['pool_price_infos'])
+        all_pool_infos_results = self.context.run_model(
+            slug='compose.map-inputs',
+            input=MapInputsInput(
+                modelSlug='compose.map-inputs',
+                modelInputs=[{"modelSlug": slug, "modelInputs": [input]}
+                             for slug in self.DEX_POOL_PRICE_INFO_MODELS]),
+            return_type=MapInputsOutput[dict, MapInputsOutput[dict, PoolPriceInfos]]
+        )
+        all_pool_infos = []
+        for dex_n, dex_result in enumerate(all_pool_infos_results):
+            if dex_result.error is not None:
+                raise ModelRunError(**dex_result.error.dict())
+            if dex_result.output is None:
+                raise ModelRunError(f'Empty result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
+            for pool_result in dex_result.output:
+                if pool_result.error is not None:
+                    raise ModelRunError(**pool_result.error.dict())
+                if pool_result.output is None:
+                    raise ModelRunError('None rseult for')
+                all_pool_infos.extend(pool_result.output)
 
-        non_zero_pools = {ii.src for ii in all_pool_infos.pool_price_infos if ii.liquidity > 0}
+        non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
+        zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
             token=input,
-            pool_price_infos=all_pool_infos.pool_price_infos,
-            price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
+            pool_price_infos=all_pool_infos,
+            price_src=f'{self.slug}|Non-zero:{",".join(non_zero_pools)}|Zero:{",".join(zero_pools)}',
             weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
