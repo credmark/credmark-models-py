@@ -44,7 +44,7 @@ class CurveFiPoolInfoToken(Contract):
 
 
 class CurveFiPoolInfo(CurveFiPoolInfoToken):
-    token_prices: List[float]
+    token_prices: List[Price]
     virtualPrice: int
     A: int
     chi: float
@@ -260,9 +260,9 @@ class CurveFinancePoolInfo(Model):
             tok_price = self.context.run_model('price.quote',
                                                input={'base': tok},
                                                return_type=Price)
-            token_prices.append(tok_price.price)
+            token_prices.append(tok_price)
 
-        np_balance = np.array(pool_info.balances_token) * np.array(token_prices)
+        np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
         avg_balance = np_balance.mean()

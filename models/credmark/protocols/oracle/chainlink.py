@@ -63,11 +63,10 @@ class ChainLinkPriceByFeed(Model):
         description = feed_contract.functions.description().call()
         version = feed_contract.functions.version().call()
 
+        feed = input.address
         if feed_contract.abi is not None:
             if 'aggregator'.lower() in feed_contract.abi.functions:
                 feed = feed_contract.functions.aggregator().call()
-        else:
-            feed = input.address
         isFeedEnabled = None
 
         time_diff = self.context.block_number.timestamp - _updatedAt
@@ -84,7 +83,7 @@ class ChainLinkPriceByFeed(Model):
                 input=PriceInput,
                 output=PriceMaybe)
 class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> dict:
+    def run(self, input: PriceInput) -> PriceMaybe:
         price = None
 
         feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
@@ -114,7 +113,7 @@ class ChainLinkFeedFromRegistryMaybe(Model):
                 input=PriceInput,
                 output=AddressMaybe)
 class ChainLinkFeedFromRegistry(Model):
-    def run(self, input: PriceInput) -> dict:
+    def run(self, input: PriceInput) -> AddressMaybe:
         base_address = input.base.address
         quote_address = input.quote.address
 
