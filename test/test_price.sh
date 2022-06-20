@@ -2,6 +2,8 @@ echo_cmd ""
 echo_cmd "Price"
 echo_cmd ""
 
+test_model 0 price.quote-historical '{"base": {"symbol": "AAVE"}, "interval": 86400, "count": 1, "exclusive": true}'
+
 token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
 0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"
 

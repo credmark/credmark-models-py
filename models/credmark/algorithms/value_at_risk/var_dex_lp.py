@@ -16,14 +16,12 @@ from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
 @ Model.describe(slug="finance.var-dex-lp",
-                 version="1.2",
+                 version="1.3",
                  display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                  description="Working for UniV2, V3 and Sushiswap pools",
                  input=UniswapPoolVaRInput,
                  output=dict)
 class UniswapPoolVaR(Model):
-    PRICE_MODEL = 'price.quote'
-
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
     It then calculate the LP position's VaR from both price change and quantity change from IL
@@ -69,13 +67,13 @@ class UniswapPoolVaR(Model):
         token_historical_prices_run = self.context.run_model(
             slug='compose.map-inputs',
             input=MapInputsInput(
-                modelSlug='compose.map-block-time-series',
-                modelInputs=[{"modelSlug": self.PRICE_MODEL,
-                              "modelInput": {"base": token},
-                              "endTimestamp": self.context.block_number.timestamp,
+                modelSlug='price.quote-historical',
+                modelInputs=[{"base": token,
+                              "modelSlug": "abc",
                               "interval": interval,
                               "count": count,
-                              "exclusive": False} for token in [token0, token1]]),
+                              "exclusive": False}
+                             for token in [token0, token1]]),
             return_type=MapInputsOutput[dict, MapBlockTimeSeriesOutput[Price]]
         )
 

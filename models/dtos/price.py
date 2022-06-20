@@ -1,6 +1,7 @@
 from typing import List, Optional
 from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 
 
 class PriceMaybe(DTO):
@@ -43,12 +44,21 @@ class PriceInput(DTO):
     def inverse(self):
         return PriceInput(base=self.quote, quote=self.base)
 
+    def quote_usd(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='USD'))
+
     class Config:
         schema_extra = {
             'examples': [{'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
                           'quote': {'symbol': 'USD'}}]
         }
+
+
+class PriceInputHistorical(PriceInput, MapBlockTimeSeriesInput):
+    modelSlug: str = DTOField('price.quote', hidden=True)
+    modelInput: dict = DTOField({}, hidden=True)
+    endTimestamp: int = DTOField(0, hidden=True)
 
 
 class PoolPriceInfo(DTO):
