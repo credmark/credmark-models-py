@@ -108,14 +108,15 @@ class PriceQuoteMultiple(Model):
                  display_name='Token Price',
                  description='DEPRECATED - use price.quote',
                  input=Token,
-                 output=Price)
+                 output=Price,
+                 errors=PRICE_DATA_ERROR_DESC)
 class PriceModel(Model):
     """
     Return token's price (DEPRECATED) - use price.quote
     """
 
     def run(self, input: Token) -> Price:
-        return self.context.run_model('price.quote', input, return_type=Price)
+        return self.context.run_model('price.quote', {'base': input}, return_type=Price)
 
 
 @ Model.describe(slug='price.quote',

@@ -7,15 +7,22 @@ test_model 0 price.quote-multiple '{"inputs": [{"base":{"symbol":"EUR"}},{"base"
 test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": true}'
 test_model 0 finance.var-dex-lp -i '{"pool": {"address":"0xdB06a76733528761Eda47d356647297bC35a98BD"},"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l "*"
 
+echo_cmd ""
+echo_cmd "Curve Price"
+echo_cmd ""
 
 token_addrs="0xFEEf77d3f69374f66429C91d732A244f074bdf74
-0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"
+0x6c3f90f043a72fa612cbac8115ee7e52bde6e490
+0xADF15Ec41689fc5b6DcA0db7c53c9bFE7981E655
+0x8e595470ed749b85c6f7669de83eae304c2ec68f
+0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c
+0x48759f220ed983db51fa7a8c0d2aab8f3ce4166a
+"
 
 for token_addr in $token_addrs; do
     test_model 0 price.dex-curve-fi '{"address":"'${token_addr}'"}'
     test_model 0 price.quote '{"base": {"address":"'${token_addr}'"}}'
 done
-
 
 echo_cmd ""
 echo_cmd "Chainlink Oracle Price"

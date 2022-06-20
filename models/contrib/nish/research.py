@@ -78,7 +78,7 @@ class CurveGetTVLAndVolume(Model):
         coin_balances.update({token0_symbol: token0_balance})
         token0_price = self.context.run_model(
             slug='price.quote',
-            input=token0_instance
+            input={'base': token0_instance}
         )
         tvl += token0_balance * token0_price['price']
         prices.update({token0_symbol: token0_price['price']})
@@ -88,7 +88,7 @@ class CurveGetTVLAndVolume(Model):
         coin_balances.update({token1_symbol: token1_balance})
         token1_price = self.context.run_model(
             slug='price.quote',
-            input=token1_instance
+            input={'base': token1_instance}
         )
         tvl += token1_balance * token1_price['price']
         prices.update({token1_symbol: token1_price['price']})
@@ -116,7 +116,7 @@ class CurveGetTVLAndVolume(Model):
             pool_name = pool_name + '/{}-{}'.format(str(token2_name), str(token2_symbol))
             token2_price = self.context.run_model(
                 slug='price.quote',
-                input=token2_instance
+                input={'base': token2_instance}
             )
             tvl += token2_balance * token2_price['price']
             prices.update({token2_symbol: token2_price['price']})
@@ -136,7 +136,7 @@ class CurveGetTVLAndVolume(Model):
             pool_name = pool_name + '/{}-{}'.format(str(token3_name), str(token3_symbol))
             token3_price = self.context.run_model(
                 slug='price.quote',
-                input=token3_instance
+                input={'base': token3_instance}
             )
             tvl += token3_balance * token3_price['price']
             prices.update({token3_symbol: token3_price['price']})
@@ -225,7 +225,7 @@ class UniSushiGetTVLAndVolume(Model):
         coin_balances.update({token0_symbol: token0_balance})
         token0_price = self.context.run_model(
             slug='price.quote',
-            input=token0_instance
+            input={'base': token0_instance}
         )
         tvl += token0_balance * token0_price['price']
         prices.update({token0_symbol: token0_price['price']})
@@ -235,7 +235,7 @@ class UniSushiGetTVLAndVolume(Model):
         coin_balances.update({token1_symbol: token1_balance})
         token1_price = self.context.run_model(
             slug='price.quote',
-            input=token1_instance
+            input={'base': token1_instance}
         )
         tvl += token1_balance * token1_price['price']
         prices.update({token1_symbol: token1_price['price']})

@@ -106,7 +106,7 @@ class CurveFinancePrice(Model):
             exchange_rate = exchange_rate_stored / 10**mantissa
 
             price_underlying = self.context.run_model('price.quote',
-                                                      input=underlying_token,
+                                                      input={'base': underlying_token},
                                                       return_type=Price)
 
             price_underlying.price *= exchange_rate
@@ -164,7 +164,7 @@ class CurveFinancePrice(Model):
             price_tokens = []
             for tok in pool_info.tokens:
                 price_tok = self.context.run_model('price.quote',
-                                                   input=tok,
+                                                   input={'base': tok},
                                                    return_type=Price).price
                 price_tokens.append(price_tok)
 

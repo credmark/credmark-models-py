@@ -6,8 +6,7 @@ from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 
 from credmark.cmf.types import Price, Token
-from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
-                                        MapInputsInput, MapInputsOutput)
+from credmark.cmf.types.compose import (MapInputsInput, MapInputsOutput)
 from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -124,7 +123,8 @@ class PriceFromDexModel(Model, PriceWeight):
         all_pool_infos = []
         for dex_n, dex_result in enumerate(all_pool_infos_results):
             if dex_result.error is not None:
-                raise ModelRunError(**dex_result.error.dict())
+                self.logger.error(dex_result.error)
+                raise ModelRunError(dex_result.error.message)
             if dex_result.output is None:
                 raise ModelRunError(f'Empty result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
 
