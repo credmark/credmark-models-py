@@ -127,11 +127,15 @@ class PriceFromDexModel(Model, PriceWeight):
                 raise ModelRunError(**dex_result.error.dict())
             if dex_result.output is None:
                 raise ModelRunError(f'Empty result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
+
             for pool_result in dex_result.output:
                 if pool_result.error is not None:
-                    raise ModelRunError(**pool_result.error.dict())
+                    self.logger.error(pool_result.error)
+                    raise ModelRunError(pool_result.error.message)
                 if pool_result.output is None:
-                    raise ModelRunError('None rseult for')
+                    self.logger.error(pool_result.error)
+                    raise ModelRunError(f'None result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
+
                 all_pool_infos.extend(pool_result.output)
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
@@ -139,7 +143,9 @@ class PriceFromDexModel(Model, PriceWeight):
         pool_aggregator_input = PoolPriceAggregatorInput(
             token=input,
             pool_price_infos=all_pool_infos,
-            price_src=f'{self.slug}|Non-zero:{",".join(non_zero_pools)}|Zero:{",".join(zero_pools)}',
+            price_src=(f'{self.slug}|'
+                       f'Non-zero:{",".join(non_zero_pools)}|'
+                       f'Zero:{",".join(zero_pools)}'),
             weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
