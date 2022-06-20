@@ -61,6 +61,8 @@ for price_model in $models; do
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"JPY"}}' __all__
         test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"GBP"}}' __all__
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"GBP"}}' __all__
+        test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"symbol":"EUR"}}' __all__
+        test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"symbol":"EUR"}}' __all__
         test_model 0 $price_model '{"base": '${token_addr_ext}', "quote": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
         test_model 0 $price_model '{"quote": '${token_addr_ext}', "base": {"address":"0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}' __all__
     done

@@ -14,34 +14,38 @@ quick_test=1
 # run_model_historical("finance.var-dex-lp", model_input={"pool": {"address":"0x4674abc5796e1334B5075326b39B748bee9EaA34"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}, window="120 days")
 # models.finance.var_dex_lp({"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"}, "window":"280 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}, block_number=14830357)
 
+# 13909787 - datetime.datetime(2021, 12, 31, 0, 0, tzinfo=datetime.timezone.utc)
+# 14830357 - datetime.datetime(2022, 5, 23, 15, 26, 40, tzinfo=datetime.timezone.utc)
+postfix=' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l -'
+
 echo
 echo Test Pool TVL/Volume/VaR
 echo
 
 sushi_pools="0x6a091a3406E0073C3CD6340122143009aDac0EDa
-            0x397ff1542f962076d0bfe58ea045ffa2d347aca0
-            0xceff51756c56ceffca006cd410b03ffc46dd3a58
-            0xe12af1218b4e9272e9628d7c7dc6354d137d024e
-            0xd4e7a6e2d03e4e48dfc27dd3f46df1c176647e38
-            0x06da0fd433c1a5d7a4faa01111c044910a184553
-            0x055475920a8c93cffb64d039a8205f7acc7722d3
-            0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
-            0xdB06a76733528761Eda47d356647297bC35a98BD
-            0x795065dcc9f64b5614c407a6efdc400da6221fb0"
+0x397ff1542f962076d0bfe58ea045ffa2d347aca0
+0xceff51756c56ceffca006cd410b03ffc46dd3a58
+0xe12af1218b4e9272e9628d7c7dc6354d137d024e
+0xd4e7a6e2d03e4e48dfc27dd3f46df1c176647e38
+0x06da0fd433c1a5d7a4faa01111c044910a184553
+0x055475920a8c93cffb64d039a8205f7acc7722d3
+0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
+0xdB06a76733528761Eda47d356647297bC35a98BD
+0x795065dcc9f64b5614c407a6efdc400da6221fb0"
 
 univ2_pools="0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc
-            0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc
-            0x21b8065d10f73ee2e260e5b47d3344d3ced7596e
-            0x9928e4046d7c6513326ccea028cd3e7a91c7590a
-            0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852
-            0xe1573b9d29e2183b1af0e743dc2754979a40d237
-            0xae461ca67b15dc8dc81ce7615e0320da1a9ab8d5
-            0xccb63225a7b19dcf66717e4d40c9a72b39331d61
-            0x3041cbd36888becc7bbcbc0045e3b1f144466f5f
-            0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1
-            0x61b62c5d56ccd158a38367ef2f539668a06356ab
-            0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
-            0x3da1313ae46132a397d90d95b1424a9a7e3e0fce"
+0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc
+0x21b8065d10f73ee2e260e5b47d3344d3ced7596e
+0x9928e4046d7c6513326ccea028cd3e7a91c7590a
+0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852
+0xe1573b9d29e2183b1af0e743dc2754979a40d237
+0xae461ca67b15dc8dc81ce7615e0320da1a9ab8d5
+0xccb63225a7b19dcf66717e4d40c9a72b39331d61
+0x3041cbd36888becc7bbcbc0045e3b1f144466f5f
+0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1
+0x61b62c5d56ccd158a38367ef2f539668a06356ab
+0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
+0x3da1313ae46132a397d90d95b1424a9a7e3e0fce"
 
 univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
@@ -59,32 +63,32 @@ univ3_pools="0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8
 # for pool in $univ3_pools; do
 # for pool in $sushi_pools $univ2_pools; do
 for pool in $sushi_pools $univ2_pools $univ3_pools; do
-    credmark-dev run uniswap-v2.get-pool-info -i '{"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run uniswap-v2.get-pool-info -i '{"address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run uniswap-v2.pool-tvl -i '{"address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "address":"'${pool}'"}' -j --api_url=http://localhost:8700
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"uniswap-v2.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"'${pool}'"},
-"window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 14830357 -j --api_url=http://localhost:8700
+"window":"20 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
@@ -93,6 +97,8 @@ for pool in $sushi_pools $univ2_pools $univ3_pools; do
 done
 
 curve_pools="0x961226b64ad373275130234145b96d100dc0b655
+0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511
+0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c
 0xd658A338613198204DCa1143Ac3F01A722b5d94A
 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
@@ -109,25 +115,25 @@ curve_pools="0x961226b64ad373275130234145b96d100dc0b655
 curve_pool_info_tvl=curve-fi.pool-info,token.price,chainlink.price-by-registry
 
 for pool in $curve_pools; do
-    credmark-dev run curve-fi.pool-tvl -i '{"address":"'$pool'"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run curve-fi.pool-tvl -i '{"address":"'$pool'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run dex.pool-volume-historical -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "count":2, "address":"'${pool}'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "address":"'${pool}'"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run dex.pool-volume -i '{"pool_info_model":"curve-fi.pool-tvl", "interval":7200, "address":"'${pool}'"}' ${postfix} -l "*"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
     fi
 
-    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool'"},"window":"3 days","interval":"1 day"}' -j --api_url=http://localhost:8700 -l "*"
+    credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool'"},"window":"3 days","interval":"1 day"}' ${postfix} -l "*"
 	if [ $exit_code -eq 0 ]; then
 		break
 	fi
@@ -138,7 +144,7 @@ echo "Longer Test for LP VaR"
 echo
 
 credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
-"window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' -b 13909787 -j --api_url=http://localhost:8700
+"window":"20 days", "interval":10, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}' ${postfix}
 exit_code=$?
 if [ $exit_code -ne 0 ]; then
     exit
@@ -147,7 +153,7 @@ fi
 for range_of_pool in 0.01 0.05 0.1 0.2 0.4 0.6 0.8 1.0; do
     echo LP VaR Range: ${range_of_pool}
     credmark-dev run finance.var-dex-lp -i '{"pool": {"address":"0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
-    "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}'}' -b 13909787 -j --api_url=http://localhost:8700
+    "window":"20 days", "interval":10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": '${range_of_pool}'}' ${postfix}
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         exit
