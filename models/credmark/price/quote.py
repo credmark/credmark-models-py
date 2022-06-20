@@ -90,7 +90,6 @@ class PriceQuoteMultiple(Model):
             input={'modelSlug': 'price.quote', 'modelInputs': input.inputs},
             return_type=MapInputsOutput[PriceInput, Price])
 
-        print(token_prices_run)
         prices = []
         for p in token_prices_run:
             if p.error is not None:
@@ -120,7 +119,7 @@ class PriceModel(Model):
 
 
 @ Model.describe(slug='price.quote',
-                 version='1.3',
+                 version='1.4',
                  display_name='Token Price - Quoted',
                  description='Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -147,32 +146,26 @@ class PriceQuote(Model):
         if price_maybe.price is not None:
             return price_maybe.price
 
-        if isinstance(input.base, FiatCurrency) and isinstance(input.quote, FiatCurrency):
-            raise ModelDataError(f'No feed available for '
-                                 f'{input.base.symbol}/{input.quote.symbol}')
+        # if isinstance(input.base, FiatCurrency) and isinstance(input.quote, FiatCurrency):
+        #    raise ModelDataError(f'No feed available for '
+        #                         f'{input.base.symbol}/{input.quote.symbol}')
 
-        if isinstance(input.base, FiatCurrency):
-            price_other = self.context.run_model(self.slug,
-                                                 input=input.inverse(),
-                                                 return_type=Price)
-            return price_other.inverse()
-
-        price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                             input=input.quote_usd(),
-                                             return_type=PriceMaybe)
-
-        if price_maybe.price is not None:
-            return price_maybe.price
-
-        price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
-                                                 input=input.base,
+        price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
+                                                 input=input.quote_usd(),
                                                  return_type=PriceMaybe)
+
         if price_usd_maybe.price is not None:
             price_usd = price_usd_maybe.price
         else:
-            price_usd = self.context.run_model('price.dex-blended',
-                                               input=input.base,
-                                               return_type=Price)
+            price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
+                                                     input=input.base,
+                                                     return_type=PriceMaybe)
+            if price_usd_maybe.price is not None:
+                price_usd = price_usd_maybe.price
+            else:
+                price_usd = self.context.run_model('price.dex-blended',
+                                                   input=input.base,
+                                                   return_type=Price)
 
         if input.quote == FiatCurrency(symbol='USD'):
             return price_usd
