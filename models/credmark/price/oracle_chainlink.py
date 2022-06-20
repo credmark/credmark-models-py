@@ -8,6 +8,23 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code_desc='No possible feed/routing for token pair')
 
 
+@Model.describe(slug='price.oracle-chainlink-maybe',
+                version='1.0',
+                display_name='Token Price - from Oracle',
+                description='Get token\'s price from Oracle - return None if not found',
+                input=PriceInput,
+                output=PriceMaybe)
+class PriceOracleChainlinkMaybe(Model):
+    def run(self, input: PriceInput) -> PriceMaybe:
+        try:
+            price = self.context.run_model('price.oracle-chainlink',
+                                          input=input,
+                                          return_type=Price)
+            return PriceMaybe(price=price)
+        except ModelRunError:
+            return PriceMaybe(price=None)
+
+
 @Model.describe(slug='price.oracle-chainlink',
                 version='1.3',
                 display_name='Token Price - from Oracle',
@@ -15,7 +32,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
-class PriceOracle(Model):
+class PriceOracleChainlink(Model):
     # The native token on other chain, give a direct address of feed.
     # TODO: find the token address so to find the feed in Chainlink's registry
     OVERRIDE_FEED = {

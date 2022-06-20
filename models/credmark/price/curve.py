@@ -10,10 +10,29 @@ from credmark.cmf.types import (
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
+from models.dtos.price import PriceMaybe
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='Not supported by Curve')
+
+
+@Model.describe(slug="price.dex-curve-fi-maybe",
+                version="1.0",
+                display_name="Curve Finance Pool - Price for stablecoins and LP",
+                description=("For those tokens primarily traded in curve - "
+                             "return None if cannot price"),
+                input=Token,
+                output=PriceMaybe)
+class CurveFinancePriceMaybe(Model):
+    def run(self, input: Token) -> PriceMaybe:
+        try:
+            price = self.context.run_model('price.dex-curve-fi',
+                                           input=input,
+                                           return_type=Price)
+            return PriceMaybe(price=price)
+        except ModelRunError:
+            return PriceMaybe(price=None)
 
 
 @Model.describe(slug="price.dex-curve-fi",
