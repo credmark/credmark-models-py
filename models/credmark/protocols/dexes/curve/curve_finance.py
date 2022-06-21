@@ -322,7 +322,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.2",
+                version="1.3",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -331,9 +331,21 @@ class CurveFinanceTotalTokenLiqudity(Model):
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
                                                 return_type=Contracts)
-        pool_infos = [
-            CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(pool))
-            for pool in pool_contracts]
+
+        all_pools = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'curve-fi.pool-info',
+                   'modelInputs': pool_contracts.contracts},
+            return_type=MapInputsOutput[Contract, CurveFiPoolInfo])
+
+        pool_infos = []
+        for pool_n, pool_result in enumerate(all_pools):
+            if pool_result.error is not None:
+                self.logger.error(pool_result.error)
+                raise ModelRunError(pool_result.error.message)
+            if pool_result.output is None:
+                raise ModelRunError(f'Empty result for {pool_contracts.contracts[pool_n]}')
+            pool_infos.append(pool_result)
 
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 

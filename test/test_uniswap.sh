@@ -4,7 +4,7 @@ echo_cmd ""
 test_model 0 uniswap.tokens '{}'
 test_model 0 uniswap.exchange '{}'
 # WETH: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-test_model 0 uniswap.quoter-price-dai '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
+test_model 0 uniswap.quoter-price-dai '{"address":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}'
 test_model 0 uniswap.router '{}'
 
 echo_cmd ""
