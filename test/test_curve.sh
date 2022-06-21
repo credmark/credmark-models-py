@@ -8,6 +8,13 @@ test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry,curve-fi.get-provider
 
 test_model 0 curve-fi.all-pools-info '{}' __all__
 
+test_model 0 curve-fi.pool-info '{"address":"0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"}'
+test_model 0 token.price '{"address":"0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"}'
+test_model 0 curve-fi.pool-info '{"address":"0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714"}'
+
+# Curve.fi renBTC/wBTC: 0x93054188d876f558f4a66b2ef1d97d16edf0895b
+test_model 0 curve-fi.pool-info '{"address":"0x93054188d876f558f4a66b2ef1d97d16edf0895b"}'
+
 # Curve.fi Factory USD Metapool: Alchemix USD: 0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c
 test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
 

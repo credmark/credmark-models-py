@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Currency, FiatCurrency, Price, Token
+from credmark.cmf.types import Currency, FiatCurrency, Price, Token, NativeToken
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (Address, AddressMaybe,
@@ -135,7 +135,7 @@ class TokenPriceModelDeprecated(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.5',
+                version='1.6',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -163,12 +163,13 @@ class PriceQuote(Model):
         return token
 
     def replace_underlying(self, token):
-        addr_maybe = self.context.run_model('token.underlying',
-                                            input=token,
-                                            return_type=AddressMaybe)
-        if addr_maybe.address is None:
-            return token
-        return Currency(address=addr_maybe.address)
+        if isinstance(token, Token) and not isinstance(token, NativeToken):
+            addr_maybe = self.context.run_model('token.underlying',
+                                                input=token,
+                                                return_type=AddressMaybe)
+            if addr_maybe.address is not None:
+                return Currency(address=addr_maybe.address)
+        return token
 
     def run(self, input: PriceInput) -> Price:
         input.base = self.replace_underlying(input.base)

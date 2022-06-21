@@ -235,7 +235,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.14",
+                version="1.16",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -247,11 +247,22 @@ class CurveFinancePoolInfo(Model):
                                            input,
                                            return_type=CurveFiPoolInfoToken)
 
-        token_prices = self.context.run_model(
-            'price.quote-multiple',
-            input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
-            return_type=Prices).prices
+        def _use_for(self=self):
+            token_prices = []
+            for tok in pool_info.tokens:
+                token_price = self.context.run_model(
+                    'price.quote',
+                    {'base': tok}, return_type=Price)
+                token_prices.append(token_price)
 
+        def _use_compose(self=self):
+            token_prices = self.context.run_model(
+                'price.quote-multiple',
+                input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
+                return_type=Prices).prices
+            return token_prices
+
+        token_prices = _use_compose()
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
@@ -322,7 +333,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.3",
+                version="1.6",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -332,21 +343,40 @@ class CurveFinanceTotalTokenLiqudity(Model):
                                                 input=EmptyInput(),
                                                 return_type=Contracts)
 
-        all_pools = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': 'curve-fi.pool-info',
-                   'modelInputs': pool_contracts.contracts},
-            return_type=MapInputsOutput[Contract, CurveFiPoolInfo])
+        def _use_for():
+            pool_infos = []
+            for pool in pool_contracts:
+                print(pool)
+                pool_info = CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(pool))
+                pool_infos.append(pool_info)
+            return pool_infos
 
-        pool_infos = []
-        for pool_n, pool_result in enumerate(all_pools):
-            if pool_result.error is not None:
-                self.logger.error(pool_result.error)
-                raise ModelRunError(pool_result.error.message)
-            if pool_result.output is None:
-                raise ModelRunError(f'Empty result for {pool_contracts.contracts[pool_n]}')
-            pool_infos.append(pool_result)
+        def _use_compose_model():
+            model_slug = 'curve-fi.pool-info'
+            all_pools = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': pool_contracts.contracts},
+                return_type=MapInputsOutput[Contract, CurveFiPoolInfo])
 
+            pool_infos = []
+            errors = []
+            for pool_n, pool_result in enumerate(all_pools):
+                if pool_result.error is not None:
+                    errors.append((pool_n, pool_result.error))
+                else:
+                    pool_infos.append(pool_result)
+
+            if len(errors) > 0:
+                for pool_n, err in errors:
+                    self.logger.error(
+                        f'Error with {model_slug}({pool_contracts.contracts[pool_n]})')
+                    self.logger.error(err)
+                raise ModelRunError(errors[0][1].message)
+
+            return pool_infos
+
+        pool_infos = _use_for()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])

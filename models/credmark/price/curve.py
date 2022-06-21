@@ -26,17 +26,20 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 output=PriceMaybe)
 class CurveFinancePriceMaybe(Model):
     def run(self, input: Token) -> PriceMaybe:
-        try:
-            price = self.context.run_model('price.dex-curve-fi',
-                                           input=input,
-                                           return_type=Price)
-            return PriceMaybe(price=price)
-        except ModelRunError:
-            return PriceMaybe(price=None)
+        if input.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+            try:
+                price = self.context.run_model('price.dex-curve-fi',
+                                            input=input,
+                                            return_type=Price)
+                return PriceMaybe(price=price)
+            except ModelRunError:
+                return PriceMaybe(price=None)
+
+        return PriceMaybe(price=None)
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.0",
+                version="1.3",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 input=Token,
@@ -72,6 +75,16 @@ class CurveFinancePrice(Model):
             {
                 'name': 'tFXS',
                 'pool_address': '0x961226B64AD373275130234145b96D100Dc0b655'
+            },
+            Address('0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'):
+            {
+                'name': 'renBTC',
+                'pool_address': '0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714'
+            },
+            Address('0xfe18be6b3bd88a2d2a7f928d00292e7a9963cfc6'):
+            {
+                'name': 'sBTC',
+                'pool_address': '0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714'
             }
         }
     }
@@ -82,6 +95,11 @@ class CurveFinancePrice(Model):
             {
                 'name': '3Crv',
                 'pool_address': '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
+            },
+            Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'):
+            {
+                'name': 'Curve.fi renBTC/wBTC/sBTC',
+                'pool_address': '0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714',
             }
         }
     }
@@ -104,6 +122,9 @@ class CurveFinancePrice(Model):
             mantissa = 18 + underlying_token_decimals - ctoken_decimals
             exchange_rate_stored = ctoken.functions.exchangeRateStored().call()
             exchange_rate = exchange_rate_stored / 10**mantissa
+
+            if underlying_token.address in self.supported_coins(self.context.chain_id):
+                raise ModelRunError(f'{underlying_token=} is self-referenced in {self.slug}')
 
             price_underlying = self.context.run_model('price.quote',
                                                       input={'base': underlying_token},
@@ -131,7 +152,8 @@ class CurveFinancePrice(Model):
             ratio_to_others = []
             price_others = []
             for n_token_other, other_token in enumerate(pool_info.tokens):
-                if n_token_other != n_token_input:
+                if (n_token_other != n_token_input and
+                        other_token.address not in self.supported_coins(self.context.chain_id)):
                     ratio_to_other = other_token.scaled(
                         pool.functions.get_dy(n_token_input,  # token to send
                                               n_token_other,  # token to receive
@@ -157,16 +179,18 @@ class CurveFinancePrice(Model):
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
+
             if pool_info.lp_token_addr != input.address:
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')
 
             price_tokens = []
             for tok in pool_info.tokens:
-                price_tok = self.context.run_model('price.quote',
-                                                   input={'base': tok},
-                                                   return_type=Price).price
-                price_tokens.append(price_tok)
+                if tok.address not in self.supported_coins(self.context.chain_id):
+                    price_tok = self.context.run_model('price.quote',
+                                                       input={'base': tok},
+                                                       return_type=Price).price
+                    price_tokens.append(price_tok)
 
             virtual_price = pool.functions.get_virtual_price().call()
             lp_token_price = input.scaled(min(price_tokens) * virtual_price)
