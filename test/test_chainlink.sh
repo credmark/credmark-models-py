@@ -43,3 +43,15 @@ test_model 0 chainlink.price-by-feed '{"address":"0x37bC7498f4FF12C19678ee8fE19d
 test_model 0 chainlink.price-by-feed '{"address":"0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}' # aggregator
 
 block_number=${block_number_backup}
+
+block_number_backup=${block_number}
+block_number='-b 12249443'
+
+test_model 0 price.quote '{"base": {"symbol":"WBTC"}}'
+test_model 0 price.quote '{"base": {"symbol":"BTC"}}'
+test_model 0 price.quote '{"base": {"symbol":"WETH"}}'
+test_model 0 price.quote '{"base": {"symbol":"ETH"}}'
+test_model 0 price.quote '{"base": {"symbol":"AAVE"}}'
+test_model 0 price.quote '{"base": {"symbol":"USD"}}'
+
+block_number=${block_number_backup}

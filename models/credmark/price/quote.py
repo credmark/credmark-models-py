@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import FiatCurrency, Price, Token
+from credmark.cmf.types import Currency, FiatCurrency, Price, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (Address,
@@ -130,14 +130,21 @@ class PriceQuote(Model):
     """
     Return token's price
     """
-    CONVERT_FOR_TOKEN_PRICE = {
+
+    CONVERT_TO_WRAP = {
         1: {
             Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-            Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
+            {'symbol': 'WETH'},
             Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
-            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
+            {'symbol': 'WBTC'},
         }
     }
+
+    def replace_wrap(self, token):
+        new_token = self.CONVERT_TO_WRAP[self.context.chain_id].get(token.address, None)
+        if new_token is not None:
+            return Currency(**new_token)
+        return token
 
     def run(self, input: PriceInput) -> Price:
         price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
@@ -163,8 +170,9 @@ class PriceQuote(Model):
             if price_usd_maybe.price is not None:
                 price_usd = price_usd_maybe.price
             else:
+                new_base = self.replace_wrap(input.base)
                 price_usd = self.context.run_model('price.dex-blended',
-                                                   input=input.base,
+                                                   input=new_base,
                                                    return_type=Price)
 
         if input.quote == FiatCurrency(symbol='USD'):
