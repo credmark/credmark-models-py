@@ -332,8 +332,8 @@ class AbracadabraOverallLiabilities(Model):
         mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
-            slug='price.quote',
-            input={'base': mim_token}
+            slug='token.price',
+            input=mim_token
         )['price']
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
@@ -390,8 +390,8 @@ class AbracadabraOverallAssets(Model):
         mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
-            slug='price.quote',
-            input={'base': mim_token}
+            slug='token.price',
+            input=mim_token
         )['price']
         mim_decimals = float(mim_token.decimals)
         # Looping through all the ethereum active markets to fetch token balance

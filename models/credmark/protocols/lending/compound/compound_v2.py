@@ -1,11 +1,33 @@
-from typing import List
+from typing import (
+    List,
+    Tuple,
+)
 
-import numpy as np
+from datetime import (
+    datetime,
+    date,
+    timezone,
+    timedelta,
+)
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Price, Token
-from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+
+from credmark.cmf.types import (
+    Address,
+    Token,
+    Contract,
+    Price,
+    BlockNumber,
+)
+
+from credmark.dto import (
+    DTO,
+    EmptyInput,
+    IterableListGenericDTO,
+)
+
+import numpy as np
 
 # Pool(Contract)
 # LendingPool(Pool)
@@ -103,10 +125,7 @@ class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
     def run(self, input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
-        if comptroller._meta.proxy_implementation is not None:
-            return comptroller._meta.proxy_implementation
-        else:
-            raise ModelRunError('proxy implementation is missing.')
+        return comptroller._meta.proxy_implementation  # type: ignore
 
 
 @ Model.describe(slug="compound-v2.get-pools",
@@ -118,6 +137,7 @@ class CompoundV2Comptroller(Model):
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
         comptroller = get_comptroller(self)
+
         cTokens = comptroller.functions.getAllMarkets().call()
 
         # Check whether our list is complete
@@ -137,23 +157,11 @@ class CompoundV2AllPoolsInfo(Model):
         pool_infos = []
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
-        all_pool_infos_results = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': 'compound-v2.get-pool-info',
-                   'modelInputs': [Token(address=cTokenAddress)
-                                   for cTokenAddress in pools['cTokens']]},
-            return_type=MapInputsOutput[dict, dict]
-        )
-
-        pool_infos = []
-        for pool_n, pool_result in enumerate(all_pool_infos_results):
-            if pool_result.error is not None:
-                self.logger.error(pool_result.error)
-                raise ModelRunError(pool_result.error.message)
-            if pool_result.output is None:
-                raise ModelRunError(f'Empty result for {pools["cTokens"][pool_n]}')
-            pool_infos.append(pool_result.output)
-
+        for cTokenAddress in pools['cTokens']:
+            pool_info = self.context.run_model(
+                slug='compound-v2.get-pool-info',
+                input=Token(address=cTokenAddress))
+            pool_infos.append(pool_info)
         ret = CompoundV2PoolInfos(infos=pool_infos)
         return ret
 
@@ -373,9 +381,7 @@ class CompoundV2GetPoolInfo(Model):
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        tokenprice = self.context.run_model(slug='price.quote',
-                                            input={'base': token},
-                                            return_type=Price)
+        tokenprice = self.context.run_model(slug='token.price', input=token, return_type=Price)
 
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
@@ -443,3 +449,54 @@ class CompoundV2GetPoolValue(Model):
             block_number=input.block_number,
             block_datetime=input.block_datetime,
         )
+
+
+class CompoundV2PoolsValueHistoricalInput(DTO):
+    date_range: Tuple[date, date]
+    token: Token
+
+
+@ Model.describe(slug="compound-v2.pool-value-historical",
+                 version="1.1",
+                 display_name="Compound pools value history",
+                 description="Compound pools value history",
+                 input=CompoundV2PoolsValueHistoricalInput,
+                 output=CompoundV2PoolValues)
+class CompoundV2PoolsValueHistorical(Model):
+    def run(self, input: CompoundV2PoolsValueHistoricalInput) -> CompoundV2PoolValues:
+        d_start, d_end = input.date_range
+        if d_start > d_end:
+            d_start, d_end = d_end, d_start
+
+        dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
+        dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
+
+        interval = (dt_end - dt_start).days + 1
+        window = f'{interval} days'
+        interval = '1 day'
+
+        # TODO: add two days to the end as work-around to current start-end-window
+        ts_as_of_end_dt = self.context.block_number.from_timestamp(
+            ((dt_end + timedelta(days=2)).timestamp())).timestamp
+
+        pool_infos = self.context.historical.run_model_historical(
+            model_slug='compound-v2.get-pool-info',
+            model_input=input.token,
+            model_return_type=CompoundV2PoolInfo,
+            window=window,
+            interval=interval,
+            end_timestamp=ts_as_of_end_dt)
+
+        pool_values = []
+
+        for pl in pool_infos:
+            pl_output = pl.output
+            self.logger.info(f'{pl_output.block_number=}:'
+                             f'{BlockNumber(pl_output.block_number).timestamp_datetime}')
+            pool_value = self.context.run_model(
+                slug='compound-v2.pool-value',
+                input=pl_output,
+                return_type=CompoundV2PoolValue)
+            pool_values.append(pool_value)
+
+        return CompoundV2PoolValues(values=pool_values)

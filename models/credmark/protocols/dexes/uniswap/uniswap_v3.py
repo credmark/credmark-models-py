@@ -193,13 +193,13 @@ class UniswapV3GetPoolInfo(Model):
         return UniswapV3PoolInfo(**res)
 
 
-@Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.2',
+@Model.describe(slug='uniswap-v3.get-pool-price-info',
+                version='1.1',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 input=Token,
                 output=PoolPriceInfos)
-class UniswapV3GetTokenPricePoolInfo(Model):
+class UniswapV3GetPoolPriceInfo(Model):
     def run(self, input: Token) -> PoolPriceInfos:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
@@ -261,4 +261,4 @@ class UniswapV3GetTokenPricePoolInfo(Model):
                                                 pool_address=info.address)
                 prices_with_info.append(pool_price_info)
 
-        return PoolPriceInfos(infos=prices_with_info)
+        return PoolPriceInfos(pool_price_infos=prices_with_info)

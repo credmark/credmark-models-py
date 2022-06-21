@@ -1,9 +1,13 @@
-import logging
 from typing import List
+from credmark.cmf.model.errors import (
+    ModelRunError,
+)
+
+from credmark.dto import DTO
+
 
 import numpy as np
-from credmark.cmf.model.errors import ModelRunError
-from credmark.dto import DTO
+import logging
 
 
 class VaROutput(DTO):
