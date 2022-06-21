@@ -1,15 +1,8 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token
-)
-
-from credmark.dto import DTO
-from models.tmp_abi_lookup import (
-    DAI_ADDRESS
-)
+from credmark.cmf.types import Address, Contract, Token
+from credmark.dto import DTO, EmptyInput
+from models.tmp_abi_lookup import DAI_ADDRESS
 
 
 class UniswapQuoterPriceUsd(DTO):
@@ -54,21 +47,21 @@ class UniswapRouterPricePair(Model):
 @Model.describe(slug='uniswap.router',
                 version='1.0',
                 display_name='The Price of a Token on Uniswap with respect to another Token',
-                description='The Trading Price with respect to another Token on Uniswap\'s Frontend)')
+                description='The Trading Price with respect to another Token on Uniswap\'s Frontend)',
+                input=EmptyInput,
+                output=Contract)
 class UniswapRouterPriceUsd(Model):
     UNISWAP_V3_SWAP_ROUTER_ADDRESS = {
         1: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
     }
 
-    def run(self, input) -> dict:
+    def run(self, _) -> Contract:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap,
          default to USDC/USDT/DAI and throw out outliers.
         """
         uniswap_router_addr = Address(self.UNISWAP_V3_SWAP_ROUTER_ADDRESS[self.context.chain_id])
-        _uniswap_router = Contract(address=uniswap_router_addr)
-
-        return {}
+        return Contract(address=uniswap_router_addr)
 
 
 @Model.describe(slug='uniswap.tokens',

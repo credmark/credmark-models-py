@@ -27,7 +27,7 @@ echo_cmd "Run TVL Historical cases"
 echo_cmd ""
 
 for pool_addr in $curve_pools; do
-    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"20 days","interval":"1 day"}' ${curve_pool_info_tvl}
+    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"3 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
 
 # UniV3
