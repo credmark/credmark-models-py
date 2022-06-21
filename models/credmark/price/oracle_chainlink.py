@@ -79,9 +79,9 @@ class PriceOracleChainlink(Model):
             # WETH => ETH
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
             {'symbol': 'ETH'},
-            # BTC => WBTC: there is feed for BTC
-            # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
-            # Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),
+            # BTC => WBTC
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
+            {'symbol': 'BTC'},
         }
     }
 
