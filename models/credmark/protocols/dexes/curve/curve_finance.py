@@ -321,44 +321,11 @@ class CurveFinancePoolTVL(Model):
         return tvl_info
 
 
-class HistoricalRunModelInput(DTO):
-    model_slug: str
-    model_input: dict
-    window: str
-    interval: str
-
-
-# TODO: Pre-composer model
-@ Model.describe(slug="historical.run-model",
-                 version="1.1",
-                 display_name="Run Any model for historical",
-                 description="",
-                 input=HistoricalRunModelInput,
-                 output=dict)
-class HistoricalRunModel(Model):
-    def run(self, input: HistoricalRunModelInput) -> dict:
-        window = input.window
-        interval = input.interval
-
-        # TODO: add two days to the end as work-around to current start-end-window
-        dt_end = (self.context.block_number.timestamp_datetime + timedelta(days=1))
-        ts_end = int(dt_end.timestamp())
-
-        result = self.context.historical.run_model_historical(
-            model_slug=input.model_slug,
-            model_input=input.model_input,
-            window=window,
-            interval=interval,
-            end_timestamp=ts_end)
-
-        return {'result': result}
-
-
-@ Model.describe(slug="curve-fi.all-pools-info",
-                 version="1.2",
-                 display_name="Curve Finance Pool Liqudity - All",
-                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
-                 output=CurveFiPoolInfos)
+@Model.describe(slug="curve-fi.all-pools-info",
+                version="1.2",
+                display_name="Curve Finance Pool Liqudity - All",
+                description="The amount of Liquidity for Each Token in a Curve Pool - All",
+                output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(Model):
     def run(self, _) -> CurveFiPoolInfos:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
@@ -396,10 +363,10 @@ class CurveFinanceAllGauges(Model):
         return Contracts(contracts=gauges)
 
 
-@Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                version='1.2',
-                input=Contract,
-                output=Accounts)
+@ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
+                 version='1.2',
+                 input=Contract,
+                 output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
 
     def run(self, input: Contract) -> Accounts:

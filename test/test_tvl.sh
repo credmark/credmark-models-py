@@ -5,7 +5,7 @@ echo_cmd ""
 curve_pool_info_tvl=curve-fi.pool-info,price.quote,chainlink.price-by-registry
 
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
-test_model 0 curve-fi.pool-info-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
+test_model 0 curve-fi.pool-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
 
 curve_pools="0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 \
 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7 \
@@ -19,7 +19,7 @@ curve_pools="0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 \
 0xd658A338613198204DCa1143Ac3F01A722b5d94A"
 
 for pool_addr in $curve_pools; do
-    test_model 0 curve-fi.pool-info-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
+    test_model 0 curve-fi.pool-tvl '{"address":"'$pool_addr'"}' ${curve_pool_info_tvl}
 done
 
 echo_cmd ""
@@ -27,8 +27,7 @@ echo_cmd "Run TVL Historical cases"
 echo_cmd ""
 
 for pool_addr in $curve_pools; do
-    # credmark-dev run historical.run-model -i '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"280 days","interval":"1 day"}' --api_url=http://localhost:8700
-    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-info-tvl","model_input":{"address":"'$pool_addr'"},"window":"20 days","interval":"1 day"}' ${curve_pool_info_tvl}
+    test_model 0 historical.run-model '{"model_slug":"curve-fi.pool-tvl","model_input":{"address":"'$pool_addr'"},"window":"20 days","interval":"1 day"}' ${curve_pool_info_tvl}
 done
 
 # UniV3

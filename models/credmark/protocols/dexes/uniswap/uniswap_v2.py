@@ -286,7 +286,7 @@ class DexPoolSwapVolumeHistorical(Model):
                                    sampleTimestamp=0,
                                    output=TradingVolume(tokenVolumes=[TokenTradingVolume.default(token=tok) for tok in tokens]))
                     for _ in range(input.count)],
-            errors=[])
+            errors=None)
 
         if input.pool_info_model == 'uniswap-v2.pool-tvl':
             event_swap_args = sorted(
