@@ -3,7 +3,7 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Currency, FiatCurrency, Price, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (Address,
+from models.dtos.price import (Address, AddressMaybe,
                                PriceHistoricalInput,
                                PriceHistoricalInputs,
                                PriceHistoricalOutputs,
@@ -134,14 +134,14 @@ class TokenPriceModelDeprecated(Model):
         return self.context.run_model('price.quote', {'base': input}, return_type=Price)
 
 
-@ Model.describe(slug='price.quote',
-                 version='1.4',
-                 display_name='Token Price - Quoted',
-                 description='Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 input=PriceInput,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.quote',
+                version='1.5',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                input=PriceInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
     """
     Return token's price
@@ -162,7 +162,18 @@ class PriceQuote(Model):
             return Currency(**new_token)
         return token
 
+    def replace_underlying(self, token):
+        addr_maybe = self.context.run_model('token.underlying',
+                                            input=token,
+                                            return_type=AddressMaybe)
+        if addr_maybe.address is None:
+            return token
+        return Currency(address=addr_maybe.address)
+
     def run(self, input: PriceInput) -> Price:
+        input.base = self.replace_underlying(input.base)
+        input.quote = self.replace_underlying(input.quote)
+
         price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                              input=input,
                                              return_type=PriceMaybe)

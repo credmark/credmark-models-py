@@ -2,6 +2,14 @@ echo_cmd ""
 echo_cmd "Price - General"
 echo_cmd ""
 
+# aDAI v1: 0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d
+test_model 0 token.underlying '{"address":"0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"}'
+# aDAI V2: 0x028171bCA77440897B824Ca71D1c56caC55b68A3
+test_model 0 token.underlying '{"address":"0x028171bCA77440897B824Ca71D1c56caC55b68A3"}'
+
+test_model 0 price.quote '{"base":"address":"0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"}}'
+test_model 0 price.quote '{"base":"address":"0x028171bCA77440897B824Ca71D1c56caC55b68A3"}}'
+
 test_model 0 price.quote-historical '{"base": {"symbol": "AAVE"}, "interval": 86400, "count": 1, "exclusive": true}'
 test_model 0 price.quote-multiple '{"inputs": [{"base":{"symbol":"EUR"}},{"base":{"symbol":"JPY"}}]}'
 test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": true}'

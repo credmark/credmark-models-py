@@ -6,7 +6,7 @@ from models.tmp_abi_lookup import DAI_ADDRESS
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
-                version='1.0',
+                version='1.1',
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
                 input=Token,
