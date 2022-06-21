@@ -3,6 +3,7 @@ from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from credmark.cmf.types.compose import (MapBlockTimeSeriesInput, MapBlockTimeSeriesOutput)
 
+
 class Prices(IterableListGenericDTO[Price]):
     prices: List[Price]
     _iterator: str = 'prices'
@@ -110,9 +111,13 @@ class PoolPriceInfo(DTO):
     pool_address: Address
 
 
+class PoolPriceInfoMaybe(DTO):
+    info: Optional[PoolPriceInfo]
+
+
 class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
-    pool_price_infos: List[PoolPriceInfo] = []
-    _iterator: str = PrivateAttr('pool_price_infos')
+    infos: List[PoolPriceInfo] = []
+    _iterator: str = PrivateAttr('infos')
 
 
 class PoolPriceAggregatorInput(PoolPriceInfos):

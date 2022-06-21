@@ -509,7 +509,7 @@ class CurveFinanceAverageGaugeYield(Model):
 
 
 @ Model.describe(slug='curve-fi.all-yield',
-                 version='1.3',
+                 version='1.4',
                  description="Yield from all Gauges",
                  input=EmptyInput,
                  output=dict)
@@ -525,7 +525,7 @@ class CurveFinanceAllYield(Model):
         all_yields = self.context.run_model(
             slug='compose.map-inputs',
             input={'modelSlug': 'curve-fi.gauge-yield',
-                   'modelInputs': gauge_contracts.contracts[:2]},
+                   'modelInputs': gauge_contracts.contracts},
             return_type=MapInputsOutput[Contract, dict])
 
         res = []

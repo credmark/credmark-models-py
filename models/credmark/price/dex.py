@@ -1,10 +1,10 @@
 # pylint: disable=locally-disabled, unused-import
 from abc import abstractmethod
 from typing import List
+
 import pandas as pd
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-
 from credmark.cmf.types import Price, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
@@ -15,7 +15,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.1',
+                version='1.2',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 input=PoolPriceAggregatorInput,
@@ -23,13 +23,13 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 errors=PRICE_DATA_ERROR_DESC)
 class PoolPriceAggregator(Model):
     def run(self, input: PoolPriceAggregatorInput) -> Price:
-        if len(input.pool_price_infos) == 0:
+        if len(input.infos) == 0:
             raise ModelDataError(f'No pool to aggregate for {input.token}')
 
-        df = pd.DataFrame(input.dict()['pool_price_infos'])
+        df = pd.DataFrame(input.dict()['infos'])
 
-        if len(input.pool_price_infos) == 1:
-            return Price(price=input.pool_price_infos[0].price, src=input.price_src)
+        if len(input.infos) == 1:
+            return Price(price=input.infos[0].price, src=input.price_src)
 
         product_of_price_liquidity = (df.price * df.liquidity ** input.weight_power).sum()
         sum_of_liquidity = (df.liquidity ** input.weight_power).sum()
@@ -60,7 +60,7 @@ class DexWeightedPrice(Model, PriceWeight):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Token,
@@ -68,11 +68,11 @@ class DexWeightedPrice(Model, PriceWeight):
                 errors=PRICE_DATA_ERROR_DESC)
 class UniswapV3WeightedPrice(DexWeightedPrice):
     def run(self, input: Token) -> Price:
-        return self.aggregate_pool('uniswap-v3.get-pool-price-info', input)
+        return self.aggregate_pool('uniswap-v3.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 input=Token,
@@ -80,11 +80,11 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
                 errors=PRICE_DATA_ERROR_DESC)
 class UniswapV2WeightedPrice(DexWeightedPrice):
     def run(self, input: Token) -> Price:
-        return self.aggregate_pool('uniswap-v2.get-pool-price-info', input)
+        return self.aggregate_pool('uniswap-v2.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.1',
+                version='1.2',
                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 input=Token,
@@ -92,11 +92,11 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
                 errors=PRICE_DATA_ERROR_DESC)
 class SushiV2GetAveragePrice(DexWeightedPrice):
     def run(self, input: Token) -> Price:
-        return self.aggregate_pool('sushiswap.get-pool-price-info', input)
+        return self.aggregate_pool('sushiswap.get-pool-info-token-price', input)
 
 
 @ Model.describe(slug='price.dex-blended',
-                 version='1.3',
+                 version='1.4',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -107,9 +107,9 @@ class PriceFromDexModel(Model, PriceWeight):
     """
     Return token's price
     """
-    DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-price-info',
-                                             'sushiswap.get-pool-price-info',
-                                             'uniswap-v3.get-pool-price-info']
+    DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
+                                             'sushiswap.get-pool-info-token-price',
+                                             'uniswap-v3.get-pool-info-token-price']
 
     def run(self, input: Token) -> Price:
         all_pool_infos_results = self.context.run_model(
@@ -141,7 +141,7 @@ class PriceFromDexModel(Model, PriceWeight):
         zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
             token=input,
-            pool_price_infos=all_pool_infos,
+            infos=all_pool_infos,
             price_src=(f'{self.slug}|'
                        f'Non-zero:{",".join(non_zero_pools)}|'
                        f'Zero:{",".join(zero_pools)}'),
