@@ -152,7 +152,7 @@ class CurveFinancePoolInfoTokens(Model):
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(self.slug,
                                               input=Contract(address=Address(minter_addr)),
-                                              return_type=CurveFiPoolInfo)
+                                              return_type=CurveFiPoolInfoToken)
             except ABIFunctionNotFound:
                 pass
 
@@ -255,14 +255,14 @@ class CurveFinancePoolInfo(Model):
                     {'base': tok}, return_type=Price)
                 token_prices.append(token_price)
 
-        def _use_compose(self=self):
+        def _use_compose_model(self=self):
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
                 return_type=Prices).prices
             return token_prices
 
-        token_prices = _use_compose()
+        token_prices = _use_compose_model()
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
@@ -346,7 +346,6 @@ class CurveFinanceTotalTokenLiqudity(Model):
         def _use_for():
             pool_infos = []
             for pool in pool_contracts:
-                print(pool)
                 pool_info = CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(pool))
                 pool_infos.append(pool_info)
             return pool_infos
@@ -365,7 +364,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
                 if pool_result.error is not None:
                     errors.append((pool_n, pool_result.error))
                 else:
-                    pool_infos.append(pool_result)
+                    pool_infos.append(pool_result.output)
 
             if len(errors) > 0:
                 for pool_n, err in errors:
@@ -376,7 +375,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
             return pool_infos
 
-        pool_infos = _use_for()
+        pool_infos = _use_compose_model()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])

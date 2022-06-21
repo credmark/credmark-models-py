@@ -69,7 +69,7 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> AddressMaybe:
+    def run(self, input: Token) -> AddressMaybe:  # pylint: disable=too-many-return-statements)
         try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
         if try_eip1967 is not None:
             input = try_eip1967
