@@ -164,7 +164,7 @@ class PriceQuote(Model):
 
     def replace_underlying(self, token):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
-            addr_maybe = self.context.run_model('token.underlying',
+            addr_maybe = self.context.run_model('token.underlying-maybe',
                                                 input=token,
                                                 return_type=AddressMaybe)
             if addr_maybe.address is not None:

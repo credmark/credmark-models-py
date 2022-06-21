@@ -57,8 +57,8 @@ def get_eip1967_proxy_err(context, logger, token_address, verbose):
     return res
 
 
-@Model.describe(slug='token.underlying',
-                version='1.1',
+@Model.describe(slug='token.underlying-maybe',
+                version='1.0',
                 display_name='Token Price - Underlying',
                 description='For token backed by underlying - get the address',
                 developer='Credmark',

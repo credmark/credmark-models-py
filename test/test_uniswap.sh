@@ -10,7 +10,7 @@ test_model 0 uniswap.router '{}'
 echo_cmd ""
 echo_cmd "Run Uniswap V2 Examples:"
 echo_cmd ""
-test_model 0 uniswap-v2.get-weighted-price '{"symbol": "USDC"}'
+test_model 0 uniswap-v2.get-weighted-price '{"symbol": "USDC"}' # uniswap-v2.get-pool-info-token-price
 test_model 0 uniswap-v2.get-weighted-price '{"symbol": "AAVE"}'
 test_model 0 uniswap-v2.get-weighted-price '{"symbol": "DAI"}'
 test_model 0 uniswap-v2.get-weighted-price '{"symbol": "WETH"}'
@@ -22,7 +22,7 @@ echo_cmd ""
 echo_cmd "Run Uniswap V3 Examples:"
 echo_cmd ""
 # TODO: USDC price wrong from USDC/DAI pool
-test_model 0 uniswap-v3.get-weighted-price '{"symbol": "USDC"}' uniswap-v3.get-pool-info
+test_model 0 uniswap-v3.get-weighted-price '{"symbol": "USDC"}' uniswap-v3.get-pool-info,uniswap-v3.get-pool-info-token-price
 test_model 0 uniswap-v3.get-weighted-price '{"symbol": "AAVE"}' uniswap-v3.get-pool-info
 test_model 0 uniswap-v3.get-weighted-price '{"symbol": "DAI"}' uniswap-v3.get-pool-info
 test_model 0 uniswap-v3.get-weighted-price '{"symbol": "WETH"}' uniswap-v3.get-pool-info
