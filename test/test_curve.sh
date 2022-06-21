@@ -32,7 +32,6 @@ test_model 0 curve-fi.pool-info '{"address":"0x9D0464996170c6B9e75eED71c68B99dDE
 # Curve.fi cyDAI/cyUSDC/cyUSDT 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
 test_model 0 curve-fi.pool-info '{"address":"0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"}'
 
-
 # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
 test_model 0 curve-fi.gauge-yield '{"address":"0x11137B10C210b579405c21A07489e28F3c040AB1"}' curve-fi.get-gauge-stake-and-claimable-rewards
 # Curve.fi tbtc2/sbtcCRV-f Gauge Deposit: 0x29284d30bcb70e86a6c3f84cbc4de0ce16b0f1ca
@@ -61,3 +60,7 @@ lp_token_addresses="0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8
 0x97E2768e8E73511cA874545DC5Ff8067eB19B787
 0x5B5CFE992AdAC0C9D48E05854B2d91C73a003858
 0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490"
+
+for lp_addr in $lp_token_addresses; do
+    test_model 0 curve-fi.pool-info '{"address":"'$lp_addr'"}'
+done

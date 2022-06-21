@@ -2,7 +2,7 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Account, Address, Contract, Price
+from credmark.cmf.types import Address, Contract, Price
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
 from models.dtos.price import AddressMaybe, PriceInput, PriceMaybe
@@ -43,7 +43,7 @@ class ChainLinkPriceByENS(Model):
         if feed_address is None:
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
         return self.context.run_model('chainlink.price-by-feed',
-                                      input=Account(address=Address(feed_address)),
+                                      input={'address': feed_address},
                                       return_type=Price)
 
 
@@ -51,11 +51,11 @@ class ChainLinkPriceByENS(Model):
                  version="1.0",
                  display_name="Chainlink - Price by feed",
                  description="Input a Chainlink valid feed",
-                 input=Account,
+                 input=Contract,
                  output=Price)
 class ChainLinkPriceByFeed(Model):
-    def run(self, input: Account) -> Price:
-        feed_contract = Contract(address=input.address)
+    def run(self, input: Contract) -> Price:
+        feed_contract = input
         (_roundId, answer,
             _startedAt, _updatedAt,
             _answeredInRound) = feed_contract.functions.latestRoundData().call()
@@ -84,8 +84,6 @@ class ChainLinkPriceByFeed(Model):
                 output=PriceMaybe)
 class ChainLinkFeedFromRegistryMaybe(Model):
     def run(self, input: PriceInput) -> PriceMaybe:
-        price = None
-
         feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
                                             input=input,
                                             return_type=AddressMaybe)
@@ -103,7 +101,8 @@ class ChainLinkFeedFromRegistryMaybe(Model):
                                            input=input.inverse(),
                                            return_type=Price).inverse()
             return PriceMaybe(price=price)
-        return PriceMaybe(price=price)
+
+        return PriceMaybe(price=None)
 
 
 @Model.describe(slug='chainlink.feed-from-registry-maybe',
