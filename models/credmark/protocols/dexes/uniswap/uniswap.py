@@ -1,31 +1,28 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, Token
-from credmark.dto import DTO, EmptyInput
+from credmark.cmf.types import Address, Contract, Token, Price
+from credmark.dto import EmptyInput
 from models.tmp_abi_lookup import DAI_ADDRESS
-
-
-class UniswapQuoterPriceUsd(DTO):
-    tokenAddress: Address
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
                 version='1.0',
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
-                input=UniswapQuoterPriceUsd)
+                input=Token,
+                output=Price)
 class UniswapRouterPricePair(Model):
     UNISWAP_V3_QUOTER_ADDRESS = {
         1: Address('0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6')
     }
 
-    def run(self, input: UniswapQuoterPriceUsd) -> dict:
+    def run(self, input: Token) -> Price:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
         """
-        inToken = Token(address=Address(DAI_ADDRESS))
-        outToken = Token(address=input.tokenAddress)
+        dai = Token(address=Address(DAI_ADDRESS))
+        outToken = input
 
         tokenAmount = 1 * 10 ** outToken.decimals
         fee = 10000
@@ -34,14 +31,14 @@ class UniswapRouterPricePair(Model):
         uniswap_quoter_addr = self.UNISWAP_V3_QUOTER_ADDRESS[self.context.chain_id]
         uniswap_quoter = Contract(address=uniswap_quoter_addr)
 
-        quote = uniswap_quoter.functions.quoteExactOutputSingle(inToken.address,
-                                                                outToken.address,
-                                                                fee,
-                                                                tokenAmount,
-                                                                sqrtPriceLimitX96).call()
+        quote = uniswap_quoter.functions.quoteExactOutputSingle(
+            dai.address.checksum,
+            outToken.address.checksum,
+            fee,
+            tokenAmount,
+            sqrtPriceLimitX96).call()
 
-        result = {'value': inToken.scaled(quote)}
-        return result
+        return Price(price=dai.scaled(quote), src=self.slug)
 
 
 @Model.describe(slug='uniswap.router',
