@@ -154,7 +154,14 @@ class CurveFinancePoolInfoTokens(Model):
                                               input=Contract(address=Address(minter_addr)),
                                               return_type=CurveFiPoolInfoToken)
             except ABIFunctionNotFound:
-                pass
+                try:
+                    pool_addr = (registry.functions
+                                 .get_pool_from_lp_token(input.address.checksum).call())
+                    return self.context.run_model(self.slug,
+                                                  input=Contract(address=Address(pool_addr)),
+                                                  return_type=CurveFiPoolInfoToken)
+                except Exception as _err:
+                    pass
 
             tokens = Tokens()
             tokens_symbol = []

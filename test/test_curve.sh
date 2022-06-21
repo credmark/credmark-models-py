@@ -49,9 +49,10 @@ test_model 0 curve-fi.all-gauge-claim-addresses '{"address":"0x824F13f1a2F29cFEE
 # 0x72E158d38dbd50A483501c24f792bDAAA3e7D55C is Curve.fi FRAX3CRV-f Gauge Deposit (FRAX3CRV-...)
 test_model 0 curve-fi.all-gauge-claim-addresses '{"address":"0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"}'
 test_model 0 contrib.curve-get-pegging-ratio '{"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}'
-test_model 0 contrib.curve-get-pegging-ratio '{"address": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}'
 test_model 0 contrib.curve-get-pegging-ratio-historical '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}, "date_range": ["2022-01-10","2022-01-15"]}'
 test_model 0 contrib.curve-get-depegging-amount '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"},"token": {"address": "0xd71ecff9342a5ced620049e616c5035f1db98620"}, "desired_ratio": 0.98485645}'
+
+# test_model 0 contrib.curve-get-pegging-ratio '{"address": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}'
 
 lp_token_addresses="0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8
 0xC25a3A3b969415c80451098fa907EC722572917F
