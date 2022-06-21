@@ -1,7 +1,7 @@
 echo_cmd ""
 echo_cmd "Run SushiSwap Examples:"
 echo_cmd ""
-test_model 0 sushiswap.get-weighted-price '{"symbol": "USDC"}' # sushiswap.get-pool-info-token-price
+test_model 0 sushiswap.get-weighted-price '{"symbol": "USDC"}'
 test_model 0 sushiswap.get-weighted-price '{"symbol": "AAVE"}'
 test_model 0 sushiswap.get-weighted-price '{"symbol": "DAI"}'
 test_model 0 sushiswap.get-weighted-price '{"symbol": "WETH"}'

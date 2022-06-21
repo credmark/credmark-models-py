@@ -27,9 +27,7 @@ class RedactedVotiumCashflow(Model):
             token = Token(address=transfer['token_address']).info
             try:
                 transfer['price'] = self.context.run_model(
-                    'price.quote',
-                    input={'base': token},
-                    block_number=transfer['block_number'])['price']
+                    'token.price', input=token, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:
@@ -67,8 +65,7 @@ class RedactedConvexCashflow(Model):
             token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'price.quote',
-                    input={'base': token}, block_number=transfer['block_number'])['price']
+                    'token.price', input=token, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:
