@@ -1,6 +1,6 @@
 from typing import List
 from credmark.cmf.model import Model, describe
-from credmark.cmf.types import Contract, Contracts, Account, Token, Accounts, Price
+from credmark.cmf.types import Contract, Contracts, Account, Token, Accounts, Price, ContractLedger
 from credmark.dto import EmptyInput, DTO
 from credmark.cmf.model.errors import ModelDataError
 from datetime import datetime
@@ -138,6 +138,7 @@ class CMKGetVestingByAccount(Model):
                     vesting_contract.functions.getClaimableAmount(input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
+
             try:
                 allocation_claimed_events = vesting_contract.events.AllocationClaimed.createFilter(
                     fromBlock=0, toBlock=self.context.block_number).get_all_entries()
@@ -173,6 +174,53 @@ class CMKGetVestingByAccount(Model):
                         return_type=Price).price
                     c['value_now'] = c['amount'] * current_price
                     claims.append(c)
+
+            # TODO: New ledger based model, unused due to L2 performance.
+
+            def _new_ledger_based_model(vesting_contract):
+                _input_address = input.address
+                assert vesting_contract.abi is not None
+                cols = vesting_contract.abi.events.AllocationClaimed.args
+                ledger_events = (
+                    vesting_contract.ledger.events.AllocationClaimed(
+                        columns=[ContractLedger.Events.InputCol(c) for c in cols],
+                        order_by=ContractLedger.Events.InputCol("account"),
+                        limit="5000")
+                    .to_dataframe()
+                    .query('inp_account == @_input_address'))
+
+                def price_at_claim_time(row, self=self):
+                    timestamp = row['inp_timestamp']
+                    price = self.context.run_model(
+                        slug="uniswap-v3.get-weighted-price",
+                        input={"symbol": "CMK"},
+                        block_number=self.context.block_number.from_timestamp(timestamp),
+                        return_type=Price).price
+                    return price
+
+                if not ledger_events.empty:
+                    ledger_events.loc[:, 'amount_scaled'] = (
+                        ledger_events.inp_amount.apply(Token(symbol="CMK").scaled))
+                    ledger_events.loc[:, 'price_now'] = current_price
+                    ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
+                    ledger_events.loc[:, 'price_at_claim_time'] = (
+                        ledger_events.apply(price_at_claim_time, axis=1))
+                    ledger_events.loc[:, 'value_at_claim_time'] = (
+                        ledger_events.price_at_claim_time * ledger_events.amount_scaled)
+
+                    for _, r in ledger_events.iterrows():
+                        claim = {
+                            'account': r['inp_account'],
+                            'amount': r['inp_amount'],
+                            'timestamp': r['inp_timestamp'],
+                            'amount_scaled': r['amount_scaled'],
+                            'value_at_claim_time': r['value_at_claim_time'],
+                            'value_now': r['value_now'],
+                            'price_at_claim_time': r['price_at_claim_time'],
+                            'price_now': r['price_now'],
+                        }
+                        claims.append(claim)
+
         result.claims = claims
 
         return result

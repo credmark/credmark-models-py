@@ -1,18 +1,12 @@
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
-
-from credmark.cmf.types import PriceList, Price
-
-
-from models.credmark.algorithms.value_at_risk.dto import (
-    VaRHistoricalInput,
-    PortfolioVaRInput,
-)
-
-from models.credmark.algorithms.value_at_risk.risk_method import calc_var
-
 import numpy as np
 import scipy.stats as sps
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import PriceList
+from models.credmark.algorithms.value_at_risk.dto import (PortfolioVaRInput,
+                                                          VaRHistoricalInput)
+from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+from models.dtos.price import PriceHistoricalOutputs
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
@@ -25,30 +19,34 @@ class VaRPortfolio(Model):
     def run(self, input: PortfolioVaRInput) -> dict:
         portfolio = input.portfolio
 
-        pl_assets = set()
-        price_lists = []
+        assets_to_quote = set()
         for position in portfolio:
-            if position.asset.address not in pl_assets:
-                historial_price = self.context.historical.run_model_historical(
-                    model_slug=input.price_model,
-                    model_input=position.asset,
-                    window=input.window,
-                    model_return_type=Price)
-                if len(historial_price.series) > 1:
-                    assert (historial_price.series[0].blockNumber -
-                            historial_price.series[1].blockNumber < 0)
-                # Reverse the order of data so the recent in the front.
-                ps = [p.output.price for p in historial_price if p.output.price is not None][::-1]
-                if len(ps) < len(historial_price.series):
-                    raise ModelRunError(
-                        'Received None output for token price.'
-                        'Check the series '
-                        f'{[(p.output.price,p.blockNumber) for p in historial_price]}')
-                price_list = PriceList(prices=ps,
-                                       tokenAddress=position.asset.address,
-                                       src=list({p.output.src for p in historial_price})[0])
-                price_lists.append(price_list)
-                pl_assets.add(position.asset.address)
+            if position.asset.address not in assets_to_quote:
+                assets_to_quote.add(position.asset.address)
+
+        t_unit, count = self.context.historical.parse_timerangestr(input.window)
+        interval = self.context.historical.range_timestamp(t_unit, 1)
+
+        assets_to_quote_list = list(assets_to_quote)
+        token_historical_prices_run = self.context.run_model(
+            slug='price.quote-historical-multiple',
+            input={"inputs": [{'base': {'address': tok_addr}} for tok_addr in assets_to_quote_list],
+                   "interval": interval,
+                   "count": count,
+                   "exclusive": False},
+            return_type=PriceHistoricalOutputs)
+
+        price_lists = []
+        for asset_addr, hp in zip(assets_to_quote_list, token_historical_prices_run):
+            ps = (hp.to_dataframe(fields=[('price', lambda p:p.price), ('src', lambda p:p.src), ])
+                  .sort_values('blockNumber', ascending=False)
+                  .reset_index(drop=True))
+
+            price_list = PriceList(prices=ps['price'].to_list(),
+                                   tokenAddress=asset_addr,
+                                   src=ps['src'].to_list()[0])
+
+            price_lists.append(price_list)
 
         var_input = VaRHistoricalInput(
             portfolio=portfolio,

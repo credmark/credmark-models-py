@@ -13,17 +13,17 @@ echo_cmd ""
 
 # UniswapV3 pool USDC-WETH 0x7bea39867e4169dbe237d55c8242a8f2fcdcc387
 test_model 0 uniswap-v3.get-pool-info '{"address":"0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"}'
-test_model 0 token.price '{"symbol": "WETH"}' ${token_price_deps}
-test_model 0 token.price '{"symbol": "CMK"}' ${token_price_deps}
-test_model 0 token.price '{"symbol": "AAVE"}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"symbol": "WETH"}}' ${token_price_deps} # token.underlying-maybe,price.oracle-chainlink-maybe,price.oracle-chainlink
+test_model 0 price.quote '{"base":{"symbol": "CMK"}}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"symbol": "AAVE"}}' ${token_price_deps}
 # AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
-test_model 0 token.price '{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}' ${token_price_deps}
-test_model 0 token.price '{"symbol": "USDC"}' ${token_price_deps}
-test_model 0 token.price '{"symbol": "MKR"}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"symbol": "USDC"}}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"symbol": "MKR"}}' ${token_price_deps}
 # Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
-test_model 0 token.price '{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}}' ${token_price_deps}
 # RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
-test_model 0 token.price '{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}' ${token_price_deps}
+test_model 0 price.quote '{"base":{"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}}' ${token_price_deps}
 
 test_model 0 token.holders '{"symbol": "CMK"}'
 test_model 0 token.swap-pools '{"symbol":"CMK"}'
