@@ -8,7 +8,7 @@ from models.dtos.historical import HistoricalRunModelInput
 @Model.describe(slug="historical.run-model",
                 version="1.2",
                 display_name="Run Any model for historical",
-                description="",
+                description="Input of window and interval in plain words - 30 days / 1 day",
                 input=HistoricalRunModelInput,
                 output=dict)
 class HistoricalRunModel(Model):
@@ -24,7 +24,7 @@ class HistoricalRunModel(Model):
                    "endTimestamp": self.context.block_number.timestamp,
                    "interval": interval_in_seconds,
                    "count": count,
-                   "exclusive": False},
+                   "exclusive": input.exclusive},
             return_type=MapBlockTimeSeriesOutput[dict])
 
         results = BlockSeries(
