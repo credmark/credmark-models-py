@@ -102,14 +102,30 @@ class PriceQuoteMultiple(Model):
         return Prices(prices=prices)
 
 
-@ Model.describe(slug='price',
-                 version='1.0',
-                 display_name='Token Price',
-                 description='DEPRECATED - use price.quote',
-                 input=Token,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
-class PriceModel(Model):
+@Model.describe(slug='price',
+                version='1.0',
+                display_name='Token Price in USD',
+                description='DEPRECATED - use price.quote',
+                input=Token,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceModelDeprecated(Model):
+    """
+    Return token's price (DEPRECATED) - use price.quote
+    """
+
+    def run(self, input: Token) -> Price:
+        return self.context.run_model('price.quote', {'base': input}, return_type=Price)
+
+
+@Model.describe(slug='token.price',
+                version='1.0',
+                display_name='Token Price in USD',
+                description='DEPRECATED - use price.quote',
+                input=Token,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class TokenPriceModelDeprecated(Model):
     """
     Return token's price (DEPRECATED) - use price.quote
     """
@@ -152,10 +168,6 @@ class PriceQuote(Model):
                                              return_type=PriceMaybe)
         if price_maybe.price is not None:
             return price_maybe.price
-
-        # if isinstance(input.base, FiatCurrency) and isinstance(input.quote, FiatCurrency):
-        #    raise ModelDataError(f'No feed available for '
-        #                         f'{input.base.symbol}/{input.quote.symbol}')
 
         price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                                  input=input.quote_usd(),

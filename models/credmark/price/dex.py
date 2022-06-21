@@ -6,7 +6,7 @@ from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 
 from credmark.cmf.types import Price, Token
-from credmark.cmf.types.compose import (MapInputsInput, MapInputsOutput)
+from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -96,7 +96,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='price.dex-blended',
-                 version='1.2',
+                 version='1.3',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -114,10 +114,9 @@ class PriceFromDexModel(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         all_pool_infos_results = self.context.run_model(
             slug='compose.map-inputs',
-            input=MapInputsInput(
-                modelSlug='compose.map-inputs',
-                modelInputs=[{"modelSlug": slug, "modelInputs": [input]}
-                             for slug in self.DEX_POOL_PRICE_INFO_MODELS]),
+            input={'modelSlug': 'compose.map-inputs',
+                   'modelInputs': [{"modelSlug": slug, "modelInputs": [input]}
+                                   for slug in self.DEX_POOL_PRICE_INFO_MODELS]},
             return_type=MapInputsOutput[dict, MapInputsOutput[dict, PoolPriceInfos]]
         )
         all_pool_infos = []

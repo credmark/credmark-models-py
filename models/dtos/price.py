@@ -3,6 +3,10 @@ from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from credmark.cmf.types.compose import (MapBlockTimeSeriesInput, MapBlockTimeSeriesOutput)
 
+class Prices(IterableListGenericDTO[Price]):
+    prices: List[Price]
+    _iterator: str = 'prices'
+
 
 class PriceMaybe(DTO):
     price: Optional[Price] = DTOField(None)
@@ -70,11 +74,6 @@ class PriceHistoricalInputs(PriceInputs, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
-
-
-class Prices(IterableListGenericDTO[Price]):
-    prices: List[Price]
-    _iterator: str = 'prices'
 
 
 class PriceHistoricalOutputs(IterableListGenericDTO[MapBlockTimeSeriesOutput[Price]]):

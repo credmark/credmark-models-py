@@ -1,31 +1,21 @@
 # pylint: disable=locally-disabled, unused-import
 
-from typing import List, Union
 from datetime import timedelta
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
-
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError
-
-from credmark.cmf.types import (
-    Address,
-    Account,
-    Accounts,
-    Contract,
-    Contracts,
-    Token,
-    Tokens,
-    Portfolio,
-    Position,
-    Price,
-)
-from credmark.dto import DTO, EmptyInput
-from credmark.cmf.types.ledger import TransactionTable
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.model import Model
-
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import (Account, Accounts, Address, Contract,
+                                Contracts, Portfolio, Position, Price, Token,
+                                Tokens)
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.cmf.types.ledger import TransactionTable
+from credmark.dto import DTO, EmptyInput
+from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
+from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
 
 class CurveFiPoolInfoToken(Contract):
@@ -86,12 +76,14 @@ class CurveFinanceGetRegistry(Model):
 @ Model.describe(slug="curve-fi.get-gauge-controller",
                  version='1.2',
                  display_name="Curve Finance - Get Gauge Controller",
-                 description="Query the registry for the guage controller")
+                 description="Query the registry for the guage controller",
+                 input=EmptyInput,
+                 output=Contract)
 class CurveFinanceGetGauge(Model):
-    def run(self, input):
+    def run(self, _):
         registry = Contract(**self.context.models.curve_fi.get_registry())
         gauge_addr = registry.functions.gauge_controller().call()
-        return Contract(address=Address(gauge_addr).checksum)
+        return Contract(address=Address(gauge_addr))
 
 
 @ Model.describe(slug="curve-fi.all-pools",
@@ -243,7 +235,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.13",
+                version="1.14",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -255,12 +247,10 @@ class CurveFinancePoolInfo(Model):
                                            input,
                                            return_type=CurveFiPoolInfoToken)
 
-        token_prices = []
-        for tok in pool_info.tokens:
-            tok_price = self.context.run_model('price.quote',
-                                               input={'base': tok},
-                                               return_type=Price)
-            token_prices.append(tok_price)
+        token_prices = self.context.run_model(
+            'price.quote-multiple',
+            input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
+            return_type=Prices).prices
 
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
@@ -406,10 +396,10 @@ class CurveFinanceAllGauges(Model):
         return Contracts(contracts=gauges)
 
 
-@ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.2',
-                 input=Contract,
-                 output=Accounts)
+@Model.describe(slug='curve-fi.all-gauge-claim-addresses',
+                version='1.2',
+                input=Contract,
+                output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
 
     def run(self, input: Contract) -> Accounts:
@@ -519,7 +509,7 @@ class CurveFinanceAverageGaugeYield(Model):
 
 
 @ Model.describe(slug='curve-fi.all-yield',
-                 version='1.2',
+                 version='1.3',
                  description="Yield from all Gauges",
                  input=EmptyInput,
                  output=dict)
@@ -532,9 +522,19 @@ class CurveFinanceAllYield(Model):
         self.logger.info(f'There are {len(gauge_contracts.contracts)} gauges.')
 
         res = []
-        for gauge in gauge_contracts.contracts:
-            yields = self.context.run_model('curve-fi.gauge-yield', gauge)
-            self.logger.info(yields)
-            res.append(yields)
+        all_yields = self.context.run_model(
+            slug='compose.map-inputs',
+            input={'modelSlug': 'curve-fi.gauge-yield',
+                   'modelInputs': gauge_contracts.contracts[:2]},
+            return_type=MapInputsOutput[Contract, dict])
+
+        res = []
+        for pool_n, pool_result in enumerate(all_yields):
+            if pool_result.error is not None:
+                self.logger.error(pool_result.error)
+                raise ModelRunError(pool_result.error.message)
+            if pool_result.output is None:
+                raise ModelRunError(f'Empty result for {gauge_contracts.contracts[pool_n]}')
+            res.append(pool_result)
 
         return {"results": res}
