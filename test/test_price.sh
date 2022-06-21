@@ -8,7 +8,7 @@ test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AA
 test_model 0 finance.var-dex-lp '{"pool": {"address":"0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},"window":"10 days", "interval":1, "confidence": 0.01, "lower_range": 0.01, "upper_range":0.01}'
 
 block_number_backup=${block_number}
-block_number='-b 14878712'
+block_number='-b 15000108'
 
 # 0xdB06a76733528761Eda47d356647297bC35a98BD
 echo_cmd ""

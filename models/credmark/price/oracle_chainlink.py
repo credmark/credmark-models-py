@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Currency, Price
+from credmark.cmf.types import Address, Currency, Price
 from models.dtos.price import PriceInput, PriceMaybe
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -26,7 +26,7 @@ class PriceOracleChainlinkMaybe(Model):
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.5',
+                version='1.6',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 input=PriceInput,
@@ -39,32 +39,32 @@ class PriceOracleChainlink(Model):
         1: {
             # WAVAX: avax-usd.data.eth
             Address('0x85f138bfEE4ef8e540890CFb48F620571d67Eda3'):
-            ({'address': '0xFF3EEb22B5E3dE6e705b44749C2559d704923FD7'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'avax-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # WSOL: sol-usd.data.eth
             Address('0xD31a59c85aE9D8edEFeC411D448f90841571b89c'):
-            ({'address': '0x4ffc43a60e009b551865a93d232e33fce9f01507'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'sol-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # BNB: bnb-usd.data.eth
             Address('0xB8c77482e45F1F44dE1745F52C74426C631bDD52'):
-            ({'address': '0x14e613ac84a31f709eadbdf89c6cc390fdc9540a'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'bnb-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # WCELO:
             Address('0xE452E6Ea2dDeB012e20dB73bf5d3863A3Ac8d77a'):
-            ({'address': '0x10d35efa5c26c3d994c511576641248405465aef'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'celo-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # BTM
             Address('0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750'):
-            ({'address': '0x9fccf42d21ab278e205e7bb310d8979f8f4b5751'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'btm-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # IOST
             Address('0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab'):
-            ({'address': '0xd0935838935349401c73a06fcde9d63f719e84e5'},
-             {'symbol': 'USD'}),
+            {'ens': {'domain': 'iost-usd.data.eth'},
+             'quote': {'symbol': 'USD'}},
             # WBTC: only with BTC for WBTC/BTC
-            # Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
-            # ({'address':'0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23'},
-            #  {'symbol':'BTC'}),
+            Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
+            {'ens': {'domain': 'wbtc-btc.data.eth'},
+             'quote': {'symbol': 'BTC'}},
         }
     }
 
@@ -116,28 +116,28 @@ class PriceOracleChainlink(Model):
         if price_result.price is not None:
             return price_result.price
 
-        override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
-        if override_base is not None:
-            override_feed = Contract(**override_base[0])
-            override_quote = Currency(**override_base[1])
+        try_override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
+        if try_override_base is not None:
+            override_feed = try_override_base['ens']
+            override_quote = Currency(**try_override_base['quote'])
 
-            p0 = self.context.run_model('chainlink.price-by-feed',
+            p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
                                         return_type=Price)
             if override_quote.address == quote.address:
                 return p0
             else:
                 p1 = self.context.run_model(self.slug,
-                                            input={'base': override_base[1], 'quote': quote},
+                                            input={'base': override_quote, 'quote': quote},
                                             return_type=Price)
                 return p0.cross(p1)
 
-        override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
-        if override_quote is not None:
-            override_feed = Contract(**override_quote[0])
-            override_quote = Currency(**override_quote[1])
+        try_override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
+        if try_override_quote is not None:
+            override_feed = try_override_quote['ens']
+            override_quote = Currency(**try_override_quote['quote'])
 
-            p0 = self.context.run_model('chainlink.price-by-feed',
+            p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
                                         return_type=Price).inverse()
             if override_quote.address == base.address:
@@ -180,7 +180,7 @@ class PriceOracleChainlink(Model):
         if new_input == input:
             raise ModelRunError(f'No possible feed/routing for token pair '
                                 f'{input.base}/{input.quote}')
-        else:
-            raise ModelRunError(f'No possible feed/routing for token pair '
-                                f'{input.base}/{input.quote}, '
-                                f'replaced by {new_input.base}/{new_input.quote}')
+
+        raise ModelRunError(f'No possible feed/routing for token pair '
+                            f'{input.base}/{input.quote}, '
+                            f'replaced by {new_input.base}/{new_input.quote}')
