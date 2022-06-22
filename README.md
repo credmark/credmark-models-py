@@ -51,6 +51,6 @@ And then form within the container you can now run `credmark-dev` commands.
 
 Alternatively, you can run the container each time you want to run a `credmark-dev` command:
 
-```{shell}
+```{bash}
 docker run credmark/credmark-cli credmark-dev list
 ```
