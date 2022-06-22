@@ -17,11 +17,6 @@ test_model 0 chainlink.price-by-registry '{"base":{"address":"0x7Fc66500c84A76Ad
 test_model 0 chainlink.price-by-registry '{"base":{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
 "quote":{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
 
-test_model 0 chainlink.price-by-registry '{"quote":{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
-"base":{"address":"0x0000000000000000000000000000000000000348"}}'
-test_model 0 chainlink.price-by-registry '{"quote":{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
-"base":{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
-
 test_model 0 price.quote '{"base": {"symbol":"AAVE"}}'
 test_model 0 price.quote '{"base": {"symbol":"WETH"}}'
 test_model 0 price.quote '{"base": {"symbol":"WBTC"}}'

@@ -3,12 +3,14 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Currency, FiatCurrency, Price, Token, NativeToken
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (Address, AddressMaybe,
+from models.dtos.price import (Address,
+                               Maybe,
                                PriceHistoricalInput,
                                PriceHistoricalInputs,
                                PriceHistoricalOutputs,
-                               PriceInput, PriceInputs,
-                               PriceMaybe, Prices)
+                               PriceInput,
+                               PriceInputs,
+                               Prices)
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -166,9 +168,9 @@ class PriceQuote(Model):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
             addr_maybe = self.context.run_model('token.underlying-maybe',
                                                 input=token,
-                                                return_type=AddressMaybe)
-            if addr_maybe.address is not None:
-                return Currency(address=addr_maybe.address)
+                                                return_type=Maybe[Address])
+            if addr_maybe.just is not None:
+                return Currency(address=addr_maybe.just)
         return token
 
     def run(self, input: PriceInput) -> Price:
@@ -177,22 +179,22 @@ class PriceQuote(Model):
 
         price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                              input=input,
-                                             return_type=PriceMaybe)
-        if price_maybe.price is not None:
-            return price_maybe.price
+                                             return_type=Maybe[Price])
+        if price_maybe.just is not None:
+            return price_maybe.just
 
         price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                                  input=input.quote_usd(),
-                                                 return_type=PriceMaybe)
+                                                 return_type=Maybe[Price])
 
-        if price_usd_maybe.price is not None:
-            price_usd = price_usd_maybe.price
+        if price_usd_maybe.just is not None:
+            price_usd = price_usd_maybe.just
         else:
             price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
                                                      input=input.base,
-                                                     return_type=PriceMaybe)
-            if price_usd_maybe.price is not None:
-                price_usd = price_usd_maybe.price
+                                                     return_type=Maybe[Price])
+            if price_usd_maybe.just is not None:
+                price_usd = price_usd_maybe.just
             else:
                 new_base = self.replace_wrap(input.base)
                 price_usd = self.context.run_model('price.dex-blended',

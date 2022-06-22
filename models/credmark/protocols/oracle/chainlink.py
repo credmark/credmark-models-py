@@ -5,7 +5,7 @@ from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Contract, Price
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
-from models.dtos.price import AddressMaybe, PriceInput, PriceMaybe
+from models.dtos.price import Maybe, PriceInput
 from web3.exceptions import ContractLogicError
 
 
@@ -81,28 +81,28 @@ class ChainLinkPriceByFeed(Model):
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 input=PriceInput,
-                output=PriceMaybe)
+                output=Maybe[Price])
 class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> PriceMaybe:
+    def run(self, input: PriceInput) -> Maybe[Price]:
         feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
                                             input=input,
-                                            return_type=AddressMaybe)
-        if feed_maybe.address is not None:
+                                            return_type=Maybe[Address])
+        if feed_maybe.just is not None:
             price = self.context.run_model('chainlink.price-by-registry',
                                            input=input,
                                            return_type=Price)
-            return PriceMaybe(price=price)
+            return Maybe(just=price)
 
         feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
                                             input=input.inverse(),
-                                            return_type=AddressMaybe)
-        if feed_maybe.address is not None:
+                                            return_type=Maybe[Address])
+        if feed_maybe.just is not None:
             price = self.context.run_model('chainlink.price-by-registry',
                                            input=input.inverse(),
                                            return_type=Price).inverse()
-            return PriceMaybe(price=price)
+            return Maybe(just=price)
 
-        return PriceMaybe(price=None)
+        return Maybe(just=None)
 
 
 @Model.describe(slug='chainlink.feed-from-registry-maybe',
@@ -110,9 +110,9 @@ class ChainLinkFeedFromRegistryMaybe(Model):
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 input=PriceInput,
-                output=AddressMaybe)
+                output=Maybe[Address])
 class ChainLinkFeedFromRegistry(Model):
-    def run(self, input: PriceInput) -> AddressMaybe:
+    def run(self, input: PriceInput) -> Maybe[Address]:
         base_address = input.base.address
         quote_address = input.quote.address
 
@@ -122,9 +122,9 @@ class ChainLinkFeedFromRegistry(Model):
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(base_address, quote_address).call()
-            return AddressMaybe(address=Address(feed))
+            return Maybe(just=Address(feed))
         except ContractLogicError as _err:
-            return AddressMaybe(address=None)
+            return Maybe(just=None)
         finally:
             del sys.tracebacklimit
 

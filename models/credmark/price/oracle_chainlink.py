@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Currency, Price
-from models.dtos.price import PriceInput, PriceMaybe
+from models.dtos.price import PriceInput, Maybe
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -13,16 +13,16 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
                 input=PriceInput,
-                output=PriceMaybe)
+                output=Maybe[Price])
 class PriceOracleChainlinkMaybe(Model):
-    def run(self, input: PriceInput) -> PriceMaybe:
+    def run(self, input: PriceInput) -> Maybe[Price]:
         try:
             price = self.context.run_model('price.oracle-chainlink',
                                            input=input,
                                            return_type=Price)
-            return PriceMaybe(price=price)
+            return Maybe(just=price)
         except ModelRunError:
-            return PriceMaybe(price=None)
+            return Maybe(just=None)
 
 
 @Model.describe(slug='price.oracle-chainlink',
@@ -111,10 +111,10 @@ class PriceOracleChainlink(Model):
         if base == quote:
             return Price(price=1, src=f'{self.slug}|Equal')
 
-        price_result = self.context.run_model('chainlink.price-from-registry-maybe',
-                                              input=new_input, return_type=PriceMaybe)
-        if price_result.price is not None:
-            return price_result.price
+        price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                             input=new_input, return_type=Maybe[Price])
+        if price_maybe.just is not None:
+            return price_maybe.just
 
         try_override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
         if try_override_base is not None:
@@ -154,18 +154,18 @@ class PriceOracleChainlink(Model):
                 price_input = PriceInput(base=base, quote=Currency(address=r1))
                 p0_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                   input=price_input,
-                                                  return_type=PriceMaybe)
-                if p0_maybe.price is not None:
-                    p0 = p0_maybe.price
+                                                  return_type=Maybe[Price])
+                if p0_maybe.just is not None:
+                    p0 = p0_maybe.just
 
                     for r2 in self.ROUTING_ADDRESSES:
                         if r2 != base:
                             price_input = PriceInput(base=Currency(address=r2), quote=quote)
                             p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                               input=price_input,
-                                                              return_type=PriceMaybe)
-                            if p1_maybe.price is not None:
-                                p1 = p1_maybe.price
+                                                              return_type=Maybe[Price])
+                            if p1_maybe.just is not None:
+                                p1 = p1_maybe.just
 
                                 if r1 == r2:
                                     return p0.cross(p1)
