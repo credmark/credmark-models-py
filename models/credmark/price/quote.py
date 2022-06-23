@@ -30,21 +30,26 @@ class PriceQuoteHistoricalMultiple(Model):
         partial_input = {'interval': input.interval,
                          'count': input.count,
                          'exclusive': input.exclusive}
+        model_slug = 'price.quote-historical'
+        model_inputs = [one_input.dict() | partial_input for one_input in input.inputs]
         price_historical_result = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'price.quote-historical',
-                   'modelInputs': [one_input.dict() | partial_input for one_input in input.inputs]},
+            input={'modelSlug': model_slug,
+                   'modelInputs': model_inputs},
             return_type=MapInputsOutput[PriceHistoricalInput,
                                         MapBlockTimeSeriesOutput[Price]])  # type: ignore
 
         series = []
-        for result in price_historical_result:
-            if result.error is not None:
+        for res_n, result in enumerate(price_historical_result):
+            if result.output is not None:
+                series.append(result.output)
+            elif result.error is not None:
                 self.logger.error(result.error)
-                raise ModelDataError(result.error.message)
-            if result.output is None:
-                raise ModelRunError(f'None result with {result.input}')
-            series.append(result.output)
+                raise ModelRunError(
+                    f'Error for {model_slug}({model_inputs[res_n]}). ' +
+                    result.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         return PriceHistoricalOutputs(series=series)
 
@@ -94,12 +99,12 @@ class PriceQuoteMultiple(Model):
 
         prices = []
         for p in token_prices_run:
-            if p.error is not None:
+            if p.error is None and p.output is not None:
+                prices.append(p.output)
+            else:
                 self.logger.error(p.error)
-                raise ModelRunError(p.error.message)
-            if p.output is None:
-                raise ModelRunError(f'Unable to get price for {p.input}')
-            prices.append(p.output)
+                if p.error is not None:
+                    raise ModelRunError(p.error.message)
 
         return Prices(prices=prices)
 
@@ -196,10 +201,10 @@ class PriceQuote(Model):
             if price_usd_maybe.just is not None:
                 price_usd = price_usd_maybe.just
             else:
-                new_base = self.replace_wrap(input.base)
-                price_usd = self.context.run_model('price.dex-blended',
-                                                   input=new_base,
-                                                   return_type=Price)
+                price_usd = self.context.run_model(
+                    'price.dex-blended',
+                    input=self.replace_wrap(input.base),
+                    return_type=Price)
 
         if input.quote == FiatCurrency(symbol='USD'):
             return price_usd

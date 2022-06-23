@@ -96,7 +96,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='price.dex-blended',
-                 version='1.4',
+                 version='1.5',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -112,30 +112,34 @@ class PriceFromDexModel(Model, PriceWeight):
                                              'uniswap-v3.get-pool-info-token-price']
 
     def run(self, input: Token) -> Price:
+        model_inputs = [{"modelSlug": slug, "modelInputs": [input]}
+                        for slug in self.DEX_POOL_PRICE_INFO_MODELS]
+
         all_pool_infos_results = self.context.run_model(
             slug='compose.map-inputs',
             input={'modelSlug': 'compose.map-inputs',
-                   'modelInputs': [{"modelSlug": slug, "modelInputs": [input]}
-                                   for slug in self.DEX_POOL_PRICE_INFO_MODELS]},
-            return_type=MapInputsOutput[dict, MapInputsOutput[dict, PoolPriceInfos]]
-        )
+                   'modelInputs': model_inputs},
+            return_type=MapInputsOutput[dict, MapInputsOutput[dict, PoolPriceInfos]])
+
         all_pool_infos = []
         for dex_n, dex_result in enumerate(all_pool_infos_results):
-            if dex_result.error is not None:
+            if dex_result.output is not None:
+                for pool_result in dex_result.output:
+                    if pool_result.output is not None:
+                        all_pool_infos.extend(pool_result.output)
+                    elif pool_result.error is not None:
+                        self.logger.error(pool_result.error)
+                        raise ModelRunError(
+                            f'Error with {model_inputs[dex_n]}'
+                            f'({pool_result.input}). ' +
+                            pool_result.error.message)
+            elif dex_result.error is not None:
                 self.logger.error(dex_result.error)
-                raise ModelRunError(dex_result.error.message)
-            if dex_result.output is None:
-                raise ModelRunError(f'Empty result for {self.DEX_POOL_PRICE_INFO_MODELS[dex_n]}')
-
-            for pool_result in dex_result.output:
-                if pool_result.error is not None:
-                    self.logger.error(pool_result.error)
-                    raise ModelRunError(pool_result.error.message)
-                if pool_result.output is None:
-                    self.logger.error(pool_result.error)
-                    raise ModelRunError(f'None result for {pool_result.input}')
-
-                all_pool_infos.extend(pool_result.output)
+                raise ModelRunError(
+                    f'Error with {model_inputs[dex_n]}. ' +
+                    dex_result.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}

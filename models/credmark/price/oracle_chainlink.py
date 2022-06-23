@@ -20,9 +20,9 @@ class PriceOracleChainlinkMaybe(Model):
             price = self.context.run_model('price.oracle-chainlink',
                                            input=input,
                                            return_type=Price)
-            return Maybe(just=price)
+            return Maybe[Price](just=price)
         except ModelRunError:
-            return Maybe(just=None)
+            return Maybe[Price](just=None)
 
 
 @Model.describe(slug='price.oracle-chainlink',
