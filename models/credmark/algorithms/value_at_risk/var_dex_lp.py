@@ -12,12 +12,12 @@ from models.dtos.price import PriceHistoricalOutputs
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
-@ Model.describe(slug="finance.var-dex-lp",
-                 version="1.3",
-                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
-                 description="Working for UniV2, V3 and Sushiswap pools",
-                 input=UniswapPoolVaRInput,
-                 output=dict)
+@Model.describe(slug="finance.var-dex-lp",
+                version="1.3",
+                display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
+                description="Working for UniV2, V3 and Sushiswap pools",
+                input=UniswapPoolVaRInput,
+                output=dict)
 class UniswapPoolVaR(Model):
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
@@ -63,7 +63,7 @@ class UniswapPoolVaR(Model):
 
         token_historical_prices_run = self.context.run_model(
             slug='price.quote-historical-multiple',
-            input={"inputs": [{'base': tok} for tok in [token0, token1]],
+            input={'inputs': [{'base': token0}, {'base': token1}],
                    "interval": interval,
                    "count": count,
                    "exclusive": False},

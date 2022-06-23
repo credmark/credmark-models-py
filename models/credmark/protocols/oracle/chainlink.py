@@ -2,7 +2,7 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Price
+from credmark.cmf.types import Contract, Price
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
 from models.dtos.price import Maybe, PriceInput
@@ -22,7 +22,9 @@ class ChainLinkFeedRegistry(Model):
     }
 
     def run(self, _) -> Contract:
-        return Contract(address=self.CHAINLINK_REGISTRY[self.context.chain_id])
+        registry = Contract(address=self.CHAINLINK_REGISTRY[self.context.chain_id])
+        _ = registry.abi
+        return registry
 
 
 class ENSDomainName(DTO):
@@ -77,56 +79,26 @@ class ChainLinkPriceByFeed(Model):
 
 
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.0",
+                version="1.1",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 input=PriceInput,
                 output=Maybe[Price])
 class ChainLinkFeedFromRegistryMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[Price]:
-        feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
-                                            input=input,
-                                            return_type=Maybe[Address])
-        if feed_maybe.just is not None:
+        try:
             price = self.context.run_model('chainlink.price-by-registry',
                                            input=input,
                                            return_type=Price)
-            return Maybe(just=price)
-
-        feed_maybe = self.context.run_model('chainlink.feed-from-registry-maybe',
-                                            input=input.inverse(),
-                                            return_type=Maybe[Address])
-        if feed_maybe.just is not None:
-            price = self.context.run_model('chainlink.price-by-registry',
-                                           input=input.inverse(),
-                                           return_type=Price).inverse()
-            return Maybe(just=price)
-
-        return Maybe(just=None)
-
-
-@Model.describe(slug='chainlink.feed-from-registry-maybe',
-                version="1.0",
-                display_name="Chainlink - Price by Registry",
-                description="Looking up Registry for two tokens' addresses",
-                input=PriceInput,
-                output=Maybe[Address])
-class ChainLinkFeedFromRegistry(Model):
-    def run(self, input: PriceInput) -> Maybe[Address]:
-        base_address = input.base.address
-        quote_address = input.quote.address
-
-        registry = self.context.run_model('chainlink.get-feed-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract)
-        try:
-            sys.tracebacklimit = 0
-            feed = registry.functions.getFeed(base_address, quote_address).call()
-            return Maybe(just=Address(feed))
-        except ContractLogicError as _err:
-            return Maybe(just=None)
-        finally:
-            del sys.tracebacklimit
+            return Maybe[Price](just=price)
+        except ModelRunError as _err:
+            try:
+                price = self.context.run_model('chainlink.price-by-registry',
+                                               input=input.inverse(),
+                                               return_type=Price).inverse()
+                return Maybe[Price](just=price)
+            except ModelRunError as _err2:
+                return Maybe[Price](just=None)
 
 
 @Model.describe(slug='chainlink.price-by-registry',
@@ -163,7 +135,7 @@ class ChainLinkPriceByRegistry(Model):
                               f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                self.logger.error(f'No feed found for {base_address}/{quote_address}')
+                self.logger.info(f'No feed found for {base_address}/{quote_address}')
                 raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
             raise err
         finally:

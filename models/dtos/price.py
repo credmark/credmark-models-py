@@ -50,6 +50,9 @@ class PriceInput(DTO):
     def quote_usd(self):
         return PriceInput(base=self.base, quote=Currency(symbol='USD'))
 
+    def quote_eth(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='ETH`'))
+
     class Config:
         schema_extra = {
             'examples': [{'base': {'symbol': 'USD'}},
@@ -107,10 +110,6 @@ class PoolPriceInfo(DTO):
     token0_decimals: int
     token1_decimals: int
     pool_address: Address
-
-
-class PoolPriceInfoMaybe(DTO):
-    info: Optional[PoolPriceInfo]
 
 
 class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):

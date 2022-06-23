@@ -33,7 +33,7 @@ class GeneralizedCashflow(Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
         and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
                     slug='price.quote',

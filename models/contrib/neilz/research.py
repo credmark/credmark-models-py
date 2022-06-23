@@ -24,7 +24,7 @@ class RedactedVotiumCashflow(Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
         and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
                     'price.quote',
