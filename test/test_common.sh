@@ -88,7 +88,7 @@ echo Start from: $start_n
 if [ "${test_mode}" == 'test' ]; then
     cmk_dev="python $SCRIPT_DIRECTORY/test.py --model_path xxxx"
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
-	api_url=' --api_url=http://192.168.68.122:8700 -l -'
+	api_url=' --api_url=http://localhost:8700 -l -'
     echo "In local test mode, using ${cmk_dev} and ${api_url}"
 elif [ "${test_mode}" == 'prod' ]; then
     cmk_dev='credmark-dev'

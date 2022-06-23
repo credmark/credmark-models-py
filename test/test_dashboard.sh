@@ -17,7 +17,7 @@ quick_test=1
 # 13909787 - datetime.datetime(2021, 12, 31, 0, 0, tzinfo=datetime.timezone.utc)
 # 14830357 - datetime.datetime(2022, 5, 23, 15, 26, 40, tzinfo=datetime.timezone.utc)
 prefix=' --model_path xxxx '
-postfix=' -b 14830357 -j --api_url=http://192.168.68.122:8700 -l -'
+postfix=' -b 14830357 -j --api_url=http://localhost:8700 -l -'
 
 echo
 echo Test Pool TVL/Volume/VaR

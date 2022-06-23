@@ -38,7 +38,7 @@ for token_addr in $token_addrs; do
         token_addr_ext='{"symbol":"'${token_addr}'"}'
     fi
 
-    test_model 0 price.dex-curve-fi ${token_addr_ext} __all__
+    test_model 0 price.dex-curve-fi-maybe ${token_addr_ext} __all__ # price.dex-curve-fi
     test_model 0 price.quote '{"base": '${token_addr_ext}', "quote": {"symbol":"USD"}}' __all__
     test_model 0 price.quote '{"quote": '${token_addr_ext}', "base": {"symbol":"USD"}}' __all__
 done
@@ -54,6 +54,7 @@ echo_cmd ""
 # 0xFEEf77d3f69374f66429C91d732A244f074bdf74 price-curve
 
 tokens="
+WBTC
 BTC
 USD
 ETH

@@ -2,8 +2,6 @@ echo_cmd ""
 echo_cmd "Run Curve Examples"
 echo_cmd ""
 
-test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
-test_model 0 curve-fi.pool-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
 test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry,curve-fi.get-provider
 
 test_model 0 curve-fi.all-pools-info '{}' __all__
@@ -11,6 +9,9 @@ test_model 0 curve-fi.all-pools-info '{}' __all__
 test_model 0 curve-fi.pool-info '{"address":"0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"}'
 test_model 0 token.price '{"address":"0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"}'
 test_model 0 curve-fi.pool-info '{"address":"0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714"}'
+
+# Curve.fi : 0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6
+test_model 0 curve-fi.pool-info '{"address":"0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6"}'
 
 # Curve.fi renBTC/wBTC: 0x93054188d876f558f4a66b2ef1d97d16edf0895b
 test_model 0 curve-fi.pool-info '{"address":"0x93054188d876f558f4a66b2ef1d97d16edf0895b"}'
@@ -20,6 +21,7 @@ test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5
 
 # Curve.fi DAI/USDC/USDT 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
+test_model 0 curve-fi.pool-tvl '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}' ${curve_pool_info_tvl}
 
 # Curve.fi USD-BTC-ETH
 test_model 0 curve-fi.pool-info '{"address":"0xD51a44d3FaE010294C616388b506AcdA1bfAAE46"}'
@@ -71,4 +73,5 @@ lp_token_addresses="0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8
 
 for lp_addr in $lp_token_addresses; do
     test_model 0 curve-fi.pool-info '{"address":"'$lp_addr'"}'
+    test_model 0 curve-fi.pool-tvl '{"address":"'$lp_addr'"}'
 done
