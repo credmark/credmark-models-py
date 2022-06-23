@@ -148,34 +148,42 @@ class PriceOracleChainlink(Model):
                                             return_type=Price).inverse()
             return p0.cross(p1)
 
-        for r1 in self.ROUTING_ADDRESSES:
-            p0 = None
-            if r1 != quote:
-                price_input = PriceInput(base=base, quote=Currency(address=r1))
-                p0_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                  input=price_input,
-                                                  return_type=Maybe[Price])
-                if p0_maybe.just is not None:
-                    p0 = p0_maybe.just
+        p1 = None
+        r1 = None
+        p2 = None
+        r2 = None
+        for rt_addr in self.ROUTING_ADDRESSES:
+            if rt_addr not in (quote.address, base.address):
+                if p1 is None:
+                    price_input = PriceInput(base=base, quote=Currency(address=rt_addr))
 
-                    for r2 in self.ROUTING_ADDRESSES:
-                        if r2 != base:
-                            price_input = PriceInput(base=Currency(address=r2), quote=quote)
-                            p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                              input=price_input,
-                                                              return_type=Maybe[Price])
-                            if p1_maybe.just is not None:
-                                p1 = p1_maybe.just
+                    p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                      input=price_input,
+                                                      return_type=Maybe[Price])
+                    if p1_maybe.just is not None:
+                        p1 = p1_maybe.just
+                        r1 = rt_addr
 
-                                if r1 == r2:
-                                    return p0.cross(p1)
-                                else:
-                                    bridge_price = self.context.run_model(
-                                        self.slug,
-                                        input={'base': {"address": r1},
-                                               'quote': {"address": r2}},
-                                        return_type=Price)
-                                    return p0.cross(bridge_price).cross(p1)
+                if p2 is None:
+                    price_input = PriceInput(base=Currency(address=rt_addr), quote=quote)
+
+                    p2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                      input=price_input,
+                                                      return_type=Maybe[Price])
+                    if p2_maybe.just is not None:
+                        p2 = p2_maybe.just
+                        r2 = rt_addr
+
+        if p1 is not None and p2 is not None:
+            if r1 == r2:
+                return p1.cross(p2)
+            else:
+                bridge_price = self.context.run_model(
+                    self.slug,
+                    input={'base': {"address": r1},
+                           'quote': {"address": r2}},
+                    return_type=Price)
+                return p1.cross(bridge_price).cross(p2)
 
         if new_input == input:
             raise ModelRunError(f'No possible feed/routing for token pair '
