@@ -57,6 +57,7 @@ class CurveFinanceGetProvider(Model):
 
     def run(self, _) -> Contract:
         provider = Contract(address=Address(self.CURVE_PROVIDER_ALL_NETWORK).checksum)
+        _ = provider.abi
         return provider
 
 
@@ -70,7 +71,9 @@ class CurveFinanceGetRegistry(Model):
     def run(self, _) -> Contract:
         provider = Contract(**self.context.models.curve_fi.get_provider())
         reg_addr = provider.functions.get_registry().call()
-        return Contract(address=Address(reg_addr).checksum)
+        cc = Contract(address=Address(reg_addr).checksum)
+        _ = cc.abi
+        return cc
 
 
 @ Model.describe(slug="curve-fi.get-gauge-controller",
@@ -83,7 +86,9 @@ class CurveFinanceGetGauge(Model):
     def run(self, _):
         registry = Contract(**self.context.models.curve_fi.get_registry())
         gauge_addr = registry.functions.gauge_controller().call()
-        return Contract(address=Address(gauge_addr))
+        cc = Contract(address=Address(gauge_addr))
+        _ = cc.abi
+        return cc
 
 
 @ Model.describe(slug="curve-fi.all-pools",
@@ -98,9 +103,10 @@ class CurveFinanceAllPools(Model):
                                           return_type=Contract)
 
         total_pools = registry.functions.pool_count().call()
-        pool_contracts = [
-            Contract(address=registry.functions.pool_list(i).call())
-            for i in range(0, total_pools)]
+        pool_contracts = [None] * total_pools
+        for i in range(0, total_pools):
+            pool_contracts[i] = Contract(address=registry.functions.pool_list(i).call())
+            _ = pool_contracts[i].abi
 
         return Contracts(contracts=pool_contracts)
 
@@ -405,7 +411,9 @@ class CurveFinanceAllGauges(Model):
             address = gauge_controller.functions.gauges(i).call()
             if address == Address.null():
                 break
-            gauges.append(Contract(address=address))
+            cc = Contract(address=address)
+            _ = cc.abi
+            gauges.append(cc)
             i += 1
 
         return Contracts(contracts=gauges)
@@ -537,19 +545,23 @@ class CurveFinanceAllYield(Model):
         self.logger.info(f'There are {len(gauge_contracts.contracts)} gauges.')
 
         res = []
+        model_slug = 'curve-fi.gauge-yield'
         all_yields = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'curve-fi.gauge-yield',
+            input={'modelSlug': model_slug,
                    'modelInputs': gauge_contracts.contracts},
             return_type=MapInputsOutput[Contract, dict])
 
         res = []
         for pool_n, pool_result in enumerate(all_yields):
-            if pool_result.error is not None:
+            if pool_result.output is not None:
+                res.append(pool_result)
+            elif pool_result.error is not None:
                 self.logger.error(pool_result.error)
-                raise ModelRunError(pool_result.error.message)
-            if pool_result.output is None:
-                raise ModelRunError(f'Empty result for {gauge_contracts.contracts[pool_n]}')
-            res.append(pool_result)
+                raise ModelRunError('Empty result for '
+                                    f'{model_slug}({gauge_contracts.contracts[pool_n]}). ' +
+                                    pool_result.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         return {"results": res}

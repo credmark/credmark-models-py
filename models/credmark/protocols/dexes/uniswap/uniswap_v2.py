@@ -4,16 +4,16 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
                                 Contracts, Portfolio, Position, Price, Token,
                                 Tokens)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO
-from models.dtos.price import PoolPriceInfo, PoolPriceInfoMaybe, PoolPriceInfos
+from models.dtos.price import (PoolPriceInfo, Maybe,
+                               PoolPriceInfos, Prices)
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
                                 VolumeInputHistorical)
-from models.tmp_abi_lookup import (DAI_ADDRESS, UNISWAP_V2_POOL_ABI,
-                                   UNISWAP_V3_POOL_ABI, USDC_ADDRESS,
-                                   USDT_ADDRESS, WETH9_ADDRESS)
+from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI, UNISWAP_V3_POOL_ABI
 from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 
 
@@ -26,29 +26,25 @@ class UniswapV2PoolMeta:
                   Token(symbol='WETH'),
                   Token(symbol='DAI')]
 
-        t2 = [Token(address=Address(USDC_ADDRESS)),
-              Token(address=Address(USDT_ADDRESS)),
-              Token(address=Address(WETH9_ADDRESS)),
-              Token(address=Address(DAI_ADDRESS))]
-
-        for a, b in zip(tokens, t2):
-            assert a.address == b.address
-
         contracts = []
         try:
             for token in tokens:
                 pair_address = factory.functions.getPair(
                     model_input.address, token.address).call()
                 if not pair_address == Address.null():
-                    contracts.append(Contract(address=pair_address))
+                    cc = Contract(address=pair_address)
+                    _ = cc.abi
+                    contracts.append(cc)
                 else:
                     pair_address = factory.functions.getPair(
                         token.address, model_input.address).call()
                     if not pair_address == Address.null():
-                        contracts.append(Contract(address=pair_address))
+                        cc = Contract(address=pair_address)
+                        _ = cc.abi
+                        contracts.append(cc)
 
             return Contracts(contracts=contracts)
-        except BadFunctionCallOutput:
+        except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
             # Or use this condition: if self.context.block_number < 10000835 # Uniswap V2
             # Or use this condition: if self.context.block_number < 10794229 # SushiSwap
             return Contracts(contracts=[])
@@ -72,35 +68,36 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 class UniswapPoolPriceInput(DTO):
     token: Token
-    pool_address: Address
-    pricer_slug: str
+    pool: Contract
 
 
 @Model.describe(slug='uniswap-v2.get-price-pool-info',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 input=UniswapPoolPriceInput,
-                output=PoolPriceInfoMaybe)
+                output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
     """
 
-    def run(self, input: UniswapPoolPriceInput) -> PoolPriceInfoMaybe:
-        pool = Contract(address=input.pool_address)
+    def run(self, input: UniswapPoolPriceInput) -> Maybe[PoolPriceInfo]:
+        weth = Token(symbol='WETH')
+
+        pool = input.pool
         try:
             pool.abi
         except ModelDataError:
-            pool = Contract(address=input.pool_address, abi=UNISWAP_V2_POOL_ABI)
+            pool = Contract(address=input.pool.address, abi=UNISWAP_V2_POOL_ABI)
 
         weth_price = None
         reserves = pool.functions.getReserves().call()
         if reserves == [0, 0, 0]:
-            return PoolPriceInfoMaybe(info=None)
+            return Maybe[PoolPriceInfo](just=None)
 
-        token0 = Token(address=Address(pool.functions.token0().call()).checksum)
-        token1 = Token(address=Address(pool.functions.token1().call()).checksum)
+        token0 = Token(address=Address(pool.functions.token0().call()))
+        token1 = Token(address=Address(pool.functions.token1().call()))
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -114,15 +111,16 @@ class UniswapPoolPriceInfo(Model):
             input_reserve = scaled_reserve1
 
         weth_multiplier = 1
-        if input.token.address != WETH9_ADDRESS:
-            if WETH9_ADDRESS in (token1.address, token0.address):
+        weth = Token(symbol='WETH')
+        if input.token.address != weth.address:
+            if weth.address in (token1.address, token0.address):
                 if weth_price is None:
-                    weth_price = self.context.run_model(input.pricer_slug,
-                                                        {"address": WETH9_ADDRESS},
-                                                        return_type=Price)
+                    weth_price = self.context.run_model(
+                        'price.quote',  # uniswap-v2.get-weighted-price
+                        {'base': weth},  # weth
+                        return_type=Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
-
                 weth_multiplier = weth_price.price
 
         price *= weth_multiplier
@@ -140,7 +138,7 @@ class UniswapPoolPriceInfo(Model):
                                         token1_decimals=token1.decimals,
                                         pool_address=pool.address)
 
-        return PoolPriceInfoMaybe(info=pool_price_info)
+        return Maybe[PoolPriceInfo](just=pool_price_info)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
@@ -151,27 +149,36 @@ class UniswapPoolPriceInfo(Model):
                 output=PoolPriceInfos)
 class UniswapV2GetTokenPriceInfo(Model):
     def run(self, input: Token) -> PoolPriceInfos:
-        pools_address = self.context.run_model('uniswap-v2.get-pools',
-                                               input,
-                                               return_type=Contracts)
+        pools = self.context.run_model('uniswap-v2.get-pools',
+                                       input,
+                                       return_type=Contracts)
+
+        model_slug = 'uniswap-v2.get-price-pool-info'
+        model_inputs = [{'token': input, 'pool': pool} for pool in pools]
         pool_infos = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'uniswap-v2.get-price-pool-info',
-                   'modelInputs': [
-                       UniswapPoolPriceInput(token=input,
-                                             pool_address=pool_addr.address,
-                                             pricer_slug='uniswap-v2.get-weighted-price')
-                       for pool_addr in pools_address]},
-            return_type=MapInputsOutput[dict, PoolPriceInfoMaybe])
+            input={'modelSlug': model_slug,
+                   'modelInputs': model_inputs},
+            return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
 
-        return PoolPriceInfos(
-            infos=[p.output.info for p in pool_infos
-                   if (p.error is None and p.output is not None
-                       and p.output.info is not None)])
+        infos = []
+        for pool_n, p in enumerate(pool_infos):
+            if p.output is not None:
+                if p.output.just is not None:
+                    infos.append(p.output.just)
+            elif p.error is not None:
+                self.logger.error(p.error)
+                raise ModelRunError(
+                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                    p.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+
+        return PoolPriceInfos(infos=infos)
 
 
 @ Model.describe(slug="uniswap-v2.get-pool-info",
-                 version="1.2",
+                 version="1.4",
                  display_name="Uniswap/Sushiswap get details for a pool",
                  description="Returns the token details of the pool",
                  input=Contract,
@@ -193,12 +200,9 @@ class UniswapGetPoolInfo(Model):
         # token0_reserve = token0.scaled(getReserves[0])
         # token1_reserve = token1.scaled(getReserves[1])
 
-        prices = []
-        for tok in [token0, token1]:
-            tok_price = self.context.run_model('price.quote',
-                                               input={'base': tok},
-                                               return_type=Price)
-            prices.append(tok_price)
+        prices = self.context.run_model('price.quote-multiple',
+                                        input={'inputs': [{'base': token0}, {'base': token1}]},
+                                        return_type=Prices)
 
         output = {'pool_address': input.address,
                   'tokens': Tokens(tokens=[token0, token1]),
@@ -206,7 +210,7 @@ class UniswapGetPoolInfo(Model):
                   'tokens_symbol': [token0.symbol, token1.symbol],
                   'tokens_decimals': [token0.decimals, token1.decimals],
                   'tokens_balance': [token0_balance, token1_balance],
-                  'tokens_price': prices
+                  'tokens_price': prices.prices
                   }
 
         return output

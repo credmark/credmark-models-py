@@ -8,14 +8,21 @@ from credmark.dto import DTO, IterableListGenericDTO
 from models.dtos.price import Maybe
 
 
-def get_eip1967_proxy(context, logger, token_address, verbose):
+def get_eip1967_proxy(context, logger, address, verbose):
     # pylint:disable=locally-disabled,protected-access
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
     default_proxy_address = ''.join(['0'] * 40)
 
-    token = Token(address=token_address)
+    token = Token(address=address)
+
+    # trigger loading
+    try:
+        token.abi
+    except Exception:
+        pass
+
     # Got 0xca823F78C2Dd38993284bb42Ba9b14152082F7BD unrecognized by etherscan
     # assert token.proxy_for is not None
 
@@ -45,15 +52,15 @@ def get_eip1967_proxy(context, logger, token_address, verbose):
         token._meta.proxy_implementation = token_implemenation
     else:
         if verbose:
-            logger.info(f'Unable to retrieve proxy implementation for {token_address}')
+            logger.info(f'Unable to retrieve proxy implementation for {address}')
         return None
     return token
 
 
-def get_eip1967_proxy_err(context, logger, token_address, verbose):
-    res = get_eip1967_proxy(context, logger, token_address, verbose)
+def get_eip1967_proxy_err(context, logger, address, verbose):
+    res = get_eip1967_proxy(context, logger, address, verbose)
     if res is None:
-        raise ModelDataError(f'Unable to retrieve proxy implementation for {token_address}')
+        raise ModelDataError(f'Unable to retrieve proxy implementation for {address}')
     return res
 
 

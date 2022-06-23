@@ -3,7 +3,7 @@ from typing import List, Optional
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Portfolio,
-                                Position, Price, Token)
+                                Position, Price, Token, NativeToken)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
@@ -60,7 +60,12 @@ class AaveV2GetLendingPoolProviders(Model):
         addr = Address(self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.chain_id]).checksum
         address_provider_registry = Contract(address=addr)
         address_providers = address_provider_registry.functions.getAddressesProvidersList().call()
-        return Contracts(contracts=address_providers)
+        all_providers = []
+        for addr in address_providers:
+            cc = Contract(address=addr)
+            _ = cc.abi
+            all_providers.append(cc)
+        return Contracts(contracts=all_providers)
 
 # PriceOracle
 # getAssetPrice() Returns the price of the supported _asset in ETH wei units.
@@ -87,7 +92,9 @@ class AaveV2GetLendingPoolProvider(Model):
     }
 
     def run(self, _) -> Contract:
-        return Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.chain_id])
+        cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.chain_id])
+        _ = cc.abi
+        return cc
 
 
 @ Model.describe(slug="aave-v2.get-lending-pool",
@@ -103,6 +110,7 @@ class AaveV2GetLendingPool(Model):
                                                        return_type=Contract)
         lending_pool_address = lending_pool_provider.functions.getLendingPool().call()
         lending_pool_contract = Contract(address=lending_pool_address)
+        _ = lending_pool_contract.abi
         return lending_pool_contract
 
 
@@ -119,6 +127,7 @@ class AaveV2GetPriceOracle(Model):
                                                        return_type=Contract)
         price_oracle_address = lending_pool_provider.functions.getPriceOracle().call()
         price_oracle_contract = Contract(address=price_oracle_address)
+        _ = price_oracle_contract.abi
         return price_oracle_contract
 
 
@@ -133,7 +142,7 @@ class AaveV2GetOraclePrice(Model):
         oracle = Contract(**self.context.models.aave_v2.get_price_oracle())
         price = oracle.functions.getAssetPrice(input.address).call()
         source = oracle.functions.getSourceOfAsset(input.address).call()
-        return Price(price=price / 1e18, src=f'{self.slug}|{source}')
+        return Price(price=NativeToken().scaled(price), src=f'{self.slug}|{source}')
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
@@ -212,28 +221,32 @@ class AaveV2GetAssets(Model):
 
         aave_debts_infos = []
 
+        model_slug = 'aave-v2.token-asset'
+        model_inputs = [Token(address=addr) for addr in aave_assets_address]
         all_pool_infos_results = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'aave-v2.token-asset',
-                   'modelInputs': [Token(address=addr)
-                                   for addr in aave_assets_address]},
+            input={'modelSlug': model_slug,
+                   'modelInputs': model_inputs},
             return_type=MapInputsOutput[dict, AaveDebtInfo]
         )
 
         aave_debts_infos = []
         for pool_n, pool_result in enumerate(all_pool_infos_results):
-            if pool_result.error is not None:
+            if pool_result.output is not None:
+                aave_debts_infos.append(pool_result.output)
+            elif pool_result.error is not None:
                 self.logger.error(pool_result.error)
-                raise ModelRunError(pool_result.error.message)
-            if pool_result.output is None:
-                raise ModelRunError(f'Empty result for {aave_assets_address[pool_n]}')
-            aave_debts_infos.append(pool_result.output)
+                raise ModelRunError(
+                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                    pool_result.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
 
 
 @ Model.describe(slug="aave-v2.token-asset",
-                 version="1.1",
+                 version="1.2",
                  display_name="Aave V2 token liquidity",
                  description="Aave V2 token liquidity at a given block number",
                  input=Token,

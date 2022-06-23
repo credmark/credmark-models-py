@@ -2,7 +2,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Token, Price
 from credmark.dto import EmptyInput
-from models.tmp_abi_lookup import DAI_ADDRESS
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
@@ -21,7 +20,7 @@ class UniswapRouterPricePair(Model):
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
         """
-        dai = Token(address=Address(DAI_ADDRESS))
+        dai = Token(symbol='DAI')
         outToken = input
 
         tokenAmount = 1 * 10 ** outToken.decimals
@@ -58,7 +57,9 @@ class UniswapRouterPriceUsd(Model):
          default to USDC/USDT/DAI and throw out outliers.
         """
         uniswap_router_addr = Address(self.UNISWAP_V3_SWAP_ROUTER_ADDRESS[self.context.chain_id])
-        return Contract(address=uniswap_router_addr)
+        cc = Contract(address=uniswap_router_addr)
+        _ = cc.abi
+        return cc
 
 
 @Model.describe(slug='uniswap.tokens',

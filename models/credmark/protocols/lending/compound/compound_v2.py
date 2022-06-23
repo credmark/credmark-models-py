@@ -94,17 +94,19 @@ def get_comptroller(model):
 
 
 @ Model.describe(slug="compound-v2.get-comptroller",
-                 version="1.1",
+                 version="1.2",
                  display_name="Compound V2 - comptroller",
                  description="Get comptroller contract",
                  input=EmptyInput,
                  output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
-    def run(self, input: EmptyInput) -> Contract:
+    def run(self, _: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
         if comptroller._meta.proxy_implementation is not None:
-            return comptroller._meta.proxy_implementation
+            cc = comptroller._meta.proxy_implementation
+            _ = cc.abi
+            return cc
         else:
             raise ModelRunError('proxy implementation is missing.')
 
@@ -137,22 +139,25 @@ class CompoundV2AllPoolsInfo(Model):
         pool_infos = []
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
+        model_slug = 'compound-v2.get-pool-info'
+        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
         all_pool_infos_results = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'compound-v2.get-pool-info',
-                   'modelInputs': [Token(address=cTokenAddress)
-                                   for cTokenAddress in pools['cTokens']]},
+            input={'modelSlug': model_slug,
+                   'modelInputs': model_inputs},
             return_type=MapInputsOutput[dict, dict]
         )
 
         pool_infos = []
         for pool_n, pool_result in enumerate(all_pool_infos_results):
-            if pool_result.error is not None:
+            if pool_result.output is not None:
+                pool_infos.append(pool_result.output)
+            elif pool_result.error is not None:
                 self.logger.error(pool_result.error)
-                raise ModelRunError(pool_result.error.message)
-            if pool_result.output is None:
-                raise ModelRunError(f'Empty result for {pools["cTokens"][pool_n]}')
-            pool_infos.append(pool_result.output)
+                raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
+                                    pool_result.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         ret = CompoundV2PoolInfos(infos=pool_infos)
         return ret

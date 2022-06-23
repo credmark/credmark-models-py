@@ -1,10 +1,10 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Contracts, Token
+from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
-    UniswapPoolPriceInput, UniswapV2PoolMeta)
-from models.dtos.price import PoolPriceInfoMaybe, PoolPriceInfos
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolMeta
+from models.dtos.price import PoolPriceInfo, Maybe, PoolPriceInfos
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -22,8 +22,9 @@ class SushiswapV2Factory(Model):
 
     def run(self, _) -> Contract:
         addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
-        contract = Contract(address=addr)
-        return contract
+        cc = Contract(address=addr)
+        _ = cc.abi
+        return cc
 
 
 @Model.describe(slug='sushiswap.get-pools',
@@ -97,21 +98,29 @@ class SushiswapGetPair(Model):
                 output=PoolPriceInfos)
 class SushiswapGetTokenPriceInfo(Model):
     def run(self, input: Token) -> PoolPriceInfos:
-        pools_address = self.context.run_model('sushiswap.get-pools',
-                                               input,
-                                               return_type=Contracts)
+        pools = self.context.run_model('sushiswap.get-pools',
+                                       input,
+                                       return_type=Contracts)
 
+        model_slug = 'uniswap-v2.get-price-pool-info'
+        model_inputs = [{'token': input, 'pool': pool} for pool in pools]
         pool_infos = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'uniswap-v2.get-price-pool-info',
-                   'modelInputs': [
-                       UniswapPoolPriceInput(token=input,
-                                             pool_address=pool_addr.address,
-                                             pricer_slug='sushiswap.get-weighted-price')
-                       for pool_addr in pools_address]},
-            return_type=MapInputsOutput[dict, PoolPriceInfoMaybe])
+            input={'modelSlug': model_slug,
+                   'modelInputs': model_inputs},
+            return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
 
-        return PoolPriceInfos(
-            infos=[p.output.info for p in pool_infos
-                   if (p.error is None and p.output is not None
-                       and p.output.info is not None)])
+        infos = []
+        for pool_n, p in enumerate(pool_infos):
+            if p.output is not None:
+                if p.output.just is not None:
+                    infos.append(p.output.just)
+            elif p.error is not None:
+                self.logger.error(p.error)
+                raise ModelRunError(
+                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                    p.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+
+        return PoolPriceInfos(infos=infos)
