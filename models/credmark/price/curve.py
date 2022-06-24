@@ -91,25 +91,18 @@ class CurveFinancePrice(Model):
 
     CRV_LP = {
         1: {
-            Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'):
-            {
-                'name': '3Crv',
-                'pool_address': '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
-            },
-            Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'):
-            {
-                'name': 'Curve.fi renBTC/wBTC/sBTC',
-                'pool_address': '0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714',
-            }
+            Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'),
+            Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'),
+            Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff'),
         }
     }
 
     @staticmethod
     def supported_coins(chain_id):
-        return (list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
-                list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
-                list(CurveFinancePrice.CRV_LP[chain_id].keys())
-                )
+        return set(
+            list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
+            list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
+            list(CurveFinancePrice.CRV_LP[chain_id]))
 
     def run(self, input: Token) -> Price:
         if input.address in self.CRV_CTOKENS[self.context.chain_id].values():
@@ -173,14 +166,14 @@ class CurveFinancePrice(Model):
                      f'{pool_info.tokens_symbol[n_price_min]}|{ratio_to_others[n_price_min]}|'
                      f'{pool_info.tokens[n_price_min].symbol}|{price_others[n_price_min]}'))
 
-        lp_token_info = self.CRV_LP[self.context.chain_id].get(input.address)
-        if lp_token_info is not None:
-            pool = Contract(address=lp_token_info['pool_address'])
+        if input.address in self.CRV_LP[self.context.chain_id]:
+            pool_addr = Address(input.functions.minter().call())
+            pool = Contract(address=pool_addr)
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            if pool_info.lp_token_addr != input.address:
+            if pool_info.lp_token_addr != input.address and pool_info.pool_token_addr != input.address:
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')
 
