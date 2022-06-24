@@ -260,6 +260,8 @@ class CurveFinancePoolInfo(Model):
                                            input,
                                            return_type=CurveFiPoolInfoToken)
 
+        pool_contract = Contract(address=pool_info.address)
+
         def _use_for(self=self):
             token_prices = []
             for tok in pool_info.tokens:
@@ -285,19 +287,19 @@ class CurveFinancePoolInfo(Model):
         ratio = product_balance / np.power(avg_balance, n_asset)
 
         try:
-            virtual_price = input.functions.get_virtual_price().call()
+            virtual_price = pool_contract.functions.get_virtual_price().call()
         except Exception as _err:
             virtual_price = (10**18)
 
         try:
-            pool_A = input.functions.A().call()
+            pool_A = pool_contract.functions.A().call()
         except Exception as _err:
             pool_A = 0
 
         # Calculating 'chi'
         chi = pool_A * ratio
 
-        is_meta = registry.functions.is_meta(input.address.checksum).call()
+        is_meta = registry.functions.is_meta(pool_contract.address.checksum).call()
 
         return CurveFiPoolInfo(**(pool_info.dict()),
                                token_prices=token_prices,
