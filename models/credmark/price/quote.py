@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Currency, FiatCurrency, Price, Token, NativeToken
+from credmark.cmf.types import Currency, Price, Token, NativeToken
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (Address,
@@ -207,7 +207,7 @@ class PriceQuote(Model):
         input.quote = self.replace_underlying(input.quote)
 
         # Cache for the flip pair by keeping an order
-        if input.base.address > input.quote.address:
+        if input.base.address >= input.quote.address:
             price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                                  input=input,
                                                  return_type=Maybe[Price])
@@ -225,7 +225,7 @@ class PriceQuote(Model):
         else:
             price_usd = self.get_price_usd(input)
 
-        if input.quote == Currency(symbol='USD') or Currency(symbol='USD'):
+        if Currency(symbol='USD') in [input.base, input.quote]:
             return price_usd
         else:
             quote_usd = self.context.run_model(
