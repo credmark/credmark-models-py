@@ -18,7 +18,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug="price.dex-curve-fi-maybe",
-                version="1.0",
+                version="1.1",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description=("For those tokens primarily traded in curve - "
                              "return None if cannot price"),
@@ -39,7 +39,7 @@ class CurveFinanceMaybePrice(Model):
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.3",
+                version="1.2",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 input=Token,
@@ -167,13 +167,18 @@ class CurveFinancePrice(Model):
                      f'{pool_info.tokens[n_price_min].symbol}|{price_others[n_price_min]}'))
 
         if input.address in self.CRV_LP[self.context.chain_id]:
-            pool_addr = Address(input.functions.minter().call())
-            pool = Contract(address=pool_addr)
+            if input.abi is not None and 'minter' in input.abi.functions:
+                pool_addr = input.functions.minter().call()
+            else:
+                registry = Contract(**self.context.models.curve_fi.get_registry())
+                pool_addr = registry.functions.get_pool_from_lp_token(input.address.checksum).call()
+            pool = Contract(address=Address(pool_addr))
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            if pool_info.lp_token_addr != input.address and pool_info.pool_token_addr != input.address:
+            if (pool_info.lp_token_addr != input.address and
+                    pool_info.pool_token_addr != input.address):
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')
 

@@ -6,9 +6,9 @@ test_model 0 curve-fi.all-pools '{}' curve-fi.get-registry,curve-fi.get-provider
 
 test_model 0 curve-fi.all-pools-info '{}' __all__
 
-test_model 0 curve-fi.pool-info '{"address":"0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"}'
+test_model 0 token.price '{"address":"0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"}'
 test_model 0 token.price '{"address":"0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"}'
-test_model 0 curve-fi.pool-info '{"address":"0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714"}'
+test_model 0 token.price '{"address":"0xc4ad29ba4b3c580e6d59105fff484999997675ff"}'
 
 # Curve.fi : 0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6
 test_model 0 curve-fi.pool-info '{"address":"0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6"}'
