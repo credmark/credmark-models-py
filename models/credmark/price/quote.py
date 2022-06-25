@@ -1,14 +1,10 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Currency, Price, Token, NativeToken
+from credmark.cmf.types import Currency, NativeToken, Price, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (Address,
-                               Maybe,
-                               PriceHistoricalInput,
-                               PriceHistoricalInputs,
-                               PriceInput,
-                               PriceInputs,
+from models.dtos.price import (Address, Maybe, PriceHistoricalInput,
+                               PriceHistoricalInputs, PriceInput, PriceInputs,
                                Prices)
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(

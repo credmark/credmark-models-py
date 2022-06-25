@@ -1,7 +1,9 @@
-from typing import List, Optional, Generic, TypeVar
-from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
-from credmark.dto import DTO, GenericDTO, DTOField, PrivateAttr, IterableListGenericDTO
+from typing import Generic, List, Optional, TypeVar
+
+from credmark.cmf.types import Address, Currency, FiatCurrency, Price, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
+from credmark.dto import (DTO, DTOField, GenericDTO, IterableListGenericDTO,
+                          PrivateAttr)
 
 DTOCLS = TypeVar('DTOCLS')
 

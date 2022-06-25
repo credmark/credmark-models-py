@@ -1,4 +1,5 @@
 from typing import List
+
 from credmark.cmf.types import Contract, Portfolio, Price
 
 

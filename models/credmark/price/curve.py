@@ -1,15 +1,9 @@
 import numpy as np
-
-from credmark.cmf.types import (
-    Address,
-    Token,
-    Price,
-    Contract,
-)
-
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
+from credmark.cmf.types import Address, Contract, Price, Token
+from models.credmark.protocols.dexes.curve.curve_finance import (
+    CurveFiPoolInfoToken)
 from models.dtos.price import Maybe
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -177,8 +171,7 @@ class CurveFinancePrice(Model):
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            if (pool_info.lp_token_addr != input.address and
-                    pool_info.pool_token_addr != input.address):
+            if input.address not in (pool_info.lp_token_addr, pool_info.pool_token_addr):
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')
 

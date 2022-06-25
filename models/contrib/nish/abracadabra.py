@@ -1,21 +1,11 @@
-from typing import (
-    Tuple,
-    List,
-)
-from datetime import datetime, timedelta, timezone, date
-from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
+from datetime import date, datetime, timedelta, timezone
+from typing import List, Tuple
+
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-)
+from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
 
 # Function to catch value error in Cauldron v1while fetching mandatory data
 

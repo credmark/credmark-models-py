@@ -3,7 +3,8 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Accounts, Contract, Contracts, Price, Token
+from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Price,
+                                Token)
 from credmark.dto import DTO, IterableListGenericDTO
 from models.dtos.price import Maybe
 

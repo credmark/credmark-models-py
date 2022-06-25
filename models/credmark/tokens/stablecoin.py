@@ -3,11 +3,7 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (
-    Token,
-    Tokens,
-)
-
+from credmark.cmf.types import Token, Tokens
 from credmark.dto import EmptyInput
 
 

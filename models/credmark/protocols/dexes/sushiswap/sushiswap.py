@@ -1,10 +1,11 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, Contracts, Token
 from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Address, Contract, Contracts, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolMeta
-from models.dtos.price import PoolPriceInfo, Maybe, PoolPriceInfos
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
+    UniswapV2PoolMeta
+from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",

@@ -1,7 +1,8 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelErrorDTO
-from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput)
-from credmark.cmf.types.series import BlockSeries, BlockSeriesRow, BlockSeriesErrorRow
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from credmark.cmf.types.series import (BlockSeries, BlockSeriesErrorRow,
+                                       BlockSeriesRow)
 from models.dtos.historical import HistoricalRunModelInput
 
 

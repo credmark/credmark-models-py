@@ -1,5 +1,5 @@
-from datetime import datetime
 import sys
+from datetime import datetime
 from typing import List, Optional, Union
 
 from credmark.cmf.model.errors import ModelBaseError

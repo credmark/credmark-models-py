@@ -1,11 +1,11 @@
 from datetime import datetime
-from credmark.cmf.model import Model
-from credmark.dto import DTO
-from credmark.cmf.types import Token, Price
-from credmark.cmf.types.series import BlockSeries
 
 import numpy as np
 import pandas as pd
+from credmark.cmf.model import Model
+from credmark.cmf.types import Price, Token
+from credmark.cmf.types.series import BlockSeries
+from credmark.dto import DTO
 
 
 class SharpRatioInput(DTO):
@@ -60,8 +60,8 @@ class SharpeRatioToken(Model):
 
         annualized_return = daily_return * np.sqrt(365)
         avg_rolling_ret = (pd.Series(annualized_return)
-                      .rolling(return_rolling_interval)
-                      .mean()[return_rolling_interval-1:])
+                           .rolling(return_rolling_interval)
+                           .mean()[return_rolling_interval-1:])
 
         st_dev = (avg_rolling_ret.rolling(return_rolling_interval)
                   .std()

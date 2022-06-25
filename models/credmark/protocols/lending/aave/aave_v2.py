@@ -2,12 +2,12 @@ from typing import List, Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Portfolio,
-                                Position, Price, Token, NativeToken)
+from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
+                                Portfolio, Position, Price, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
-from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from models.credmark.tokens.token import get_eip1967_proxy_err
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
 
 

@@ -1,20 +1,9 @@
 from credmark.cmf.model import Model
+from credmark.cmf.types import Portfolio, Position
 from credmark.dto import EmptyInput
-
-from credmark.cmf.types import (
-    Position,
-    Portfolio,
-)
-
-from models.credmark.algorithms.value_at_risk.dto import (
-    ContractVaRInput,
-    PortfolioVaRInput,
-)
-
-
-from models.credmark.protocols.lending.aave.aave_v2 import (
-    AaveDebtInfos,
-)
+from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
+                                                          PortfolioVaRInput)
+from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfos
 
 
 @Model.describe(slug="finance.var-aave",

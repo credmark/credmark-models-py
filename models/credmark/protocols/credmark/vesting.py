@@ -1,18 +1,16 @@
-from typing import List
-from credmark.cmf.model import Model, describe
-from credmark.cmf.types import Contract, Contracts, Account, Token, Accounts, Price, ContractLedger
-from credmark.dto import EmptyInput, DTO
-from credmark.cmf.model.errors import ModelDataError
 from datetime import datetime
+from typing import List
 
-from credmark.cmf.model.errors import (
-    ModelRunError,
-)
-
-from web3._utils.filters import construct_event_filter_params
-from web3._utils.events import get_event_data
-from urllib3.exceptions import ReadTimeoutError
 from requests.exceptions import ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
+from web3._utils.events import get_event_data
+from web3._utils.filters import construct_event_filter_params
+
+from credmark.cmf.model import Model, describe
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import (Account, Accounts, Contract, ContractLedger,
+                                Contracts, Price, Token)
+from credmark.dto import DTO, EmptyInput
 
 
 class VestingInfo(DTO):

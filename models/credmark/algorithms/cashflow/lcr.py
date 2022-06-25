@@ -1,7 +1,8 @@
 from typing import List
+
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
 from credmark.cmf.types import Address, Token
+from credmark.dto import DTO, DTOField
 
 
 class LCRInput(DTO):

@@ -8,8 +8,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO
-from models.dtos.price import (PoolPriceInfo, Maybe,
-                               PoolPriceInfos, Prices)
+from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos, Prices
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
                                 VolumeInputHistorical)

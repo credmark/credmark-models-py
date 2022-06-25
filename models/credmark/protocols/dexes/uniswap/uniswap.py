@@ -1,6 +1,6 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, Token, Price
+from credmark.cmf.types import Address, Contract, Price, Token
 from credmark.dto import EmptyInput
 
 

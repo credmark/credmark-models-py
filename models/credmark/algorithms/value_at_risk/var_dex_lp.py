@@ -6,10 +6,8 @@ from credmark.cmf.types import Contract, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
-from models.credmark.protocols.dexes.uniswap.uniswap_v3 import (
+from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
     UniswapV3PoolInfo
-)
-
 from models.dtos.price import Prices
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 

@@ -1,20 +1,12 @@
-from datetime import datetime, timedelta, timezone, date
+from datetime import date, datetime, timedelta, timezone
 from typing import Tuple
+
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-)
 from credmark.cmf.model.errors import ModelDataError
-from credmark.dto import (
-    DTO,
-)
+from credmark.cmf.types import Address, Contract, Token
+from credmark.dto import DTO
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
-
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_POOL_ABI,
-)
 # Function to catch naming error while fetching mandatory data
 
 

@@ -1,6 +1,7 @@
 from typing import List
-from credmark.cmf.types import Token, Contract
-from credmark.dto import DTO, IterableListGenericDTO, DTOField
+
+from credmark.cmf.types import Contract, Token
+from credmark.dto import DTO, DTOField, IterableListGenericDTO
 
 
 class TokenTradingVolume(DTO):

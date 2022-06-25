@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Currency, Price
-from models.dtos.price import PriceInput, Maybe
+from models.dtos.price import Maybe, PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -155,8 +155,8 @@ class PriceOracleChainlink(Model):
                 price_input = PriceInput(base=base, quote=Currency(address=rt_addr))
 
                 p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                    input=price_input,
-                                                    return_type=Maybe[Price])
+                                                  input=price_input,
+                                                  return_type=Maybe[Price])
                 if p1_maybe.just is not None:
                     p1 = p1_maybe.just
                     r1 = rt_addr
@@ -170,8 +170,8 @@ class PriceOracleChainlink(Model):
                     price_input = PriceInput(base=Currency(address=rt_addr), quote=quote)
 
                     p2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                        input=price_input,
-                                                        return_type=Maybe[Price])
+                                                      input=price_input,
+                                                      return_type=Maybe[Price])
                     if p2_maybe.just is not None:
                         p2 = p2_maybe.just
                         r2 = rt_addr
