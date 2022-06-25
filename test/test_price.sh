@@ -2,6 +2,8 @@ echo_cmd ""
 echo_cmd "Price - General"
 echo_cmd ""
 
+test_model 0 price.dex-blended '{"symbol":"CMK"}' # price.pool-aggregator
+
 # aDAI v1: 0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d
 test_model 0 token.underlying-maybe '{"address":"0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"}'
 # aDAI V2: 0x028171bCA77440897B824Ca71D1c56caC55b68A3

@@ -17,7 +17,7 @@ test_model 0 curve-fi.pool-info '{"address":"0x8474DdbE98F5aA3179B3B3F5942D724aF
 test_model 0 curve-fi.pool-info '{"address":"0x93054188d876f558f4a66b2ef1d97d16edf0895b"}'
 
 # Curve.fi Factory USD Metapool: Alchemix USD: 0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c
-test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}'
+test_model 0 curve-fi.pool-info '{"address":"0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"}' # curve-fi.pool-info-tokens
 
 # Curve.fi DAI/USDC/USDT 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
 test_model 0 curve-fi.pool-info '{"address":"0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}'
@@ -53,6 +53,9 @@ test_model 0 curve-fi.all-gauge-claim-addresses '{"address":"0x72E158d38dbd50A48
 test_model 0 contrib.curve-get-pegging-ratio '{"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}'
 test_model 0 contrib.curve-get-pegging-ratio-historical '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"}, "date_range": ["2022-01-10","2022-01-15"]}'
 test_model 0 contrib.curve-get-depegging-amount '{"pool": {"address": "0xfd5db7463a3ab53fd211b4af195c5bccc1a03890"},"token": {"address": "0xd71ecff9342a5ced620049e616c5035f1db98620"}, "desired_ratio": 0.98485645}'
+
+# TODO
+# test_model 0 curve-fi.all-gauges '{}' curve-fi.get-gauge-controller
 
 # test_model 0 contrib.curve-get-pegging-ratio '{"address": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"}'
 

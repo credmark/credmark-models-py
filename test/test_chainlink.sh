@@ -13,7 +13,7 @@ test_model 0 chainlink.price-by-ens '{"domain":"sol-usd.data.eth"}'
 
 # AAVE 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
 test_model 0 chainlink.price-by-registry '{"base":{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
-"quote":{"address":"0x0000000000000000000000000000000000000348"}}'
+"quote":{"address":"0x0000000000000000000000000000000000000348"}}' # chainlink.get-feed-registry
 test_model 0 chainlink.price-by-registry '{"base":{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
 "quote":{"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
 
@@ -33,6 +33,8 @@ test_model 0 price.oracle-chainlink '{"base": {"symbol":"WETH"}}'
 test_model 0 price.oracle-chainlink '{"base": {"symbol":"WBTC"}}'
 test_model 0 price.oracle-chainlink '{"base": {"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
 test_model 0 price.oracle-chainlink '{"base": {"address":"0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}'
+
+test_model 0 chainlink.price-from-registry-maybe '{"base": {"address":"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}'
 
 test_model 0 chainlink.price-by-feed '{"address":"0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"}' # simple feed
 test_model 0 chainlink.price-by-feed '{"address":"0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}' # aggregator

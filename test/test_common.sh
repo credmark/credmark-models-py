@@ -70,12 +70,17 @@ else
     elif [ "${@: -1: 1}" == "gw" ]; then
         start_n=0
         test_mode='gw'
+    elif [ "${@: -1: 1}" == "list" ]; then
+        start_n=0
+        test_mode='list'
     else
         start_n=${@: -1: 1}
         if [ $# -eq 2 ] && [ "$1" == "test" ]; then
             test_mode='test'
         elif [ $# -eq 2 ] && [ "$1" == "gw" ]; then
             test_mode='gw'
+        elif [ $# -eq 2 ] && [ "$1" == "list" ]; then
+            test_mode='list'
         else
             test_mode='prod'
         fi
@@ -90,7 +95,7 @@ if [ "${test_mode}" == 'test' ]; then
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
 	api_url=' --api_url=http://localhost:8700 -l -'
     echo "In local test mode, using ${cmk_dev} and ${api_url}"
-elif [ "${test_mode}" == 'prod' ]; then
+elif [ "${test_mode}" == 'prod' ] | [ "${test_mode}" == 'list' ]; then
     cmk_dev='credmark-dev'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
 	api_url=''

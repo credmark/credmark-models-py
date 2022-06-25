@@ -38,5 +38,6 @@ test_model 0 token.categorized-supply '{"categories": [{"accounts": {"accounts":
 
 test_model 0 account.position-in-curve '{"address":"0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}' # account.token-erc20
 test_model 0 account.portfolio '{"address":"0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}'
+test_model 0 account.portfolio-aggregate '{"accounts": [{"address":"0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, {"address":"0xAE5B61a270e77F41b99965B171e20DFA8642E0Ea"}]'
 
 test_model 0 account.var '{"address":"0x5291fBB0ee9F51225f0928Ff6a83108c86327636", "window": "3 days", "interval": 1, "confidence": 0.01}'

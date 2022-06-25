@@ -11,7 +11,7 @@ SCRIPT_DIRECTORY="$(dirname "$FULL_PATH_TO_SCRIPT")"
 
 source $SCRIPT_DIRECTORY/test_common.sh
 
-${cmk_dev} list | awk -v script_dir=$SCRIPT_DIRECTORY -v test_scripts=examples,token,cmk,aave,compound,uniswap,sushiswap,curve,finance,tvl,price 'BEGIN {
+${cmk_dev} list | awk -v script_dir=$SCRIPT_DIRECTORY -v test_scripts=examples,token,cmk,aave,compound,uniswap,sushiswap,curve,finance,tvl,price,chainlink 'BEGIN {
         split(test_scripts,test_files,",")
         for (i in test_files) {
             test_files[i] = script_dir "/" "test_" test_files[i] ".sh"
@@ -40,6 +40,10 @@ ${cmk_dev} list | awk -v script_dir=$SCRIPT_DIRECTORY -v test_scripts=examples,t
 
 if [ $gen_mode -eq 1 ]; then
     echo "${cmk_dev} list" >> $cmd_file
+fi
+
+if [ "${test_mode}" == "list" ]; then
+    exit
 fi
 
 source $SCRIPT_DIRECTORY/test_examples.sh
