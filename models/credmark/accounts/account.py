@@ -1,13 +1,7 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Token,
-    Account,
-    Accounts,
-    Portfolio,
-    NativeToken,
-    NativePosition,
-    TokenPosition
-)
+from credmark.cmf.types import (Account, Accounts, Contract, NativePosition,
+                                NativeToken, Portfolio, Position, Token,
+                                TokenPosition)
 from credmark.cmf.types.ledger import TokenTransferTable
 
 
@@ -66,11 +60,11 @@ class AccountsPortfolio(Model):
         native_balance = 0.0
         for a in input:
             token_addresses += self.context.ledger.get_erc20_transfers(
-            columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
-            where=' '.join(
-                [f"{TokenTransferTable.Columns.FROM_ADDRESS}='{a.address}'",
-                 "or",
-                 f"{TokenTransferTable.Columns.TO_ADDRESS}='{a.address}'"]))
+                columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
+                where=' '.join(
+                    [f"{TokenTransferTable.Columns.FROM_ADDRESS}='{a.address}'",
+                     "or",
+                     f"{TokenTransferTable.Columns.TO_ADDRESS}='{a.address}'"]))
             native_balance += self.context.web3.eth.get_balance(a.address)
         positions = []
 
@@ -101,3 +95,9 @@ class AccountsPortfolio(Model):
         return Portfolio(
             positions=positions
         )
+
+
+class CurveLPPosition(Position):
+    pool: Contract
+    supply_position: Portfolio
+    lp_position: Portfolio
