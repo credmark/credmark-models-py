@@ -1,33 +1,11 @@
-from typing import (
-    List,
-    Tuple,
-)
-
-from datetime import (
-    datetime,
-    date,
-    timezone,
-    timedelta,
-)
-
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
-
-from credmark.cmf.types import (
-    Address,
-    Token,
-    Contract,
-    Price,
-    BlockNumber,
-)
-
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
+from typing import List
 
 import numpy as np
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Address, Contract, Price, Token
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 
 # Pool(Contract)
 # LendingPool(Pool)
@@ -142,7 +120,6 @@ class CompoundV2Comptroller(Model):
 class CompoundV2GetAllPools(Model):
     def run(self, input: EmptyInput) -> dict:
         comptroller = get_comptroller(self)
-
         cTokens = comptroller.functions.getAllMarkets().call()
 
         # Check whether our list is complete
@@ -401,7 +378,9 @@ class CompoundV2GetPoolInfo(Model):
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        tokenprice = self.context.run_model(slug='token.price', input=token, return_type=Price)
+        tokenprice = self.context.run_model(slug='price.quote',
+                                            input={'base': token},
+                                            return_type=Price)
 
         if tokenprice.price is None or tokenprice.src is None:
             raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
@@ -469,54 +448,3 @@ class CompoundV2GetPoolValue(Model):
             block_number=input.block_number,
             block_datetime=input.block_datetime,
         )
-
-
-class CompoundV2PoolsValueHistoricalInput(DTO):
-    date_range: Tuple[date, date]
-    token: Token
-
-
-@ Model.describe(slug="compound-v2.pool-value-historical",
-                 version="1.1",
-                 display_name="Compound pools value history",
-                 description="Compound pools value history",
-                 input=CompoundV2PoolsValueHistoricalInput,
-                 output=CompoundV2PoolValues)
-class CompoundV2PoolsValueHistorical(Model):
-    def run(self, input: CompoundV2PoolsValueHistoricalInput) -> CompoundV2PoolValues:
-        d_start, d_end = input.date_range
-        if d_start > d_end:
-            d_start, d_end = d_end, d_start
-
-        dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
-        dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
-
-        interval = (dt_end - dt_start).days + 1
-        window = f'{interval} days'
-        interval = '1 day'
-
-        # TODO: add two days to the end as work-around to current start-end-window
-        ts_as_of_end_dt = self.context.block_number.from_timestamp(
-            ((dt_end + timedelta(days=2)).timestamp())).timestamp
-
-        pool_infos = self.context.historical.run_model_historical(
-            model_slug='compound-v2.get-pool-info',
-            model_input=input.token,
-            model_return_type=CompoundV2PoolInfo,
-            window=window,
-            interval=interval,
-            end_timestamp=ts_as_of_end_dt)
-
-        pool_values = []
-
-        for pl in pool_infos:
-            pl_output = pl.output
-            self.logger.info(f'{pl_output.block_number=}:'
-                             f'{BlockNumber(pl_output.block_number).timestamp_datetime}')
-            pool_value = self.context.run_model(
-                slug='compound-v2.pool-value',
-                input=pl_output,
-                return_type=CompoundV2PoolValue)
-            pool_values.append(pool_value)
-
-        return CompoundV2PoolValues(values=pool_values)

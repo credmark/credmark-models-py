@@ -90,13 +90,13 @@ class SushiswapGetPair(Model):
             return {}
 
 
-@Model.describe(slug='sushiswap.get-pool-price-info',
-                version='1.0',
+@Model.describe(slug='sushiswap.get-pool-info-token-price',
+                version='1.1',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 input=Token,
                 output=PoolPriceInfos)
-class SushiswapGetAveragePrice(Model):
+class SushiswapGetTokenPriceInfo(Model):
     def run(self, input: Token) -> PoolPriceInfos:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,

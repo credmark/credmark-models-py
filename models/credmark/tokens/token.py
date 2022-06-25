@@ -3,14 +3,7 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (
-    Token,
-    Price,
-    Contract,
-    Accounts,
-    Contracts,
-)
-
+from credmark.cmf.types import Address, Accounts, Contract, Contracts, Price, Token
 from credmark.dto import DTO, IterableListGenericDTO
 from models.dtos.price import Maybe
 
@@ -244,7 +237,7 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = Price(**self.context.models.token.price(input.token))
+        token_price = Price(**self.context.models.price.quote({'base': input.token}))
         if token_price is None:
             raise ModelDataError(f"No Price for {response.token}")
         for c in response.categories:
