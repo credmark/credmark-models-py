@@ -7,7 +7,6 @@ from models.dtos.price import (Address,
                                Maybe,
                                PriceHistoricalInput,
                                PriceHistoricalInputs,
-                               PriceHistoricalOutputs,
                                PriceInput,
                                PriceInputs,
                                Prices)
@@ -23,35 +22,26 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 input=PriceHistoricalInputs,
-                output=PriceHistoricalOutputs,
+                output=MapBlockTimeSeriesOutput[Prices],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteHistoricalMultiple(Model):
-    def run(self, input: PriceHistoricalInputs) -> PriceHistoricalOutputs:
-        partial_input = {'interval': input.interval,
-                         'count': input.count,
-                         'exclusive': input.exclusive}
-        model_slug = 'price.quote-historical'
-        model_inputs = [one_input.dict() | partial_input for one_input in input.inputs]
+    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Prices]:
         price_historical_result = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': model_slug,
-                   'modelInputs': model_inputs},
-            return_type=MapInputsOutput[PriceHistoricalInput,
-                                        MapBlockTimeSeriesOutput[Price]])  # type: ignore
+            slug='compose.map-block-time-series',
+            input={"modelSlug": 'price.quote-multiple',
+                   "modelInput": {'inputs': input.inputs},
+                   "endTimestamp": self.context.block_number.timestamp,
+                   "interval": input.interval,
+                   "count": input.count,
+                   "exclusive": input.exclusive},
+            return_type=MapBlockTimeSeriesOutput[Prices])
 
-        series = []
-        for res_n, result in enumerate(price_historical_result):
-            if result.output is not None:
-                series.append(result.output)
-            elif result.error is not None:
+        for result in price_historical_result:
+            if result.error is not None:
                 self.logger.error(result.error)
-                raise ModelRunError(
-                    f'Error for {model_slug}({model_inputs[res_n]}). ' +
-                    result.error.message)
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                raise ModelDataError(result.error.message)
 
-        return PriceHistoricalOutputs(series=series)
+        return price_historical_result
 
 
 @Model.describe(slug='price.quote-historical',
@@ -99,12 +89,13 @@ class PriceQuoteMultiple(Model):
 
         prices = []
         for p in token_prices_run:
-            if p.error is None and p.output is not None:
+            if p.output is not None:
                 prices.append(p.output)
-            else:
+            elif p.error is not None:
                 self.logger.error(p.error)
-                if p.error is not None:
-                    raise ModelRunError(p.error.message)
+                raise ModelRunError(p.error.message)
+            else:
+                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         return Prices(prices=prices)
 

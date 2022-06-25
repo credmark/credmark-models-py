@@ -1,7 +1,7 @@
 from typing import List, Optional, Generic, TypeVar
 from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Price
 from credmark.dto import DTO, GenericDTO, DTOField, PrivateAttr, IterableListGenericDTO
-from credmark.cmf.types.compose import (MapBlockTimeSeriesInput, MapBlockTimeSeriesOutput)
+from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 
 DTOCLS = TypeVar('DTOCLS')
 
@@ -76,11 +76,6 @@ class PriceHistoricalInputs(PriceInputs, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
-
-
-class PriceHistoricalOutputs(IterableListGenericDTO[MapBlockTimeSeriesOutput[Price]]):
-    series: List[MapBlockTimeSeriesOutput[Price]]
-    _iterator: str = 'series'
 
 
 class PoolPriceInfo(DTO):

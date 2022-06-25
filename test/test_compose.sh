@@ -20,3 +20,6 @@ test_model 0 compose.map-inputs \
 "modelInputs":[
     {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}},
     {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}}]}'
+
+
+test_model 0 price.quote-historical-multiple '{"inputs":[{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": true}'

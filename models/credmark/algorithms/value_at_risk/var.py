@@ -3,10 +3,12 @@ import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import PriceList
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from models.credmark.accounts.account import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (PortfolioVaRInput,
                                                           VaRHistoricalInput)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
-from models.dtos.price import PriceHistoricalOutputs
+from models.dtos.price import Prices
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
@@ -21,6 +23,10 @@ class VaRPortfolio(Model):
 
         assets_to_quote = set()
         for position in portfolio:
+            if isinstance(position, CurveLPPosition):
+                for lp_pos in position.lp_position:
+                    if lp_pos.asset.address not in assets_to_quote:
+                        assets_to_quote.add(lp_pos.asset.address)
             if position.asset.address not in assets_to_quote:
                 assets_to_quote.add(position.asset.address)
 
@@ -28,17 +34,18 @@ class VaRPortfolio(Model):
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         assets_to_quote_list = list(assets_to_quote)
-        token_historical_prices_run = self.context.run_model(
+        tok_hp = self.context.run_model(
             slug='price.quote-historical-multiple',
             input={"inputs": [{'base': {'address': tok_addr}} for tok_addr in assets_to_quote_list],
                    "interval": interval,
                    "count": count,
                    "exclusive": False},
-            return_type=PriceHistoricalOutputs)
+            return_type=MapBlockTimeSeriesOutput[Prices])
 
         price_lists = []
-        for asset_addr, hp in zip(assets_to_quote_list, token_historical_prices_run):
-            ps = (hp.to_dataframe(fields=[('price', lambda p:p.price), ('src', lambda p:p.src), ])
+        for tok_n, asset_addr in enumerate(assets_to_quote_list):
+            ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
+                                              ('src', lambda p, n=tok_n:p.prices[n].src), ])
                   .sort_values('blockNumber', ascending=False)
                   .reset_index(drop=True))
 
@@ -48,12 +55,11 @@ class VaRPortfolio(Model):
 
             price_lists.append(price_list)
 
-        var_input = VaRHistoricalInput(
-            portfolio=portfolio,
-            priceLists=price_lists,
-            interval=input.interval,
-            confidence=input.confidence,
-        )
+        var_input = {
+            'portfolio': portfolio,
+            'priceLists': price_lists,
+            'interval': input.interval,
+            'confidence': input.confidence}
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
@@ -73,61 +79,84 @@ class VaREngineHistorical(Model):
     The prices in priceLists is asssumed be sorted in descending order in time.
     """
 
-    def run(self, input: VaRHistoricalInput) -> dict:
-        all_ppl_vec = None
-        total_value = 0
-        value_list = []
+    value_list = []
+    total_value = 0
+    all_ppl_arr = np.array([])
 
-        all_ppl_arr = np.array([])
-        for pos in input.portfolio.positions:
-            token = pos.asset
-            amount = pos.amount
+    def calculate_ppl(self, token, amount, input):
+        priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
 
-            priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
+        if len(priceLists) != 1:
+            raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
 
-            if len(priceLists) != 1:
-                raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
+        np_priceList = np.array(priceLists[0].prices)
 
-            np_priceList = np.array(priceLists[0].prices)
+        if input.interval > np_priceList.shape[0]-2:
+            raise ModelRunError(
+                f'Interval {input.interval} is shall be of at most input list '
+                f'({np_priceList.shape[0]}-2) long.')
 
-            if input.interval > np_priceList.shape[0]-2:
+        value = amount * np_priceList[0]
+        self.total_value += value
+        self.value_list.append((token.address, amount, np_priceList[0], value))
+        ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
+        # ppl: potential profit&loss
+        ppl_vector = value * ret_series
+        return ppl_vector
+
+    def fill_ppl(self, ppl_vector, token):
+        if self.all_ppl_arr.shape[0] == 0:
+            self.all_ppl_arr = ppl_vector[:, np.newaxis]
+        else:
+            ppl_vec_len = ppl_vector.shape[0]
+            all_ppl_vec_len = self.all_ppl_arr.shape[0]
+            if all_ppl_vec_len != ppl_vec_len:
                 raise ModelRunError(
-                    f'Interval {input.interval} is shall be of at most input list '
-                    f'({np_priceList.shape[0]}-2) long.')
+                    f'Input priceList for {token.address} has '
+                    f'difference lengths has {ppl_vec_len} != {all_ppl_vec_len}')
 
-            value = amount * np_priceList[0]
-            total_value += value
-            value_list.append((token.address, amount, np_priceList[0], total_value))
-            ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
-            # ppl: potential profit&loss
-            ppl_vector = value * ret_series
+            self.all_ppl_arr = np.column_stack([self.all_ppl_arr, ppl_vector])
 
-            if all_ppl_arr.shape[0] == 0:
-                all_ppl_arr = ppl_vector[:, np.newaxis]
+    def run(self, input: VaRHistoricalInput) -> dict:
+        self.value_list = []
+        self.total_value = 0
+        self.all_ppl_arr = np.array([])
+
+        for _pos_n, pos in enumerate(input.portfolio):
+            if isinstance(pos, CurveLPPosition):
+                lp_vec_ppl = None
+                for _lp_pos_n, lp_pos in enumerate(pos.lp_position):
+                    token = lp_pos.asset
+                    amount = lp_pos.amount
+                    ppl_vector = self.calculate_ppl(token, amount, input)
+                    if lp_vec_ppl is None:
+                        lp_vec_ppl = ppl_vector
+                    else:
+                        lp_vec_ppl += ppl_vector
+                self.fill_ppl(lp_vec_ppl, pos.asset)
             else:
-                ppl_vec_len = ppl_vector.shape[0]
-                all_ppl_vec_len = all_ppl_arr.shape[0]
-                if all_ppl_vec_len != ppl_vec_len:
-                    raise ModelRunError(
-                        f'Input priceList for {token.address} has '
-                        f'difference lengths has {ppl_vec_len} != {all_ppl_vec_len}')
-
-                all_ppl_arr = np.column_stack([all_ppl_arr, ppl_vector])
+                token = pos.asset
+                amount = pos.amount
+                ppl_vector = self.calculate_ppl(token, amount, input)
+                self.fill_ppl(ppl_vector, token)
 
         output = {}
 
-        all_ppl_vec = all_ppl_arr.sum(axis=1)
-
+        all_ppl_vec = self.all_ppl_arr.sum(axis=1)
         weights = np.ones(len(input.portfolio.positions))
         for i in range(len(input.portfolio.positions)):
-            linreg_result = sps.linregress(all_ppl_arr[:, i], all_ppl_vec)
-            weights[i] = linreg_result.slope
+            try:
+                linreg_result = sps.linregress(self.all_ppl_arr[:, i], all_ppl_vec)
+                weights[i] = linreg_result.slope
+            except ValueError as err:
+                if 'Cannot calcualte a linear regression if all x values are identical' in str(err):
+                    weights[i] = 0
         weights /= weights.sum()
 
         output['cvar'] = weights
         var_result = calc_var(all_ppl_vec, input.confidence)
         output['var'] = var_result.var
 
-        output['total_value'] = total_value
-        output['value_list'] = value_list
+        output['total_value'] = self.total_value
+        output['value_list'] = self.value_list
         return output

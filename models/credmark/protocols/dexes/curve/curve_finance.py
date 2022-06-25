@@ -1,7 +1,6 @@
 # pylint: disable=locally-disabled, unused-import
 
-from datetime import timedelta
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import pandas as pd
