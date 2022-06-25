@@ -13,6 +13,10 @@ class VaROutput(DTO):
     sorted_index: List[int]
     unsorted_index: List[int]
 
+    @classmethod
+    def default(cls):
+        return cls(var=0.0, ppls=[], weights=[], sorted_index=[], unsorted_index=[])
+
 
 class ESOutput(DTO):
     es: float

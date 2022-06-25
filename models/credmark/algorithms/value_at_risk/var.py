@@ -2,13 +2,37 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import PriceList
+from credmark.cmf.types import Account, PriceList, TokenPosition
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.accounts.account import CurveLPPosition
-from models.credmark.algorithms.value_at_risk.dto import (PortfolioVaRInput,
+from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
+                                                          PortfolioVaRInput,
                                                           VaRHistoricalInput)
-from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+from models.credmark.algorithms.value_at_risk.risk_method import calc_var, VaROutput
 from models.dtos.price import Prices
+
+
+@Model.describe(
+    slug="account.var",
+    version="0.1",
+    display_name="VaR for an account",
+    description="VaR for an account",
+    developer="Credmark",
+    input=AccountVaRInput,
+    output=dict)
+class AccountVaR(Model):
+    def run(self, input: AccountVaRInput) -> dict:
+        portfolio = self.context.run_model('account.portfolio',
+                                           Account(address=input.address))
+
+        positions = [TokenPosition(**p) if 'lp_position' not in p else CurveLPPosition(**p)
+                     for p in portfolio['positions']]
+        port_var_input = {'portfolio': {'positions': positions},
+                          'window': input.window,
+                          'interval': input.interval,
+                          'confidence': input.confidence}
+        return self.context.run_model('finance.var-portfolio-historical',
+                                      port_var_input)
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
@@ -141,6 +165,9 @@ class VaREngineHistorical(Model):
                 self.fill_ppl(ppl_vector, token)
 
         output = {}
+
+        if self.all_ppl_arr.shape[0] == 0:
+            return {'cvar': [], 'var': VaROutput.default(), 'total_vlaue': 0, 'value_list': []}
 
         all_ppl_vec = self.all_ppl_arr.sum(axis=1)
         weights = np.ones(len(input.portfolio.positions))
