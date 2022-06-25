@@ -46,15 +46,10 @@ then
     elif [ "${@: -2: 1}" == "test" ]; then
         start_n=0
         test_mode='test'
-    elif [ "${@: -2: 1}" == "gw" ]; then
-        start_n=0
-        test_mode='gw'
     else
         start_n=${@: -2: 1}
         if [ $# -eq 3 ] && [ "$1" -eq "test" ]; then
             test_mode='test'
-        elif [ $# -eq 3 ] && [ "$1" -eq "gw" ]; then
-            test_mode='gw'
         else
             test_mode='prod'
         fi
@@ -67,15 +62,10 @@ else
     elif [ "${@: -1: 1}" == "test" ]; then
         start_n=0
         test_mode='test'
-    elif [ "${@: -1: 1}" == "gw" ]; then
-        start_n=0
-        test_mode='gw'
     else
         start_n=${@: -1: 1}
         if [ $# -eq 2 ] && [ "$1" == "test" ]; then
             test_mode='test'
-        elif [ $# -eq 2 ] && [ "$1" == "gw" ]; then
-            test_mode='gw'
         else
             test_mode='prod'
         fi
@@ -94,12 +84,7 @@ elif [ "${test_mode}" == 'prod' ]; then
     cmk_dev='credmark-dev'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
 	api_url=''
-    echo "Using installed credmark-dev and gateway api."
-elif [ "${test_mode}" == 'gw' ]; then
-    cmk_dev='credmark-dev'
-    cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
-	api_url=' -l -'
-    echo "Using installed credmark-dev and gateway api without local models."
+    echo Using installed credmark-dev and gateway api.
 else
     exit
 fi
@@ -230,5 +215,5 @@ echo_cmd () {
     fi
 }
 
-token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
-var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
+token_price_deps='token.price,token.price,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
+var_deps=finance.var-engine,finance.var-reference,token.price,finance.get-one,${token_price_deps}

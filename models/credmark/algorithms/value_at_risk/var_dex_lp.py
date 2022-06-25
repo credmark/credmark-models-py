@@ -1,3 +1,17 @@
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
+
+from credmark.cmf.types import Contract, Token, Price
+
+from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
+from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
+
+from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+
+from models.tmp_abi_lookup import (
+    UNISWAP_V3_POOL_ABI,
+)
+
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
@@ -60,8 +74,8 @@ class UniswapPoolVaR(Model):
             # p_0 = tick_price = token0 / token1
             p_0 = 1.0001 ** v3_info.tick * scale_multiplier
 
-        t_unit, count = self.context.historical.parse_timerangestr(input.window)
-        interval = self.context.historical.range_timestamp(t_unit, 1)
+        _token0_price = self.context.run_model(input.price_model, input=token0)
+        _token1_price = self.context.run_model(input.price_model, input=token1)
 
         token_hp = self.context.run_model(
             slug='price.quote-historical-multiple',
@@ -78,25 +92,25 @@ class UniswapPoolVaR(Model):
             for tok_n in range(2)]
 
         df = pd.DataFrame({
-            'TOKEN0/USD': token_historical_prices[0].price.to_numpy(),
-            'TOKEN1/USD': token_historical_prices[1].price.to_numpy(),
+            'TOKEN0/USD': token0_historical_price.price.to_numpy(),
+            'TOKEN1/USD': token1_historical_price.price.to_numpy(),
         })
 
         df.loc[:, 'ratio_0_over_1'] = df['TOKEN0/USD'] / df['TOKEN1/USD']
-        ratio_init = df.ratio_0_over_1[: -input.interval].to_numpy()
+        ratio_init = df.ratio_0_over_1[:-input.interval].to_numpy()
         ratio_tail = df.ratio_0_over_1[input.interval:].to_numpy()
         ratio_change_0_over_1 = ratio_init / ratio_tail
 
         df.loc[:, 'ratio_1_over_0'] = df['TOKEN1/USD'] / df['TOKEN0/USD']
-        ratio_init = df.ratio_1_over_0[: -input.interval].to_numpy()
+        ratio_init = df.ratio_1_over_0[:-input.interval].to_numpy()
         ratio_tail = df.ratio_1_over_0[input.interval:].to_numpy()
         _ratio_change_1_over_0 = ratio_init / ratio_tail
 
-        token0_init = df['TOKEN0/USD'][: -input.interval].to_numpy()
+        token0_init = df['TOKEN0/USD'][:-input.interval].to_numpy()
         token0_tail = df['TOKEN0/USD'][input.interval:].to_numpy()
         _token0_change = token0_init / token0_tail
 
-        token1_init = df['TOKEN1/USD'][: -input.interval].to_numpy()
+        token1_init = df['TOKEN1/USD'][:-input.interval].to_numpy()
         token1_tail = df['TOKEN1/USD'][input.interval:].to_numpy()
         token1_change = token1_init / token1_tail
 
@@ -171,7 +185,7 @@ class UniswapPoolVaR(Model):
         var_result = calc_var(total_pnl_vector, conf)
         var = {
             'var': var_result.var,
-            'scenarios': (token_historical_prices[0].blockTime
+            'scenarios': (token0_historical_price.blockTime
                           .iloc[var_result.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
             'weights': var_result.weights
@@ -180,7 +194,7 @@ class UniswapPoolVaR(Model):
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = {
             'var': var_result_without_il.var,
-            'scenarios': (token_historical_prices[0].blockTime
+            'scenarios': (token0_historical_price.blockTime
                           .iloc[var_result_without_il.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
             'weights': var_result_without_il.weights
@@ -189,7 +203,7 @@ class UniswapPoolVaR(Model):
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = {
             'var': var_result_il.var,
-            'scenarios': (token_historical_prices[0].blockTime
+            'scenarios': (token0_historical_price.blockTime
                           .iloc[var_result_il.unsorted_index, ].to_list()),
             'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
             'weights': var_result_il.weights

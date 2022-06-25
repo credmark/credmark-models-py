@@ -30,3 +30,29 @@ The Credmark Model Framework is under active development, thus there will be som
 We encourage all modelers to join our [Discord](https://discord.com/invite/3dSfMqP3d4), pick the role "Engineering" and post any issues the in the channel [#framework-help](https://discord.com/channels/827615638540910622/965655586513485835). The Discord shall be the place to ask general questions about how to do something or if you have data-related questions.
 
 If you want to report a bug, unexpected behavior, or feature request, you can raise an issue in Github directly but we encourage you in this case as well to notify the community in Discord.
+
+# Docker
+
+## Build the Image
+
+You can build the image by running the following command at the root level of the directory:
+
+```{bash}
+docker build -t credmark/credmark-cli .
+```
+
+## Run the Container
+
+You can either run the container in an interactive shell process by running:
+
+```{bash}
+docker run -it --entrypoint /bin/bash credmark/credmark-cli
+```
+
+And then form within the container you can now run `credmark-dev` commands.
+
+Alternatively, you can run the container each time you want to run a `credmark-dev` command:
+
+```{bash}
+docker run credmark/credmark-cli credmark-dev list
+```

@@ -2,7 +2,7 @@ echo_cmd ""
 echo_cmd "Run Compound Examples:"
 echo_cmd ""
 
-test_model 0 compound-v2.get-pool-info '{"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}' ${token_price_deps},${compound_deps}
+# test_model 0 compound-v2.get-pool-info '{"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}' ${token_price_deps},${compound_deps} -b 13233403
 test_model 0 compound-v2.get-pool-info '{"address":"0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"}' ${token_price_deps},compound-v2.get-comptroller
 
 test_model 0 compound-v2.get-comptroller '{}'

@@ -8,7 +8,8 @@ from models.credmark.accounts.account import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
                                                           PortfolioVaRInput,
                                                           VaRHistoricalInput)
-from models.credmark.algorithms.value_at_risk.risk_method import calc_var, VaROutput
+from models.credmark.algorithms.value_at_risk.risk_method import (VaROutput,
+                                                                  calc_var)
 from models.dtos.price import Prices
 
 

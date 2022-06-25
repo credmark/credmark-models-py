@@ -108,8 +108,8 @@ class PoolPriceInfo(DTO):
 
 
 class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
-    infos: List[PoolPriceInfo] = []
-    _iterator: str = PrivateAttr('infos')
+    pool_price_infos: List[PoolPriceInfo] = []
+    _iterator: str = PrivateAttr('pool_price_infos')
 
 
 class PoolPriceAggregatorInput(PoolPriceInfos):
