@@ -95,17 +95,18 @@ if [ "${test_mode}" == 'test' ]; then
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples_test.sh
 	api_url=' --api_url=http://localhost:8700 -l -'
     echo "In local test mode, using ${cmk_dev} and ${api_url}"
-elif [ "${test_mode}" == 'prod' ] | [ "${test_mode}" == 'list' ]; then
+elif [ "${test_mode}" == 'prod' ] || [ "${test_mode}" == 'list' ]; then
     cmk_dev='credmark-dev'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
 	api_url=''
     echo "Using installed credmark-dev and gateway api."
 elif [ "${test_mode}" == 'gw' ]; then
-    cmk_dev='credmark-dev'
+    cmk_dev='credmark-dev --model_path xxxx'
     cmd_file=$SCRIPT_DIRECTORY/run_all_examples.sh
 	api_url=' -l -'
     echo "Using installed credmark-dev and gateway api without local models."
 else
+    echo "Unknown test_mode = ${test_mode}"
     exit
 fi
 

@@ -111,7 +111,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.4",
+                version="1.5",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -188,11 +188,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [
-            (self.context.web3.eth.get_balance(input.address) / 1e18)
-            if t.address == Token(symbol='ETH').address else
-            (t.scaled(t.functions.balanceOf(input.address).call()))
-            for t in tokens]
+        balances_token = [t.scaled(t.balance_of(input.address)) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
@@ -251,7 +247,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.19",
+                version="1.20",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -351,7 +347,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.6",
+                version="1.7",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -368,7 +364,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
                 pool_infos.append(pool_info)
             return pool_infos
 
-        def _use_compose_model():
+        def _use_compose_map():
             model_slug = 'curve-fi.pool-info'
             all_pools = self.context.run_model(
                 slug='compose.map-inputs',
@@ -393,7 +389,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
             return pool_infos
 
-        pool_infos = _use_compose_model()
+        pool_infos = _use_compose_map()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])

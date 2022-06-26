@@ -97,10 +97,10 @@ class PriceQuoteMultiple(Model):
 
 
 @Model.describe(slug='price',
-                version='1.0',
+                version='1.7',
                 display_name='Token Price in USD',
                 description='DEPRECATED - use price.quote',
-                input=Token,
+                input=Currency,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceModelDeprecated(Model):
@@ -113,10 +113,10 @@ class PriceModelDeprecated(Model):
 
 
 @Model.describe(slug='token.price',
-                version='1.0',
+                version='1.7',
                 display_name='Token Price in USD',
                 description='DEPRECATED - use price.quote',
-                input=Token,
+                input=Currency,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class TokenPriceModelDeprecated(Model):
@@ -129,7 +129,7 @@ class TokenPriceModelDeprecated(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.6',
+                version='1.7',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',

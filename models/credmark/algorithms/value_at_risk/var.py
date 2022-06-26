@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Account, PriceList, TokenPosition
+from credmark.cmf.types import Account, Price, PriceList, TokenPosition
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.accounts.account import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
@@ -37,7 +37,7 @@ class AccountVaR(Model):
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.3',
+                version='1.5',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -59,26 +59,57 @@ class VaRPortfolio(Model):
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         assets_to_quote_list = list(assets_to_quote)
-        tok_hp = self.context.run_model(
-            slug='price.quote-historical-multiple',
-            input={"inputs": [{'base': {'address': tok_addr}} for tok_addr in assets_to_quote_list],
-                   "interval": interval,
-                   "count": count,
-                   "exclusive": False},
-            return_type=MapBlockTimeSeriesOutput[Prices])
 
-        price_lists = []
-        for tok_n, asset_addr in enumerate(assets_to_quote_list):
-            ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
-                                              ('src', lambda p, n=tok_n:p.prices[n].src), ])
-                  .sort_values('blockNumber', ascending=False)
-                  .reset_index(drop=True))
+        # TODO: kept two versions to see how r8unner's performance can avoid timeout
+        def _use_compose_map():
+            tok_hp = self.context.run_model(
+                slug='price.quote-historical-multiple',
+                input={"inputs": [{'base': {'address': tok_addr}}
+                                  for tok_addr in assets_to_quote_list],
+                       "interval": interval,
+                       "count": count,
+                       "exclusive": False},
+                return_type=MapBlockTimeSeriesOutput[Prices])
 
-            price_list = PriceList(prices=ps['price'].to_list(),
-                                   tokenAddress=asset_addr,
-                                   src=ps['src'].to_list()[0])
+            price_lists = []
+            for tok_n, asset_addr in enumerate(assets_to_quote_list):
+                ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
+                                                  ('src', lambda p, n=tok_n:p.prices[n].src), ])
+                      .sort_values('blockNumber', ascending=False)
+                      .reset_index(drop=True))
 
-            price_lists.append(price_list)
+                price_list = PriceList(prices=ps['price'].to_list(),
+                                       tokenAddress=asset_addr,
+                                       src=ps['src'].to_list()[0])
+
+                price_lists.append(price_list)
+            return price_lists
+
+        def _use_for():
+            price_lists = []
+            for asset_addr in assets_to_quote_list:
+                tok_hp = self.context.run_model(
+                    slug='price.quote-historical',
+                    input={'base': {'address': asset_addr},
+                           "interval": interval,
+                           "count": count,
+                           "exclusive": False},
+                    return_type=MapBlockTimeSeriesOutput[Price])
+
+                ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
+                                                  ('src', lambda p:p.src), ])
+                      .sort_values('blockNumber', ascending=False)
+                      .reset_index(drop=True))
+
+                price_list = PriceList(prices=ps['price'].to_list(),
+                                       tokenAddress=asset_addr,
+                                       src=ps['src'].to_list()[0])
+
+                price_lists.append(price_list)
+
+            return price_lists
+
+        price_lists = _use_for()
 
         var_input = {
             'portfolio': portfolio,

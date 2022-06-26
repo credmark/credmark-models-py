@@ -7,7 +7,7 @@ from models.dtos.historical import HistoricalRunModelInput
 
 
 @Model.describe(slug="historical.run-model",
-                version="1.2",
+                version="1.3",
                 display_name="Run Any model for historical",
                 description="Input of window and interval in plain words - 30 days / 1 day",
                 input=HistoricalRunModelInput,
@@ -18,8 +18,8 @@ class HistoricalRunModel(Model):
         return historical.range_timestamp(*historical.parse_timerangestr(time_str))
 
     def run(self, input: HistoricalRunModelInput) -> dict:
-        window_in_seconds = self.to_seconds(input.window)
-        interval_in_seconds = self.to_seconds(input.interval)
+        window_in_seconds = self.context.historical.to_seconds(input.window)
+        interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(
