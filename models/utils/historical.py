@@ -13,9 +13,13 @@ from models.dtos.historical import HistoricalRunModelInput
                 input=HistoricalRunModelInput,
                 output=dict)
 class HistoricalRunModel(Model):
+    def to_seconds(self, time_str):
+        historical = self.context.historical
+        return historical.range_timestamp(*historical.parse_timerangestr(time_str))
+
     def run(self, input: HistoricalRunModelInput) -> dict:
-        window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        window_in_seconds = self.to_seconds(input.window)
+        interval_in_seconds = self.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(

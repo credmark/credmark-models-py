@@ -67,7 +67,10 @@ class UniswapV3GetPoolsForToken(Model):
                             fee).call()
                         if pool != Address.null():
                             cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
-                            _ = cc.abi
+                            try:
+                                _ = cc.abi
+                            except ModelDataError:
+                                pass
                             pools.append(cc)
 
             return Contracts(contracts=pools)
@@ -89,7 +92,7 @@ class UniswapV3GetPoolInfo(Model):
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         try:
-            input.abi
+            _ = input.abi
         except ModelDataError:
             input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
 

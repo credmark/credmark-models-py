@@ -32,14 +32,20 @@ class UniswapV2PoolMeta:
                     model_input.address, token.address).call()
                 if not pair_address == Address.null():
                     cc = Contract(address=pair_address)
-                    _ = cc.abi
+                    try:
+                        _ = cc.abi
+                    except ModelDataError:
+                        pass
                     contracts.append(cc)
                 else:
                     pair_address = factory.functions.getPair(
                         token.address, model_input.address).call()
                     if not pair_address == Address.null():
                         cc = Contract(address=pair_address)
-                        _ = cc.abi
+                        try:
+                            _ = cc.abi
+                        except ModelDataError:
+                            pass
                         contracts.append(cc)
 
             return Contracts(contracts=contracts)
@@ -86,7 +92,7 @@ class UniswapPoolPriceInfo(Model):
 
         pool = input.pool
         try:
-            pool.abi
+            _ = pool.abi
         except ModelDataError:
             pool = Contract(address=input.pool.address, abi=UNISWAP_V2_POOL_ABI)
 
