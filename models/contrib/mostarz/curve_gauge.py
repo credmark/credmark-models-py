@@ -1,12 +1,7 @@
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-
-
-from credmark.cmf.types import (
-    Accounts,
-    Contract,
-)
+from credmark.cmf.types import Accounts, Contract
 
 
 @ Model.describe(slug='contrib.curve-fi-get-gauge-amounts',

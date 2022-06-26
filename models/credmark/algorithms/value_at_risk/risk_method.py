@@ -1,13 +1,9 @@
+import logging
 from typing import List
-from credmark.cmf.model.errors import (
-    ModelRunError,
-)
-
-from credmark.dto import DTO
-
 
 import numpy as np
-import logging
+from credmark.cmf.model.errors import ModelRunError
+from credmark.dto import DTO
 
 
 class VaROutput(DTO):
@@ -16,6 +12,10 @@ class VaROutput(DTO):
     weights: List[float]
     sorted_index: List[int]
     unsorted_index: List[int]
+
+    @classmethod
+    def default(cls):
+        return cls(var=0.0, ppls=[], weights=[], sorted_index=[], unsorted_index=[])
 
 
 class ESOutput(DTO):

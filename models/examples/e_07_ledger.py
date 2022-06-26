@@ -1,7 +1,6 @@
 from credmark.cmf.engine.mocks import ModelMock, ModelMockConfig
 from credmark.cmf.model import Model
-from credmark.cmf.types.ledger import (BlockTable, ContractTable,
-                                       LogTable,
+from credmark.cmf.types.ledger import (BlockTable, ContractTable, LogTable,
                                        ReceiptTable, TokenTable,
                                        TokenTransferTable, TraceTable,
                                        TransactionTable)

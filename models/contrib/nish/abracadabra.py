@@ -1,21 +1,11 @@
-from typing import (
-    Tuple,
-    List,
-)
-from datetime import datetime, timedelta, timezone, date
-from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
+from datetime import date, datetime, timedelta, timezone
+from typing import List, Tuple
+
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-)
+from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-    IterableListGenericDTO,
-)
+from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
 
 # Function to catch value error in Cauldron v1while fetching mandatory data
 
@@ -332,8 +322,8 @@ class AbracadabraOverallLiabilities(Model):
         mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
-            slug='token.price',
-            input=mim_token
+            slug='price.quote',
+            input={'base': mim_token}
         )['price']
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
@@ -390,8 +380,8 @@ class AbracadabraOverallAssets(Model):
         mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
-            slug='token.price',
-            input=mim_token
+            slug='price.quote',
+            input={'base': mim_token}
         )['price']
         mim_decimals = float(mim_token.decimals)
         # Looping through all the ethereum active markets to fetch token balance

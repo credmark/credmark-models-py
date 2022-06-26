@@ -1,19 +1,8 @@
 from typing import List
 
-from credmark.dto import (
-    DTO,
-    DTOField,
-    IterableListGenericDTO,
-    PrivateAttr,
-    cross_examples,
-)
-
-from credmark.cmf.types import (
-    Portfolio,
-    Contract,
-    Token,
-    PriceList,
-)
+from credmark.cmf.types import Address, Contract, Portfolio, PriceList, Token
+from credmark.dto import (DTO, DTOField, IterableListGenericDTO, PrivateAttr,
+                          cross_examples)
 
 
 class HistoricalPriceInput(DTO):
@@ -33,7 +22,6 @@ class ContractVaRInput(DTO):
     window: str
     interval: int
     confidence: float
-    price_model: str = DTOField('chainlink.price-usd', description='price model slug')
 
     class Config:
         schema_extra = {
@@ -55,6 +43,10 @@ class PortfolioVaRInput(ContractVaRInput):
                                            for v in Portfolio.Config.schema_extra['examples']],
                                        limit=10)
         }
+
+
+class AccountVaRInput(ContractVaRInput):
+    address: Address
 
 
 class UniswapPoolVaRInput(ContractVaRInput):

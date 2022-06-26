@@ -64,7 +64,7 @@ echo_cmd ""
 echo_cmd "Run Finance Examples"
 echo_cmd ""
 test_model 0 finance.lcr '{"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10}'
-test_model 0 finance.min-risk-rate '{}' compound-v2.get-pool-info,compound-v2.all-pools-info
+test_model 0 finance.min-risk-rate '{}' compound-v2.get-pool-info,compound-v2.all-pools-info,token.stablecoins
 
 test_model 0 finance.sharpe-ratio-token \
 '{"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},

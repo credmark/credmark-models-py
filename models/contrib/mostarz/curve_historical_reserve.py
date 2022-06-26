@@ -1,8 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Contract,
-    BlockNumber
-)
+from credmark.cmf.types import BlockNumber, Contract
 
 
 @Model.describe(slug="contrib.curve-fi-pool-historical-reserve",

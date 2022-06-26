@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
 from models.dtos.example import ExampleHistoricalOutput

@@ -1,13 +1,12 @@
-from credmark.cmf.model import Model, EmptyInput
+import socket
+
+from credmark.cmf.model import EmptyInput, Model
 from credmark.cmf.types import Contract, ContractLedger
 from models.dtos.example import ExampleModelOutput
-
-from web3._utils.filters import construct_event_filter_params
-from web3._utils.events import get_event_data
-
-import socket
-from urllib3.exceptions import ReadTimeoutError
 from requests.exceptions import ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
+from web3._utils.events import get_event_data
+from web3._utils.filters import construct_event_filter_params
 
 
 @Model.describe(

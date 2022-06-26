@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import EmptyInput
 
@@ -24,10 +24,12 @@ class RedactedVotiumCashflow(Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
         and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    'price.quote',
+                    input={'base': token},
+                    block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:
@@ -65,7 +67,8 @@ class RedactedConvexCashflow(Model):
             token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    'price.quote',
+                    input={'base': token}, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:

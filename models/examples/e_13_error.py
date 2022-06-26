@@ -1,4 +1,4 @@
-from credmark.cmf.model import Model, EmptyInput, ModelDataErrorDesc
+from credmark.cmf.model import EmptyInput, Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 
 

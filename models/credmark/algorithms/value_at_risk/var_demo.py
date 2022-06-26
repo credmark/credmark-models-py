@@ -1,17 +1,8 @@
 from credmark.cmf.model import Model
-
-from credmark.cmf.types import (
-    Portfolio,
-    Token,
-    Position,
-    PriceList,
-)
-
-from models.credmark.algorithms.value_at_risk.dto import (
-    HistoricalPriceInput,
-    VaRHistoricalInput,
-    ContractVaRInput,
-)
+from credmark.cmf.types import Portfolio, Position, PriceList, Token
+from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
+                                                          HistoricalPriceInput,
+                                                          VaRHistoricalInput)
 
 
 @Model.describe(slug='finance.example-historical-price',
