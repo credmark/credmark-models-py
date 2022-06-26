@@ -364,7 +364,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
                 pool_infos.append(pool_info)
             return pool_infos
 
-        def _use_compose_model():
+        def _use_compose_map():
             model_slug = 'curve-fi.pool-info'
             all_pools = self.context.run_model(
                 slug='compose.map-inputs',
@@ -389,7 +389,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
             return pool_infos
 
-        pool_infos = _use_for()
+        pool_infos = _use_compose_map()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
