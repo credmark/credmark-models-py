@@ -247,7 +247,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.16",
+                version="1.17",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -347,7 +347,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.6",
+                version="1.7",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -389,7 +389,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
             return pool_infos
 
-        pool_infos = _use_compose_model()
+        pool_infos = _use_for()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
