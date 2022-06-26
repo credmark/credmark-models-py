@@ -111,7 +111,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.4",
+                version="1.5",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -188,11 +188,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [
-            (self.context.web3.eth.get_balance(input.address) / 1e18)
-            if t.address == Token(symbol='ETH').address else
-            (t.scaled(t.functions.balanceOf(input.address).call()))
-            for t in tokens]
+        balances_token = [t.scaled(t.balance_of(input.address)) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
@@ -251,7 +247,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.19",
+                version="1.20",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
