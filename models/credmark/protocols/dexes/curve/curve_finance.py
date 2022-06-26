@@ -188,7 +188,11 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.scaled(t.functions.balanceOf(input.address).call()) for t in tokens]
+        balances_token = [
+            (self.context.web3.eth.get_balance(input.address) / 1e18)
+            if t.address == Token(symbol='ETH').address else
+            (t.scaled(t.functions.balanceOf(input.address).call()))
+            for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
