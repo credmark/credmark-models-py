@@ -10,6 +10,9 @@ test_model 0 token.price '{"address":"0x6c3f90f043a72fa612cbac8115ee7e52bde6e490
 test_model 0 token.price '{"address":"0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"}'
 test_model 0 token.price '{"address":"0xc4ad29ba4b3c580e6d59105fff484999997675ff"}'
 
+# Curve.fi : 0xdc24316b9ae028f1497c275eb9192a3ea0f67022
+test_model 0 curve-fi.pool-info '{"address":"0xdc24316b9ae028f1497c275eb9192a3ea0f67022"}'
+
 # Curve.fi : 0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6
 test_model 0 curve-fi.pool-info '{"address":"0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6"}'
 
