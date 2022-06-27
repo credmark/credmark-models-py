@@ -9,7 +9,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.oracle-chainlink-maybe',
-                version='1.0',
+                version='1.1',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
                 input=PriceInput,
