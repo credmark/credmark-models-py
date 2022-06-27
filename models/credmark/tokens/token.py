@@ -3,10 +3,11 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Price,
-                                Token)
+from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
+                                Currency, Price, Token)
 from credmark.dto import DTO, IterableListGenericDTO
 from models.dtos.price import Maybe
+from models.tmp_abi_lookup import ERC_20_ABI
 
 
 def get_eip1967_proxy(context, logger, address, verbose):
@@ -63,6 +64,22 @@ def get_eip1967_proxy_err(context, logger, address, verbose):
     if res is None:
         raise ModelDataError(f'Unable to retrieve proxy implementation for {address}')
     return res
+
+
+def fix_erc20_token(tok):
+    try:
+        _ = tok.abi
+    except ModelDataError:
+        tok = Token(address=tok.checksum, abi=ERC_20_ABI)
+
+    if tok.proxy_for is not None:
+        try:
+            _ = tok.proxy_for.abi
+        except ModelDataError:
+            tok.proxy_for._loaded = True  # pylint:disable=protected-access
+            tok.proxy_for.set_abi(ERC_20_ABI)
+
+    return tok
 
 
 @Model.describe(slug='token.underlying-maybe',

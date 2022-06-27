@@ -5,6 +5,7 @@ from credmark.cmf.types import Address, Contract, Contracts, Price, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
+from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
@@ -79,7 +80,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.2',
+                version='1.3',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 input=Contract,
@@ -108,6 +109,8 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
         token0 = Token(address=token0_addr)
         token1 = Token(address=token1_addr)
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
         token0_symbol = token0.symbol
         token1_symbol = token1.symbol
 
@@ -179,7 +182,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.3',
+                version='1.4',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 input=Token,
@@ -213,6 +216,8 @@ class UniswapV3GetTokenPricePoolInfo(Model):
         prices_with_info = []
         weth_price = None
         for info in infos:
+            info.token0 = fix_erc20_token(info.token0)
+            info.token1 = fix_erc20_token(info.token1)
             # decimal only available for ERC20s
             if info.token0.decimals and info.token1.decimals:
                 scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))

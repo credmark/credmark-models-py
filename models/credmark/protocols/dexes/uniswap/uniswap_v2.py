@@ -8,11 +8,12 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO
+from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos, Prices
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
                                 VolumeInputHistorical)
-from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI, UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import CURVE_VYPER_POOL, UNISWAP_V2_POOL_ABI, UNISWAP_V3_POOL_ABI
 from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 
 
@@ -77,7 +78,7 @@ class UniswapPoolPriceInput(DTO):
 
 
 @Model.describe(slug='uniswap-v2.get-price-pool-info',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 input=UniswapPoolPriceInput,
@@ -103,6 +104,8 @@ class UniswapPoolPriceInfo(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -183,7 +186,7 @@ class UniswapV2GetTokenPriceInfo(Model):
 
 
 @ Model.describe(slug="uniswap-v2.get-pool-info",
-                 version="1.4",
+                 version="1.5",
                  display_name="Uniswap/Sushiswap get details for a pool",
                  description="Returns the token details of the pool",
                  input=Contract,
@@ -200,8 +203,8 @@ class UniswapGetPoolInfo(Model):
         token1 = Token(address=contract.functions.token1().call())
         # getReserves = contract.functions.getReserves().call()
 
-        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
-        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
+        token0_balance = token0.balance_of_scaled(input.address)
+        token1_balance = token1.balance_of_scaled(input.address)
         # token0_reserve = token0.scaled(getReserves[0])
         # token1_reserve = token1.scaled(getReserves[1])
 
@@ -209,13 +212,19 @@ class UniswapGetPoolInfo(Model):
                                         input={'inputs': [{'base': token0}, {'base': token1}]},
                                         return_type=Prices)
 
+        value0 = prices.prices[0].price * token0_balance
+        value1 = prices.prices[1].price * token1_balance
+
+        balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
+
         output = {'pool_address': input.address,
                   'tokens': Tokens(tokens=[token0, token1]),
                   'tokens_name': [token0.name, token1.name],
                   'tokens_symbol': [token0.symbol, token1.symbol],
                   'tokens_decimals': [token0.decimals, token1.decimals],
                   'tokens_balance': [token0_balance, token1_balance],
-                  'tokens_price': prices.prices
+                  'tokens_price': prices.prices,
+                  'ratio': balance_ratio
                   }
 
         return output
@@ -260,7 +269,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.3',
+                 version='1.5',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
@@ -272,10 +281,14 @@ class DexPoolSwapVolumeHistorical(Model):
         pool = Contract(address=input.address)
 
         try:
-            pool.abi
+            _ = pool.abi
         except ModelDataError:
             if input.pool_info_model == 'uniswap-v2.pool-tvl':
+                pool._loaded = True  # pylint:disable=protected-access
                 pool.set_abi(UNISWAP_V3_POOL_ABI)
+            elif input.pool_info_model == 'curve-fi.pool-tvl':
+                pool._loaded = True  # pylint:disable=protected-access
+                pool.set_abi(CURVE_VYPER_POOL)
             else:
                 raise
 
@@ -349,24 +362,27 @@ class DexPoolSwapVolumeHistorical(Model):
             assert sorted(event_tokenexchange_args) == sorted(
                 ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
 
-            df_all_swaps = (pool.ledger.events.TokenExchange(
-                columns=[ContractLedger.Events.InputCol("SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                aggregates=(
-                    [self.context.ledger.Aggregate(
-                        f'sum({ContractLedger.Events.InputCol(field)})',
-                        f'{ContractLedger.Events.InputCol(field)}')
-                        for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                    [self.context.ledger.Aggregate(
-                        f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                        'interval_n')] +
-                    [self.context.ledger.Aggregate(
-                        f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                        for func in ['min', 'max', 'count']]),
-                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                          f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                .to_dataframe())
+            try:
+                df_all_swaps = (pool.ledger.events.TokenExchange(
+                    columns=[ContractLedger.Events.InputCol("SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
+                    aggregates=(
+                        [self.context.ledger.Aggregate(
+                            f'sum({ContractLedger.Events.InputCol(field)})',
+                            f'{ContractLedger.Events.InputCol(field)}')
+                            for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                        [self.context.ledger.Aggregate(
+                            f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                            'interval_n')] +
+                        [self.context.ledger.Aggregate(
+                            f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                            for func in ['min', 'max', 'count']]),
+                    where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                           f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                    group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                              f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
+                    .to_dataframe())
+            except ModelDataError:
+                return pool_volume_history
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history

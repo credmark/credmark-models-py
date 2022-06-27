@@ -15,7 +15,7 @@ from models.dtos.price import Prices
 
 @Model.describe(
     slug="account.var",
-    version="0.1",
+    version="0.2",
     display_name="VaR for an account",
     description="VaR for an account",
     developer="Credmark",
