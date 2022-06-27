@@ -186,7 +186,7 @@ class UniswapV2GetTokenPriceInfo(Model):
 
 
 @ Model.describe(slug="uniswap-v2.get-pool-info",
-                 version="1.4",
+                 version="1.5",
                  display_name="Uniswap/Sushiswap get details for a pool",
                  description="Returns the token details of the pool",
                  input=Contract,
@@ -203,8 +203,8 @@ class UniswapGetPoolInfo(Model):
         token1 = Token(address=contract.functions.token1().call())
         # getReserves = contract.functions.getReserves().call()
 
-        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
-        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
+        token0_balance = token0.balance_of_scaled(input.address)
+        token1_balance = token1.balance_of_scaled(input.address)
         # token0_reserve = token0.scaled(getReserves[0])
         # token1_reserve = token1.scaled(getReserves[1])
 
@@ -212,13 +212,19 @@ class UniswapGetPoolInfo(Model):
                                         input={'inputs': [{'base': token0}, {'base': token1}]},
                                         return_type=Prices)
 
+        value0 = prices.prices[0].price * token0_balance
+        value1 = prices.prices[1].price * token1_balance
+
+        balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
+
         output = {'pool_address': input.address,
                   'tokens': Tokens(tokens=[token0, token1]),
                   'tokens_name': [token0.name, token1.name],
                   'tokens_symbol': [token0.symbol, token1.symbol],
                   'tokens_decimals': [token0.decimals, token1.decimals],
                   'tokens_balance': [token0_balance, token1_balance],
-                  'tokens_price': prices.prices
+                  'tokens_price': prices.prices,
+                  'ratio': balance_ratio
                   }
 
         return output
