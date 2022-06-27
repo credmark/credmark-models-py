@@ -11,6 +11,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import \
                 display_name="Calculate minimal risk rate",
                 description='Rates from stablecoins\' loans to Aave and Compound, '
                             'then weighted by their debt size and total supply',
+                category='financial',
                 input=EmptyInput,
                 output=dict)
 class Minrisk(Model):

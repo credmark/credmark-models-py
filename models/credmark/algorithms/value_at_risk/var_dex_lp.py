@@ -16,6 +16,8 @@ from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
                 version="1.3",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
+                category='protocol',
+                subcategory='uniswap',
                 input=UniswapPoolVaRInput,
                 output=dict)
 class UniswapPoolVaR(Model):
