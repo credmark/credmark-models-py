@@ -15,6 +15,8 @@ from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
     description='This model gives examples of '
     'the functionality available on the BlockNumber class',
     developer='Credmark',
+    category='example',
+    tags=['block-number'],
     input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleBlockNumber(Model):

@@ -20,6 +20,7 @@ from models.dtos.example import ExampleLibrariesOutput
     description='A list of the math/data science libraries that are '
     'included in the Credmark Framework.',
     developer='Credmark',
+    category='example',
     input=EmptyInput,
     output=ExampleLibrariesOutput)
 class ExampleLibraries(Model):

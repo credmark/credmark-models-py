@@ -8,6 +8,7 @@ from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
     display_name='Example - Model',
     description="First example model to echo the message property sent in input.",
     developer='Credmark',
+    category='example',
     input=ExampleEchoInput,
     output=ExampleEchoOutput)
 class ExampleEcho(Model):

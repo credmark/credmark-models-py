@@ -11,6 +11,8 @@ from models.dtos.example import ExampleModelOutput, ExampleTokenInput
     developer='credmark',
     display_name="Example - Token",
     description="This model demonstrates the functionality of the Token class",
+    category='example',
+    tags=['token'],
     input=ExampleTokenInput,
     output=ExampleModelOutput)
 class ExampleToken(Model):

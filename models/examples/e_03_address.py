@@ -11,6 +11,8 @@ from models.dtos.example import ExampleAddressInput, ExampleModelOutput
     display_name='Example - Address',
     description='This model gives examples of the functionality available on the Address class',
     developer='Credmark',
+    category='example',
+    tags=['address'],
     input=ExampleAddressInput,
     output=ExampleModelOutput)
 class ExampleAddress(Model):

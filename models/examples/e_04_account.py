@@ -9,6 +9,8 @@ from models.dtos.example import ExampleAccountInput, ExampleModelOutput
     display_name='Example - Account',
     description='This model gives examples of the functionality available on the Account class',
     developer='Credmark',
+    category='example',
+    tags=['account'],
     input=ExampleAccountInput,
     output=ExampleModelOutput)
 class ExampleAccount(Model):

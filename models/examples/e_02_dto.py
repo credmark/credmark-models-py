@@ -9,6 +9,7 @@ from models.dtos.example import ExampleModelOutput
     display_name='Example - DTO',
     description='An example model to demonstrate DTO type',
     developer='Credmark',
+    category='example',
     input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleDto(Model):

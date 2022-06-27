@@ -8,6 +8,7 @@ from models.dtos.example import ExampleAllModelsOutput
     display_name='Example - All',
     description='This model runs all of the Credmark Example Models',
     developer='Credmark',
+    category='example',
     output=ExampleAllModelsOutput)
 class AllExample(Model):
     def run(self, _) -> ExampleAllModelsOutput:

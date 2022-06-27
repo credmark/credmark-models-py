@@ -15,6 +15,8 @@ from web3._utils.filters import construct_event_filter_params
     display_name='Example - Contract',
     description='This model gives examples of the functionality available on the Contract class',
     developer='Credmark',
+    category='example',
+    tags=['contract'],
     input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleContract(Model):
