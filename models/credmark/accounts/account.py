@@ -46,7 +46,7 @@ class AccountERC20Token(Model):
 
 @Model.describe(
     slug="account.portfolio",
-    version="0.1",
+    version="0.2",
     display_name="Account Portfolio",
     description="All of the token holdings for an account",
     developer="Credmark",
@@ -155,7 +155,7 @@ class CurveLPPosition(Position):
 
 @Model.describe(
     slug="account.position-in-curve",
-    version="1.0",
+    version="1.1",
     display_name="account position in Curve LP",
     description="All the positions in Curve LP",
     developer="Credmark",
@@ -190,13 +190,14 @@ class GetCurveLPPosition(Model):
 
                 tx_out = df_tx.query('token_address in @_lp_tokens')
                 lp_token = Token(address=tx_out.token_address[0])
-                lp_token_amount = lp_token.scaled(tx_out.sum_value[0])
+                lp_token_amount = tx_out.sum_value[0]
+                _lp_token_amount_scaled = lp_token.scaled(tx_out.sum_value[0])
                 if tx_in.from_address[0] == input.address:
-                    lp_token_amount = -abs(lp_token_amount)
-                else:
                     lp_token_amount = abs(lp_token_amount)
+                else:
+                    lp_token_amount = -abs(lp_token_amount)
 
-                pool_info = self.context.models.curve_fi.pool_info(lp_token)
+                pool_info = self.context.run_model('curve-fi.pool-info', lp_token)
                 pool_contract = Contract(address=pool_info['address'])
                 pool_tokens = Tokens(**pool_info['tokens'])
                 withdraw_token_amount = np.zeros(len(pool_tokens.tokens))
@@ -209,13 +210,14 @@ class GetCurveLPPosition(Model):
                     np_balances[tok_n] = np_balances[tok_n] / pool_tokens.tokens[tok_n].scaled(1)
 
                 for tok_n, tok in enumerate(pool_tokens.tokens):
-                    ratio = np_balances.dot(withdraw_token_amount) * np_balances[tok_n]
-                    amount = tx_out.sum_value[0] / ratio
+                    ratio = np_balances.dot(withdraw_token_amount) / np_balances[tok_n]
+                    amount = lp_token_amount / ratio
                     lp_position.append(Position(asset=tok,
                                                 amount=pool_tokens.tokens[tok_n].scaled(amount)))
 
                 _ = CurveLPPosition(
-                    asset=lp_token, amount=lp_token_amount,
+                    asset=lp_token,
+                    amount=_lp_token_amount_scaled,
                     pool=Contract(address=lp_token.functions.minter().call()),
                     supply_position=Portfolio(
                         positions=[TokenPosition(asset=in_token,
