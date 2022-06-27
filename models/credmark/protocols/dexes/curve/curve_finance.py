@@ -49,6 +49,8 @@ class CurveFiPoolInfos(DTO):
                  version='1.2',
                  display_name='Curve Finance - Get Provider',
                  description='Get provider contract',
+                 category='protocol',
+                 subcategory='curve',
                  input=EmptyInput,
                  output=Contract)
 class CurveFinanceGetProvider(Model):
@@ -64,6 +66,8 @@ class CurveFinanceGetProvider(Model):
                  version='1.2',
                  display_name='Curve Finance - Get Registry',
                  description='Query provider to get the registry',
+                 category='protocol',
+                 subcategory='curve',
                  input=EmptyInput,
                  output=Contract)
 class CurveFinanceGetRegistry(Model):
@@ -79,6 +83,8 @@ class CurveFinanceGetRegistry(Model):
                  version='1.2',
                  display_name="Curve Finance - Get Gauge Controller",
                  description="Query the registry for the guage controller",
+                 category='protocol',
+                 subcategory='curve',
                  input=EmptyInput,
                  output=Contract)
 class CurveFinanceGetGauge(Model):
@@ -94,6 +100,8 @@ class CurveFinanceGetGauge(Model):
                  version="1.2",
                  display_name="Curve Finance - Get all pools",
                  description="Query the registry for all pools",
+                 category='protocol',
+                 subcategory='curve',
                  output=Contracts)
 class CurveFinanceAllPools(Model):
     def run(self, _) -> Contracts:
@@ -114,6 +122,8 @@ class CurveFinanceAllPools(Model):
                 version="1.5",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=CurveFiPoolInfoToken)
 class CurveFinancePoolInfoTokens(Model):
@@ -250,6 +260,8 @@ class CurveFinancePoolInfoTokens(Model):
                 version="1.20",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=CurveFiPoolInfo)
 class CurveFinancePoolInfo(Model):
@@ -313,6 +325,8 @@ class CurveFinancePoolInfo(Model):
                 version="1.1",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=TVLInfo)
 class CurveFinancePoolTVL(Model):
@@ -350,6 +364,8 @@ class CurveFinancePoolTVL(Model):
                 version="1.7",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
+                category='protocol',
+                subcategory='curve',
                 output=CurveFiPoolInfos)
 class CurveFinanceTotalTokenLiqudity(Model):
     def run(self, _) -> CurveFiPoolInfos:
@@ -401,6 +417,8 @@ class CurveFinanceTotalTokenLiqudity(Model):
                  version='1.2',
                  display_name="Curve Finance Gauge List",
                  description="All Gauge Contracts for Curve Finance Pools",
+                 category='protocol',
+                 subcategory='curve',
                  input=EmptyInput,
                  output=Contracts)
 class CurveFinanceAllGauges(Model):
@@ -422,6 +440,8 @@ class CurveFinanceAllGauges(Model):
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
                  version='1.2',
+                 category='protocol',
+                 subcategory='curve',
                  input=Contract,
                  output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
@@ -441,6 +461,8 @@ class CurveFinanceAllGaugeAddresses(Model):
 
 @ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
                  version='1.2',
+                 category='protocol',
+                 subcategory='curve',
                  input=Contract,
                  output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
@@ -467,6 +489,8 @@ class CurveFinanceGaugeRewardsCRV(Model):
 
 @ Model.describe(slug='curve-fi.gauge-yield',
                  version='1.2',
+                 category='protocol',
+                 subcategory='curve',
                  input=Contract,
                  output=dict)
 class CurveFinanceAverageGaugeYield(Model):
@@ -535,6 +559,8 @@ class CurveFinanceAverageGaugeYield(Model):
 @ Model.describe(slug='curve-fi.all-yield',
                  version='1.4',
                  description="Yield from all Gauges",
+                 category='protocol',
+                 subcategory='curve',
                  input=EmptyInput,
                  output=dict)
 class CurveFinanceAllYield(Model):

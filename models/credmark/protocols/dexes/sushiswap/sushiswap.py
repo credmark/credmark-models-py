@@ -12,6 +12,8 @@ from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos
                 version="1.0",
                 display_name="Sushiswap - get factory",
                 description="Returns the address of Suishiswap factory contract",
+                category='protocol',
+                subcategory='sushi',
                 input=EmptyInput,
                 output=Contract)
 class SushiswapV2Factory(Model):
@@ -32,6 +34,8 @@ class SushiswapV2Factory(Model):
                 version='1.1',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
                 input=Token,
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
@@ -43,7 +47,9 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
 @Model.describe(slug="sushiswap.all-pools",
                 version="1.1",
                 display_name="Sushiswap all pairs",
-                description="Returns the addresses of all pairs on Suhsiswap protocol")
+                description="Returns the addresses of all pairs on Suhsiswap protocol",
+                category='protocol',
+                subcategory='sushi')
 class SushiswapAllPairs(Model):
     def run(self, input) -> dict:
         contract = Contract(**self.context.models.sushiswap.get_v2_factory())
@@ -75,6 +81,8 @@ class SushiSwapPool(DTO):
                 display_name="Sushiswap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of "
                              "both tokens on Suhsiswap protocol"),
+                category='protocol',
+                subcategory='sushi',
                 input=SushiSwapPool)
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
@@ -95,6 +103,8 @@ class SushiswapGetPair(Model):
                 version='1.1',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='sushi',
                 input=Token,
                 output=PoolPriceInfos)
 class SushiswapGetTokenPriceInfo(Model):

@@ -8,6 +8,8 @@ from credmark.dto import EmptyInput
                 version='1.1',
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
+                category='protocol',
+                subcategory='uniswap',
                 input=Token,
                 output=Price)
 class UniswapRouterPricePair(Model):
@@ -44,6 +46,8 @@ class UniswapRouterPricePair(Model):
                 version='1.0',
                 display_name='The Price of a Token on Uniswap with respect to another Token',
                 description='The Trading Price with respect to another Token on Uniswap\'s Frontend)',
+                category='protocol',
+                subcategory='uniswap',
                 input=EmptyInput,
                 output=Contract)
 class UniswapRouterPriceUsd(Model):
@@ -65,7 +69,9 @@ class UniswapRouterPriceUsd(Model):
 @Model.describe(slug='uniswap.tokens',
                 version='1.0',
                 display_name='uniswap tokens',
-                description='uniswap tokens')
+                description='uniswap tokens',
+                category='protocol',
+                subcategory='uniswap')
 class UniswapTokens(Model):
     UNISWAP_FACTORY_ADDRESS = {
         1: Address('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f')
@@ -84,7 +90,9 @@ class UniswapTokens(Model):
 @Model.describe(slug='uniswap.exchange',
                 version='1.0',
                 display_name='uniswap.exchange',
-                description='uniswap.exchange')
+                description='uniswap.exchange',
+                category='protocol',
+                subcategory='uniswap')
 class UniswapExchange(Model):
     UNISWAP_DAI_V1_ADDRESS = {
         1: Address('0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667')

@@ -97,6 +97,8 @@ def get_comptroller(model):
                  version="1.2",
                  display_name="Compound V2 - comptroller",
                  description="Get comptroller contract",
+                 category='protocol',
+                 subcategory='compound',
                  input=EmptyInput,
                  output=Contract)
 class CompoundV2Comptroller(Model):
@@ -115,6 +117,8 @@ class CompoundV2Comptroller(Model):
                  version="1.1",
                  display_name="Compound V2 - get cTokens/markets",
                  description="Query the comptroller for all cTokens/markets",
+                 category='protocol',
+                 subcategory='compound',
                  input=EmptyInput,
                  output=dict)
 class CompoundV2GetAllPools(Model):
@@ -132,6 +136,8 @@ class CompoundV2GetAllPools(Model):
                  version="1.2",
                  display_name="Compound V2 - get all pool info",
                  description="Get all pools and query for their info (deposit, borrow, rates)",
+                 category='protocol',
+                 subcategory='compound',
                  input=EmptyInput,
                  output=CompoundV2PoolInfos)
 class CompoundV2AllPoolsInfo(Model):
@@ -167,6 +173,8 @@ class CompoundV2AllPoolsInfo(Model):
                  version="1.1",
                  display_name="Compound V2 - get all pools value",
                  description="Compound V2 - convert pool's info to value",
+                 category='protocol',
+                 subcategory='compound',
                  input=CompoundV2PoolInfos,
                  output=CompoundV2PoolValues)
 class CompoundV2AllPoolsValue(Model):
@@ -190,6 +198,8 @@ class CompoundV2AllPoolsValue(Model):
                  version="1.2",
                  display_name="Compound V2 - pool/market information",
                  description="Compound V2 - pool/market information",
+                 category='protocol',
+                 subcategory='compound',
                  input=Token,
                  output=CompoundV2PoolInfo)
 class CompoundV2GetPoolInfo(Model):
@@ -422,6 +432,8 @@ class CompoundV2GetPoolInfo(Model):
                  version="1.1",
                  display_name="Compound V2 - value of a market",
                  description="Compound V2 - value of a market",
+                 category='protocol',
+                 subcategory='compound',
                  input=CompoundV2PoolInfo,
                  output=CompoundV2PoolValue)
 class CompoundV2GetPoolValue(Model):

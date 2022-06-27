@@ -33,6 +33,9 @@ class AccountVestingInfo(DTO):
 @describe(
     slug="cmk.vesting-contracts",
     version="1.0",
+    display_name='CMK Vesting Contracts',
+    category='protocol',
+    subcategory='cmk',
     input=EmptyInput,
     output=Contracts)
 class CMKGetVestingContracts(Model):
@@ -56,6 +59,9 @@ class CMKGetVestingContracts(Model):
 @describe(
     slug="cmk.get-vesting-accounts",
     version="1.0",
+    display_name='CMK Vesting Accounts',
+    category='protocol',
+    subcategory='cmk',
     input=EmptyInput,
     output=Accounts
 )
@@ -99,6 +105,9 @@ class CMKGetVestingAccounts(Model):
 @describe(
     slug="cmk.get-vesting-info-by-account",
     version="1.1",
+    display_name='CMK Vesting Info by Account',
+    category='protocol',
+    subcategory='cmk',
     input=Account,
     output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
@@ -227,6 +236,9 @@ class CMKGetVestingByAccount(Model):
 @describe(
     slug="cmk.get-all-vesting-balances",
     version="1.0",
+    display_name='CMK Vesting Balances',
+    category='protocol',
+    subcategory='cmk',
     input=EmptyInput,
     output=dict)
 class CMKGetAllVestingBalances(Model):
@@ -242,6 +254,9 @@ class CMKGetAllVestingBalances(Model):
 @describe(
     slug="cmk.vesting-events",
     version="1.0",
+    display_name='CMK Vesting Events',
+    category='protocol',
+    subcategory='cmk',
     input=Contract,
     output=dict
 )
