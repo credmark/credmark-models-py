@@ -5,13 +5,14 @@ from typing import List
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price, Token,
                                 Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.dto import DTO, EmptyInput
+from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
@@ -28,8 +29,6 @@ class CurveFiPoolInfoToken(Contract):
     name: str
     lp_token_name: str
     lp_token_addr: Address
-    pool_token_name: str
-    pool_token_addr: Address
 
 
 class CurveFiPoolInfo(CurveFiPoolInfoToken):
@@ -111,7 +110,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.5",
+                version="1.9",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -126,6 +125,7 @@ class CurveFinancePoolInfoTokens(Model):
             tok_addr = Address(addr)
             if tok_addr != Address.null():
                 tok = Token(address=tok_addr.checksum)
+                tok = fix_erc20_token(tok)
                 symbols_list.append(tok.symbol)
                 token_list.append(tok)
         return token_list, symbols_list
@@ -188,7 +188,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.scaled(t.balance_of(input.address)) for t in tokens]
+        balances_token = [t.balance_of_scaled(input.address) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
@@ -220,15 +220,11 @@ class CurveFinancePoolInfoTokens(Model):
         if lp_token_addr != Address.null():
             lp_token = Token(address=lp_token_addr.checksum)
             lp_token_name = lp_token.name
-
-        pool_token_addr = Address.null()
-        pool_token_name = ''
-        try:
-            pool_token_addr = Address(input.functions.token().call())
-            pool_token = Token(address=pool_token_addr.checksum)
-            pool_token_name = pool_token.name
-        except ABIFunctionNotFound:
-            pass
+        else:
+            if input.abi is not None and 'token' in input.abi.functions:
+                lp_token_addr = Address(input.functions.token().call())
+                lp_token = Token(address=lp_token_addr.checksum)
+                lp_token_name = lp_token.name
 
         return CurveFiPoolInfoToken(**(input.dict()),
                                     tokens=tokens,
@@ -240,14 +236,12 @@ class CurveFinancePoolInfoTokens(Model):
                                     underlying_symbol=underlying_symbol,
                                     name=name,
                                     lp_token_name=lp_token_name,
-                                    lp_token_addr=lp_token_addr,
-                                    pool_token_name=pool_token_name,
-                                    pool_token_addr=pool_token_addr
+                                    lp_token_addr=lp_token_addr
                                     )
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.20",
+                version="1.21",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -310,7 +304,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.1",
+                version="1.3",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 input=Contract,
@@ -328,11 +322,7 @@ class CurveFinancePoolTVL(Model):
             positions.append(Position(amount=bal, asset=tok))
             tvl += bal * tok_price.price
 
-        pool_name = pool_info.name
-        if pool_info.name == '':
-            pool_name = pool_info.lp_token_name
-            if pool_name == '':
-                pool_name = pool_info.pool_token_name
+        pool_name = pool_info.lp_token_name
 
         tvl_info = TVLInfo(
             address=input.address,
@@ -347,7 +337,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.7",
+                version="1.8",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 output=CurveFiPoolInfos)
@@ -360,7 +350,9 @@ class CurveFinanceTotalTokenLiqudity(Model):
         def _use_for():
             pool_infos = []
             for pool in pool_contracts:
-                pool_info = CurveFiPoolInfo(**self.context.models.curve_fi.pool_info(pool))
+                pool_info = self.context.run_model('curve-fi.pool-info',
+                                                   pool,
+                                                   return_type=CurveFiPoolInfo)
                 pool_infos.append(pool_info)
             return pool_infos
 
@@ -381,8 +373,9 @@ class CurveFinanceTotalTokenLiqudity(Model):
                     pool_infos.append(pool_result.output)
 
             if len(errors) > 0:
-                for pool_n, err in errors:
+                for error_n, (pool_n, err) in enumerate(errors):
                     self.logger.error(
+                        f'{error_n+1}/{len(errors)}: '
                         f'Error with {model_slug}({pool_contracts.contracts[pool_n]})')
                     self.logger.error(err)
                 raise ModelRunError(errors[0][1].message)
@@ -393,7 +386,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
-        #    .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
+        #   .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
         return all_pools_info
 
 
@@ -484,7 +477,7 @@ class CurveFinanceAverageGaugeYield(Model):
                                           return_type=Contract)
         pool_addr = registry.functions.get_pool_from_lp_token(lp_token_addr).call()
         if pool_addr != Address.null():
-            pool_info = self.context.models.curve_fi.pool_info(Contract(address=pool_addr))
+            pool_info = self.context.run_model('curve-fi.pool-info', Contract(address=pool_addr))
             pool_virtual_price = pool_info['virtualPrice']
         else:
             lp_token = Contract(address=lp_token_addr)

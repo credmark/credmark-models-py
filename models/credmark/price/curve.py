@@ -12,7 +12,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug="price.dex-curve-fi-maybe",
-                version="1.1",
+                version="1.4",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description=("For those tokens primarily traded in curve - "
                              "return None if cannot price"),
@@ -33,7 +33,7 @@ class CurveFinanceMaybePrice(Model):
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.2",
+                version="1.4",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 input=Token,
@@ -43,7 +43,7 @@ class CurveFinancePrice(Model):
     """
     Price from Curve Pool.
     For there are three types
-    - Stablecoins: list of tokens hard-coded to $1 now. TODO
+    - Stablecoins: list of tokens hard-coded to $1 now. # TODO
     - Derived: From pool with other tokens with prices from oracle
     - LP token: From the minimal price of the token in the pool * virtual price
 
@@ -171,7 +171,7 @@ class CurveFinancePrice(Model):
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            if input.address not in (pool_info.lp_token_addr, pool_info.pool_token_addr):
+            if input.address != pool_info.lp_token_addr:
                 raise ModelRunError(
                     f'{self.slug} does not find LP {input=} in pool {pool.address=}')
 
