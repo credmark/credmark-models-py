@@ -8,6 +8,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO
+from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos, Prices
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
@@ -77,7 +78,7 @@ class UniswapPoolPriceInput(DTO):
 
 
 @Model.describe(slug='uniswap-v2.get-price-pool-info',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 input=UniswapPoolPriceInput,
@@ -103,6 +104,8 @@ class UniswapPoolPriceInfo(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
