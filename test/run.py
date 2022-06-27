@@ -1,4 +1,4 @@
-# pylint:disable=unused-import
+# pylint:disable=unused-import,line-too-long
 
 import argparse
 import logging

@@ -39,13 +39,13 @@ class CMKTest(TestCase):
             return
 
         cmd_line = ' '.join(sys.argv)
-        print(f'Running case ({CMKTest.test_n}): {cmd_line}')
+        print(f'Running case ({CMKTest.test_n}): expected {exit_code=} {cmd_line}')
 
         succeed = False
         try:
             self.test_module.main()
         except SystemExit as err:
-            print(f'{err=}, {err.code=}, {exit_code=}')
+            print(f'{err=}, {err.code=}, Expected {exit_code=}')
             self.assertTrue(err.code == exit_code)
             succeed = True
         finally:
