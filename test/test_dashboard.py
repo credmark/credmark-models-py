@@ -64,13 +64,17 @@ class TestDashboard(CMKTest):
             self.run_model('uniswap-v2.get-pool-info', {"address": pool}, block_number=block_number)
             self.run_model('uniswap-v2.pool-tvl', {"address": pool}, block_number=block_number)
 
-            self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl",
-                           "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
-            self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl",
-                           "interval": 7200, "address": pool}, block_number=block_number)
+            self.run_model('dex.pool-volume-historical',
+                           {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool},
+                           block_number=block_number)
+            self.run_model('dex.pool-volume',
+                           {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "address": pool},
+                           block_number=block_number)
 
-            self.run_model('finance.var-dex-lp', {"pool": {"address": pool},
-                                                  "window": "20 days", "interval": 1, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01}, block_number=block_number)
+            self.run_model('finance.var-dex-lp',
+                           {"pool": {"address": pool}, "window": "7 days", "interval": 1,
+                               "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
+                           block_number=block_number)
 
         curve_pools = ['0x961226b64ad373275130234145b96d100dc0b655',
                        '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511',
@@ -109,12 +113,12 @@ class TestDashboard(CMKTest):
 
         self.run_model('finance.var-dex-lp',
                        {"pool": {"address": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
-                        "window": "20 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
+                        "window": "7 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
                        block_number=block_number)
 
         for range_of_pool in [0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0]:
             print(f'LP VaR Range: {range_of_pool}')
             self.run_model('finance.var-dex-lp',
                            {"pool": {"address": "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
-                            "window": "20 days", "interval": 10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": range_of_pool},
+                            "window": "7 days", "interval": 10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": range_of_pool},
                            block_number=block_number)
