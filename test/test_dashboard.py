@@ -113,12 +113,12 @@ class TestDashboard(CMKTest):
 
         self.run_model('finance.var-dex-lp',
                        {"pool": {"address": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
-                        "window": "7 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
+                        "window": "23 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
                        block_number=block_number)
 
         for range_of_pool in [0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0]:
             print(f'LP VaR Range: {range_of_pool}')
             self.run_model('finance.var-dex-lp',
                            {"pool": {"address": "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"},
-                            "window": "7 days", "interval": 10, "confidence": 0.01, "lower_range": '${range_of_pool}', "upper_range": range_of_pool},
+                            "window": "23 days", "interval": 10, "confidence": 0.01, "lower_range": range_of_pool, "upper_range": range_of_pool},
                            block_number=block_number)

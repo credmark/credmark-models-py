@@ -33,12 +33,19 @@ class CMKTest(TestCase):
                     self.post_flag +
                     [f'-b {self.block_number if block_number is None else block_number}'])
 
+        cmd_line = ' '.join(
+            [cmd] +
+            self.pre_flag +
+            ['run', model_slug, '-j'] +
+            ['-i', f"'{json.dumps(model_input)}'"] +
+            self.post_flag +
+            [f'-b {self.block_number if block_number is None else block_number}'])
+
         if self.start_n > CMKTest.test_n:
             print(f'Skip ({CMKTest.test_n})')
             CMKTest.test_n += 1
             return
 
-        cmd_line = ' '.join(sys.argv)
         print(f'Running case ({CMKTest.test_n}): expected {exit_code=} {cmd_line}')
 
         succeed = False
