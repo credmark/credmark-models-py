@@ -16,6 +16,7 @@ from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
+from models.tmp_abi_lookup import CURVE_VYPER_POOL
 
 
 class CurveFiPoolInfoToken(Contract):
@@ -110,7 +111,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.9",
+                version="1.10",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 input=Contract,
@@ -154,19 +155,24 @@ class CurveFinancePoolInfoTokens(Model):
 
         except ContractLogicError:
             try:
+                _ = input.abi
+            except ModelDataError:
+                input._loaded = True  # pylint:disable=protected-access
+                input.set_abi(CURVE_VYPER_POOL)
+            if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(self.slug,
                                               input=Contract(address=Address(minter_addr)),
                                               return_type=CurveFiPoolInfoToken)
-            except ABIFunctionNotFound:
-                try:
-                    pool_addr = (registry.functions
-                                 .get_pool_from_lp_token(input.address.checksum).call())
+            try:
+                pool_addr = (registry.functions
+                             .get_pool_from_lp_token(input.address.checksum).call())
+                if pool_addr != Address.null():
                     return self.context.run_model(self.slug,
                                                   input=Contract(address=Address(pool_addr)),
                                                   return_type=CurveFiPoolInfoToken)
-                except Exception as _err:
-                    pass
+            except Exception as _err:
+                pass
 
             tokens = Tokens()
             tokens_symbol = []
@@ -225,6 +231,14 @@ class CurveFinancePoolInfoTokens(Model):
                 lp_token_addr = Address(input.functions.token().call())
                 lp_token = Token(address=lp_token_addr.checksum)
                 lp_token_name = lp_token.name
+            else:
+                lp_token = Token(address=input.address)
+                try:
+                    _ = lp_token.abi
+                except ModelDataError:
+                    lp_token = fix_erc20_token(lp_token)
+                lp_token_name = lp_token.name
+                lp_token_addr = lp_token.address
 
         return CurveFiPoolInfoToken(**(input.dict()),
                                     tokens=tokens,
