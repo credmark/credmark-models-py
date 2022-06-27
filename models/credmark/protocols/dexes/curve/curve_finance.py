@@ -15,8 +15,8 @@ from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
+from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
 
 class CurveFiPoolInfoToken(Contract):
