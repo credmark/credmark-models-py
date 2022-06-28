@@ -10,6 +10,8 @@ from models.dtos.historical import HistoricalRunModelInput
                 version="1.3",
                 display_name="Run Any model for historical",
                 description="Input of window and interval in plain words - 30 days / 1 day",
+                category='utility',
+                subcategory='composer',
                 input=HistoricalRunModelInput,
                 output=dict)
 class HistoricalRunModel(Model):
