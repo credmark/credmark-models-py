@@ -9,7 +9,7 @@ class TestExample(CMKTest):
         self.run_model('contrib.neilz', {})
 
         self.title('Example')
-        self.run_model('example.all', {}) # example.contract, example.ledger-transactions, example.block-time
+        self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
         self.run_model('example.model', {})
         self.run_model('example.model-run', {})
         self.run_model('example.contract', {})
@@ -31,9 +31,12 @@ class TestExample(CMKTest):
         self.run_model('example.ledger-aggregates', {})
 
         self.title('Historical Examples')
-        self.run_model('example.historical', {"model_slug": "price.quote", "model_input": {"base": {"symbol": "USDC"}}}) # price.quote
-        self.run_model('example.historical', {"model_slug": "token.overall-volume", "model_input": {"symbol": "USDC"}}) # token.overall-volume  # series.time-window-interval, series.time-start-end-interval
-        self.run_model('example.historical-block', {}) # example.libraries  # series.block-window-interval, series.block-start-end-interval
+        self.run_model('example.historical', {"model_slug": "price.quote",
+                       "model_input": {"base": {"symbol": "USDC"}}})  # price.quote
+        # token.overall-volume  # series.time-window-interval, series.time-start-end-interval
+        self.run_model('example.historical', {"model_slug": "token.overall-volume", "model_input": {"symbol": "USDC"}})
+        # example.libraries  # series.block-window-interval, series.block-start-end-interval
+        self.run_model('example.historical-block', {})
 
         self.title('Ledger Examples')
         self.run_model('example.ledger-token-transfers', {"address": "0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"})
@@ -47,3 +50,5 @@ class TestExample(CMKTest):
 
         self.title('Iteration Examples')
         self.run_model('example.iteration', {})
+
+        self.run_model('contrib.token-net-inflow', {'blocks': 7000}, block_number=15038786)
