@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleModelOutput
+from .dtos import ExampleModelOutput
 
 
 class RunExampleOutput(ExampleModelOutput):

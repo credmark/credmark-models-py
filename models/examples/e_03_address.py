@@ -2,7 +2,7 @@ from random import choice
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address
-from models.dtos.example import ExampleAddressInput, ExampleModelOutput
+from .dtos import ExampleAddressInput, ExampleModelOutput
 
 
 @Model.describe(

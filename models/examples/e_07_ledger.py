@@ -5,7 +5,7 @@ from credmark.cmf.types.ledger import (BlockTable, ContractTable, LogTable,
                                        TokenTransferTable, TraceTable,
                                        TransactionTable)
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleLedgerOutput
+from .dtos import ExampleLedgerOutput
 from models.tmp_abi_lookup import CMK_ADDRESS
 
 

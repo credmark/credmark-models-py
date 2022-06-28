@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Token
-from models.dtos.example import ExampleIterationOutput
+from .dtos import ExampleIterationOutput
 
 
 @Model.describe(

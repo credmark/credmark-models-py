@@ -2,7 +2,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelTypeError
 from credmark.cmf.types import NativeToken, Token
-from models.dtos.example import ExampleModelOutput, ExampleTokenInput
+from .dtos import ExampleModelOutput, ExampleTokenInput
 
 
 @Model.describe(

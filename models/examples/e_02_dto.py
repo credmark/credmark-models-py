@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.dto import DTO, DTOField, EmptyInput
-from models.dtos.example import ExampleModelOutput
+from .dtos import ExampleModelOutput
 
 
 @Model.describe(

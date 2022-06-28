@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Accounts
-from models.dtos.example import ExampleAccountInput, ExampleModelOutput
+from .dtos import ExampleAccountInput, ExampleModelOutput
 
 
 @Model.describe(

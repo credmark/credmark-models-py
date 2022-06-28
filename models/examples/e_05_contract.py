@@ -2,7 +2,7 @@ import socket
 
 from credmark.cmf.model import EmptyInput, Model
 from credmark.cmf.types import Contract, ContractLedger
-from models.dtos.example import ExampleModelOutput
+from .dtos import ExampleModelOutput
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 from web3._utils.events import get_event_data

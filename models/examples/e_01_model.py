@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
+from .dtos import ExampleEchoInput, ExampleEchoOutput
 
 
 @Model.describe(

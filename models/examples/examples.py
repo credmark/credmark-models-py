@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from models.dtos.example import ExampleAllModelsOutput
+from .dtos import ExampleAllModelsOutput
 
 
 @Model.describe(
