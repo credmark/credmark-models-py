@@ -35,6 +35,7 @@ class VaRPriceHistorical(Model):
                 description='Example of implementing VaR for a portfolio',
                 category='example',
                 subcategory='financial',
+                tags=['var'],
                 input=ContractVaRInput,
                 output=dict)
 class DemoContractVaR(Model):

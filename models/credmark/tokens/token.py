@@ -70,6 +70,8 @@ def get_eip1967_proxy_err(context, logger, address, verbose):
                 display_name='Token Price - Underlying',
                 description='For token backed by underlying - get the address',
                 developer='Credmark',
+                category='protocol',
+                tags=['token'],
                 input=Token,
                 output=Maybe[Address])
 class TokenUnderlying(Model):
@@ -143,6 +145,8 @@ class TokenUnderlying(Model):
     version="1.1",
     display_name="Token Information",
     developer="Credmark",
+    category='protocol',
+    tags=['token'],
     input=Token,
     output=Token
 )
@@ -159,6 +163,8 @@ class TokenInfoModel(Model):
                 version='1.0',
                 display_name='Token Holders',
                 description='The number of holders of a Token',
+                category='protocol',
+                tags=['token'],
                 input=Token,
                 output=dict)
 class TokenHolders(Model):
@@ -171,6 +177,8 @@ class TokenHolders(Model):
                 version='1.0',
                 display_name='Swap Pools for Token',
                 description='All swap pools available for the current Token',
+                category='protocol',
+                subcategory='uniswap',
                 input=Token,
                 output=Contracts)
 class TokenSwapPools(Model):
@@ -186,6 +194,8 @@ class TokenSwapPools(Model):
                 version='1.0',
                 display_name='Token Volume',
                 description='The current volume for a swap pool',
+                category='protocol',
+                tags=['token'],
                 input=Contract,
                 output=dict)
 class TokenSwapPoolVolume(Model):
@@ -198,6 +208,8 @@ class TokenSwapPoolVolume(Model):
                 version='1.0',
                 display_name='Token Volume',
                 description='The Current Credmark Supported trading volume algorithm',
+                category='protocol',
+                tags=['token'],
                 input=Token,
                 output=dict)
 class TokenVolume(Model):
@@ -232,6 +244,8 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
                 version='1.0',
                 display_name='Token Categorized Supply',
                 description='The categorized supply for a token',
+                category='protocol',
+                tags=['token'],
                 input=CategorizedSupplyRequest,
                 output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(Model):

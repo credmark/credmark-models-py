@@ -11,6 +11,8 @@ from credmark.dto import EmptyInput
                 version='1.0',
                 display_name='Token - get list of stable coins on a chain',
                 description='A list of stable coins',
+                category='protocol',
+                tags=['token', 'stablecoin'],
                 input=EmptyInput,
                 output=Tokens)
 class StableCoins(Model):

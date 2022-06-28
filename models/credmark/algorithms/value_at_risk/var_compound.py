@@ -13,6 +13,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import \
                 description="Calcualte the VaR of Compound contract of its net asset",
                 category='protocol',
                 subcategory='compound',
+                tags=['var'],
                 input=ContractVaRInput,
                 output=dict)
 class CompoundGetVAR(Model):

@@ -29,6 +29,8 @@ class CurvePoolPeggingInfo(Contract):
                 version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=CurvePoolPeggingInfo)
 class CurveGetPeggingRatio(Model):
@@ -142,6 +144,8 @@ class CurvePoolsValueHistoricalInput(DTO):
                 version="1.1",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
+                category='protocol',
+                subcategory='curve',
                 input=CurvePoolsValueHistoricalInput,
                 output=dict)
 class CurveV2PoolsValueHistorical(Model):
@@ -189,6 +193,8 @@ class CurvePoolDepeggingAmount(DTO):
                 version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=CurveDepeggingAmountInput,
                 output=CurvePoolDepeggingAmount)
 class CurveGetDepeggingAmount(Model):
@@ -236,6 +242,8 @@ class CurvePeggingRatioChangeInput(DTO):
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=CurvePeggingRatioChangeInput,
                 output=CurvePoolPeggingInfo)
 class CurveGetPeggingRatioChange(Model):

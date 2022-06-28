@@ -9,6 +9,8 @@ from credmark.dto import EmptyInput
     version='1.1',
     display_name='Redacted Cartel Votium Cashflow',
     description='Redacted Cartel Votium Cashflow',
+    category='protocol',
+    subcategory='votium',
     input=EmptyInput,
     output=dict
 )
@@ -46,6 +48,8 @@ class RedactedVotiumCashflow(Model):
     version='1.1',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
+    category='protocol',
+    subcategory='votium',
     input=EmptyInput,
     output=dict
 )

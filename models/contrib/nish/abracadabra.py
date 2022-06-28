@@ -94,8 +94,11 @@ class AbracadabraOutput(DTO):
 # Fetching Collateral of each market of abracadabra on ethereum chain
 @Model.describe(slug="contrib.abracadabra-tvl",
                 version="1.0",
-                display_name="Get TVL for abracadabra",
+                display_name="TVL for abracadabra",
                 description="Get TVL for abracadabra",
+                category='protocol',
+                subcategory='abracadabra',
+                tags=['tvl'],
                 input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraGetTVL(Model):
@@ -155,8 +158,11 @@ class AbracadabraHistoricalInput(DTO):
 
 @Model.describe(slug="contrib.abracadabra-tvl-historical",
                 version="1.0",
-                display_name="Get TVL for abracadabra",
-                description="Get TVL for abracadabra",
+                display_name="Historical TVL for abracadabra",
+                description="Get historical TVL for abracadabra",
+                category='protocol',
+                subcategory='abracadabra',
+                tags=['tvl'],
                 input=AbracadabraHistoricalInput,
                 output=BlockSeries[AbracadabraOutput])
 class AbracadabraGetTVLHistorical(Model):
@@ -208,10 +214,12 @@ class AbracadabraPortfolio(IterableListGenericDTO[AbracadabraVaultPortfolio]):
 
 
 # Fetching Collateral of each market of abracadabra on ethereum chain
-@Model.describe(slug="contrib.abracadabra-vault-portolio",
+@Model.describe(slug="contrib.abracadabra-vault-portfolio",
                 version="1.0",
-                display_name="Get TVL for abracadabra",
-                description="Get TVL for abracadabra",
+                display_name="Vault portfolio for abracadabra",
+                description="Get the vault portfolio for abracadabra",
+                category='protocol',
+                subcategory='abracadabra',
                 input=Contract,
                 output=AbracadabraVaultPortfolio)
 class AbracadabraGetVaultPortfolio(Model):
@@ -282,10 +290,12 @@ class AbracadabraGetVaultPortfolio(Model):
 
 
 # Fetching Collateral of each market of abracadabra on ethereum chain
-@Model.describe(slug="contrib.abracadabra-overall-portolio",
+@Model.describe(slug="contrib.abracadabra-overall-portfolio",
                 version="1.0",
-                display_name="Get TVL for abracadabra",
-                description="Get TVL for abracadabra",
+                display_name="Overall portfolio for abracadabra",
+                description="Get the overall portfolio abracadabra",
+                category='protocol',
+                subcategory='abracadabra',
                 input=EmptyInput,
                 output=AbracadabraPortfolio)
 class AbracadabraGetOverallPortfolio(Model):
@@ -298,7 +308,7 @@ class AbracadabraGetOverallPortfolio(Model):
         for key in ethereum_active_markets_keys:
             # Contract address of market
             market_address = Address(ethereum_active_markets[key]).checksum
-            vault_portfolio = self.context.run_model('contrib.abracadabra-vault-portolio',
+            vault_portfolio = self.context.run_model('contrib.abracadabra-vault-portfolio',
                                                      input=Contract(address=market_address),
                                                      return_type=AbracadabraVaultPortfolio)
             abracadabra_portfolio.append(vault_portfolio)
@@ -309,6 +319,8 @@ class AbracadabraGetOverallPortfolio(Model):
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
+                category='protocol',
+                subcategory='abracadabra',
                 input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallLiabilities(Model):
@@ -364,6 +376,8 @@ class AbracadabraOverallLiabilities(Model):
                 version="1.0",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
+                category='protocol',
+                subcategory='abracadabra',
                 input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallAssets(Model):

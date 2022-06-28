@@ -12,6 +12,9 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 version='1.1',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
+                category='protocol',
+                subcategory='chainlink',
+                tags=['price'],
                 input=PriceInput,
                 output=Maybe[Price])
 class PriceOracleChainlinkMaybe(Model):
@@ -29,6 +32,9 @@ class PriceOracleChainlinkMaybe(Model):
                 version='1.6',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
+                category='protocol',
+                subcategory='chainlink',
+                tags=['price'],
                 input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)

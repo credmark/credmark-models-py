@@ -12,6 +12,7 @@ from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfos
                 description="Calculate the VaR of Aave contract of its net asset",
                 category='protocol',
                 subcategory='aave-v2',
+                tags=['var'],
                 input=ContractVaRInput,
                 output=dict)
 class AaveV2GetVAR(Model):

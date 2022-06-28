@@ -8,6 +8,7 @@ from credmark.cmf.model import Model
         contribute a model to the Credmark framework",
     version='1.0',
     developer='neilz.eth',
+    category='example',
     output=dict
 )
 class MyModel(Model):

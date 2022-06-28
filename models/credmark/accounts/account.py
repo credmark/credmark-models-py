@@ -14,6 +14,8 @@ from credmark.cmf.types.ledger import TokenTransferTable
                 display_name='Account Token ERC20',
                 description='Account ERC20 transaction table',
                 developer="Credmark",
+                category='account',
+                tags=['token'],
                 input=Account,
                 output=dict)
 class AccountERC20Token(Model):
@@ -50,6 +52,8 @@ class AccountERC20Token(Model):
     display_name="Account Portfolio",
     description="All of the token holdings for an account",
     developer="Credmark",
+    category='account',
+    tags=['portfolio'],
     input=Account,
     output=Portfolio)
 class WalletInfoModel(Model):
@@ -100,6 +104,8 @@ class WalletInfoModel(Model):
     display_name="Account Portfolios for a list of Accounts",
     description="All of the token holdings for an account",
     developer="Credmark",
+    category='account',
+    tags=['portfolio'],
     input=Accounts,
     output=Portfolio)
 class AccountsPortfolio(Model):
@@ -159,6 +165,9 @@ class CurveLPPosition(Position):
     display_name="account position in Curve LP",
     description="All the positions in Curve LP",
     developer="Credmark",
+    category='protocol',
+    subcategory='curve',
+    tags=['portfolio'],
     input=Account,
     output=Portfolio)
 class GetCurveLPPosition(Model):
