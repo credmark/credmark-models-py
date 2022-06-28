@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token
+from credmark.cmf.types import Address, Token, BlockNumber
 from credmark.dto import DTO, DTOField
 from credmark.cmf.types.ledger import TokenTransferTable
 
@@ -10,7 +10,7 @@ class TokenBalanceInput(DTO):
 class TokenNetInflowInput(DTO):
     from_addr: Address = Address('0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9')
     token: Address = Address('0xdac17f958d2ee523a2206206994597c13d831ec7')
-    # blocks: float
+    blocks: BlockNumber
 
 @Model.describe(
     slug='contrib.token-balance-of',
@@ -31,7 +31,7 @@ class TokenBalanceOf(Model):
           'token_address': input.token,
           'token_supply': supply,
           'wallet_address': input.wallet,
-          'token_balance': balance,
+          'wallet_balance': balance,
           'balance_to_supply_ratio': token.scaled(balance) / token.scaled(supply)
         }
 
@@ -54,7 +54,11 @@ class TokenNetInflow(Model):
             columns=[
                 TokenTransferTable.Columns.VALUE,
             ], 
-            where=f'{TokenTransferTable.Columns.TOKEN_ADDRESS}=\'{input.token}\' and {TokenTransferTable.Columns.TO_ADDRESS}=\'{input.from_addr}\' and {TokenTransferTable.Columns.BLOCK_NUMBER} > {self.context.block_number - 1000}',
+            where=(
+                f'{TokenTransferTable.Columns.TOKEN_ADDRESS}=\'{input.token}\'' 
+                f'and {TokenTransferTable.Columns.TO_ADDRESS}=\'{input.from_addr}\'' 
+                f'and {TokenTransferTable.Columns.BLOCK_NUMBER} > {self.context.block_number - input.blocks}'
+            ),
             order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
         )
 
@@ -63,7 +67,11 @@ class TokenNetInflow(Model):
             columns=[
                 TokenTransferTable.Columns.VALUE,
             ], 
-            where=f'{TokenTransferTable.Columns.TOKEN_ADDRESS}=\'{input.token}\' and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.from_addr}\' and {TokenTransferTable.Columns.BLOCK_NUMBER} > {self.context.block_number - 1000}',
+            where=(
+                f'{TokenTransferTable.Columns.TOKEN_ADDRESS}=\'{input.token}\'' 
+                f'and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.from_addr}\''
+                f' and {TokenTransferTable.Columns.BLOCK_NUMBER} > {self.context.block_number - input.blocks}'
+            ),
             order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
         )
         inflow = float(0)
@@ -77,6 +85,10 @@ class TokenNetInflow(Model):
         return {
             'inflow': token.scaled(inflow),           
             'outflow': token.scaled(outflow),
-            'net_inflow':token.scaled(inflow) - token.scaled(outflow) 
+            'net_inflow':token.scaled(inflow) - token.scaled(outflow),
+            'from_address': input.from_addr,
+            'token': input.token,
+            'from_block': self.context.block_number - input.blocks,
+            'to_block': self.context.block_number
         }
 
