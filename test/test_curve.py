@@ -15,6 +15,17 @@ class TestCurve(CMKTest):
         self.run_model('token.price', {"address": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
         self.run_model('token.price', {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
+        # Curve.fi 4pool USDC/USDT/UST/FRAX (4CRV) 0x4e0915C88bC70750D68C481540F081fEFaF22273
+        self.run_model('curve-fi.pool-info',
+                       {"address": "0x4e0915C88bC70750D68C481540F081fEFaF22273"}, block_number=14831356)
+
+        # Curve.fi 4pool DAI/USDC/USDT/sUSD 0xA5407eAE9Ba41422680e2e00537571bcC53efBfD
+        self.run_model('curve-fi.pool-info',
+                       {"address": "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD"}, block_number=14831356)
+
+        # Token: Curve.fi 4pool DAI/USDC/USDT/sUSD 0xc25a3a3b969415c80451098fa907ec722572917f
+        self.run_model('curve-fi.pool-info', {"address": "0xc25a3a3b969415c80451098fa907ec722572917f"})
+
         # Curve.fi USD-BTC-ETH 0xc4ad29ba4b3c580e6d59105fff484999997675ff
         self.run_model('curve-fi.pool-info', {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
