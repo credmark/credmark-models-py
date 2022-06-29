@@ -124,7 +124,7 @@ class VaRPortfolio(Model):
 
 
 @Model.describe(slug='finance.var-engine-historical',
-                version='1.4',
+                version='1.5',
                 display_name='Value at Risk',
                 description='Value at Risk',
                 category='financial',
@@ -207,7 +207,7 @@ class VaREngineHistorical(Model):
         weights = np.ones(len(input.portfolio.positions))
         for i in range(len(input.portfolio.positions)):
             try:
-                linreg_result = sps.linregress(self.all_ppl_arr[:, i], all_ppl_vec)
+                linreg_result = sps.linregress(all_ppl_vec, self.all_ppl_arr[:, i])
                 weights[i] = linreg_result.slope
             except ValueError as err:
                 if 'Cannot calcualte a linear regression if all x values are identical' in str(err):
