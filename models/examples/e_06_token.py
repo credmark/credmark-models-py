@@ -2,7 +2,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelTypeError
 from credmark.cmf.types import NativeToken, Token
-from models.dtos.example import ExampleModelOutput, ExampleTokenInput
+from .dtos import ExampleModelOutput, ExampleTokenInput
 
 
 @Model.describe(
@@ -11,6 +11,8 @@ from models.dtos.example import ExampleModelOutput, ExampleTokenInput
     developer='credmark',
     display_name="Example - Token",
     description="This model demonstrates the functionality of the Token class",
+    category='example',
+    tags=['token'],
     input=ExampleTokenInput,
     output=ExampleModelOutput)
 class ExampleToken(Model):

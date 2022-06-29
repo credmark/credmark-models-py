@@ -19,6 +19,7 @@ class SharpRatioInput(DTO):
                 display_name="Sharpe ratio for a token's historical price performance",
                 description=("Sharpe ratio is return (averaged returns, annualized) "
                              "versus risk (std. dev. of return)"),
+                category='financial',
                 input=SharpRatioInput,
                 output=dict)
 class SharpeRatioToken(Model):

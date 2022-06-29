@@ -23,6 +23,7 @@ class LCRInput(DTO):
                 version='1.0',
                 display_name='Liquidity Coverage Ratio',
                 description='A simple LCR model',
+                category='financial',
                 input=LCRInput)
 class Var(Model):
 

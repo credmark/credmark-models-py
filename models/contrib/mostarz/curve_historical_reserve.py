@@ -7,6 +7,8 @@ from credmark.cmf.types import BlockNumber, Contract
                 display_name="Curve Finance Pool Liqudity",
                 description="gets reserve ratio of stablecoin"
                 "pools in Curve for every day in the past year",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=dict)
 class CurveFinanceHistoricalReserve(Model):

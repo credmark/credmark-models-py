@@ -13,6 +13,8 @@ from web3.exceptions import ContractLogicError
                 version="1.0",
                 display_name="Chainlink - Feed registry",
                 description="Supports multi-chain",
+                category='protocol',
+                subcategory='chainlink',
                 input=EmptyInput,
                 output=Contract)
 class ChainLinkFeedRegistry(Model):
@@ -36,6 +38,8 @@ class ENSDomainName(DTO):
                 version="1.0",
                 display_name="Chainlink - Price by ENS",
                 description="Use ENS domain name for a token pair",
+                category='protocol',
+                subcategory='chainlink',
                 input=ENSDomainName,
                 output=Price)
 class ChainLinkPriceByENS(Model):
@@ -53,6 +57,8 @@ class ChainLinkPriceByENS(Model):
                  version="1.0",
                  display_name="Chainlink - Price by feed",
                  description="Input a Chainlink valid feed",
+                 category='protocol',
+                 subcategory='chainlink',
                  input=Contract,
                  output=Price)
 class ChainLinkPriceByFeed(Model):
@@ -82,6 +88,8 @@ class ChainLinkPriceByFeed(Model):
                 version="1.1",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
+                category='protocol',
+                subcategory='chainlink',
                 input=PriceInput,
                 output=Maybe[Price])
 class ChainLinkFeedFromRegistryMaybe(Model):
@@ -105,6 +113,8 @@ class ChainLinkFeedFromRegistryMaybe(Model):
                 version="1.2",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
+                category='protocol',
+                subcategory='chainlink',
                 input=PriceInput,
                 output=Price)
 class ChainLinkPriceByRegistry(Model):

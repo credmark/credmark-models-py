@@ -20,6 +20,8 @@ class GCInput(DTO):
     version='1.1',
     display_name='Generalized Cashflow',
     description='Tracks cashflow from sender address to receiver address.',
+    category='protocol',
+    tags=['token'],
     input=GCInput,
     output=dict
 )

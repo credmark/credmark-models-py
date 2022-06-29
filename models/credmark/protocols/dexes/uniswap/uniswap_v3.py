@@ -38,6 +38,8 @@ class UniswapV3PoolInfo(DTO):
                 version='1.1',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Token,
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
@@ -83,6 +85,8 @@ class UniswapV3GetPoolsForToken(Model):
                 version='1.3',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Contract,
                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
@@ -185,6 +189,8 @@ class UniswapV3GetPoolInfo(Model):
                 version='1.4',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Token,
                 output=PoolPriceInfos)
 class UniswapV3GetTokenPricePoolInfo(Model):

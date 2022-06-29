@@ -16,6 +16,9 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description=("For those tokens primarily traded in curve - "
                              "return None if cannot price"),
+                category='protocol',
+                subcategory='curve',
+                tags=['price'],
                 input=Token,
                 output=Maybe[Price])
 class CurveFinanceMaybePrice(Model):
@@ -36,6 +39,9 @@ class CurveFinanceMaybePrice(Model):
                 version="1.4",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
+                category='protocol',
+                subcategory='curve',
+                tags=['price'],
                 input=Token,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)

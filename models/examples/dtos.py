@@ -7,7 +7,7 @@ from credmark.cmf.types import Address, Token
 from credmark.cmf.types.ledger import LedgerModelOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from models.utils.term_colors import TermColors
+from .term_colors import TermColors
 
 
 class _ExampleModelOutput(DTO):

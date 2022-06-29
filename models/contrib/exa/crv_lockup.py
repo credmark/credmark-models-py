@@ -9,6 +9,8 @@ from credmark.cmf.types import Address, Token
                  "and vote escrow against total supply"),
     version='1.0',
     developer='exa256',
+    category='protocol',
+    subcategory='curve',
     output=dict
 )
 class CurveFinanceVeCRVLockup(Model):

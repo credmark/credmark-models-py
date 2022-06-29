@@ -17,6 +17,8 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
                 input=PriceHistoricalInputs,
                 output=MapBlockTimeSeriesOutput[Prices],
                 errors=PRICE_DATA_ERROR_DESC)
@@ -45,6 +47,8 @@ class PriceQuoteHistoricalMultiple(Model):
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
+                category='protocol',
+                tags=['token', 'price', 'historical'],
                 input=PriceHistoricalInput,
                 output=MapBlockTimeSeriesOutput[Price],
                 errors=PRICE_DATA_ERROR_DESC)
@@ -73,6 +77,8 @@ class PriceQuoteHistorical(Model):
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
                 input=PriceInputs,
                 output=Prices,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -100,6 +106,8 @@ class PriceQuoteMultiple(Model):
                 version='1.7',
                 display_name='Token Price in USD',
                 description='DEPRECATED - use price.quote',
+                category='protocol',
+                tags=['token', 'price'],
                 input=Currency,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -116,6 +124,8 @@ class PriceModelDeprecated(Model):
                 version='1.7',
                 display_name='Token Price in USD',
                 description='DEPRECATED - use price.quote',
+                category='protocol',
+                tags=['token', 'price'],
                 input=Currency,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -133,6 +143,8 @@ class TokenPriceModelDeprecated(Model):
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
                 input=PriceInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)

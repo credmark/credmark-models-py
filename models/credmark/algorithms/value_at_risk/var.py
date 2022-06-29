@@ -19,6 +19,7 @@ from models.dtos.price import Prices
     display_name="VaR for an account",
     description="VaR for an account",
     developer="Credmark",
+    category='financial',
     input=AccountVaRInput,
     output=dict)
 class AccountVaR(Model):
@@ -126,6 +127,7 @@ class VaRPortfolio(Model):
                 version='1.4',
                 display_name='Value at Risk',
                 description='Value at Risk',
+                category='financial',
                 input=VaRHistoricalInput,
                 output=dict)
 class VaREngineHistorical(Model):

@@ -5,7 +5,7 @@ from credmark.cmf.types.ledger import (BlockTable, ContractTable, LogTable,
                                        TokenTransferTable, TraceTable,
                                        TransactionTable)
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleLedgerOutput
+from .dtos import ExampleLedgerOutput
 from models.tmp_abi_lookup import CMK_ADDRESS
 
 
@@ -15,6 +15,8 @@ from models.tmp_abi_lookup import CMK_ADDRESS
     developer="Credmark",
     display_name="Example - Ledger Blocks",
     description="This model demonstrates the functionality of Ledger's blocks",
+    category='example',
+    tags=['ledger'],
     input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerBlocks(Model):

@@ -19,7 +19,9 @@ lockedAddresses = [
                 version='1.0',
                 display_name='CMK Total Supply',
                 description='This is the Total Supply of CMK',
-                developer='Credmark')
+                developer='Credmark',
+                category='protocol',
+                subcategory='cmk')
 class TotalSupplyCMK(Model):
 
     def run(self, input) -> dict:
@@ -32,7 +34,9 @@ class TotalSupplyCMK(Model):
                 version='1.0',
                 display_name='CMK Circulating Supply',
                 description='This is the Circulating Supply of CMK.',
-                developer='Credmark')
+                developer='Credmark',
+                category='protocol',
+                subcategory='cmk')
 class CirculatingCMK(Model):
 
     def run(self, input) -> dict:

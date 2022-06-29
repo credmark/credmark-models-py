@@ -19,6 +19,9 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 input=PoolPriceAggregatorInput,
+                category='protocol',
+                subcategory='compound',
+                tags=['price'],
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class PoolPriceAggregator(Model):
@@ -63,6 +66,9 @@ class DexWeightedPrice(Model, PriceWeight):
                 version='1.2',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                tags=['price'],
                 input=Token,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -75,6 +81,9 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
                 version='1.2',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v2',
+                tags=['price'],
                 input=Token,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -87,6 +96,9 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
                 version='1.2',
                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
+                category='protocol',
+                subcategory='sushi-v2',
+                tags=['price'],
                 input=Token,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
@@ -100,6 +112,9 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
+                 category='protocol',
+                 subcategory='compound',
+                 tags=['price'],
                  input=Token,
                  output=Price,
                  errors=PRICE_DATA_ERROR_DESC)

@@ -60,6 +60,8 @@ class UniswapV2PoolMeta:
                 version='1.1',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v2',
                 input=Token,
                 output=Contracts)
 class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
@@ -81,6 +83,8 @@ class UniswapPoolPriceInput(DTO):
                 version='1.2',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
+                category='protocol',
+                subcategory='uniswap-v2',
                 input=UniswapPoolPriceInput,
                 output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
@@ -153,6 +157,8 @@ class UniswapPoolPriceInfo(Model):
                 version='1.3',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
+                category='protocol',
+                subcategory='uniswap-v2',
                 input=Token,
                 output=PoolPriceInfos)
 class UniswapV2GetTokenPriceInfo(Model):
@@ -189,6 +195,8 @@ class UniswapV2GetTokenPriceInfo(Model):
                  version="1.5",
                  display_name="Uniswap/Sushiswap get details for a pool",
                  description="Returns the token details of the pool",
+                 category='protocol',
+                 subcategory='uniswap-v2',
                  input=Contract,
                  output=dict)
 class UniswapGetPoolInfo(Model):
@@ -234,6 +242,8 @@ class UniswapGetPoolInfo(Model):
                  version='1.2',
                  display_name='Uniswap/Sushiswap Token Pool TVL',
                  description='Gather price and liquidity information from pools',
+                 category='protocol',
+                 subcategory='uniswap-v2',
                  input=Contract,
                  output=TVLInfo)
 class UniswapV2PoolTVL(Model):
@@ -273,6 +283,8 @@ class UniswapV2PoolTVL(Model):
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
+                 category='protocol',
+                 subcategory='uniswap-v2',
                  input=VolumeInputHistorical,
                  output=BlockSeries[TradingVolume])
 class DexPoolSwapVolumeHistorical(Model):
@@ -461,6 +473,8 @@ class DexPoolSwapVolumeHistorical(Model):
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current'),
+                 category='protocol',
+                 subcategory='uniswap-v2',
                  input=VolumeInput,
                  output=TradingVolume)
 class DexPoolSwapVolume(Model):

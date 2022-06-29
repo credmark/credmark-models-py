@@ -35,6 +35,8 @@ class PoolVolumeInfoHistoricalInput(DTO):
                 version="1.0",
                 display_name="Get TVL and Volume for a Curve's pool",
                 description="Get TVL and Volume for a Curve's pool",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=PoolVolumeInfo)
 class CurveGetTVLAndVolume(Model):
@@ -149,6 +151,8 @@ class CurveGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Curve pool - TVL and Volume Historical",
                 description="Runs contrib.curve-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='curve',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class CurveGetTVLAndVolumeHistorical(Model):
@@ -183,6 +187,8 @@ class CurveGetTVLAndVolumeHistorical(Model):
                 version="1.0",
                 display_name="Sushiswap & Uniswap get details for a pool",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='uniswap',
                 input=Contract,
                 output=PoolVolumeInfo)
 class UniSushiGetTVLAndVolume(Model):
@@ -254,6 +260,8 @@ class UniSushiGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='sushi',
                 input=Contract,
                 output=PoolVolumeInfo)
 class SushiswapGetTVLAndVolume(Model):
@@ -270,6 +278,8 @@ class SushiswapGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Sushiswap TVL and Volume Historical",
                 description="Runs contrib.sushiswap-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='sushi',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class SushiswapGetTVLAndVolumeHistorical(Model):
@@ -302,6 +312,8 @@ class SushiswapGetTVLAndVolumeHistorical(Model):
                 version="1.0",
                 display_name="Uniswap TVL and Volume",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='uniswap',
                 input=Contract,
                 output=PoolVolumeInfo)
 class UniswapGetTVLAndVolume(Model):
@@ -323,6 +335,8 @@ class UniswapGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Uniswap TVL and Volume Historical",
                 description="Runs contrib.uniswap-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='uniswap',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class UniswapGetTVLAndVolumeHistorical(Model):

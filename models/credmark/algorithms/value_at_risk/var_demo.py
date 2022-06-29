@@ -9,6 +9,7 @@ from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
                 version='1.1',
                 display_name='Value at Risk - Get Price Historical',
                 description='Feed a mock historical price list',
+                category='example',
                 input=HistoricalPriceInput,
                 output=PriceList)
 class VaRPriceHistorical(Model):
@@ -32,6 +33,9 @@ class VaRPriceHistorical(Model):
                 version='1.2',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
+                category='example',
+                subcategory='financial',
+                tags=['var'],
                 input=ContractVaRInput,
                 output=dict)
 class DemoContractVaR(Model):

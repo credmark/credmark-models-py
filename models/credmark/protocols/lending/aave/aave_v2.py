@@ -45,6 +45,8 @@ class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
                 version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
                 description="Aave V2 - Get lending pool providers",
+                category='protocol',
+                subcategory='aave-v2',
                 input=EmptyInput,
                 output=Contracts)
 class AaveV2GetLendingPoolProviders(Model):
@@ -78,6 +80,8 @@ class AaveV2GetLendingPoolProviders(Model):
                 version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
                 description="Aave V2 - Get lending pool providers",
+                category='protocol',
+                subcategory='aave-v2',
                 input=EmptyInput,
                 output=Contract)
 class AaveV2GetLendingPoolProvider(Model):
@@ -101,6 +105,8 @@ class AaveV2GetLendingPoolProvider(Model):
                  version="1.1",
                  display_name="Aave V2 - Get lending pool for main market",
                  description="Aave V2 - Get lending pool for main market",
+                 category='protocol',
+                 subcategory='aave-v2',
                  input=EmptyInput,
                  output=Contract)
 class AaveV2GetLendingPool(Model):
@@ -118,6 +124,8 @@ class AaveV2GetLendingPool(Model):
                 version="1.1",
                 display_name="Aave V2 - Get price oracle for main market",
                 description="Aave V2 - Get price oracle for main market",
+                category='protocol',
+                subcategory='aave-v2',
                 input=EmptyInput,
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
@@ -135,6 +143,8 @@ class AaveV2GetPriceOracle(Model):
                 version="1.1",
                 display_name="Aave V2 - Query price oracle for main market - in ETH",
                 description="Price of Token / ETH",
+                category='protocol',
+                subcategory='aave-v2',
                 input=Token,
                 output=Price)
 class AaveV2GetOraclePrice(Model):
@@ -149,6 +159,8 @@ class AaveV2GetOraclePrice(Model):
                 version="1.1",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
+                category='protocol',
+                subcategory='aave-v2',
                 output=Portfolio)
 class AaveV2GetLiability(Model):
 
@@ -177,6 +189,8 @@ class AaveV2GetLiability(Model):
                  version="1.1",
                  display_name="Aave V2 token liability",
                  description="Aave V2 token liability at a given block number",
+                 category='protocol',
+                 subcategory='aave-v2',
                  input=Token,
                  output=Position)
 class AaveV2GetTokenLiability(Model):
@@ -206,6 +220,8 @@ class AaveV2GetTokenLiability(Model):
                  version="1.2",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
+                 category='protocol',
+                 subcategory='aave-v2',
                  output=AaveDebtInfos)
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
@@ -249,6 +265,8 @@ class AaveV2GetAssets(Model):
                  version="1.2",
                  display_name="Aave V2 token liquidity",
                  description="Aave V2 token liquidity at a given block number",
+                 category='protocol',
+                 subcategory='aave-v2',
                  input=Token,
                  output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
