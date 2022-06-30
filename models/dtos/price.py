@@ -40,23 +40,6 @@ class Many(GenericDTO, Generic[DTOCLS]):
         return len(self.some)
 
 
-class Many(GenericDTO, Generic[DTOCLS]):
-    some: List[DTOCLS] = DTOField([])
-    _iterator: str = 'some'
-
-    def __iter__(self) -> Iterator[DTOCLS]:
-        return getattr(self, self._iterator).__iter__()
-
-    def __getitem__(self, key) -> DTOCLS:
-        return getattr(self, self._iterator).__getitem__(key)
-
-    def append(self, obj):
-        return getattr(self, self._iterator).append(obj)
-
-    def extend(self, obj):
-        return getattr(self, self._iterator).extend(obj)
-
-
 class PriceInput(DTO):
     """
     In FX, the pair is quoted as base/quote for 1 base = x quote
