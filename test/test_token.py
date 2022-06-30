@@ -57,6 +57,7 @@ class TestToken(CMKTest):
 
         # WETH-DAI pool: https://analytics.sushi.com/pairs/0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
         self.run_model('token.swap-pool-volume', {"address": "0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"})
+
         # UniSwap V3 factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984
         self.run_model('token.categorized-supply', {"categories": [{"accounts": {"accounts": [
                        {"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": True}], "token": {"symbol": "DAI"}})

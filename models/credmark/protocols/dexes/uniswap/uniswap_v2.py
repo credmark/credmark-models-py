@@ -154,7 +154,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.3',
+                version='1.4',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -167,26 +167,44 @@ class UniswapV2GetTokenPriceInfo(Model):
                                        input,
                                        return_type=Contracts)
 
-        model_slug = 'uniswap-v2.get-price-pool-info'
-        model_inputs = [{'token': input, 'pool': pool} for pool in pools]
-        pool_infos = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': model_slug,
-                   'modelInputs': model_inputs},
-            return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
+        # TODO: Too depths issue
+        def _use_compose():
+            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+            pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
 
-        infos = []
-        for pool_n, p in enumerate(pool_infos):
-            if p.output is not None:
-                if p.output.just is not None:
-                    infos.append(p.output.just)
-            elif p.error is not None:
-                self.logger.error(p.error)
-                raise ModelRunError(
-                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                    p.error.message)
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            infos = []
+            for pool_n, p in enumerate(pool_infos):
+                if p.output is not None:
+                    if p.output.just is not None:
+                        infos.append(p.output.just)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise ModelRunError(
+                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                        p.error.message)
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return infos
+
+        def _use_for():
+            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo])
+                if pi.is_just():
+                    infos.append(pi.just)
+            return infos
+
+        infos = _use_for()
 
         return PoolPriceInfos(infos=infos)
 
@@ -216,9 +234,22 @@ class UniswapGetPoolInfo(Model):
         # token0_reserve = token0.scaled(getReserves[0])
         # token1_reserve = token1.scaled(getReserves[1])
 
-        prices = self.context.run_model('price.quote-multiple',
-                                        input={'inputs': [{'base': token0}, {'base': token1}]},
-                                        return_type=Prices)
+        def _use_compose():
+            prices = self.context.run_model('price.quote-multiple',
+                                            input={'inputs': [{'base': token0}, {'base': token1}]},
+                                            return_type=Prices)
+            return prices
+
+        def _use_for():
+            prices = Prices(prices=[])
+            for tok in [token0, token1]:
+                price = self.context.run_model('price.quote',
+                                               input={'base': tok},
+                                               return_type=Price)
+                prices.prices.append(price)
+            return prices
+
+        prices = _use_for()
 
         value0 = prices.prices[0].price * token0_balance
         value1 = prices.prices[1].price * token1_balance
@@ -279,7 +310,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.5',
+                 version='1.6',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
@@ -370,31 +401,64 @@ class DexPoolSwapVolumeHistorical(Model):
                     df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
         elif input.pool_info_model == 'curve-fi.pool-tvl':
-            event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchange.args]
-            assert sorted(event_tokenexchange_args) == sorted(
-                ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
+            df_all_swap_1 = pd.DataFrame()
+            if 'TokenExchange' in pool.abi.events:
+                try:
+                    event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchange.args]
+                    assert sorted(event_tokenexchange_args) == sorted(
+                        ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
 
-            try:
-                df_all_swaps = (pool.ledger.events.TokenExchange(
-                    columns=[ContractLedger.Events.InputCol("SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                    aggregates=(
-                        [self.context.ledger.Aggregate(
-                            f'sum({ContractLedger.Events.InputCol(field)})',
-                            f'{ContractLedger.Events.InputCol(field)}')
-                            for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                        [self.context.ledger.Aggregate(
-                            f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                            'interval_n')] +
-                        [self.context.ledger.Aggregate(
-                            f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                            for func in ['min', 'max', 'count']]),
-                    where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                           f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                    group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                              f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                    .to_dataframe())
-            except ModelDataError:
-                return pool_volume_history
+                    df_all_swap_1 = (pool.ledger.events.TokenExchange(
+                        columns=[ContractLedger.Events.InputCol(
+                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
+                        aggregates=(
+                            [self.context.ledger.Aggregate(
+                                f'sum({ContractLedger.Events.InputCol(field)})',
+                                f'{ContractLedger.Events.InputCol(field)}')
+                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                            [self.context.ledger.Aggregate(
+                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                'interval_n')] +
+                            [self.context.ledger.Aggregate(
+                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                for func in ['min', 'max', 'count']]),
+                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
+                        .to_dataframe())
+                except ModelDataError:
+                    pass
+
+            df_all_swap_2 = pd.DataFrame()
+            if 'TokenExchangeUnderlying' in pool.abi.events:
+                event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchangeUnderlying.args]
+                assert sorted(event_tokenexchange_args) == sorted(
+                    ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
+                try:
+                    df_all_swap_2 = (pool.ledger.events.TokenExchangeUnderlying(
+                        columns=[ContractLedger.Events.InputCol(
+                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
+                        aggregates=(
+                            [self.context.ledger.Aggregate(
+                                f'sum({ContractLedger.Events.InputCol(field)})',
+                                f'{ContractLedger.Events.InputCol(field)}')
+                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                            [self.context.ledger.Aggregate(
+                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                'interval_n')] +
+                            [self.context.ledger.Aggregate(
+                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                for func in ['min', 'max', 'count']]),
+                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
+                        .to_dataframe())
+                except ModelDataError:
+                    pass
+
+            df_all_swaps = pd.concat([df_all_swap_1, df_all_swap_2]).reset_index(drop=True)
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history

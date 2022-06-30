@@ -4,6 +4,12 @@ from cmk_test import CMKTest
 
 
 class TestDashboard(CMKTest):
+    def test_volume(self):
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=14048685)
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=15048685)
+
     def test(self):
         self.title('Curve TVL/Volume')
 

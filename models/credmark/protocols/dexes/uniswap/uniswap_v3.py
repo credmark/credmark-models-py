@@ -186,7 +186,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -201,23 +201,35 @@ class UniswapV3GetTokenPricePoolInfo(Model):
 
         model_slug = 'uniswap-v3.get-pool-info'
         model_inputs = pools.contracts
-        pool_infos = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': model_slug,
-                   'modelInputs': model_inputs},
-            return_type=MapInputsOutput[dict, UniswapV3PoolInfo])
 
-        infos = []
-        for pool_n, p in enumerate(pool_infos):
-            if p.output is not None:
-                infos.append(p.output)
-            elif p.error is not None:
-                self.logger.error(p.error)
-                raise ModelRunError(
-                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                    p.error.message)
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+        def _use_compose():
+            pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, UniswapV3PoolInfo])
+
+            infos = []
+            for pool_n, p in enumerate(pool_infos):
+                if p.output is not None:
+                    infos.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise ModelRunError(
+                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                        p.error.message)
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return infos
+
+        def _use_for():
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug, minput, return_type=UniswapV3PoolInfo)
+                infos.append(pi)
+            return infos
+
+        infos = _use_for()
 
         prices_with_info = []
         weth_price = None

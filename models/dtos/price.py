@@ -16,6 +16,9 @@ class Prices(IterableListGenericDTO[Price]):
 class Maybe(GenericDTO, Generic[DTOCLS]):
     just: Optional[DTOCLS] = DTOField(None)
 
+    def is_just(self):
+        return self.just is not None
+
 
 class Many(GenericDTO, Generic[DTOCLS]):
     some: List[DTOCLS] = DTOField([])
@@ -32,6 +35,9 @@ class Many(GenericDTO, Generic[DTOCLS]):
 
     def extend(self, obj):
         return getattr(self, self._iterator).extend(obj)
+
+    def __len__(self) -> int:
+        return len(self.some)
 
 
 class PriceInput(DTO):
