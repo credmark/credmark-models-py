@@ -15,6 +15,10 @@ class TestCurve(CMKTest):
         self.run_model('token.price', {"address": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
         self.run_model('token.price', {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
+        # Curve.fi LINK/sLINK
+        self.run_model('curve-fi.pool-info',
+                       {"address": "0xF178C0b5Bb7e7aBF4e12A4838C7b7c5bA2C623c0"}, block_number=14831356)
+
         # Curve.fi 4pool USDC/USDT/UST/FRAX (4CRV) 0x4e0915C88bC70750D68C481540F081fEFaF22273
         self.run_model('curve-fi.pool-info',
                        {"address": "0x4e0915C88bC70750D68C481540F081fEFaF22273"}, block_number=14831356)
@@ -111,3 +115,6 @@ class TestCurve(CMKTest):
         for lp_addr in lp_token_addresses:
             self.run_model('curve-fi.pool-info', {"address": lp_addr})
             self.run_model('curve-fi.pool-tvl', {"address": lp_addr})
+
+        self.run_model('convex-fi.all-pool-info', {})
+        self.run_model('convex-fi.earned', {'address': '0x5291fBB0ee9F51225f0928Ff6a83108c86327636'})
