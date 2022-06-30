@@ -48,8 +48,17 @@ class ConvexFinanceBooster(Model):
         return booster
 
 
+def fix_crv_reward(crv_rewards):
+    try:
+        _ = crv_rewards.abi
+    except ModelDataError:
+        crv_rewards._loaded = True  # pylint:disable=protected-access
+        crv_rewards.set_abi(CRV_REWARD)
+    return crv_rewards
+
+
 @Model.describe(slug="convex-fi.all-pool-info",
-                version="1.10",
+                version="0.1",
                 display_name="Convex Finance Pools",
                 description="Get All Pools Information in Convex Finance",
                 category='protocol',
@@ -68,6 +77,7 @@ class ConvexFinanceAllPools(Model):
              stash, shutdown) = booster.functions.poolInfo(pp).call()
 
             crv_reward_contract = Contract(address=crv_rewards)
+            crv_reward_contract = fix_crv_reward(crv_reward_contract)
             pool_info = ConvexPoolInfo(lp_token=Token(address=lp_token),
                                        deposit_token=Token(address=deposit_token),
                                        gauge=Contract(address=gauge),
@@ -95,12 +105,8 @@ class ConvexFinanceEarning(Model):
 
         earnings = []
         for pp in all_pools:
-            try:
-                _ = pp.crv_rewards.abi
-            except ModelDataError:
-                print(pp.crv_rewards.address)
-                pp.crv_rewards._loaded = True  # pylint:disable=protected-access
-                pp.crv_rewards.set_abi(CRV_REWARD)
+            pp.crv_rewards = fix_crv_reward(pp.crv_rewards)
+
             balance = pp.crv_rewards.functions.balanceOf(input.address.checksum).call()
             earned = pp.crv_rewards.functions.earned(input.address.checksum).call()
             rewards = pp.crv_rewards.functions.rewards(input.address.checksum).call()
@@ -108,7 +114,7 @@ class ConvexFinanceEarning(Model):
             # NOTE: pp.crv_rewards.functions.stakingToken() == deposit_token
             user_reward_per_token_paid = (pp.crv_rewards.functions
                                           .userRewardPerTokenPaid(input.address.checksum).call())
-            if earned != 0 or rewards != 0 or rewards != 0:
+            if balance != 0 or earned != 0 or rewards != 0:
                 earnings.append(dict(
                     lp_token=pp.lp_token,
                     balance=balance,
