@@ -4,6 +4,15 @@ from cmk_test import CMKTest
 
 
 class TestPrice(CMKTest):
+    def test_currency_dto(self):
+        self.title('Price - General')
+        self.run_model('price.quote', {"base": "CMK"})
+        self.run_model('price.quote', {"base": "EUR"})
+        self.run_model('price.quote', {"base": "EUR", "quote": "JPY"})
+        self.run_model('price.quote', {"base": "ETH", "quote": "JPY"})
+        self.run_model('price.quote', {"base": "AAVE", "quote": "ETH"})
+        self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e"})
+
     def test(self):
         self.title('Price - General')
 

@@ -293,15 +293,16 @@ class CurveFinancePoolInfo(Model):
                     'price.quote',
                     {'base': tok}, return_type=Price)
                 token_prices.append(token_price)
+            return token_prices
 
-        def _use_compose_model(self=self):
+        def _use_compose(self=self):
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
                 return_type=Prices).prices
             return token_prices
 
-        token_prices = _use_compose_model()
+        token_prices = _use_for()
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
