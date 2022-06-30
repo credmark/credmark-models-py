@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar, Iterator
 
 from credmark.cmf.types import Address, Currency, FiatCurrency, Price, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
@@ -15,6 +15,23 @@ class Prices(IterableListGenericDTO[Price]):
 
 class Maybe(GenericDTO, Generic[DTOCLS]):
     just: Optional[DTOCLS] = DTOField(None)
+
+
+class Many(GenericDTO, Generic[DTOCLS]):
+    some: List[DTOCLS] = DTOField([])
+    _iterator: str = 'some'
+
+    def __iter__(self) -> Iterator[DTOCLS]:
+        return getattr(self, self._iterator).__iter__()
+
+    def __getitem__(self, key) -> DTOCLS:
+        return getattr(self, self._iterator).__getitem__(key)
+
+    def append(self, obj):
+        return getattr(self, self._iterator).append(obj)
+
+    def extend(self, obj):
+        return getattr(self, self._iterator).extend(obj)
 
 
 class PriceInput(DTO):
