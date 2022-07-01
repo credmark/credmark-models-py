@@ -122,7 +122,7 @@ class CompoundV2Comptroller(Model):
                  input=EmptyInput,
                  output=dict)
 class CompoundV2GetAllPools(Model):
-    def run(self, input: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         comptroller = get_comptroller(self)
         cTokens = comptroller.functions.getAllMarkets().call()
 
@@ -133,7 +133,7 @@ class CompoundV2GetAllPools(Model):
 
 
 @ Model.describe(slug="compound-v2.all-pools-info",
-                 version="1.2",
+                 version="1.3",
                  display_name="Compound V2 - get all pool info",
                  description="Get all pools and query for their info (deposit, borrow, rates)",
                  category='protocol',
@@ -147,30 +147,35 @@ class CompoundV2AllPoolsInfo(Model):
 
         model_slug = 'compound-v2.get-pool-info'
         model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
-        all_pool_infos_results = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': model_slug,
-                   'modelInputs': model_inputs},
-            return_type=MapInputsOutput[dict, dict]
-        )
 
-        pool_infos = []
-        for pool_n, pool_result in enumerate(all_pool_infos_results):
-            if pool_result.output is not None:
-                pool_infos.append(pool_result.output)
-            elif pool_result.error is not None:
-                self.logger.error(pool_result.error)
-                raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
-                                    pool_result.error.message)
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+        def _use_compose():
+            all_pool_infos_results = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, dict]
+            )
+
+            pool_infos = []
+            for pool_n, pool_result in enumerate(all_pool_infos_results):
+                if pool_result.output is not None:
+                    pool_infos.append(pool_result.output)
+                elif pool_result.error is not None:
+                    self.logger.error(pool_result.error)
+                    raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
+                                        pool_result.error.message)
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return pool_infos
+
+        pool_infos = _use_compose()
 
         ret = CompoundV2PoolInfos(infos=pool_infos)
         return ret
 
 
 @ Model.describe(slug="compound-v2.all-pools-values",
-                 version="1.1",
+                 version="1.2",
                  display_name="Compound V2 - get all pools value",
                  description="Compound V2 - convert pool's info to value",
                  category='protocol',
@@ -182,14 +187,17 @@ class CompoundV2AllPoolsValue(Model):
         self.logger.info(f'Data as of {self.context.block_number=}')
         pool_infos = input
 
-        pool_values = []
-        for pool_info in pool_infos:
-            pool_value = self.context.run_model(
-                slug='compound-v2.pool-value',
-                input=pool_info,
-                return_type=CompoundV2PoolValue)
-            pool_values.append(pool_value)
+        def _use_for():
+            pool_values = []
+            for pool_info in pool_infos:
+                pool_value = self.context.run_model(
+                    slug='compound-v2.pool-value',
+                    input=pool_info,
+                    return_type=CompoundV2PoolValue)
+                pool_values.append(pool_value)
+            return pool_values
 
+        pool_values = _use_for()
         ret = CompoundV2PoolValues(values=pool_values)
         return ret
 

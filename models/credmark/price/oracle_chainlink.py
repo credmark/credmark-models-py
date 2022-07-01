@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelInputError, ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Currency, Price
 from models.dtos.price import Maybe, PriceInput
 
@@ -29,7 +29,7 @@ class PriceOracleChainlinkMaybe(Model):
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.6',
+                version='1.7',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 category='protocol',
@@ -112,7 +112,7 @@ class PriceOracleChainlink(Model):
         quote = new_input.quote
 
         if base.address is None or quote.address is None:
-            raise ModelDataError(f'{input} does not carry valid address')
+            raise ModelInputError(f'{input} does not carry valid address')
 
         if base == quote:
             return Price(price=1, src=f'{self.slug}|Equal')

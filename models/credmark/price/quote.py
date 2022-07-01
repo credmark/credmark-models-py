@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict
 from credmark.cmf.types import Currency, NativeToken, Price, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
@@ -13,7 +13,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.quote-historical-multiple',
-                version='1.4',
+                version='1.5',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -37,13 +37,13 @@ class PriceQuoteHistoricalMultiple(Model):
         for result in price_historical_result:
             if result.error is not None:
                 self.logger.error(result.error)
-                raise ModelDataError(result.error.message)
+                raise create_instance_from_error_dict(result.error.dict())
 
         return price_historical_result
 
 
 @Model.describe(slug='price.quote-historical',
-                version='1.0',
+                version='1.1',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -67,7 +67,7 @@ class PriceQuoteHistorical(Model):
         for result in price_historical_result:
             if result.error is not None:
                 self.logger.error(result.error)
-                raise ModelDataError(result.error.message)
+                raise create_instance_from_error_dict(result.error.dict())
 
         return price_historical_result
 

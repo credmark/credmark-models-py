@@ -53,7 +53,8 @@ class CMKGetVestingContracts(Model):
                     Contract(address="0x5CE367c907a119afa25f4DBEe4f5B4705C802Df5"),
                 ]
             )
-        raise ModelDataError(message="cmk vesting contracts only deployed on mainnet")
+        raise ModelDataError(message="cmk vesting contracts only deployed on mainnet",
+                             code=ModelDataError.Codes.NO_DATA)
 
 
 @describe(
