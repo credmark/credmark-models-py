@@ -204,7 +204,7 @@ class UniswapV2GetTokenPriceInfo(Model):
                     infos.append(pi.just)
             return infos
 
-        infos = _use_for()
+        infos = _use_compose()
 
         return PoolPriceInfos(infos=infos)
 
@@ -235,9 +235,10 @@ class UniswapGetPoolInfo(Model):
         # token1_reserve = token1.scaled(getReserves[1])
 
         def _use_compose():
-            prices = self.context.run_model('price.quote-multiple',
-                                            input={'inputs': [{'base': token0}, {'base': token1}]},
-                                            return_type=Prices)
+            prices = self.context.run_model(
+                'price.quote-multiple',
+                input={'inputs': [{'base': token0}, {'base': token1}]},
+                return_type=Prices)
             return prices
 
         def _use_for():

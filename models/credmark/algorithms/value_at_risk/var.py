@@ -62,7 +62,7 @@ class VaRPortfolio(Model):
         assets_to_quote_list = list(assets_to_quote)
 
         # TODO: kept two versions to see how r8unner's performance can avoid timeout
-        def _use_compose_map():
+        def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',
                 input={"inputs": [{'base': {'address': tok_addr}}
@@ -110,7 +110,7 @@ class VaRPortfolio(Model):
 
             return price_lists
 
-        price_lists = _use_for()
+        price_lists = _use_compose()
 
         var_input = {
             'portfolio': portfolio,

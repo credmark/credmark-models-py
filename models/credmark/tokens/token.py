@@ -2,7 +2,7 @@
 from typing import List
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.model.errors import ModelInputError, ModelRunError, ModelDataError
 from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
                                 Currency, Price, Token)
 from credmark.dto import DTO, IterableListGenericDTO
@@ -62,7 +62,7 @@ def get_eip1967_proxy(context, logger, address, verbose):
 def get_eip1967_proxy_err(context, logger, address, verbose):
     res = get_eip1967_proxy(context, logger, address, verbose)
     if res is None:
-        raise ModelDataError(f'Unable to retrieve proxy implementation for {address}')
+        raise ModelInputError(f'Unable to retrieve proxy implementation for {address}')
     return res
 
 
@@ -258,7 +258,7 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
 
 
 @Model.describe(slug='token.categorized-supply',
-                version='1.0',
+                version='1.1',
                 display_name='Token Categorized Supply',
                 description='The categorized supply for a token',
                 category='protocol',
@@ -271,7 +271,7 @@ class TokenCirculatingSupply(Model):
         total_supply_scaled = input.token.scaled(input.token.total_supply)
         token_price = Price(**self.context.models.price.quote({'base': input.token}))
         if token_price is None:
-            raise ModelDataError(f"No Price for {response.token}")
+            raise ModelRunError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
                 bal = response.token.functions.balanceOf(account.address).call()

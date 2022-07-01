@@ -186,7 +186,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -229,7 +229,7 @@ class UniswapV3GetTokenPricePoolInfo(Model):
                 infos.append(pi)
             return infos
 
-        infos = _use_for()
+        infos = _use_compose()
 
         prices_with_info = []
         weth_price = None

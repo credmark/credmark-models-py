@@ -286,7 +286,7 @@ class CurveFinancePoolInfo(Model):
 
         pool_contract = Contract(address=pool_info.address)
 
-        def _use_for(self=self):
+        def _use_for():
             token_prices = []
             for tok in pool_info.tokens:
                 token_price = self.context.run_model(
@@ -295,7 +295,7 @@ class CurveFinancePoolInfo(Model):
                 token_prices.append(token_price)
             return token_prices
 
-        def _use_compose(self=self):
+        def _use_compose():
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
@@ -406,7 +406,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
                 pool_infos.append(pool_info)
             return pool_infos
 
-        def _use_compose_map():
+        def _use_compose():
             model_slug = 'curve-fi.pool-info'
             all_pools = self.context.run_model(
                 slug='compose.map-inputs',
@@ -432,7 +432,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
 
             return pool_infos
 
-        pool_infos = _use_compose_map()
+        pool_infos = _use_compose()
         all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
