@@ -1,24 +1,19 @@
 from credmark.cmf.model import Model
+from credmark.cmf.types import Portfolio, Position
 from credmark.dto import EmptyInput
-
-from credmark.cmf.types import (
-    Position,
-    Portfolio,
-)
-
-from models.credmark.algorithms.value_at_risk.dto import (
-    ContractVaRInput,
-    PortfolioVaRInput,
-)
-
-
-from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfos
+from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
+                                                          PortfolioVaRInput)
+from models.credmark.protocols.lending.compound.compound_v2 import \
+    CompoundV2PoolInfos
 
 
 @Model.describe(slug="finance.var-compound",
                 version="1.1",
                 display_name="Compound V2 VaR",
                 description="Calcualte the VaR of Compound contract of its net asset",
+                category='protocol',
+                subcategory='compound',
+                tags=['var'],
                 input=ContractVaRInput,
                 output=dict)
 class CompoundGetVAR(Model):

@@ -19,6 +19,8 @@ class GCInput(DTO):
     version='1.1',
     display_name='Generalized Cashflow',
     description='Tracks cashflow from sender address to receiver address.',
+    category='protocol',
+    tags=['token'],
     input=GCInput,
     output=dict
 )
@@ -33,10 +35,12 @@ class GeneralizedCashflow(Model):
             ], where=f'{q.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
         and {q.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    slug='price.quote',
+                    input={'base': token},
+                    block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:

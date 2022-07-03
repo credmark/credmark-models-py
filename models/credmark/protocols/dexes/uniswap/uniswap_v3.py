@@ -1,29 +1,16 @@
 import numpy as np
-from web3.exceptions import (
-    BadFunctionCallOutput,
-)
-
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (
-    ModelDataError,
-    ModelRunError,
-)
-from credmark.cmf.types import (
-    Price,
-    Token,
-    Address,
-    Contract,
-    Contracts,
-)
-
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Address, Contract, Contracts, Price, Token
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
-
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_POOL_ABI,
-    WETH9_ADDRESS,
-)
-
+from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import PoolPriceInfo, PoolPriceInfos
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+from web3.exceptions import BadFunctionCallOutput
+
+np.seterr(all='raise')
 
 
 class UniswapV3PoolInfo(DTO):
@@ -53,6 +40,8 @@ class UniswapV3PoolInfo(DTO):
                 version='1.1',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Token,
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
@@ -82,21 +71,24 @@ class UniswapV3GetPoolsForToken(Model):
                             primary_token.address.checksum,
                             fee).call()
                         if pool != Address.null():
-                            # TODO: ABI for 0x2a84e2bd2e961b1557d6e516ca647268b432cba4
-                            # is not loaded in DB
-                            pools.append(Contract(address=pool,
-                                                  abi=UNISWAP_V3_POOL_ABI).info)
+                            cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
+                            try:
+                                _ = cc.abi
+                            except ModelDataError:
+                                pass
+                            pools.append(cc)
 
             return Contracts(contracts=pools)
-        except BadFunctionCallOutput:
-            # Or use this condition: if self.context.block_number < 12369621:
+        except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
             return Contracts(contracts=[])
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.2',
+                version='1.3',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Contract,
                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
@@ -107,9 +99,9 @@ class UniswapV3GetPoolInfo(Model):
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         try:
-            input.abi
+            _ = input.abi
         except ModelDataError:
-            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI).info
+            input = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
 
         pool = input
 
@@ -123,6 +115,8 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
         token0 = Token(address=token0_addr)
         token1 = Token(address=token1_addr)
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
         token0_symbol = token0.symbol
         token1_symbol = token1.symbol
 
@@ -193,28 +187,57 @@ class UniswapV3GetPoolInfo(Model):
         return UniswapV3PoolInfo(**res)
 
 
-@Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.1',
+@Model.describe(slug='uniswap-v3.get-pool-info-token-price',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='uniswap-v3',
                 input=Token,
                 output=PoolPriceInfos)
-class UniswapV3GetPoolPriceInfo(Model):
+class UniswapV3GetTokenPricePoolInfo(Model):
     def run(self, input: Token) -> PoolPriceInfos:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
 
-        infos = [
-            self.context.run_model('uniswap-v3.get-pool-info',
-                                   p,
-                                   return_type=UniswapV3PoolInfo)
-            for p in pools
-        ]
+        model_slug = 'uniswap-v3.get-pool-info'
+        model_inputs = pools.contracts
+
+        def _use_compose():
+            pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, UniswapV3PoolInfo])
+
+            infos = []
+            for pool_n, p in enumerate(pool_infos):
+                if p.output is not None:
+                    infos.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise ModelRunError(
+                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
+                        p.error.message)
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return infos
+
+        def _use_for():
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug, minput, return_type=UniswapV3PoolInfo)
+                infos.append(pi)
+            return infos
+
+        infos = _use_compose()
 
         prices_with_info = []
         weth_price = None
         for info in infos:
+            info.token0 = fix_erc20_token(info.token0)
+            info.token1 = fix_erc20_token(info.token1)
             # decimal only available for ERC20s
             if info.token0.decimals and info.token1.decimals:
                 scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
@@ -232,11 +255,12 @@ class UniswapV3GetPoolPriceInfo(Model):
                     virtual_liquidity = info.virtual_liquidity_token0
 
                 weth_multiplier = 1.0
-                if input.address != WETH9_ADDRESS:
-                    if WETH9_ADDRESS in (info.token1.address, info.token0.address):
+                weth = Token(symbol='WETH')
+                if input.address != weth.address:
+                    if weth.address in (info.token1.address, info.token0.address):
                         if weth_price is None:
-                            weth_price = self.context.run_model('uniswap-v3.get-weighted-price',
-                                                                {"address": WETH9_ADDRESS},
+                            weth_price = self.context.run_model('price.quote',
+                                                                {"base": weth},
                                                                 return_type=Price)
                             if weth_price.price is None:
                                 raise ModelRunError('Can not retriev price for WETH')
@@ -261,4 +285,4 @@ class UniswapV3GetPoolPriceInfo(Model):
                                                 pool_address=info.address)
                 prices_with_info.append(pool_price_info)
 
-        return PoolPriceInfos(pool_price_infos=prices_with_info)
+        return PoolPriceInfos(infos=prices_with_info)

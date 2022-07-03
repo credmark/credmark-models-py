@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.dto import EmptyInput
 
 
@@ -8,6 +8,8 @@ from credmark.dto import EmptyInput
     version='1.1',
     display_name='Redacted Cartel Votium Cashflow',
     description='Redacted Cartel Votium Cashflow',
+    category='protocol',
+    subcategory='votium',
     input=EmptyInput,
     output=dict
 )
@@ -24,10 +26,12 @@ class RedactedVotiumCashflow(Model):
             ], where=f'{q.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
         and {q.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    'price.quote',
+                    input={'base': token},
+                    block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:
@@ -44,6 +48,8 @@ class RedactedVotiumCashflow(Model):
     version='1.1',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
+    category='protocol',
+    subcategory='votium',
     input=EmptyInput,
     output=dict
 )
@@ -66,7 +72,8 @@ class RedactedConvexCashflow(Model):
             token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    'price.quote',
+                    input={'base': token}, block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:

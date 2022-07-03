@@ -1,20 +1,12 @@
-from datetime import datetime, timedelta, timezone, date
+from datetime import date, datetime, timedelta, timezone
 from typing import Tuple
+
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-)
 from credmark.cmf.model.errors import ModelDataError
-from credmark.dto import (
-    DTO,
-)
+from credmark.cmf.types import Address, Contract, Token
+from credmark.dto import DTO
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
-
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_POOL_ABI,
-)
 # Function to catch naming error while fetching mandatory data
 
 
@@ -43,6 +35,8 @@ class PoolVolumeInfoHistoricalInput(DTO):
                 version="1.0",
                 display_name="Get TVL and Volume for a Curve's pool",
                 description="Get TVL and Volume for a Curve's pool",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=PoolVolumeInfo)
 class CurveGetTVLAndVolume(Model):
@@ -77,8 +71,8 @@ class CurveGetTVLAndVolume(Model):
         token0_balance = token0_instance.scaled(token0_instance.functions.balanceOf(pool).call())
         coin_balances.update({token0_symbol: token0_balance})
         token0_price = self.context.run_model(
-            slug='token.price',
-            input=token0_instance
+            slug='price.quote',
+            input={'base': token0_instance}
         )
         tvl += token0_balance * token0_price['price']
         prices.update({token0_symbol: token0_price['price']})
@@ -87,8 +81,8 @@ class CurveGetTVLAndVolume(Model):
         token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
         coin_balances.update({token1_symbol: token1_balance})
         token1_price = self.context.run_model(
-            slug='token.price',
-            input=token1_instance
+            slug='price.quote',
+            input={'base': token1_instance}
         )
         tvl += token1_balance * token1_price['price']
         prices.update({token1_symbol: token1_price['price']})
@@ -115,8 +109,8 @@ class CurveGetTVLAndVolume(Model):
             # Updating pool name
             pool_name = pool_name + '/{}-{}'.format(str(token2_name), str(token2_symbol))
             token2_price = self.context.run_model(
-                slug='token.price',
-                input=token2_instance
+                slug='price.quote',
+                input={'base': token2_instance}
             )
             tvl += token2_balance * token2_price['price']
             prices.update({token2_symbol: token2_price['price']})
@@ -135,8 +129,8 @@ class CurveGetTVLAndVolume(Model):
             # Updating pool name
             pool_name = pool_name + '/{}-{}'.format(str(token3_name), str(token3_symbol))
             token3_price = self.context.run_model(
-                slug='token.price',
-                input=token3_instance
+                slug='price.quote',
+                input={'base': token3_instance}
             )
             tvl += token3_balance * token3_price['price']
             prices.update({token3_symbol: token3_price['price']})
@@ -157,6 +151,8 @@ class CurveGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Curve pool - TVL and Volume Historical",
                 description="Runs contrib.curve-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='curve',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class CurveGetTVLAndVolumeHistorical(Model):
@@ -191,6 +187,8 @@ class CurveGetTVLAndVolumeHistorical(Model):
                 version="1.0",
                 display_name="Sushiswap & Uniswap get details for a pool",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='uniswap',
                 input=Contract,
                 output=PoolVolumeInfo)
 class UniSushiGetTVLAndVolume(Model):
@@ -224,8 +222,8 @@ class UniSushiGetTVLAndVolume(Model):
         token0_balance = token0_instance.scaled(token0_instance.functions.balanceOf(pool).call())
         coin_balances.update({token0_symbol: token0_balance})
         token0_price = self.context.run_model(
-            slug='token.price',
-            input=token0_instance
+            slug='price.quote',
+            input={'base': token0_instance}
         )
         tvl += token0_balance * token0_price['price']
         prices.update({token0_symbol: token0_price['price']})
@@ -234,8 +232,8 @@ class UniSushiGetTVLAndVolume(Model):
         token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
         coin_balances.update({token1_symbol: token1_balance})
         token1_price = self.context.run_model(
-            slug='token.price',
-            input=token1_instance
+            slug='price.quote',
+            input={'base': token1_instance}
         )
         tvl += token1_balance * token1_price['price']
         prices.update({token1_symbol: token1_price['price']})
@@ -262,6 +260,8 @@ class UniSushiGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='sushi',
                 input=Contract,
                 output=PoolVolumeInfo)
 class SushiswapGetTVLAndVolume(Model):
@@ -278,6 +278,8 @@ class SushiswapGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Sushiswap TVL and Volume Historical",
                 description="Runs contrib.sushiswap-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='sushi',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class SushiswapGetTVLAndVolumeHistorical(Model):
@@ -310,6 +312,8 @@ class SushiswapGetTVLAndVolumeHistorical(Model):
                 version="1.0",
                 display_name="Uniswap TVL and Volume",
                 description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='uniswap',
                 input=Contract,
                 output=PoolVolumeInfo)
 class UniswapGetTVLAndVolume(Model):
@@ -331,6 +335,8 @@ class UniswapGetTVLAndVolume(Model):
                 version="1.0",
                 display_name="Uniswap TVL and Volume Historical",
                 description="Runs contrib.uniswap-get-tvl-and-volume per day",
+                category='protocol',
+                subcategory='uniswap',
                 input=PoolVolumeInfoHistoricalInput,
                 output=dict)
 class UniswapGetTVLAndVolumeHistorical(Model):
