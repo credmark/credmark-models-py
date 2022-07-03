@@ -7,7 +7,7 @@ class TestAAVE(CMKTest):
     def test(self):
         self.title('Aave V2')
 
-        self.run_model('aave-v2.get-oracle-price', {"symbol": "AAVE1"})
+        self.run_model('aave-v2.get-oracle-price', {"symbol": "AAVE"})
         self.run_model('aave-v2.get-price-oracle', {})
         self.run_model('aave-v2.get-lending-pool-providers-from-registry', {})
 
