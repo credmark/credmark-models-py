@@ -1,5 +1,3 @@
-from cmath import e
-from telnetlib import NOP
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
@@ -165,7 +163,7 @@ class UniswapPoolVaR(Model):
         # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v3); plt.show()
         # Or,
         # plt.scatter(ratio_change - 1, impermenant_loss_vector_v2); plt.show()
-        # plt.scatter(ratio_change - 1, impermenant_lo            breakpoint()ss_vector_v3); plt.show()
+        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v3); plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
         total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1
