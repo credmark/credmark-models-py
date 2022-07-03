@@ -7,6 +7,8 @@ from credmark.cmf.types import Address, Contract, Price, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
 
+np.seterr(all='raise')
+
 # Pool(Contract)
 # LendingPool(Pool)
 # CompoundLendingPool(LendingPool)
@@ -39,6 +41,7 @@ class CompoundV2PoolInfo(DTO):
     isComped: bool
     block_number: int
     block_datetime: str
+    ir_model: Contract
 
 
 class CompoundV2PoolValue(DTO):
@@ -132,14 +135,14 @@ class CompoundV2GetAllPools(Model):
         return {'cTokens': cTokens}
 
 
-@ Model.describe(slug="compound-v2.all-pools-info",
-                 version="1.3",
-                 display_name="Compound V2 - get all pool info",
-                 description="Get all pools and query for their info (deposit, borrow, rates)",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=CompoundV2PoolInfos)
+@Model.describe(slug="compound-v2.all-pools-info",
+                version="1.3",
+                display_name="Compound V2 - get all pool info",
+                description="Get all pools and query for their info (deposit, borrow, rates)",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=CompoundV2PoolInfos)
 class CompoundV2AllPoolsInfo(Model):
     def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
         pool_infos = []
@@ -202,14 +205,14 @@ class CompoundV2AllPoolsValue(Model):
         return ret
 
 
-@ Model.describe(slug="compound-v2.get-pool-info",
-                 version="1.2",
-                 display_name="Compound V2 - pool/market information",
-                 description="Compound V2 - pool/market information",
-                 category='protocol',
-                 subcategory='compound',
-                 input=Token,
-                 output=CompoundV2PoolInfo)
+@Model.describe(slug="compound-v2.get-pool-info",
+                version="1.3",
+                display_name="Compound V2 - pool/market information",
+                description="Compound V2 - pool/market information",
+                category='protocol',
+                subcategory='compound',
+                input=Token,
+                output=CompoundV2PoolInfo)
 class CompoundV2GetPoolInfo(Model):
     """
     # Pool info
@@ -369,9 +372,8 @@ class CompoundV2GetPoolInfo(Model):
 
         # Get/calcualte info
 
-        # TODO: disable this test as we did not have loading ABI by block_number
-        # irModel = Contract(address=cToken.functions.interestRateModel().call())
-        # assert irModel.functions.isInterestRateModel().call()
+        irModel = Contract(address=cToken.functions.interestRateModel().call())
+        _ = irModel.functions.isInterestRateModel().call()
         # self.logger.info(f'{irModel.address=}, {irModel.functions.isInterestRateModel().call()=}')
 
         getCash = token.scaled(cToken.functions.getCash().call())
@@ -431,6 +433,7 @@ class CompoundV2GetPoolInfo(Model):
             isComped=isComped,
             block_number=int(self.context.block_number),
             block_datetime=block_dt,
+            ir_model=irModel,
         )
 
         return pool_info

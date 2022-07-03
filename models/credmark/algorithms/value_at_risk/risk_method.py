@@ -5,6 +5,8 @@ import numpy as np
 from credmark.cmf.model.errors import ModelRunError
 from credmark.dto import DTO
 
+np.seterr(all='raise')
+
 
 class VaROutput(DTO):
     var: float

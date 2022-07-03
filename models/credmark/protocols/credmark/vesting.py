@@ -7,9 +7,11 @@ from web3._utils.events import get_event_data
 from web3._utils.filters import construct_event_filter_params
 
 from credmark.cmf.model import Model, describe
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
+                                       create_instance_from_error_dict)
 from credmark.cmf.types import (Account, Accounts, Contract, ContractLedger,
                                 Contracts, Price, Token)
+from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
 
@@ -236,7 +238,7 @@ class CMKGetVestingByAccount(Model):
 
 @describe(
     slug="cmk.get-all-vesting-balances",
-    version="1.0",
+    version="1.1",
     display_name='CMK Vesting Balances',
     category='protocol',
     subcategory='cmk',
@@ -245,14 +247,40 @@ class CMKGetVestingByAccount(Model):
 class CMKGetAllVestingBalances(Model):
     def run(self, input: EmptyInput) -> dict:
         accounts = Accounts(**self.context.models.cmk.get_vesting_accounts())
-        results = {"vesting_infos": []}
-        for account in accounts:
-            results['vesting_infos'].append(
-                self.context.models.cmk.get_vesting_info_by_account(account))
+
+        def _use_for():
+            results = {"vesting_infos": []}
+            for account in accounts:
+                results['vesting_infos'].append(
+                    self.context.models.cmk.get_vesting_info_by_account(account)
+                )
+            return results
+
+        def _use_compose():
+            model_slug = 'cmk.get-vesting-info-by-account'
+            model_inputs = accounts
+
+            accounts_run = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug, 'modelInputs': model_inputs.accounts},
+                return_type=MapInputsOutput[Account, dict])
+
+            results = {"vesting_infos": []}
+            for p in accounts_run:
+                if p.output is not None:
+                    results['vesting_infos'].append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise create_instance_from_error_dict(p.error.dict())
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return results
+
+        results = _use_compose()
         return results
 
 
-@describe(
+@ describe(
     slug="cmk.vesting-events",
     version="1.0",
     display_name='CMK Vesting Events',

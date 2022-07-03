@@ -2,9 +2,11 @@ import numpy as np
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Price, Token
-from models.credmark.protocols.dexes.curve.curve_finance import (
-    CurveFiPoolInfoToken)
+from models.credmark.protocols.dexes.curve.curve_finance import \
+    CurveFiPoolInfoToken
 from models.dtos.price import Maybe
+
+np.seterr(all='raise')
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,

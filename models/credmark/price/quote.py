@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict
+from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
+                                       create_instance_from_error_dict)
 from credmark.cmf.types import Currency, NativeToken, Price, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
@@ -73,7 +74,7 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.4',
+                version='1.5',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -95,7 +96,7 @@ class PriceQuoteMultiple(Model):
                 prices.append(p.output)
             elif p.error is not None:
                 self.logger.error(p.error)
-                raise ModelRunError(p.error.message)
+                raise create_instance_from_error_dict(p.error.dict())
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 

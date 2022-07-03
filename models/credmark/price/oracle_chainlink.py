@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelInputError, ModelDataError, ModelRunError
+from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
+                                       ModelRunError)
 from credmark.cmf.types import Address, Currency, Price
 from models.dtos.price import Maybe, PriceInput
 

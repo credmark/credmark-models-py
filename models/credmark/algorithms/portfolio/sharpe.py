@@ -7,6 +7,8 @@ from credmark.cmf.types import Price, Token
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO
 
+np.seterr(all='raise')
+
 
 class SharpRatioInput(DTO):
     token: Token

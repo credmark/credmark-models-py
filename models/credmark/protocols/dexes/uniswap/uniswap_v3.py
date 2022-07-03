@@ -10,6 +10,8 @@ from models.dtos.price import PoolPriceInfo, PoolPriceInfos
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
 
+np.seterr(all='raise')
+
 
 class UniswapV3PoolInfo(DTO):
     address: Address

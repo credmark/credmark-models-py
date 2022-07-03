@@ -12,6 +12,8 @@ from models.credmark.algorithms.value_at_risk.risk_method import (VaROutput,
                                                                   calc_var)
 from models.dtos.price import Prices
 
+np.seterr(all='raise')
+
 
 @Model.describe(
     slug="account.var",

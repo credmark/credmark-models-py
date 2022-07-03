@@ -1,3 +1,5 @@
+from cmath import e
+from telnetlib import NOP
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
@@ -11,9 +13,11 @@ from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
 from models.dtos.price import Prices
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
+np.seterr(all='raise')
+
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.3",
+                version="1.4",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
@@ -129,9 +133,12 @@ class UniswapPoolVaR(Model):
             p_a = (1-input.lower_range) * p_0
             p_b = (1+input.upper_range) * p_0
 
-            impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
-                (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
-                (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
+            if np.isclose(p_a, 0):
+                impermenant_loss_vector_under = np.zeros(ratio_change.shape)
+            else:
+                impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
+                    (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
+                    (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
 
             impermenant_loss_vector_between = (
                 (2*np.sqrt(ratio_change) - 1 - ratio_change) /
@@ -158,7 +165,7 @@ class UniswapPoolVaR(Model):
         # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v3); plt.show()
         # Or,
         # plt.scatter(ratio_change - 1, impermenant_loss_vector_v2); plt.show()
-        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v3); plt.show()
+        # plt.scatter(ratio_change - 1, impermenant_lo            breakpoint()ss_vector_v3); plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
         total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1

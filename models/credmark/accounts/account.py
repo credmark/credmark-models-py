@@ -8,6 +8,8 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Position, Token, TokenPosition, Tokens)
 from credmark.cmf.types.ledger import TokenTransferTable
 
+np.seterr(all='raise')
+
 
 @Model.describe(slug='account.token-erc20',
                 version='1.0',

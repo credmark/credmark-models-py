@@ -13,10 +13,12 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import Prices, Many
+from models.dtos.price import Many, Prices
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CRV_REWARD
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
+
+np.seterr(all='raise')
 
 
 class ConvexPoolInfo(DTO):

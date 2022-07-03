@@ -17,7 +17,10 @@ from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError, BadFunctionCallOutput
+from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
+                             ContractLogicError)
+
+np.seterr(all='raise')
 
 GAUGE_ABI_LP_TOKEN = '[{"stateMutability":"view","type":"function","name":"lp_token","inputs":[],"outputs":[{"name":"","type":"address"}],"gas":3168}]'  # pylint:disable=line-too-long
 
