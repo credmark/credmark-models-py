@@ -44,6 +44,8 @@ if __name__ == '__main__':
                         help=('case number to start'))
     parser.add_argument('-b', '--block_number', type=int, default=14249443,
                         help=('Block number to run'))
+    parser.add_argument('-s', '--serial', action='store_true', default=False,
+                        help=('Run tests in serial'))
 
     args = vars(parser.parse_args())
     CMKTest.type = args['type']
@@ -72,13 +74,14 @@ if __name__ == '__main__':
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
-    sys.argv = sys.argv[:1]
-    # unittest.main(failfast=True)
-
     allTests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in allTests])
 
     runner = unittest.TextTestRunner()
-    # runner.run(suites)
-    concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
-    runner.run(concurrent_suite)
+    if args['serial']:
+        runner.run(suites)
+        # sys.argv = sys.argv[:1]
+        # unittest.main(failfast=True)
+    else:
+        concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
+        runner.run(concurrent_suite)

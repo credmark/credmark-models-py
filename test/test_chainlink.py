@@ -8,6 +8,7 @@ class TestChainlink(CMKTest):
 
     def test_ens(self):
         self.title('Chainlink - ENS')
+
         self.run_model('chainlink.price-by-ens', {"domain": "eth-usd.data.eth"}, block_number=self.block_number)
         self.run_model('chainlink.price-by-ens', {"domain": "comp-eth.data.eth"}, block_number=self.block_number)
         self.run_model('chainlink.price-by-ens', {"domain": "avax-usd.data.eth"}, block_number=self.block_number)
@@ -15,6 +16,8 @@ class TestChainlink(CMKTest):
         self.run_model('chainlink.price-by-ens', {"domain": "sol-usd.data.eth"}, block_number=self.block_number)
 
     def test_price_by_registry(self):
+        self.title('Chainlink - registry')
+
         # AAVE 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         self.run_model('chainlink.price-by-registry', {"base": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
                                                        "quote": {"address": "0x0000000000000000000000000000000000000348"}}, block_number=self.block_number)  # chainlink.get-feed-registry
@@ -24,6 +27,8 @@ class TestChainlink(CMKTest):
                        {"base": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}, block_number=self.block_number)
 
     def test_price_quote(self):
+        self.title('Chainlink - price quote')
+
         self.run_model('price.quote', {"base": {"symbol": "AAVE"}}, block_number=self.block_number)
         self.run_model('price.quote', {"base": {"symbol": "WETH"}}, block_number=self.block_number)
         self.run_model('price.quote', {"base": {"symbol": "WBTC"}}, block_number=self.block_number)
@@ -43,6 +48,8 @@ class TestChainlink(CMKTest):
         self.run_model('price.quote', {"base": {"symbol": "USD"}}, block_number=block_number)
 
     def test_oracle_chainlink(self):
+        self.title('Chainlink - Oracle')
+
         self.run_model('price.oracle-chainlink',
                        {"base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}, block_number=self.block_number)
         self.run_model('price.oracle-chainlink',
@@ -60,6 +67,8 @@ class TestChainlink(CMKTest):
                        {"base": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}, block_number=self.block_number)
 
     def test_price_by_feed(self):
+        self.title('Chainlink - Feed')
+
         self.run_model('chainlink.price-by-feed',
                        {"address": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"}, block_number=self.block_number)  # simple feed
         self.run_model('chainlink.price-by-feed',
