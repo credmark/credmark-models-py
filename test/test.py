@@ -1,3 +1,6 @@
+import numpy as np
+np.seterr(all='raise')
+
 if __name__ == '__main__':
     import os
     import sys

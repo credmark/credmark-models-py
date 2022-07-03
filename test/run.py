@@ -5,6 +5,9 @@ import logging
 import os
 import sys
 import unittest
+import testtools
+import inspect
+from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from importlib import import_module
 
 from cmk_test import CMKTest
@@ -21,9 +24,10 @@ from test_finance import TestFinance
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
-from test_tvl import TestTVL
 from test_token import TestToken
+from test_tvl import TestTVL
 from test_uniswap import TestUniswap
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -58,7 +62,9 @@ if __name__ == '__main__':
         print(f'Unknown test type {args["type"]}')
         sys.exit()
 
-    CMKTest.test_module = import_module('credmark.cmf.credmark_dev')
+    CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
+    mod_model_api = import_module('credmark.cmf.engine.model_api')
+    mod_model_api.RUN_REQUEST_TIMEOUT = 6400  # type: ignore
 
     CMKTest.block_number = args["block_number"]
     CMKTest.start_n = args["start_n"]
@@ -67,4 +73,12 @@ if __name__ == '__main__':
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
     sys.argv = sys.argv[:1]
-    unittest.main(failfast=True)
+    # unittest.main(failfast=True)
+
+    allTests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
+    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in allTests])
+
+    runner = unittest.TextTestRunner()
+    # runner.run(suites)
+    concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
+    runner.run(concurrent_suite)

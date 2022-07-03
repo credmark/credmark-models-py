@@ -4,8 +4,9 @@ from cmk_test import CMKTest
 
 
 class TestPrice(CMKTest):
+
     def test_currency_dto(self):
-        self.title('Price - General')
+        self.title('Price - Currency DTO')
         self.run_model('price.quote', {"base": "CMK"})
         self.run_model('price.quote', {"base": "EUR"})
         self.run_model('price.quote', {"base": "EUR", "quote": "JPY"})
@@ -13,7 +14,7 @@ class TestPrice(CMKTest):
         self.run_model('price.quote', {"base": "AAVE", "quote": "ETH"})
         self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e"})
 
-    def test(self):
+    def test_general(self):
         self.title('Price - General')
 
         self.run_model('price.dex-blended', {"symbol": "CMK"})  # price.pool-aggregator
@@ -40,6 +41,8 @@ class TestPrice(CMKTest):
         self.run_model('finance.var-dex-lp', {"pool": {"address": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
                        "window": "10 days", "interval": 1, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01})
 
+    def test_dex_curve(self):
+        self.title('Price - General')
         block_number = 15000108
 
         # 0xdB06a76733528761Eda47d356647297bC35a98BD
@@ -65,7 +68,9 @@ class TestPrice(CMKTest):
             self.run_model('price.quote', {"quote": token_input, "base": {
                            "symbol": "USD"}}, block_number=block_number)  # __all__
 
+    def test_chainlink(self):
         self.title('Price - Chainlink Oracle')
+        block_number = 15000108
 
         # 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E ilv
         # 0x383518188C0C6d7730D91b2c03a03C837814a899 ohm-eth.data.eth
@@ -123,7 +128,9 @@ class TestPrice(CMKTest):
                 self.run_model(price_model, {"quote": token_input, "base": {
                                "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}, block_number=block_number)  # __all__
 
+    def test_chainlink_more(self):
         self.title('Price - Chainlink more')
+        block_number = 15000108
 
         # ALGO BYTOM NEAR
         # CAKE: 0x7c8161545717a334f3196e765d9713f8042EF338 Wormhole

@@ -4,15 +4,15 @@ from cmk_test import CMKTest
 
 
 class TestDashboard(CMKTest):
-    def test_volume(self):
+    def test_volume_historical(self):
+        self.title('Curve TVL/Volume - Historical')
+
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=14048685)
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=15048685)
 
-    def test(self):
-        self.title('Curve TVL/Volume')
-
+    def test_tvl_volume_uni(self):
         # Uniswap V2: 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
         # Uniswap V3: 0xcbcdf9626bc03e24f779434178a73a0b4bad62ed
         # Uniswap V3: 0x4674abc5796e1334B5075326b39B748bee9EaA34
@@ -24,8 +24,7 @@ class TestDashboard(CMKTest):
         # 14830357 - datetime.datetime(2022, 5, 23, 15, 26, 40, tzinfo=datetime.timezone.utc)
 
         block_number = 14830357
-
-        self.title('Pool TVL/Volume/VaR')
+        self.title('Pool TVL/Volume/VaR - Uni/Sushi')
 
         sushi_pools = ['0x6a091a3406E0073C3CD6340122143009aDac0EDa',
                        '0x397ff1542f962076d0bfe58ea045ffa2d347aca0',
@@ -81,6 +80,10 @@ class TestDashboard(CMKTest):
                            {"pool": {"address": pool}, "window": "7 days", "interval": 1,
                                "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
                            block_number=block_number)
+
+    def test_tvl_volume_curve(self):
+        block_number = 14830357
+        self.title('Pool TVL/Volume/VaR - curve')
 
         curve_pools = ['0x961226b64ad373275130234145b96d100dc0b655',
                        '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511',

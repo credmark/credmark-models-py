@@ -4,8 +4,8 @@ from cmk_test import CMKTest
 
 
 class TestCurve(CMKTest):
-    def test(self):
-        self.title('Curve')
+    def test_poolinfo(self):
+        self.title('Curve - Pool Info')
 
         self.run_model('curve-fi.all-pools', {})  # curve-fi.get-registry,curve-fi.get-provider
 
@@ -77,6 +77,9 @@ class TestCurve(CMKTest):
         # Curve.fi cyDAI/cyUSDC/cyUSDT 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
         self.run_model('curve-fi.pool-info', {"address": "0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"})
 
+    def test_gauge(self):
+        self.title('Curve - Gauge')
+
         # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
         # curve-fi.get-gauge-stake-and-claimable-rewards
         self.run_model('curve-fi.gauge-yield', {"address": "0x11137B10C210b579405c21A07489e28F3c040AB1"})
@@ -97,6 +100,8 @@ class TestCurve(CMKTest):
         # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
         # self.run_model('contrib.curve-get-pegging-ratio', {"address": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"})
 
+    def test_lp_token(self):
+        self.title('Curve - Pool Info from LP')
         lp_token_addresses = ['0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8',
                               '0xC25a3A3b969415c80451098fa907EC722572917F',
                               '0x3b3ac5386837dc563660fb6a0937dfaa5924333b',
@@ -116,5 +121,7 @@ class TestCurve(CMKTest):
             self.run_model('curve-fi.pool-info', {"address": lp_addr})
             self.run_model('curve-fi.pool-tvl', {"address": lp_addr})
 
+    def test_convex(self):
+        self.title('Curve - Convex')
         self.run_model('convex-fi.all-pool-info', {})
         self.run_model('convex-fi.earned', {'address': '0x5291fBB0ee9F51225f0928Ff6a83108c86327636'})

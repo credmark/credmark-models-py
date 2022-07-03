@@ -4,14 +4,19 @@ from cmk_test import CMKTest
 
 
 class TestFinance(CMKTest):
-    def test(self):
+    def test0(self):
         self.title('VaR')
 
+        # finance.example-var-contract, finance.example-historical-price, finance.var-engine-historical
+        self.run_model('finance.example-var-contract', {"window": "30 days", "interval": 3, "confidence": 0.01})
+
+    def test1(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
                                       [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}]}})  # __all__
 
+    def test2(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
@@ -19,6 +24,7 @@ class TestFinance(CMKTest):
                                        {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
                                        ]}})
 
+    def test3(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
@@ -27,11 +33,13 @@ class TestFinance(CMKTest):
                                           {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
                                        ]}})
 
+    def test4(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
                                       [{"amount": 10, "asset": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}]}})  # __all__
 
+    def test5(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "20 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
@@ -42,6 +50,7 @@ class TestFinance(CMKTest):
                                           {"amount": 1937554, "asset": {"address": "0x85f138bfEE4ef8e540890CFb48F620571d67Eda3"}}
                                        ]}})
 
+    def test6(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
@@ -54,21 +63,26 @@ class TestFinance(CMKTest):
                                           {"amount": 1937554, "asset": {"symbol": "SNX"}}
                                        ]}})
 
+    def test7(self):
         self.run_model('finance.var-portfolio-historical',
                        {"window": "20 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
                                       [{"amount": "0.5", "asset": {"symbol": "WBTC"}},
                                        {"amount": "0.5", "asset": {"symbol": "WETH"}}]}})
 
+    def test8(self):
+        self.title('Finance - AAVE')
         self.run_model('finance.var-aave',
                        {"window": "30 days", "interval": 3, "confidence": 0.01})  # finance.var-portfolio-historical
 
+    def test9(self):
+        self.title('Finance - Compound')
+
         self.run_model('finance.var-compound', {"window": "30 days", "interval": 3,
                        "confidence": 0.01})  # finance.var-portfolio-historical
-        # finance.example-var-contract, finance.example-historical-price, finance.var-engine-historical
-        self.run_model('finance.example-var-contract', {"window": "30 days", "interval": 3, "confidence": 0.01})
 
-        self.title('Other Finance')
+    def test_other(self):
+        self.title('Finance - Other')
         self.run_model('finance.lcr', {"address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10})
         # compound-v2.get-pool-info, compound-v2.all-pools-info, token.stablecoins
         self.run_model('finance.min-risk-rate', {})

@@ -4,7 +4,7 @@ from cmk_test import CMKTest
 
 
 class TestCompound(CMKTest):
-    def test(self):
+    def test_1(self):
         self.title('Compound')
 
         # ${token_price_deps}, ${compound_deps}
@@ -21,4 +21,5 @@ class TestCompound(CMKTest):
         # self.run_model('compound-v2.pool-value-historical', {"date_range": ["2021-09-15", "2021-09-20"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}) # ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
         # self.run_model('compound-v2.pool-value-historical', {"date_range": ["2022-01-15", "2022-01-18"], "token": {"address":"0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}}) # ${token_price_deps},compound-v2.get-comptroller,compound-v2.get-pool-info,compound-v2.pool-value,compound-v2.all-pools-values
 
+    def test_2(self):
         self.run_model('compound-v2.all-pools-info', {}, block_number=12770589)
