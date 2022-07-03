@@ -17,6 +17,7 @@ np.seterr(all='raise')
                 description='Account ERC20 transaction table',
                 developer="Credmark",
                 category='account',
+                subcategory='position',
                 tags=['token'],
                 input=Account,
                 output=dict)
@@ -55,6 +56,7 @@ class AccountERC20Token(Model):
     description="All of the token holdings for an account",
     developer="Credmark",
     category='account',
+    subcategory='position',
     tags=['portfolio'],
     input=Account,
     output=Portfolio)
@@ -107,6 +109,7 @@ class WalletInfoModel(Model):
     description="All of the token holdings for an account",
     developer="Credmark",
     category='account',
+    subcategory='position',
     tags=['portfolio'],
     input=Accounts,
     output=Portfolio)
@@ -167,9 +170,9 @@ class CurveLPPosition(Position):
     display_name="account position in Curve LP",
     description="All the positions in Curve LP",
     developer="Credmark",
-    category='protocol',
-    subcategory='curve',
-    tags=['portfolio'],
+    category='account',
+    subcategory='position',
+    tags=['curve'],
     input=Account,
     output=Portfolio)
 class GetCurveLPPosition(Model):
