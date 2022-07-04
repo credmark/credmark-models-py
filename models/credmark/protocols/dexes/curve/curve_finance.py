@@ -482,7 +482,7 @@ class CurveFinanceAllGauges(Model):
 
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.2',
+                 version='1.3',
                  category='protocol',
                  subcategory='curve',
                  input=Contract,

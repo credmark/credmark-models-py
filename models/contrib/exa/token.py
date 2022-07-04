@@ -1,7 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Token, BlockNumber
 from credmark.dto import DTO, DTOField
-from credmark.cmf.types.ledger import TokenTransferTable
 
 
 class TokenBalanceInput(DTO):
@@ -46,7 +45,7 @@ class TokenBalanceOf(Model):
                  "net inflow is total token inflow - total token outflow"
                  ),
     input=TokenNetInflowInput,
-    version='1.0',
+    version='1.1',
     developer='exa256',
     output=dict
 )
@@ -58,22 +57,25 @@ class TokenNetInflow(Model):
         past_block = self.context.block_number - input.blocks
 
         # fetch and store all token transfers
-        transfers = self.context.ledger.get_erc20_transfers(
-            columns=[
-                TokenTransferTable.Columns.TO_ADDRESS,
-                TokenTransferTable.Columns.FROM_ADDRESS,
-                TokenTransferTable.Columns.VALUE,
-            ],
-            where=' and '.join([
-                f'{TokenTransferTable.Columns.TOKEN_ADDRESS}=\'{input.token}\'',
-                '(' + ' or '.join([
-                    f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{from_addr}\'',
-                    f'{TokenTransferTable.Columns.FROM_ADDRESS}=\'{from_addr}\''
-                ]) + ')',
-                f'{TokenTransferTable.Columns.BLOCK_NUMBER} > {past_block}'
-            ]),
-            order_by=f'{TokenTransferTable.Columns.BLOCK_NUMBER} desc',
-        ).to_dataframe()
+        with self.context.ledger.TokenTransfer as q, col:
+            transfers = q.select(
+                columns=[
+                    q.Columns.TO_ADDRESS,
+                    q.Columns.FROM_ADDRESS,
+                    q.Columns.VALUE,
+                ],
+                where=' and '.join([
+                    f'{q.Columns.TOKEN_ADDRESS}=\'{input.token}\'',
+                    '(' + ' or '.join([
+                        f'{q.Columns.TO_ADDRESS}=\'{from_addr}\'',
+                        f'{q.Columns.FROM_ADDRESS}=\'{from_addr}\''
+                    ]) + ')',
+                    f'{q.Columns.BLOCK_NUMBER} > {past_block}'
+                ]),
+                order_by=f'{q.Columns.BLOCK_NUMBER} desc',
+            ).to_dataframe()
+
+        breakpoint()
 
         inflow = transfers.query('to_address == @from_addr')['value'].astype(float).sum()
         outflow = transfers.query('from_address == @from_addr')['value'].astype(float).sum()

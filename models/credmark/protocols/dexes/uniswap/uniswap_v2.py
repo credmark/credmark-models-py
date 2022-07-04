@@ -1,7 +1,7 @@
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
+from credmark.cmf.types import (Address, BlockNumber, Contract,
                                 Contracts, Portfolio, Position, Price, Token,
                                 Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
@@ -311,7 +311,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.6',
+                 version='1.7',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
@@ -357,27 +357,28 @@ class DexPoolSwapVolumeHistorical(Model):
         if input.pool_info_model == 'uniswap-v2.pool-tvl':
             event_swap_args = sorted(
                 [c.lower() for c in pool.abi.events.Swap.args if c.lower().startswith('amount')])  # type: ignore
-            df_all_swaps = (pool.ledger.events.Swap(
-                columns=[],
-                aggregates=(
-                    [self.context.ledger.Aggregate(
-                        f'sum((sign({ContractLedger.Events.InputCol(field)})+1) / 2 * {ContractLedger.Events.InputCol(field)})',
-                        f'sum_pos_{ContractLedger.Events.InputCol(field)}')
-                     for field in event_swap_args] +
-                    [self.context.ledger.Aggregate(
-                        f'sum((sign({ContractLedger.Events.InputCol(field)})-1) / 2 * {ContractLedger.Events.InputCol(field)})',
-                        f'sum_neg_{ContractLedger.Events.InputCol(field)}')
-                     for field in event_swap_args] +
-                    [self.context.ledger.Aggregate(
-                        f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                        'interval_n')] +
-                    [self.context.ledger.Aggregate(
-                        f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                     for func in ['min', 'max', 'count']]),
-                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                group_by=f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)')
-                .to_dataframe())
+            with pool.ledger.events.Swap as q:
+                df_all_swaps = (q.select(
+                    columns=[],
+                    aggregates=(
+                        [self.context.ledger.Aggregate(
+                            f'sum((sign({q.InputCol(field)})+1) / 2 * {q.InputCol(field)})',
+                            f'sum_pos_{q.InputCol(field)}')
+                            for field in event_swap_args] +
+                        [self.context.ledger.Aggregate(
+                            f'sum((sign({q.InputCol(field)})-1) / 2 * {q.InputCol(field)})',
+                            f'sum_neg_{q.InputCol(field)}')
+                            for field in event_swap_args] +
+                        [self.context.ledger.Aggregate(
+                            f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                            'interval_n')] +
+                        [self.context.ledger.Aggregate(
+                            f'{func}({q.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                            for func in ['min', 'max', 'count']]),
+                    where=(f'{q.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                           f'{q.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                    group_by=f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)'
+                ).to_dataframe())
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history
@@ -409,25 +410,26 @@ class DexPoolSwapVolumeHistorical(Model):
                     assert sorted(event_tokenexchange_args) == sorted(
                         ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
 
-                    df_all_swap_1 = (pool.ledger.events.TokenExchange(
-                        columns=[ContractLedger.Events.InputCol(
-                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                        aggregates=(
-                            [self.context.ledger.Aggregate(
-                                f'sum({ContractLedger.Events.InputCol(field)})',
-                                f'{ContractLedger.Events.InputCol(field)}')
-                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                            [self.context.ledger.Aggregate(
-                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                                'interval_n')] +
-                            [self.context.ledger.Aggregate(
-                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                                for func in ['min', 'max', 'count']]),
-                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                        .to_dataframe())
+                    with pool.ledger.events.TokenExchange as q:
+                        df_all_swap_1 = (q.select(
+                            columns=[q.InputCol(
+                                "SOLD_ID"), q.InputCol("BOUGHT_ID")],
+                            aggregates=(
+                                [self.context.ledger.Aggregate(
+                                    f'sum({q.InputCol(field)})',
+                                    f'{q.InputCol(field)}')
+                                    for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                                [self.context.ledger.Aggregate(
+                                    f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                    'interval_n')] +
+                                [self.context.ledger.Aggregate(
+                                    f'{func}({q.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                    for func in ['min', 'max', 'count']]),
+                            where=(f'{q.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                                   f'{q.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                            group_by=(f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                                      f',{q.InputCol("SOLD_ID")},{q.InputCol("BOUGHT_ID")}'))
+                            .to_dataframe())
                 except ModelDataError:
                     pass
 
@@ -437,25 +439,26 @@ class DexPoolSwapVolumeHistorical(Model):
                 assert sorted(event_tokenexchange_args) == sorted(
                     ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
                 try:
-                    df_all_swap_2 = (pool.ledger.events.TokenExchangeUnderlying(
-                        columns=[ContractLedger.Events.InputCol(
-                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                        aggregates=(
-                            [self.context.ledger.Aggregate(
-                                f'sum({ContractLedger.Events.InputCol(field)})',
-                                f'{ContractLedger.Events.InputCol(field)}')
-                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                            [self.context.ledger.Aggregate(
-                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                                'interval_n')] +
-                            [self.context.ledger.Aggregate(
-                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                                for func in ['min', 'max', 'count']]),
-                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                        .to_dataframe())
+                    with pool.ledger.events.TokenExchangeUnderlying as q:
+                        df_all_swap_2 = (q.select(
+                            columns=[q.InputCol(
+                                "SOLD_ID"), q.InputCol("BOUGHT_ID")],
+                            aggregates=(
+                                [self.context.ledger.Aggregate(
+                                    f'sum({q.InputCol(field)})',
+                                    f'{q.InputCol(field)}')
+                                    for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                                [self.context.ledger.Aggregate(
+                                    f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                    'interval_n')] +
+                                [self.context.ledger.Aggregate(
+                                    f'{func}({q.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                    for func in ['min', 'max', 'count']]),
+                            where=(f'{q.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
+                                   f'{q.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
+                            group_by=(f'floor(({self.context.block_number} - {q.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
+                                      f',{q.InputCol("SOLD_ID")},{q.InputCol("BOUGHT_ID")}'))
+                            .to_dataframe())
                 except ModelDataError:
                     pass
 

@@ -45,7 +45,7 @@ class xCmkDeploymentTimeOutput(DTO):  # pylint: disable=invalid-name
 
 
 @Model.describe(slug='xcmk.deployment-time',
-                version='1.0',
+                version='1.1',
                 display_name='xCMK deployment time',
                 description='xCMK deployment time',
                 developer='Credmark',

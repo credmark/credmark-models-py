@@ -16,7 +16,7 @@ class GCInput(DTO):
 
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
-    version='1.1',
+    version='1.2',
     display_name='Generalized Cashflow',
     description='Tracks cashflow from sender address to receiver address.',
     category='protocol',
