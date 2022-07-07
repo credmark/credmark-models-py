@@ -36,7 +36,7 @@ class UniswapV3PoolInfo(DTO):
     token0_symbol: str
     token1_symbol: str
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p, _cycle):  # pylint:disable=invalid-name
         ctor = iptty.CallExpression.factory(self.__class__.__name__)
         p.pretty(ctor(self.address, self.sqrtPriceX96))
 
@@ -212,8 +212,8 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         info.token1 = fix_erc20_token(info.token1)
         # decimal only available for ERC20s
         if not info.token0.decimals or not info.token1.decimals:
-            raise ModelRunError(
-                'Details on token0 {info.token0.decimals=} or token1 {info.token1.decimals=} are incomplete/')
+            raise ModelRunError((f'Details on token0 {info.token0.decimals=} '
+                                 f'or token1 {info.token1.decimals=} are incomplete.'))
 
         scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
         tick_price = 1.0001 ** info.tick * scale_multiplier
@@ -261,14 +261,14 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         return pool_price_info
 
 
-@Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.7',
-                display_name='Uniswap v3 Token Pools Price ',
-                description='Gather price and liquidity information from pools',
-                category='protocol',
-                subcategory='uniswap-v3',
-                input=Token,
-                output=Many[PoolPriceInfo])
+@ Model.describe(slug='uniswap-v3.get-pool-info-token-price',
+                 version='1.7',
+                 display_name='Uniswap v3 Token Pools Price ',
+                 description='Gather price and liquidity information from pools',
+                 category='protocol',
+                 subcategory='uniswap-v3',
+                 input=Token,
+                 output=Many[PoolPriceInfo])
 class UniswapV3GetTokenPoolInfo(Model):
     def run(self, input: Token) -> Many[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v3.get-pools',
