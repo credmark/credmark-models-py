@@ -296,7 +296,7 @@ class CurveFinancePoolInfo(Model):
         def _use_compose():
             token_prices = self.context.run_model(
                 'price.quote-multiple',
-                input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
+                input={'some': [{'base': tok} for tok in pool_info.tokens]},
                 return_type=Many[Price]).some
             return token_prices
 

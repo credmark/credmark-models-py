@@ -67,14 +67,14 @@ class UniswapPoolVaR(Model):
 
         token_hp = self.context.run_model(
             slug='price.quote-historical-multiple',
-            input={'inputs': [{'base': token0}, {'base': token1}],
+            input={'some': [{'base': token0}, {'base': token1}],
                    "interval": interval,
                    "count": count,
                    "exclusive": False},
             return_type=MapBlockTimeSeriesOutput[Many[Price]])
 
         token_historical_prices = [
-            (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.prices[n].price)])
+            (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.some[n].price)])
              .sort_values('blockNumber', ascending=False)
              .reset_index(drop=True))
             for tok_n in range(2)]

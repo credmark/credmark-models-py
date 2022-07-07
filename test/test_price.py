@@ -117,9 +117,9 @@ class TestPrice(CMKTest):
 
         self.run_model('price.quote-historical', {"base": {"symbol": "AAVE"},
                        "interval": 86400, "count": 1, "exclusive": True})
-        self.run_model('price.quote-multiple', {"inputs": [{"base": {"symbol": "EUR"}}, {"base": {"symbol": "JPY"}}]})
+        self.run_model('price.quote-multiple', {"some": [{"base": {"symbol": "EUR"}}, {"base": {"symbol": "JPY"}}]})
         self.run_model('price.quote-historical-multiple',
-                       {"inputs": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": True})
+                       {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": True})
         self.run_model('finance.var-dex-lp', {"pool": {"address": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
                        "window": "10 days", "interval": 1, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01})
 

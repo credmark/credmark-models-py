@@ -113,8 +113,8 @@ class VaRPortfolio(Model):
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',
-                input={"inputs": [{'base': {'address': tok_addr}}
-                                  for tok_addr in assets_to_quote_list],
+                input={"some": [{'base': {'address': tok_addr}}
+                                for tok_addr in assets_to_quote_list],
                        "interval": interval,
                        "count": count,
                        "exclusive": False},
@@ -123,7 +123,7 @@ class VaRPortfolio(Model):
             price_lists = []
             for tok_n, asset_addr in enumerate(assets_to_quote_list):
                 ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
-                                                  ('src', lambda p, n=tok_n:p.prices[n].src), ])
+                                                  ('src', lambda p, n=tok_n:p.some[n].src), ])
                       .sort_values('blockNumber', ascending=False)
                       .reset_index(drop=True))
 

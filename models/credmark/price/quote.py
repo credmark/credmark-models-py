@@ -13,7 +13,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.quote-historical-multiple',
-                version='1.5',
+                version='1.6',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -27,7 +27,7 @@ class PriceQuoteHistoricalMultiple(Model):
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote-multiple',
-                   "modelInput": {'inputs': input.some},
+                   "modelInput": {'some': input.some},
                    "endTimestamp": self.context.block_number.timestamp,
                    "interval": input.interval,
                    "count": input.count,
@@ -73,7 +73,7 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.5',
+                version='1.6',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',

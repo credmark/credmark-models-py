@@ -238,7 +238,7 @@ class UniswapGetPoolInfo(Model):
         def _use_compose():
             prices = self.context.run_model(
                 'price.quote-multiple',
-                input={'inputs': [{'base': token0}, {'base': token1}]},
+                input={'some': [{'base': token0}, {'base': token1}]},
                 return_type=Many[Price])
             return prices
 
