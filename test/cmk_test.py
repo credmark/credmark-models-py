@@ -47,7 +47,7 @@ class CMKTest(TestCase):
             CMKTest.test_n += 1
             return
 
-        logging.info(f'Running case ({CMKTest.test_n}): expected {exit_code=} {cmd_line}')
+        logging.info(f'Running case ({self.__class__.__name__})({CMKTest.test_n}): expected {exit_code=} {cmd_line}')
 
         succeed = False
         try:
