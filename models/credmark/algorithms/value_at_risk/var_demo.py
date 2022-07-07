@@ -1,8 +1,13 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, PriceList, Token
+from credmark.dto import DTO
 from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
-                                                          HistoricalPriceInput,
                                                           VaRHistoricalInput)
+
+
+class ExampleHistoricalPriceInput(DTO):
+    token: Token
+    window: str  # e.g. '30 day'
 
 
 @Model.describe(slug='finance.example-historical-price',
@@ -10,7 +15,7 @@ from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
                 display_name='Value at Risk - Get Price Historical',
                 description='Feed a mock historical price list',
                 category='example',
-                input=HistoricalPriceInput,
+                input=ExampleHistoricalPriceInput,
                 output=PriceList)
 class VaRPriceHistorical(Model):
     """
@@ -18,7 +23,7 @@ class VaRPriceHistorical(Model):
     The priceList is assumed to be sorted in descending order in time.
     """
 
-    def run(self, input: HistoricalPriceInput) -> PriceList:
+    def run(self, input: ExampleHistoricalPriceInput) -> PriceList:
         token = input.token
         _w_k, w_i = self.context.historical.parse_timerangestr(input.window)
 
@@ -66,8 +71,8 @@ class DemoContractVaR(Model):
         pl_assets = set()
         for position in portfolio:
             if position.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=position.asset,
-                                                              window=input.window)
+                historical_price_input = ExampleHistoricalPriceInput(token=position.asset,
+                                                                     window=input.window)
                 pl = self.context.run_model(slug='finance.example-historical-price',
                                             input=historical_price_input,
                                             return_type=PriceList)

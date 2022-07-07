@@ -1,13 +1,8 @@
 from typing import List
 
-from credmark.cmf.types import Address, Contract, Portfolio, PriceList, Token
+from credmark.cmf.types import Address, Contract, Portfolio, PriceList
 from credmark.dto import (DTO, DTOField, IterableListGenericDTO, PrivateAttr,
                           cross_examples)
-
-
-class HistoricalPriceInput(DTO):
-    token: Token
-    window: str  # e.g. '30 day'
 
 
 class VaRHistoricalInput(IterableListGenericDTO[PriceList]):
