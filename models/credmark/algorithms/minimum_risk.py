@@ -1,9 +1,9 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Tokens
 from credmark.dto import EmptyInput
-
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfos
-from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfos
+from models.credmark.protocols.lending.compound.compound_v2 import \
+    CompoundV2PoolInfos
 
 
 @Model.describe(slug="finance.min-risk-rate",
@@ -11,6 +11,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2Poo
                 display_name="Calculate minimal risk rate",
                 description='Rates from stablecoins\' loans to Aave and Compound, '
                             'then weighted by their debt size and total supply',
+                category='financial',
                 input=EmptyInput,
                 output=dict)
 class Minrisk(Model):

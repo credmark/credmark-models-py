@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Token
-from models.dtos.example import ExampleIterationOutput
+from .dtos import ExampleIterationOutput
 
 
 @Model.describe(
@@ -8,6 +8,7 @@ from models.dtos.example import ExampleIterationOutput
     version='1.2',
     display_name='Example - Iteration',
     description="An example model to demonstrate iterable DTOs",
+    category='example',
     output=ExampleIterationOutput)
 class ExampleIteration(Model):
     def run(self, _) -> ExampleIterationOutput:

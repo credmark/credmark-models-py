@@ -1,7 +1,106 @@
+from typing import Generic, List, Optional, TypeVar, Iterator
 
-from typing import List
-from credmark.cmf.types import Address, Token
-from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+from credmark.cmf.types import Address, Currency, FiatCurrency, Price, Token
+from credmark.cmf.types.compose import MapBlockTimeSeriesInput
+from credmark.dto import (DTO, DTOField, GenericDTO, IterableListGenericDTO,
+                          PrivateAttr)
+
+DTOCLS = TypeVar('DTOCLS')
+
+
+class Prices(IterableListGenericDTO[Price]):
+    prices: List[Price]
+    _iterator: str = 'prices'
+
+
+class Maybe(GenericDTO, Generic[DTOCLS]):
+    just: Optional[DTOCLS] = DTOField(None)
+
+    def is_just(self):
+        return self.just is not None
+
+
+class Many(GenericDTO, Generic[DTOCLS]):
+    some: List[DTOCLS] = DTOField([])
+    _iterator: str = 'some'
+
+    def __iter__(self) -> Iterator[DTOCLS]:
+        return getattr(self, self._iterator).__iter__()
+
+    def __getitem__(self, key) -> DTOCLS:
+        return getattr(self, self._iterator).__getitem__(key)
+
+    def append(self, obj):
+        return getattr(self, self._iterator).append(obj)
+
+    def extend(self, obj):
+        return getattr(self, self._iterator).extend(obj)
+
+    def __len__(self) -> int:
+        return len(self.some)
+
+
+class PriceInput(DTO):
+    """
+    In FX, the pair is quoted as base/quote for 1 base = x quote
+    e.g. 1883.07 ETH / USD means 1883.07 USD for 1 ETH.
+
+    *Base* token to get the value in the quote token
+    *Quote* token to determine the value of the base token.
+
+    If quote is not provided, default to the native token of the chain, i.e. ETH for Ethereum.
+
+    Fiat is expressed in the currency code in ISO 4217.
+
+    Base and quote can be either Token (symbol or address)
+    or code (BTC, ETH, and all fiat, like USD, EUR, CNY, etc.)
+
+    For fiat, with USD being the most active traded currency.
+    It's direct quoting with (x USD/DOM) for x DOM = 1 USD, e.g. USD/JPY;
+    and indirect quoting with (x DOM/USD) for x USD = 1 DOM, e.g. GBP/USD.
+
+    For DeFi, we call it a direct quoting when the native token is the base.
+    e.g. ETH / USD
+    """
+
+    base: Currency = \
+        DTOField(description='Base token address to get the value for')
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
+
+    def inverse(self):
+        return PriceInput(base=self.quote, quote=self.base)
+
+    def quote_usd(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='USD'))
+
+    def quote_eth(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='ETH`'))
+
+    class Config:
+        schema_extra = {
+            'examples': [{'base': {'symbol': 'USD'}},
+                         {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
+                          'quote': {'symbol': 'USD'}}]
+        }
+
+
+class PriceInputs(IterableListGenericDTO[PriceInput]):
+    inputs: List[PriceInput]
+    _iterator: str = 'inputs'
+
+
+class PriceHistoricalInput(PriceInput, MapBlockTimeSeriesInput):
+    modelSlug: str = DTOField('price.quote', hidden=True)
+    modelInput: dict = DTOField({}, hidden=True)
+    endTimestamp: int = DTOField(0, hidden=True)
+
+
+class PriceHistoricalInputs(PriceInputs, MapBlockTimeSeriesInput):
+    modelSlug: str = DTOField('price.quote', hidden=True)
+    modelInput: dict = DTOField({}, hidden=True)
+    endTimestamp: int = DTOField(0, hidden=True)
 
 
 class PoolPriceInfo(DTO):
@@ -34,8 +133,8 @@ class PoolPriceInfo(DTO):
 
 
 class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
-    pool_price_infos: List[PoolPriceInfo] = []
-    _iterator: str = PrivateAttr('pool_price_infos')
+    infos: List[PoolPriceInfo] = []
+    _iterator: str = PrivateAttr('infos')
 
 
 class PoolPriceAggregatorInput(PoolPriceInfos):

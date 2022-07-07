@@ -1,43 +1,11 @@
 import math
-from datetime import datetime, timedelta, timezone, date
+from datetime import date, datetime, timedelta, timezone
 from typing import Tuple
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token
-)
-from credmark.dto import (
-    DTO
-)
-
-
-# Get token balance of an address on ethereum chain
-def ethereum_token_balance_of_address(contract_address, account_address):
-    '''
-    Get token balance of an address method
-    Args::
-        contract_address: Ethereum Address of the token contract
-        account_address: Ethereum Address of account whose token balance is to be fetched
-        _apiKey: Etherscan API Key
-    Returns::
-        _name: Name of token
-        _balance: Token Balance of Account
-    '''
-
-    contract_address = Address(contract_address).checksum
-
-    _contract = Token(address=contract_address)
-
-    _name = _contract.functions.name().call()
-    _balance = _contract.functions.balanceOf(account_address).call()
-    _decimals = _contract.functions.decimals().call()
-    _symbol = _contract.functions.symbol().call()
-
-    _balance = float(_balance)/pow(10, _decimals)
-
-    return (_name, _symbol, _balance)
+from credmark.cmf.types import Address, Contract, Token
+from credmark.dto import DTO
 
 
 # Function to catch naming error while fetching mandatory data
@@ -61,6 +29,8 @@ class CurvePoolPeggingInfo(Contract):
                 version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=Contract,
                 output=CurvePoolPeggingInfo)
 class CurveGetPeggingRatio(Model):
@@ -91,9 +61,14 @@ class CurveGetPeggingRatio(Model):
         # If fourth token present
         token3 = try_or(lambda: pool_contract_instance.functions.coins(3).call())
         # Fetching token0 and token1 details
-        token0_name, token0_symbol, token0_balance = ethereum_token_balance_of_address(token0, pool)
+        token0_instance = Token(address=token0)
+        token0_name, token0_symbol = token0_instance.name, token0_instance.symbol
+        token0_balance = token0_instance.scaled(token0_instance.functions.balanceOf(pool).call())
         coin_balances.update({token0_symbol: token0_balance})
-        token1_name, token1_symbol, token1_balance = ethereum_token_balance_of_address(token1, pool)
+
+        token1_instance = Token(address=token1)
+        token1_name, token1_symbol = token1_instance.name, token1_instance.symbol
+        token1_balance = token1_instance.scaled(token1_instance.functions.balanceOf(pool).call())
         coin_balances.update({token1_symbol: token1_balance})
 
         # Pool Name
@@ -110,32 +85,40 @@ class CurveGetPeggingRatio(Model):
         if token2 is None:
             pass
         else:
-            t2_name, t2_symbol, t2_balance = ethereum_token_balance_of_address(token2, pool)
+            token2_instance = Token(address=token2)
+            token2_name, token2_symbol = token2_instance.name, token2_instance.symbol
+            token2_balance = token2_instance.scaled(
+                token2_instance.functions.balanceOf(pool).call()
+            )
             # Updating coins
-            coin_balances.update({t2_symbol: t2_balance})
+            coin_balances.update({token2_symbol: token2_balance})
             # Updating number of tokens present
             n += 1
             # Updating quantity product
-            product *= t2_balance
+            product *= token2_balance
             # Updating D
-            d += t2_balance
+            d += token2_balance
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t2_name), str(t2_symbol))
+            pool_name = pool_name + '/{}-{}'.format(str(token2_name), str(token2_symbol))
 
         # Fetching token3 details if present in thee pool
         if token3 is None:
             pass
         else:
-            t3_name, t3_symbol, t3_balance = ethereum_token_balance_of_address(token3, pool)
-            coin_balances.update({t3_symbol: t3_balance})
+            token3_instance = Token(address=token3)
+            token3_name, token3_symbol = token3_instance.name, token3_instance.symbol
+            token3_balance = token3_instance.scaled(
+                token3_instance.functions.balanceOf(pool).call()
+            )
+            coin_balances.update({token3_symbol: token3_balance})
             # Updating number of tokens present
             n += 1
             # Updating quantity product
-            product *= t3_balance
+            product *= token3_balance
             # Updating D
-            d += t3_balance
+            d += token3_balance
             # Updating pool name
-            pool_name = pool_name + '/{}-{}'.format(str(t3_name), str(t3_symbol))
+            pool_name = pool_name + '/{}-{}'.format(str(token3_name), str(token3_symbol))
 
         # Calculating ratio, this gives information about peg
         ratio = product / pow((d/n), n)
@@ -161,6 +144,8 @@ class CurvePoolsValueHistoricalInput(DTO):
                 version="1.1",
                 display_name="Compound pools value history",
                 description="Compound pools value history",
+                category='protocol',
+                subcategory='curve',
                 input=CurvePoolsValueHistoricalInput,
                 output=dict)
 class CurveV2PoolsValueHistorical(Model):
@@ -208,6 +193,8 @@ class CurvePoolDepeggingAmount(DTO):
                 version="1.1",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=CurveDepeggingAmountInput,
                 output=CurvePoolDepeggingAmount)
 class CurveGetDepeggingAmount(Model):
@@ -245,21 +232,25 @@ class CurveGetDepeggingAmount(Model):
             amount_required=amount_required
         )
 
+
 class CurvePeggingRatioChangeInput(DTO):
     pool: Contract
     amounts: dict
+
 
 @Model.describe(slug="contrib.curve-get-pegging-ratio-change",
                 version="1.0",
                 display_name="Get pegging ratio for all of Curve's pools",
                 description="Get pegging ratio for all of Curve's pools",
+                category='protocol',
+                subcategory='curve',
                 input=CurvePeggingRatioChangeInput,
                 output=CurvePoolPeggingInfo)
 class CurveGetPeggingRatioChange(Model):
     def run(self, input: CurvePeggingRatioChangeInput) -> CurvePoolPeggingInfo:
         pool_info = self.context.run_model(
-            slug = 'contrib.curve-get-pegging-ratio',
-            input = input.pool)
+            slug='contrib.curve-get-pegging-ratio',
+            input=input.pool)
 
         # Tokens and their current balances as feetched from contract
         coin_balances = pool_info["coin_balances"]
@@ -267,7 +258,7 @@ class CurveGetPeggingRatioChange(Model):
         n = len(coins)
         # Amount of tokens to be added or removed as fetched from contract
         coins_to_be_changed = list(input.amounts.keys())
-        m =  len(coins_to_be_changed)
+        m = len(coins_to_be_changed)
         # Appending balances of tokens with response to input provided
         for i in range(m):
             coin = coins_to_be_changed[i]
@@ -287,9 +278,9 @@ class CurveGetPeggingRatioChange(Model):
         chi = pool_info['A'] * ratio
 
         return CurvePoolPeggingInfo(
-            address= pool_info['address'],
-            name= pool_info['name'],
-            coin_balances= coin_balances,
-            A= pool_info['A'],
-            chi= chi,
-            ratio= ratio)
+            address=pool_info['address'],
+            name=pool_info['name'],
+            coin_balances=coin_balances,
+            A=pool_info['A'],
+            chi=chi,
+            ratio=ratio)

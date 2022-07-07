@@ -1,7 +1,8 @@
 from random import choice
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address
-from models.dtos.example import ExampleAddressInput, ExampleModelOutput
+from .dtos import ExampleAddressInput, ExampleModelOutput
 
 
 @Model.describe(
@@ -10,6 +11,8 @@ from models.dtos.example import ExampleAddressInput, ExampleModelOutput
     display_name='Example - Address',
     description='This model gives examples of the functionality available on the Address class',
     developer='Credmark',
+    category='example',
+    tags=['address'],
     input=ExampleAddressInput,
     output=ExampleModelOutput)
 class ExampleAddress(Model):

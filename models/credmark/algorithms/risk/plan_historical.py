@@ -29,12 +29,13 @@ class GenericHistoricalInput(DTO):
 
 
 def hp_post_proc(_context, output_from_chef: BlockSeries[dict]) -> pd.DataFrame:
-    if 'price' in output_from_chef.series[0]['output']:
-        return output_from_chef.to_df(fields=[('price', lambda p: p['price'])])
-    elif 'min_risk_rate' in output_from_chef.series[0]['output']:
-        return output_from_chef.to_df(fields=[('min_risk_rate', lambda p: p['min_risk_rate'])])
+    if 'price' in output_from_chef.series[0].output:
+        return output_from_chef.to_dataframe(fields=[('price', lambda p: p['price'])])
+    elif 'min_risk_rate' in output_from_chef.series[0].output:
+        return output_from_chef.to_dataframe(
+            fields=[('min_risk_rate', lambda p: p['min_risk_rate'])])
     else:
-        raise ModelRunError(f"Unknown output {output_from_chef.series[0]['output']}")
+        raise ModelRunError(f"Unknown output {output_from_chef.series[0].output}")
 
 
 @Model.describe(slug="finance.historical-plan",

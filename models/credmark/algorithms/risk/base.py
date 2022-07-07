@@ -44,8 +44,8 @@ class ValueAtRiskBase(Model):
                         if isinstance(vv, pd.DataFrame):
                             dt_cols = vv.select_dtypes(include=['datetime64[ns, UTC]']).columns
                             for dt_col in dt_cols:
-                                vv[dt_col] = (pd.to_datetime(vv[dt_col], unit='ms')
-                                              .dt.tz_localize(None))
+                                vv[dt_col] = (pd.to_datetime(vv[dt_col], unit='ms',
+                                              utc=True).dt.to_pydatetime().replace(tzinfo=None))
                             vv.to_excel(writer, sheet_name=s_name, index=False)
                         elif isinstance(vv, pd.Series):
                             vv.to_excel(writer, sheet_name=s_name, index=False)
@@ -62,7 +62,7 @@ class ValueAtRiskBase(Model):
                     dt_cols = vv.select_dtypes(include=['datetime64[ns, UTC]']).columns
                     for dt_col in dt_cols:
                         vv[dt_col] = (pd.to_datetime(vv[dt_col], unit='ms')
-                                        .dt.tz_localize(None))
+                                      .dt.to_pydatetime().replace(tzinfo=None))
                     if isinstance(vv.columns, pd.MultiIndex):
                         vv.to_excel(writer, sheet_name=s_name)
                     else:

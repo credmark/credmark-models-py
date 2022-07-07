@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from typing import List, Optional, Union
 
@@ -6,7 +7,7 @@ from credmark.cmf.types import Address, Token
 from credmark.cmf.types.ledger import LedgerModelOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from models.utils.term_colors import TermColors
+from .term_colors import TermColors
 
 
 class _ExampleModelOutput(DTO):
@@ -41,7 +42,7 @@ class _ExampleModelOutput(DTO):
         self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 
     def _log(self, message: str):
-        print(message)
+        print(message, file=sys.stderr)
 
     def log(self, message: str):
         self._log('\n' + TermColors.apply(message, TermColors.BLUE))

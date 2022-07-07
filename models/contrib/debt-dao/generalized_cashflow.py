@@ -1,7 +1,8 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import DTO
+
 
 class GCInput(DTO):
     sender_address: Address
@@ -13,11 +14,14 @@ class GCInput(DTO):
                           'receiver_address': '0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e'}]
         }
 
+
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
     version='1.1',
     display_name='Generalized Cashflow',
     description='Tracks cashflow from sender address to receiver address.',
+    category='protocol',
+    tags=['token'],
     input=GCInput,
     output=dict
 )
@@ -31,10 +35,12 @@ class GeneralizedCashflow(Model):
         ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
         and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
         for transfer in transfers:
-            token = Token(address=transfer['token_address']).info
+            token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
-                    'token.price', input=token, block_number=transfer['block_number'])['price']
+                    slug='price.quote',
+                    input={'base': token},
+                    block_number=transfer['block_number'])['price']
             except Exception:
                 transfer['price'] = 0
             if transfer['price'] is None:

@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
+from .dtos import ExampleEchoInput, ExampleEchoOutput
 
 
 @Model.describe(
@@ -8,6 +8,7 @@ from models.dtos.example import ExampleEchoInput, ExampleEchoOutput
     display_name='Example - Model',
     description="First example model to echo the message property sent in input.",
     developer='Credmark',
+    category='example',
     input=ExampleEchoInput,
     output=ExampleEchoOutput)
 class ExampleEcho(Model):

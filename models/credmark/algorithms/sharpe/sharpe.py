@@ -42,8 +42,7 @@ class SharpeRatio(Model):
     def run(self, input: SharpeRatioInput) -> dict:
 
         hp_input = HistoricalPriceInput(token=input.token,
-                                        window=input.window,
-                                        asOf=input.asOf)
+                                        window=input.window)
         historical_prices = self.context.run_model(slug='finance.example-historical-price',
                                                    input=hp_input,
                                                    return_type=PriceList)
