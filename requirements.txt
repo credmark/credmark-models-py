@@ -10,4 +10,3 @@ xlrd>=2.0.1
 xlsxwriter>=3.0.3
 BeautifulSoup4>=4.10.0
 pyarrow>=7.0.0
-ipython>=8.3.0
