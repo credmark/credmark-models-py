@@ -57,15 +57,15 @@ class xCmkDeploymentTime(Model):  # pylint: disable=invalid-name
     xCmkDeploymentTime
     """
 
-    def run(self, input) -> xCmkDeploymentTimeOutput:
+    def run(self, _) -> xCmkDeploymentTimeOutput:
         # get minimum block with to=staked_credmark
         with self.context.ledger.Transaction as txn:
             result = txn.select(
-                columns=[txn.Columns.BLOCK_TIMESTAMP],
-                where=f"{txn.Columns.TO_ADDRESS} = '{Address(STAKED_CREDMARK_ADDRESS)}'",
-                order_by=f'{txn.Columns.BLOCK_TIMESTAMP} ASC',
-                limit='1')
+                columns=[txn.BLOCK_TIMESTAMP],
+                where=txn.TO_ADDRESS.eq(Address(STAKED_CREDMARK_ADDRESS)),
+                order_by=txn.BLOCK_TIMESTAMP.asc(),
+                limit=1)
 
             rows = result.data
-            timestamp = rows[0].get(txn.Columns.BLOCK_TIMESTAMP) if len(rows) else None
+            timestamp = rows[0].get(txn.BLOCK_TIMESTAMP) if len(rows) else None
         return xCmkDeploymentTimeOutput(timestamp=timestamp)

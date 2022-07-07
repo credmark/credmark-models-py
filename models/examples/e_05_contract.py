@@ -1,17 +1,18 @@
 import socket
 
 from credmark.cmf.model import EmptyInput, Model
-from credmark.cmf.types import Contract, ContractLedger
-from .dtos import ExampleModelOutput
+from credmark.cmf.types import Contract
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 from web3._utils.events import get_event_data
 from web3._utils.filters import construct_event_filter_params
 
+from .dtos import ExampleModelOutput
+
 
 @Model.describe(
     slug='example.contract',
-    version='1.2',
+    version='1.3',
     display_name='Example - Contract',
     description='This model gives examples of the functionality available on the Contract class',
     developer='Credmark',
@@ -112,42 +113,44 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                 input="""
 with contract.ledger.functions.addVestingSchedule as q:
     q.select(columns=[
-                q.Columns.TXN_BLOCK_NUMBER,
-                q.InputCol('account'),
-                q.InputCol('allocation')
+                q.TXN_BLOCK_NUMBER,
+                q.ACCOUNT,
+                q.ALLOCATION
              ],
-             order_by=f'{q.Columns.TXN_BLOCK_NUMBER}',
-             limit='5')
+             order_by=q.TXN_BLOCK_NUMBER.asc(),
+             limit=5)
 """,
                 output=q.select(
                     columns=[
-                        q.Columns.TXN_BLOCK_NUMBER,
-                        q.InputCol('account'),
-                        q.InputCol('allocation')
+                        q.TXN_BLOCK_NUMBER,
+                        q.ACCOUNT,
+                        q.ALLOCATION
                     ],
-                    order_by=f'{q.Columns.TXN_BLOCK_NUMBER}',
-                    limit='5'))
+                    order_by=q.TXN_BLOCK_NUMBER,
+                    limit=5))
 
         output.log("You can query ledger data for contract events")
         with contract.ledger.events.VestingScheduleAdded as q:
             output.log_io(
                 input="""
+Get help of the event-specific columns with ``q.colnames``
+
 with contract.ledger.events.VestingScheduleAdded as q:
     q.select(columns=[
-                q.Columns.EVT_BLOCK_NUMBER,
-                q.InputCol('account'),
-                q.InputCol('allocation')
+                q.EVT_BLOCK_NUMBER,
+                q.ACCOUNT,
+                q.ALLOCATION
             ],
-            order_by=f'{q.Columns.EVT_BLOCK_NUMBER}',
-            limit='5'))
+            order_by=f'{q.EVT_BLOCK_NUMBER}',
+            limit=5))
 """,
                 output=q.select(
                     columns=[
-                        q.Columns.EVT_BLOCK_NUMBER,
-                        q.InputCol('account'),
-                        q.InputCol('allocation')
+                        q.EVT_BLOCK_NUMBER,
+                        q.ACCOUNT,
+                        q.ALLOCATION
                     ],
-                    order_by=f'{q.Columns.EVT_BLOCK_NUMBER}',
-                    limit='5'))
+                    order_by=q.EVT_BLOCK_NUMBER.asc(),
+                    limit=5))
 
         return output

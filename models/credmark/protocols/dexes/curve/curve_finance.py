@@ -482,7 +482,7 @@ class CurveFinanceAllGauges(Model):
 
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.3',
+                 version='1.4',
                  category='protocol',
                  subcategory='curve',
                  input=Contract,
@@ -491,14 +491,14 @@ class CurveFinanceAllGaugeAddresses(Model):
     def run(self, input: Contract) -> Accounts:
         with self.context.ledger.Transaction as txn:
             addrs = txn.select(
-                columns=[txn.Columns.FROM_ADDRESS],
-                where=f'{txn.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
+                columns=[txn.FROM_ADDRESS],
+                where=txn.TO_ADDRESS.eq(input.address))
 
             return Accounts(accounts=[
                 Account(address=address)
                 for address in
                 list(dict.fromkeys([
-                    a[txn.Columns.FROM_ADDRESS]
+                    a[txn.FROM_ADDRESS]
                     for a
                     in addrs]))])
 

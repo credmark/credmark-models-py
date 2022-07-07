@@ -9,8 +9,8 @@ from web3._utils.filters import construct_event_filter_params
 from credmark.cmf.model import Model, describe
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
-from credmark.cmf.types import (Account, Accounts, Contract, ContractLedger,
-                                Contracts, Price, Token)
+from credmark.cmf.types import (Account, Accounts, Contract, Contracts, Price,
+                                Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
@@ -118,9 +118,11 @@ class CMKGetVestingByAccount(Model):
         vesting_contracts = Contracts(**self.context.models.cmk.vesting_contracts())
         result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
-        claims = []
+
         current_price = Price(**self.context.models.uniswap_v3.get_weighted_price(
             input={"symbol": "CMK"})).price
+
+        claims = []
         for vesting_contract in vesting_contracts:
             if vesting_contract.functions.getElapsedVestingTime(input.address).call() == 0:
                 continue
@@ -149,55 +151,58 @@ class CMKGetVestingByAccount(Model):
                 ))
             result.vesting_infos.append(vesting_info)
 
-            try:
-                allocation_claimed_events = vesting_contract.events.AllocationClaimed.createFilter(
-                    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
-            except ValueError:
+            def _use_filter(vesting_contract):
+                vesting_claims = []
                 try:
-                    # pylint:disable=locally-disabled,protected-access
-                    event_abi = vesting_contract.events.AllocationClaimed._get_event_abi()
+                    allocation_claimed_events = (
+                        vesting_contract.events.AllocationClaimed
+                        .createFilter(fromBlock=0, toBlock=self.context.block_number)
+                        .get_all_entries())
+                except ValueError:
+                    try:
+                        # pylint:disable=locally-disabled,protected-access,line-too-long
+                        event_abi = vesting_contract.events.AllocationClaimed._get_event_abi()
 
-                    __data_filter_set, event_filter_params = construct_event_filter_params(
-                        abi_codec=self.context.web3.codec,
-                        event_abi=event_abi,
-                        address=input.address.checksum,
-                        fromBlock=0,
-                        toBlock=self.context.block_number
-                    )
-                    allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
-                    allocation_claimed_events = [
-                        get_event_data(self.context.web3.codec, event_abi, s)
-                        for s in allocation_claimed_events]
-                except (ReadTimeoutError, ReadTimeout):
-                    raise ModelRunError(
-                        f'There was timeout error when reading logs for {input.address}')
+                        __data_filter_set, event_filter_params = construct_event_filter_params(
+                            abi_codec=self.context.web3.codec,
+                            event_abi=event_abi,
+                            address=input.address.checksum,
+                            fromBlock=0,
+                            toBlock=self.context.block_number
+                        )
+                        allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
+                        allocation_claimed_events = [
+                            get_event_data(self.context.web3.codec, event_abi, s)
+                            for s in allocation_claimed_events]
+                    except (ReadTimeoutError, ReadTimeout):
+                        raise ModelRunError(
+                            f'There was timeout error when reading logs for {input.address}')
 
-            claims_all = [dict(d['args']) for d in allocation_claimed_events]
+                claims_all = [dict(d['args']) for d in allocation_claimed_events]
 
-            for c in claims_all:
-                if c['account'] == input.address:
-                    c['amount'] = Token(symbol="CMK").scaled(c['amount'])
-                    c['value_at_claim_time'] = c['amount'] * self.context.run_model(
-                        slug="uniswap-v3.get-weighted-price",
-                        input={"symbol": "CMK"},
-                        block_number=self.context.block_number.from_timestamp(c['timestamp']),
-                        return_type=Price).price
-                    c['value_now'] = c['amount'] * current_price
-                    claims.append(c)
+                for c in claims_all:
+                    if c['account'] == input.address:
+                        c['amount'] = Token(symbol="CMK").scaled(c['amount'])
+                        c['value_at_claim_time'] = c['amount'] * self.context.run_model(
+                            slug="uniswap-v3.get-weighted-price",
+                            input={"symbol": "CMK"},
+                            block_number=self.context.block_number.from_timestamp(c['timestamp']),
+                            return_type=Price).price
+                        c['value_now'] = c['amount'] * current_price
+                        vesting_claims.append(c)
+                return vesting_claims
 
             # TODO: New ledger based model, unused due to L2 performance.
-
-            def _new_ledger_based_model(vesting_contract):
+            def _use_ledger(vesting_contract):
                 _input_address = input.address
                 assert vesting_contract.abi is not None
-                cols = vesting_contract.abi.events.AllocationClaimed.args
-                ledger_events = (
-                    vesting_contract.ledger.events.AllocationClaimed(
-                        columns=[ContractLedger.Events.InputCol(c) for c in cols],
-                        order_by=ContractLedger.Events.InputCol("account"),
-                        limit="5000")
-                    .to_dataframe()
-                    .query('inp_account == @_input_address'))
+                with vesting_contract.ledger.events.AllocationClaimed as q:
+                    ledger_events = (q.select(
+                        columns=q.columns,
+                        order_by=q.ACCOUNT,
+                        limit=5000)
+                        .to_dataframe()
+                        .query('inp_account == @_input_address'))
 
                 def price_at_claim_time(row, self=self):
                     timestamp = row['inp_timestamp']
@@ -208,6 +213,7 @@ class CMKGetVestingByAccount(Model):
                         return_type=Price).price
                     return price
 
+                vesting_claims = []
                 if not ledger_events.empty:
                     ledger_events.loc[:, 'amount_scaled'] = (
                         ledger_events.inp_amount.apply(Token(symbol="CMK").scaled))
@@ -229,7 +235,12 @@ class CMKGetVestingByAccount(Model):
                             'price_at_claim_time': r['price_at_claim_time'],
                             'price_now': r['price_now'],
                         }
-                        claims.append(claim)
+                        vesting_claims.append(claim)
+                return vesting_claims
+
+            vesting_claims = _use_filter(vesting_contract)
+            # vesting_claims = _use_ledger(vesting_contract)
+            claims.extend(vesting_claims)
 
         result.claims = claims
 
@@ -245,7 +256,7 @@ class CMKGetVestingByAccount(Model):
     input=EmptyInput,
     output=dict)
 class CMKGetAllVestingBalances(Model):
-    def run(self, input: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         accounts = Accounts(**self.context.models.cmk.get_vesting_accounts())
 
         def _use_for():

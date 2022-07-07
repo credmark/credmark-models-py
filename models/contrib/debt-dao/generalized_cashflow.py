@@ -26,14 +26,14 @@ class GCInput(DTO):
 )
 class GeneralizedCashflow(Model):
     def run(self, input: GCInput) -> dict:
-        with self.context.ledger.Transaction as q:
-            transfers = q.select(columns=[
-                q.Columns.BLOCK_NUMBER,
-                q.Columns.VALUE,
-                q.Columns.TOKEN_ADDRESS,
-                q.Columns.TRANSACTION_HASH
-            ], where=f'{q.Columns.TO_ADDRESS}=\'{input.receiver_address}\' \
-        and {q.Columns.FROM_ADDRESS}=\'{input.sender_address}\'')
+        with self.context.ledger.TokenTransfer as q:
+            transfers = q.select(
+                columns=[q.BLOCK_NUMBER,
+                         q.VALUE,
+                         q.TOKEN_ADDRESS,
+                         q.TRANSACTION_HASH],
+                where=q.TO_ADDRESS.eq(input.receiver_address).and_(
+                    q.FROM_ADDRESS.eq(input.sender_address)))
         for transfer in transfers:
             token = Token(address=transfer['token_address'])
             try:

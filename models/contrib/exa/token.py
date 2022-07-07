@@ -57,25 +57,22 @@ class TokenNetInflow(Model):
         past_block = self.context.block_number - input.blocks
 
         # fetch and store all token transfers
-        with self.context.ledger.TokenTransfer as q, col:
+        with self.context.ledger.TokenTransfer as q:
             transfers = q.select(
                 columns=[
-                    q.Columns.TO_ADDRESS,
-                    q.Columns.FROM_ADDRESS,
-                    q.Columns.VALUE,
+                    q.TO_ADDRESS,
+                    q.FROM_ADDRESS,
+                    q.VALUE,
                 ],
-                where=' and '.join([
-                    f'{q.Columns.TOKEN_ADDRESS}=\'{input.token}\'',
-                    '(' + ' or '.join([
-                        f'{q.Columns.TO_ADDRESS}=\'{from_addr}\'',
-                        f'{q.Columns.FROM_ADDRESS}=\'{from_addr}\''
-                    ]) + ')',
-                    f'{q.Columns.BLOCK_NUMBER} > {past_block}'
-                ]),
-                order_by=f'{q.Columns.BLOCK_NUMBER} desc',
+                where=q.BLOCK_NUMBER.gt(past_block).and_(
+                    q.TOKEN_ADDRESS.eq(token.address).and_(
+                        q.TO_ADDRESS.eq(from_addr).or_(
+                            q.FROM_ADDRESS.eq(from_addr)
+                        ).parentheses_()
+                    )
+                ),
+                order_by=q.BLOCK_NUMBER.desc(),
             ).to_dataframe()
-
-        breakpoint()
 
         inflow = transfers.query('to_address == @from_addr')['value'].astype(float).sum()
         outflow = transfers.query('from_address == @from_addr')['value'].astype(float).sum()

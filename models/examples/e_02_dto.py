@@ -30,11 +30,12 @@ class ExampleDto(Model):
             no_of_legs: int = 4
             is_vegetarian: bool = False
 
-        output.log_io(input="class Animal(DTO):\n"
-                      "\tname: str\n"
-                      "\tlegs: int = 4\n"
-                      "\tis_vegetarian: bool = False",
-                      output="")
+        output.log_io(input="""
+class Animal(DTO):
+    name: str
+    legs: int = 4
+    is_vegetarian: bool = False
+""", output="")
 
         animal = Animal(name='Dog')
         output.log_io(input="Animal(name='Dog')", output=animal)
@@ -43,15 +44,20 @@ class ExampleDto(Model):
 
         output.log("To declare a field as required, you may declare it using just"
                    " an annotation, or you may use an ellipsis (...) as the value:")
-        output.log_io(input="class Animal(DTO):"
-                      "\n\ta: int\n\tb: int = ...\n\tc: int = DTOField(...)",
+        output.log_io(input="""
+class Animal(DTO):
+    a: int
+    b: int = ...
+    c: int = DTOField(...)
+""",
                       output="")
 
         output.log("You can use default_factory to declare field with dynamic value")
-        output.log_io(input="class Animal(DTO):\n"
-                      "\tuid: UUID = DTOField(default_factory=uuid4)\n"
-                      "\tfeeding_time: datetime = DTOField(default_factory=datetime.utcnow)",
-                      output="")
+        output.log_io(input="""
+class Animal(DTO):
+    uid: UUID = DTOField(default_factory=uuid4)
+    feeding_time: datetime = DTOField(default_factory=datetime.utcnow)
+""", output="")
 
         output.log("For custom validation, use the validator decorator.")
         output.log_io(input="""
