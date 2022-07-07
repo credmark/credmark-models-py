@@ -70,3 +70,6 @@ class TestToken(CMKTest):
 
         self.run_model('account.var', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636",
                        "window": "3 days", "interval": 1, "confidence": 0.01})
+
+        self.run_model('account.portfolio', {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a"})
+        self.run_model('account.portfolio', {"address": "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67"})
