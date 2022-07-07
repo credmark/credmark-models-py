@@ -1,9 +1,9 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Tokens
+from credmark.cmf.types import Many, Tokens
 from credmark.dto import EmptyInput
-from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfos
+from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
 from models.credmark.protocols.lending.compound.compound_v2 import \
-    CompoundV2PoolInfos
+    CompoundV2PoolInfo
 
 
 @Model.describe(slug="finance.min-risk-rate",
@@ -23,7 +23,7 @@ class Minrisk(Model):
     def run(self, _) -> dict:
         aave_debts = self.context.run_model('aave-v2.lending-pool-assets',
                                             input=EmptyInput(),
-                                            return_type=AaveDebtInfos)
+                                            return_type=Many[AaveDebtInfo])
 
         stable_coins = Tokens(**self.context.models.token.stablecoins())
         sb_debt_infos = {}
@@ -39,7 +39,7 @@ class Minrisk(Model):
 
         compound_debts = self.context.run_model('compound-v2.all-pools-info',
                                                 input=EmptyInput(),
-                                                return_type=CompoundV2PoolInfos)
+                                                return_type=Many[CompoundV2PoolInfo])
 
         for dbt in compound_debts:
             token = dbt.token

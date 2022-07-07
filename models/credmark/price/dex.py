@@ -5,9 +5,9 @@ from typing import List
 import pandas as pd
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Price, Token
+from credmark.cmf.types import Many, Price, Token
 from credmark.cmf.types.compose import MapInputsOutput
-from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfos
+from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfo
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -26,13 +26,13 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 errors=PRICE_DATA_ERROR_DESC)
 class PoolPriceAggregator(Model):
     def run(self, input: PoolPriceAggregatorInput) -> Price:
-        if len(input.infos) == 0:
+        if len(input.some) == 0:
             raise ModelRunError(f'No pool to aggregate for {input.token}')
 
-        df = pd.DataFrame(input.dict()['infos'])
+        df = pd.DataFrame(input.dict()['some'])
 
-        if len(input.infos) == 1:
-            return Price(price=input.infos[0].price, src=input.price_src)
+        if len(input.some) == 1:
+            return Price(price=input.some[0].price, src=input.price_src)
 
         product_of_price_liquidity = (df.price * df.liquidity ** input.weight_power).sum()
         sum_of_liquidity = (df.liquidity ** input.weight_power).sum()
@@ -107,26 +107,22 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
         return self.aggregate_pool('sushiswap.get-pool-info-token-price', input)
 
 
-@ Model.describe(slug='price.dex-blended',
-                 version='1.7',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='protocol',
-                 subcategory='compound',
-                 tags=['price'],
-                 input=Token,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
-class PriceFromDexModel(Model, PriceWeight):
-    """
-    Return token's price
-    """
+@Model.describe(slug='price.dex-pool',
+                version='0.0',
+                display_name='',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=Token,
+                output=Many[PoolPriceInfo])
+class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
                                              'sushiswap.get-pool-info-token-price',
                                              'uniswap-v3.get-pool-info-token-price']
 
-    def run(self, input: Token) -> Price:
+    def run(self, input: Token) -> Many[PoolPriceInfo]:
         model_inputs = [{"modelSlug": slug, "modelInputs": [input]}
                         for slug in self.DEX_POOL_PRICE_INFO_MODELS]
 
@@ -135,7 +131,7 @@ class PriceFromDexModel(Model, PriceWeight):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'compose.map-inputs',
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[dict, MapInputsOutput[dict, PoolPriceInfos]])
+                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Many[PoolPriceInfo]]])
 
             all_pool_infos = []
             for dex_n, dex_result in enumerate(all_pool_infos_results):
@@ -163,17 +159,39 @@ class PriceFromDexModel(Model, PriceWeight):
             for mrun in model_inputs:
                 infos = self.context.run_model(mrun['modelSlug'],
                                                mrun['modelInputs'][0],
-                                               PoolPriceInfos)
-                all_pool_infos.extend(infos.infos)
+                                               Many[PoolPriceInfo])
+                all_pool_infos.extend(infos.some)
             return all_pool_infos
 
-        all_pool_infos = _use_for()
+        return Many[PoolPriceInfo](some=_use_for())
+
+
+@ Model.describe(slug='price.dex-blended',
+                 version='1.8',
+                 display_name='Token price - Credmark',
+                 description='The Current Credmark Supported Price Algorithms',
+                 developer='Credmark',
+                 category='price',
+                 subcategory='dex',
+                 tags=['dex', 'price'],
+                 input=Token,
+                 output=Price,
+                 errors=PRICE_DATA_ERROR_DESC)
+class PriceFromDexModel(Model, PriceWeight):
+    """
+    Return token's price
+    """
+
+    def run(self, input: Token) -> Price:
+        all_pool_infos = self.context.run_model('price.dex-pool',
+                                                input=input,
+                                                return_type=Many[PoolPriceInfo]).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
+            some=all_pool_infos,
             token=input,
-            infos=all_pool_infos,
             price_src=(f'{self.slug}|'
                        f'Non-zero:{",".join(non_zero_pools)}|'
                        f'Zero:{",".join(zero_pools)}'),

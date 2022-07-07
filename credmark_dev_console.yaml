@@ -8,13 +8,10 @@ imports:
       as: plt
   globals:
     - models.credmark.protocols.lending.aave.aave_v2.AaveDebtInfo
-    - models.credmark.protocols.lending.aave.aave_v2.AaveDebtInfos
     - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolInfo
     - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolValue
     - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfo
-    - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfos
     - models.dtos.volume.TradingVolume
     - models.dtos.volume.TokenTradingVolume
     - models.dtos.price.PoolPriceInfo
-    - models.dtos.price.PoolPriceInfos
     - models.dtos.price.PoolPriceAggregatorInput

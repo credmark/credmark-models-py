@@ -1,7 +1,5 @@
-from typing import List
-
 from credmark.cmf.types import Contract, Token
-from credmark.dto import DTO, DTOField, IterableListGenericDTO
+from credmark.dto import DTO, DTOField
 
 
 class TokenTradingVolume(DTO):
@@ -14,11 +12,6 @@ class TokenTradingVolume(DTO):
     @classmethod
     def default(cls, token):
         return cls(token=token, sellAmount=0, buyAmount=0, sellValue=0, buyValue=0)
-
-
-class TradingVolume(IterableListGenericDTO[TokenTradingVolume]):
-    tokenVolumes: List[TokenTradingVolume]
-    _iterator: str = "tokenVolumes"
 
 
 class VolumeInput(Contract):

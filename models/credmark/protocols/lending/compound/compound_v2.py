@@ -1,11 +1,9 @@
-from typing import List
-
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Price, Token
+from credmark.cmf.types import Address, Contract, Price, Token, Many
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, EmptyInput
 
 np.seterr(all='raise')
 
@@ -60,16 +58,6 @@ class CompoundV2PoolValue(DTO):
     net: float
     block_number: int
     block_datetime: str
-
-
-class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
-    infos: List[CompoundV2PoolInfo]
-    _iterator: str = 'infos'
-
-
-class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
-    values: List[CompoundV2PoolValue]
-    _iterator: str = 'values'
 
 
 def get_comptroller(model):
@@ -142,9 +130,9 @@ class CompoundV2GetAllPools(Model):
                 category='protocol',
                 subcategory='compound',
                 input=EmptyInput,
-                output=CompoundV2PoolInfos)
+                output=Many[CompoundV2PoolInfo])
 class CompoundV2AllPoolsInfo(Model):
-    def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
+    def run(self, input: EmptyInput) -> Many[CompoundV2PoolInfo]:
         pool_infos = []
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
@@ -173,7 +161,7 @@ class CompoundV2AllPoolsInfo(Model):
 
         pool_infos = _use_compose()
 
-        ret = CompoundV2PoolInfos(infos=pool_infos)
+        ret = Many[CompoundV2PoolInfo](some=pool_infos)
         return ret
 
 
@@ -183,10 +171,10 @@ class CompoundV2AllPoolsInfo(Model):
                  description="Compound V2 - convert pool's info to value",
                  category='protocol',
                  subcategory='compound',
-                 input=CompoundV2PoolInfos,
-                 output=CompoundV2PoolValues)
+                 input=Many[CompoundV2PoolInfo],
+                 output=Many[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
-    def run(self, input: CompoundV2PoolInfos) -> CompoundV2PoolValues:
+    def run(self, input: Many[CompoundV2PoolInfo]) -> Many[CompoundV2PoolValue]:
         self.logger.info(f'Data as of {self.context.block_number=}')
         pool_infos = input
 
@@ -201,7 +189,7 @@ class CompoundV2AllPoolsValue(Model):
             return pool_values
 
         pool_values = _use_for()
-        ret = CompoundV2PoolValues(values=pool_values)
+        ret = Many[CompoundV2PoolValue](some=pool_values)
         return ret
 
 

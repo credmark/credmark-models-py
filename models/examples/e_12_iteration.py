@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token
+from credmark.cmf.types import Token, Many
 from .dtos import ExampleIterationOutput
 
 
@@ -12,7 +12,7 @@ from .dtos import ExampleIterationOutput
     output=ExampleIterationOutput)
 class ExampleIteration(Model):
     def run(self, _) -> ExampleIterationOutput:
-        tokens = ExampleIterationOutput.Tokens(tokens=[Token(symbol="CMK")])
+        tokens = Many[Token](some=[Token(symbol="CMK")])
         output = ExampleIterationOutput(
             title="12. Example - Iteration",
             description="This model demonstrates how to create and use iterable DTOs",
@@ -43,7 +43,7 @@ class ExampleIteration(Model):
 
         output.log("Use the extend function to merge another list into tokens")
 
-        stable_coins = ExampleIterationOutput.Tokens(tokens=[Token(symbol="USDC")])
+        stable_coins = Many[Token](some=[Token(symbol="USDC")])
         tokens.extend(stable_coins)
         output.log_io(input="stable_coins = Tokens(tokens=[Token(symbol=\"USDC\")])",
                       output="")

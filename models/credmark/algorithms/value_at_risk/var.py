@@ -2,8 +2,8 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
-                                PriceList, TokenPosition)
+from credmark.cmf.types import (Account, Accounts, Currency, Many, Portfolio,
+                                Price, PriceList, TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
@@ -12,7 +12,6 @@ from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
                                                           VaRHistoricalInput)
 from models.credmark.algorithms.value_at_risk.risk_method import (VaROutput,
                                                                   calc_var)
-from models.dtos.price import Prices
 
 np.seterr(all='raise')
 
@@ -44,9 +43,11 @@ class AccountValue(Model):
                     'price.quote',
                     input={'base': pos.asset, 'quote': input.quote},
                     return_type=Price)
-            except ModelRunError as err:
-                breakpoint()
-                price = Price(price=0.0, src='Cannot find price')
+            except ModelRunError as _err:
+                if 'No pool to aggregate' in _err.data.message:
+                    price = Price(price=0.0, src='Cannot find price')
+                else:
+                    raise
 
             pos_value = pos.amount * price.price
             values.append({
@@ -117,7 +118,7 @@ class VaRPortfolio(Model):
                        "interval": interval,
                        "count": count,
                        "exclusive": False},
-                return_type=MapBlockTimeSeriesOutput[Prices])
+                return_type=MapBlockTimeSeriesOutput[Many[Price]])
 
             price_lists = []
             for tok_n, asset_addr in enumerate(assets_to_quote_list):

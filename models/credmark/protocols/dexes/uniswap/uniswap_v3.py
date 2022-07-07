@@ -1,12 +1,12 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Price, Token
+from credmark.cmf.types import Address, Contract, Contracts, Many, Price, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo, PoolPriceInfos
+from models.dtos.price import PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
 
@@ -194,9 +194,9 @@ class UniswapV3GetPoolInfo(Model):
                 category='protocol',
                 subcategory='uniswap-v3',
                 input=Token,
-                output=PoolPriceInfos)
+                output=Many[PoolPriceInfo])
 class UniswapV3GetTokenPricePoolInfo(Model):
-    def run(self, input: Token) -> PoolPriceInfos:
+    def run(self, input: Token) -> Many[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -285,4 +285,4 @@ class UniswapV3GetTokenPricePoolInfo(Model):
                                                 pool_address=info.address)
                 prices_with_info.append(pool_price_info)
 
-        return PoolPriceInfos(infos=prices_with_info)
+        return Many[PoolPriceInfo](some=prices_with_info)

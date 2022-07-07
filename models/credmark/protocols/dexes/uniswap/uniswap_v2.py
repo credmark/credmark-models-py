@@ -2,18 +2,19 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
-                                Contracts, Portfolio, Position, Price, Token,
-                                Tokens)
+                                Contracts, Many, Maybe, Portfolio, Position,
+                                Price, Token, Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos, Prices
+from models.dtos.price import PoolPriceInfo
 from models.dtos.tvl import TVLInfo
-from models.dtos.volume import (TokenTradingVolume, TradingVolume, VolumeInput,
+from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
-from models.tmp_abi_lookup import CURVE_VYPER_POOL, UNISWAP_V2_POOL_ABI, UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import (CURVE_VYPER_POOL, UNISWAP_V2_POOL_ABI,
+                                   UNISWAP_V3_POOL_ABI)
 from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 
 
@@ -160,9 +161,9 @@ class UniswapPoolPriceInfo(Model):
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=Token,
-                output=PoolPriceInfos)
+                output=Many[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
-    def run(self, input: Token) -> PoolPriceInfos:
+    def run(self, input: Token) -> Many[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v2.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -206,7 +207,7 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         infos = _use_compose()
 
-        return PoolPriceInfos(infos=infos)
+        return Many[PoolPriceInfo](some=infos)
 
 
 @ Model.describe(slug="uniswap-v2.get-pool-info",
@@ -238,22 +239,22 @@ class UniswapGetPoolInfo(Model):
             prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'inputs': [{'base': token0}, {'base': token1}]},
-                return_type=Prices)
+                return_type=Many[Price])
             return prices
 
         def _use_for():
-            prices = Prices(prices=[])
+            prices = Many[Price](some=[])
             for tok in [token0, token1]:
                 price = self.context.run_model('price.quote',
                                                input={'base': tok},
                                                return_type=Price)
-                prices.prices.append(price)
+                prices.some.append(price)
             return prices
 
         prices = _use_for()
 
-        value0 = prices.prices[0].price * token0_balance
-        value1 = prices.prices[1].price * token1_balance
+        value0 = prices.some[0].price * token0_balance
+        value1 = prices.some[1].price * token1_balance
 
         balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
 
@@ -263,7 +264,7 @@ class UniswapGetPoolInfo(Model):
                   'tokens_symbol': [token0.symbol, token1.symbol],
                   'tokens_decimals': [token0.decimals, token1.decimals],
                   'tokens_balance': [token0_balance, token1_balance],
-                  'tokens_price': prices.prices,
+                  'tokens_price': prices.some,
                   'ratio': balance_ratio
                   }
 
@@ -318,9 +319,9 @@ class UniswapV2PoolTVL(Model):
                  category='protocol',
                  subcategory='uniswap-v2',
                  input=VolumeInputHistorical,
-                 output=BlockSeries[TradingVolume])
+                 output=BlockSeries[Many[TokenTradingVolume]])
 class DexPoolSwapVolumeHistorical(Model):
-    def run(self, input: VolumeInputHistorical) -> BlockSeries[TradingVolume]:
+    def run(self, input: VolumeInputHistorical) -> BlockSeries[Many[TokenTradingVolume]]:
         # pylint:disable=locally-disabled,protected-access,line-too-long
         pool = Contract(address=input.address)
 
@@ -346,11 +347,12 @@ class DexPoolSwapVolumeHistorical(Model):
                   for token_info in pool_info['portfolio']['positions']]
 
         # initialize empty TradingVolume
+        trading_volume = Many[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
         pool_volume_history = BlockSeries(
             series=[BlockSeriesRow(blockNumber=0,
                                    blockTimestamp=0,
                                    sampleTimestamp=0,
-                                   output=TradingVolume(tokenVolumes=[TokenTradingVolume.default(token=tok) for tok in tokens]))
+                                   output=trading_volume)
                     for _ in range(input.count)],
             errors=None)
 
@@ -541,11 +543,11 @@ class DexPoolSwapVolumeHistorical(Model):
                  category='protocol',
                  subcategory='uniswap-v2',
                  input=VolumeInput,
-                 output=TradingVolume)
+                 output=Many[TokenTradingVolume])
 class DexPoolSwapVolume(Model):
-    def run(self, input: VolumeInput) -> TradingVolume:
+    def run(self, input: VolumeInput) -> Many[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
         volumes = self.context.run_model('dex.pool-volume-historical',
                                          input=input_historical,
-                                         return_type=BlockSeries[TradingVolume])
+                                         return_type=BlockSeries[Many[TokenTradingVolume]])
         return volumes.series[0].output
