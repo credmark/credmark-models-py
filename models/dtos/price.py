@@ -1,4 +1,4 @@
-from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Some
+from credmark.cmf.types import Address, Currency, FiatCurrency, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 

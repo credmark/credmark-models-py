@@ -2,8 +2,8 @@ from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Some,
-                                NativeToken, Portfolio, Position, Price, Token)
+from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
+                                Portfolio, Position, Price, Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
