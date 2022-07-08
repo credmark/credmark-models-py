@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Contract, Many, Token, Price
+from credmark.cmf.types import Contract, Price, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
@@ -71,7 +71,7 @@ class UniswapPoolVaR(Model):
                    "interval": interval,
                    "count": count,
                    "exclusive": False},
-            return_type=MapBlockTimeSeriesOutput[Many[Price]])
+            return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
         token_historical_prices = [
             (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.some[n].price)])

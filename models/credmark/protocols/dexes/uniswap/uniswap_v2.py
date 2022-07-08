@@ -2,8 +2,8 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
-                                Contracts, Many, Maybe, Portfolio, Position,
-                                Price, Token, Tokens)
+                                Contracts, Maybe, Portfolio, Position, Price,
+                                Some, Token, Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -161,9 +161,9 @@ class UniswapPoolPriceInfo(Model):
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=Token,
-                output=Many[PoolPriceInfo])
+                output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
-    def run(self, input: Token) -> Many[PoolPriceInfo]:
+    def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v2.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -207,7 +207,7 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         infos = _use_compose()
 
-        return Many[PoolPriceInfo](some=infos)
+        return Some[PoolPriceInfo](some=infos)
 
 
 @ Model.describe(slug="uniswap-v2.get-pool-info",
@@ -239,11 +239,11 @@ class UniswapGetPoolInfo(Model):
             prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'some': [{'base': token0}, {'base': token1}]},
-                return_type=Many[Price])
+                return_type=Some[Price])
             return prices
 
         def _use_for():
-            prices = Many[Price](some=[])
+            prices = Some[Price](some=[])
             for tok in [token0, token1]:
                 price = self.context.run_model('price.quote',
                                                input={'base': tok},
@@ -319,9 +319,9 @@ class UniswapV2PoolTVL(Model):
                  category='protocol',
                  subcategory='uniswap-v2',
                  input=VolumeInputHistorical,
-                 output=BlockSeries[Many[TokenTradingVolume]])
+                 output=BlockSeries[Some[TokenTradingVolume]])
 class DexPoolSwapVolumeHistorical(Model):
-    def run(self, input: VolumeInputHistorical) -> BlockSeries[Many[TokenTradingVolume]]:
+    def run(self, input: VolumeInputHistorical) -> BlockSeries[Some[TokenTradingVolume]]:
         # pylint:disable=locally-disabled,protected-access,line-too-long
         pool = Contract(address=input.address)
 
@@ -347,7 +347,7 @@ class DexPoolSwapVolumeHistorical(Model):
                   for token_info in pool_info['portfolio']['positions']]
 
         # initialize empty TradingVolume
-        trading_volume = Many[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
+        trading_volume = Some[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
         pool_volume_history = BlockSeries(
             series=[BlockSeriesRow(blockNumber=0,
                                    blockTimestamp=0,
@@ -543,11 +543,11 @@ class DexPoolSwapVolumeHistorical(Model):
                  category='protocol',
                  subcategory='uniswap-v2',
                  input=VolumeInput,
-                 output=Many[TokenTradingVolume])
+                 output=Some[TokenTradingVolume])
 class DexPoolSwapVolume(Model):
-    def run(self, input: VolumeInput) -> Many[TokenTradingVolume]:
+    def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
         volumes = self.context.run_model('dex.pool-volume-historical',
                                          input=input_historical,
-                                         return_type=BlockSeries[Many[TokenTradingVolume]])
+                                         return_type=BlockSeries[Some[TokenTradingVolume]])
         return volumes.series[0].output

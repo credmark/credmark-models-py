@@ -2,7 +2,7 @@ import IPython.lib.pretty as iptty
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Many, Price, Token
+from credmark.cmf.types import Address, Contract, Contracts, Some, Price, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
@@ -268,9 +268,9 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                  category='protocol',
                  subcategory='uniswap-v3',
                  input=Token,
-                 output=Many[PoolPriceInfo])
+                 output=Some[PoolPriceInfo])
 class UniswapV3GetTokenPoolInfo(Model):
-    def run(self, input: Token) -> Many[PoolPriceInfo]:
+    def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v3.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -307,4 +307,4 @@ class UniswapV3GetTokenPoolInfo(Model):
 
         infos = _use_compose()
 
-        return Many[PoolPriceInfo](some=infos)
+        return Some[PoolPriceInfo](some=infos)

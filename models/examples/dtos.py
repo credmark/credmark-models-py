@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 from credmark.cmf.model.errors import ModelBaseError
-from credmark.cmf.types import Address, Many, Token
+from credmark.cmf.types import Address, Some, Token
 from credmark.cmf.types.ledger import LedgerModelOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO, DTOField
@@ -136,7 +136,7 @@ class ExampleHistoricalOutput(ExampleModelOutput):
 
 
 class ExampleIterationOutput(ExampleModelOutput):
-    tokens: Many[Token]
+    tokens: Some[Token]
 
 
 class ExampleLibrariesOutput(ExampleModelOutput):

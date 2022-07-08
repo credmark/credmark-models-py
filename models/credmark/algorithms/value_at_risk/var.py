@@ -2,8 +2,8 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, Currency, Many, Portfolio,
-                                Price, PriceList, TokenPosition)
+from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
+                                PriceList, Some, TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
@@ -118,7 +118,7 @@ class VaRPortfolio(Model):
                        "interval": interval,
                        "count": count,
                        "exclusive": False},
-                return_type=MapBlockTimeSeriesOutput[Many[Price]])
+                return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
             price_lists = []
             for tok_n, asset_addr in enumerate(assets_to_quote_list):

@@ -8,7 +8,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Many, Portfolio, Position, Price,
+                                Contracts, Portfolio, Position, Price, Some,
                                 Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.ledger import TransactionTable
@@ -297,7 +297,7 @@ class CurveFinancePoolInfo(Model):
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'some': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Many[Price]).some
+                return_type=Some[Price]).some
             return token_prices
 
         token_prices = _use_for()
@@ -388,9 +388,9 @@ class CurveFinancePoolTVL(Model):
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
                 subcategory='curve',
-                output=Many[CurveFiPoolInfo])
+                output=Some[CurveFiPoolInfo])
 class CurveFinanceTotalTokenLiqudity(Model):
-    def run(self, _) -> Many[CurveFiPoolInfo]:
+    def run(self, _) -> Some[CurveFiPoolInfo]:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
                                                 return_type=Contracts)
@@ -431,7 +431,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
             return pool_infos
 
         pool_infos = _use_compose()
-        all_pools_info = Many[CurveFiPoolInfo](some=pool_infos)
+        all_pools_info = Some[CurveFiPoolInfo](some=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['some'])
         # .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))

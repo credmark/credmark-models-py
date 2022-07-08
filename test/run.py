@@ -65,8 +65,6 @@ if __name__ == '__main__':
         sys.exit()
 
     CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
-    mod_model_api = import_module('credmark.cmf.engine.model_api')
-    mod_model_api.RUN_REQUEST_TIMEOUT = 6400  # type: ignore
 
     CMKTest.block_number = args["block_number"]
     CMKTest.start_n = args["start_n"]

@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Many, Portfolio, Position
+from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
 from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
                                                           PortfolioVaRInput)
@@ -31,7 +31,7 @@ class AaveV2GetVAR(Model):
     def run(self, input: ContractVaRInput) -> dict:
         debts = self.context.run_model('aave-v2.lending-pool-assets',
                                        input=EmptyInput(),
-                                       return_type=Many[AaveDebtInfo])
+                                       return_type=Some[AaveDebtInfo])
 
         n_debts = len(debts.some)
         positions = []

@@ -1,4 +1,4 @@
-from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Many
+from credmark.cmf.types import Address, Currency, FiatCurrency, Token, Some
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
@@ -55,7 +55,7 @@ class PriceHistoricalInput(PriceInput, MapBlockTimeSeriesInput):
     endTimestamp: int = DTOField(0, hidden=True)
 
 
-class PriceHistoricalInputs(Many[PriceInput], MapBlockTimeSeriesInput):
+class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
@@ -90,7 +90,7 @@ class PoolPriceInfo(DTO):
     pool_address: Address
 
 
-class PoolPriceAggregatorInput(Many[PoolPriceInfo]):
+class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
     token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
     price_src: str

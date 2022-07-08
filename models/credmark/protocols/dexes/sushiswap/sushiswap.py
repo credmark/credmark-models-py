@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Maybe, Many, Token
+from credmark.cmf.types import Address, Contract, Contracts, Maybe, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
@@ -106,9 +106,9 @@ class SushiswapGetPair(Model):
                 category='protocol',
                 subcategory='sushi',
                 input=Token,
-                output=Many[PoolPriceInfo])
+                output=Some[PoolPriceInfo])
 class SushiswapGetTokenPriceInfo(Model):
-    def run(self, input: Token) -> Many[PoolPriceInfo]:
+    def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts)
@@ -151,4 +151,4 @@ class SushiswapGetTokenPriceInfo(Model):
 
         infos = _use_compose()
 
-        return Many[PoolPriceInfo](some=infos)
+        return Some[PoolPriceInfo](some=infos)

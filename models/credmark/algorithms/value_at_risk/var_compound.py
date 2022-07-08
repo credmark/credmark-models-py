@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Portfolio, Position, Many
+from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
 from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
                                                           PortfolioVaRInput)
@@ -33,7 +33,7 @@ class CompoundGetVAR(Model):
     def run(self, input: ContractVaRInput) -> dict:
         poolsinfo = self.context.run_model('compound-v2.all-pools-info',
                                            input=EmptyInput(),
-                                           return_type=Many[CompoundV2PoolInfo])
+                                           return_type=Some[CompoundV2PoolInfo])
         positions = []
         for poolinfo in poolsinfo:
             amount = (poolinfo.totalBorrows - poolinfo.totalLiability)

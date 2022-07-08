@@ -2,7 +2,7 @@ from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Many,
+from credmark.cmf.types import (Address, Contract, Contracts, Some,
                                 NativeToken, Portfolio, Position, Price, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
@@ -217,9 +217,9 @@ class AaveV2GetTokenLiability(Model):
                  description="Aave V2 assets for the main lending pool",
                  category='protocol',
                  subcategory='aave-v2',
-                 output=Many[AaveDebtInfo])
+                 output=Some[AaveDebtInfo])
 class AaveV2GetAssets(Model):
-    def run(self, input: EmptyInput) -> Many[AaveDebtInfo]:
+    def run(self, input: EmptyInput) -> Some[AaveDebtInfo]:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
@@ -253,7 +253,7 @@ class AaveV2GetAssets(Model):
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
-        return Many[AaveDebtInfo](some=aave_debts_infos)
+        return Some[AaveDebtInfo](some=aave_debts_infos)
 
 
 @ Model.describe(slug="aave-v2.token-asset",

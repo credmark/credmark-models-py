@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
-from credmark.cmf.types import Currency, Maybe, Many, NativeToken, Price, Token
+from credmark.cmf.types import Currency, Maybe, NativeToken, Price, Some, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (Address, PriceHistoricalInput,
@@ -20,10 +20,10 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 category='protocol',
                 tags=['token', 'price'],
                 input=PriceHistoricalInputs,
-                output=MapBlockTimeSeriesOutput[Many[Price]],
+                output=MapBlockTimeSeriesOutput[Some[Price]],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteHistoricalMultiple(Model):
-    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Many[Price]]:
+    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Some[Price]]:
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote-multiple',
@@ -32,7 +32,7 @@ class PriceQuoteHistoricalMultiple(Model):
                    "interval": input.interval,
                    "count": input.count,
                    "exclusive": input.exclusive},
-            return_type=MapBlockTimeSeriesOutput[Many[Price]])
+            return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
         for result in price_historical_result:
             if result.error is not None:
@@ -79,11 +79,11 @@ class PriceQuoteHistorical(Model):
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=Many[PriceInput],
-                output=Many[Price],
+                input=Some[PriceInput],
+                output=Some[Price],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultiple(Model):
-    def run(self, input: Many[PriceInput]) -> Many[Price]:
+    def run(self, input: Some[PriceInput]) -> Some[Price]:
         token_prices_run = self.context.run_model(
             slug='compose.map-inputs',
             input={'modelSlug': 'price.quote', 'modelInputs': input.some},
@@ -99,7 +99,7 @@ class PriceQuoteMultiple(Model):
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
-        return Many[Price](some=prices)
+        return Some[Price](some=prices)
 
 
 @Model.describe(slug='price',

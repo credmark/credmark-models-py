@@ -7,8 +7,8 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price, Many, Token,
-                                Tokens)
+                                Contracts, Portfolio, Position, Price, Some,
+                                Token, Tokens)
 from credmark.dto import DTO, EmptyInput
 from models.tmp_abi_lookup import CRV_REWARD
 
@@ -60,9 +60,9 @@ def fix_crv_reward(crv_rewards):
                 category='protocol',
                 subcategory='convex',
                 input=EmptyInput,
-                output=Many[ConvexPoolInfo])
+                output=Some[ConvexPoolInfo])
 class ConvexFinanceAllPools(Model):
-    def run(self, _: EmptyInput) -> Many[ConvexPoolInfo]:
+    def run(self, _: EmptyInput) -> Some[ConvexPoolInfo]:
         booster = Contract(**self.context.models.convex_fi.booster())
         pool_length = booster.functions.poolLength().call()
 
@@ -83,7 +83,7 @@ class ConvexFinanceAllPools(Model):
                                        tvl=crv_reward_contract.functions.totalSupply().call())
             pool_infos.append(pool_info)
 
-        return Many(some=pool_infos)
+        return Some[ConvexPoolInfo](some=pool_infos)
 
 
 @Model.describe(slug="convex-fi.earned",
@@ -97,7 +97,7 @@ class ConvexFinanceAllPools(Model):
 class ConvexFinanceEarning(Model):
     def run(self, input: Account) -> dict:
         all_pools = self.context.run_model('convex-fi.all-pool-info',
-                                           input=EmptyInput(), return_type=Many[ConvexPoolInfo])
+                                           input=EmptyInput(), return_type=Some[ConvexPoolInfo])
 
         earnings = []
         for pp in all_pools:

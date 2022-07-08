@@ -5,7 +5,7 @@ from typing import List
 import pandas as pd
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Many, Price, Token
+from credmark.cmf.types import Price, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfo
 
@@ -116,13 +116,13 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                 subcategory='dex',
                 tags=['dex', 'price'],
                 input=Token,
-                output=Many[PoolPriceInfo])
+                output=Some[PoolPriceInfo])
 class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
                                              'sushiswap.get-pool-info-token-price',
                                              'uniswap-v3.get-pool-info-token-price']
 
-    def run(self, input: Token) -> Many[PoolPriceInfo]:
+    def run(self, input: Token) -> Some[PoolPriceInfo]:
         model_inputs = [{"modelSlug": slug, "modelInputs": [input]}
                         for slug in self.DEX_POOL_PRICE_INFO_MODELS]
 
@@ -131,7 +131,7 @@ class PriceInfoFromDex(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'compose.map-inputs',
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Many[PoolPriceInfo]]])
+                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Some[PoolPriceInfo]]])
 
             all_pool_infos = []
             for dex_n, dex_result in enumerate(all_pool_infos_results):
@@ -159,11 +159,11 @@ class PriceInfoFromDex(Model):
             for mrun in model_inputs:
                 infos = self.context.run_model(mrun['modelSlug'],
                                                mrun['modelInputs'][0],
-                                               Many[PoolPriceInfo])
+                                               Some[PoolPriceInfo])
                 all_pool_infos.extend(infos.some)
             return all_pool_infos
 
-        return Many[PoolPriceInfo](some=_use_for())
+        return Some[PoolPriceInfo](some=_use_for())
 
 
 @ Model.describe(slug='price.dex-blended',
@@ -185,7 +185,7 @@ class PriceFromDexModel(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
-                                                return_type=Many[PoolPriceInfo]).some
+                                                return_type=Some[PoolPriceInfo]).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}

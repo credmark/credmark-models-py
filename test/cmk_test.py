@@ -6,9 +6,14 @@ import sys
 from types import ModuleType
 from typing import List, Optional
 from unittest import TestCase
-
+from importlib import import_module
 
 class CMKTest(TestCase):
+    def __init__(self, methodName='runTest'):
+        mod_model_api = import_module('credmark.cmf.engine.model_api')
+        mod_model_api.RUN_REQUEST_TIMEOUT = 6400  # type: ignore
+        super().__init__(methodName)
+
     type: str = 'prod'
     pre_flag: List[str] = []
     post_flag: List[str] = []
