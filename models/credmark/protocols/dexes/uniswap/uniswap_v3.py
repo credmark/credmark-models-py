@@ -36,10 +36,6 @@ class UniswapV3PoolInfo(DTO):
     token0_symbol: str
     token1_symbol: str
 
-    def _repr_pretty_(self, p, _cycle):  # pylint:disable=invalid-name
-        ctor = iptty.CallExpression.factory(self.__class__.__name__)
-        p.pretty(ctor(self.address, self.sqrtPriceX96))
-
 
 @Model.describe(slug='uniswap-v3.get-pools',
                 version='1.2',
