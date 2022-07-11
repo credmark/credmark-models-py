@@ -7,9 +7,8 @@ from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
-from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo
+from models.dtos.price import PoolPriceInfo, DexPoolPriceInput
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
@@ -75,25 +74,20 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
         return self.get_uniswap_pools(input, Address(addr))
 
 
-class UniswapPoolPriceInput(DTO):
-    token: Token
-    pool: Contract
-
-
-@Model.describe(slug='uniswap-v2.get-price-pool-info',
+@Model.describe(slug='uniswap-v2.get-pool-price-info',
                 version='1.2',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=UniswapPoolPriceInput,
+                input=DexPoolPriceInput,
                 output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
     """
 
-    def run(self, input: UniswapPoolPriceInput) -> Maybe[PoolPriceInfo]:
+    def run(self, input: DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
         weth = Token(symbol='WETH')
 
         pool = input.pool
@@ -170,7 +164,7 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         # TODO: Too depths issue
         def _use_compose():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
@@ -193,7 +187,7 @@ class UniswapV2GetTokenPriceInfo(Model):
             return infos
 
         def _use_for():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
 
             infos = []

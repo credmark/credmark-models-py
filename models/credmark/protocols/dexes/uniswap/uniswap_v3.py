@@ -1,4 +1,3 @@
-import IPython.lib.pretty as iptty
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
@@ -7,7 +6,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo
+from models.dtos.price import PoolPriceInfo, DexPoolPriceInput
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
 
@@ -107,6 +106,7 @@ class UniswapV3GetPoolInfo(Model):
         pool = input
 
         slot0 = pool.functions.slot0().call()
+        sqrtPriceX96 = slot0[0]
         fee = pool.functions.fee().call()
         ticks = pool.functions.ticks(slot0[1]).call()
         _liquidityGross = ticks[0]
@@ -165,7 +165,7 @@ class UniswapV3GetPoolInfo(Model):
 
         res = {
             "address": input.address,
-            "sqrtPriceX96": slot0[0],
+            "sqrtPriceX96": sqrtPriceX96,
             "tick": tick,
             "observationIndex": slot0[2],
             "observationCardinality": slot0[3],
@@ -189,17 +189,17 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.0',
+                version='0.2',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=Contract,
+                input=DexPoolPriceInput,
                 output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
-    def run(self, input: Contract) -> PoolPriceInfo:
+    def run(self, input: DexPoolPriceInput) -> PoolPriceInfo:
         info = self.context.run_model('uniswap-v3.get-pool-info',
-                                      input=input,
+                                      input=input.pool,
                                       return_type=UniswapV3PoolInfo)
 
         weth_price = None
@@ -213,21 +213,21 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
         scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
         tick_price = 1.0001 ** info.tick * scale_multiplier
-        _tick_liquidity = info.tick_liquidity_token1
-        virtual_liquidity = info.virtual_liquidity_token1
+        _tick_liquidity = info.tick_liquidity_token0
+        virtual_liquidity = info.virtual_liquidity_token0
         ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
         inverse = False
-        if input.address == info.token1.address:
+        if input.token.address == info.token1.address:
             tick_price = 1/tick_price
             ratio_price = 1/ratio_price
             inverse = True
-            _tick_liquidity = info.tick_liquidity_token0
-            virtual_liquidity = info.virtual_liquidity_token0
+            _tick_liquidity = info.tick_liquidity_token1
+            virtual_liquidity = info.virtual_liquidity_token1
 
         weth_multiplier = 1.0
         weth = Token(symbol='WETH')
-        if input.address != weth.address:
+        if input.token.address != weth.address:
             if weth.address in (info.token1.address, info.token0.address):
                 if weth_price is None:
                     weth_price = self.context.run_model('price.quote',
@@ -272,7 +272,8 @@ class UniswapV3GetTokenPoolInfo(Model):
                                        return_type=Contracts)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
-        model_inputs = pools.contracts
+        model_inputs = [DexPoolPriceInput(token=input, pool=pool)
+                        for pool in pools.contracts]
 
         def _use_compose():
             pool_infos = self.context.run_model(

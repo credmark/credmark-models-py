@@ -115,7 +115,7 @@ class SushiswapGetTokenPriceInfo(Model):
 
         # TODO: Too depths issue
         def _use_compose():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
@@ -138,7 +138,7 @@ class SushiswapGetTokenPriceInfo(Model):
             return infos
 
         def _use_for():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             infos = []
             for minput in model_inputs:

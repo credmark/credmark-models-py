@@ -1,4 +1,5 @@
-from credmark.cmf.types import Address, Currency, FiatCurrency, Some, Token
+from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
+                                Some, Token)
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
@@ -59,6 +60,11 @@ class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
+
+
+class DexPoolPriceInput(DTO):
+    token: Token
+    pool: Contract
 
 
 class PoolPriceInfo(DTO):
