@@ -8,6 +8,7 @@ from typing import List, Optional
 from unittest import TestCase
 from importlib import import_module
 
+
 class CMKTest(TestCase):
     def __init__(self, methodName='runTest'):
         mod_model_api = import_module('credmark.cmf.engine.model_api')
@@ -23,6 +24,7 @@ class CMKTest(TestCase):
     test_n: int = 0
     start_n: int = 0
     test_main: ModuleType
+    fail_first: bool = True
 
     def title(self, title):
         logging.info(f'\n{title}\n')
@@ -52,7 +54,8 @@ class CMKTest(TestCase):
             CMKTest.test_n += 1
             return
 
-        logging.info(f'Running case ({self.__class__.__name__})({CMKTest.test_n}): expected {exit_code=} {cmd_line}')
+        logging.info(
+            f'Running case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}): expected {exit_code=} {cmd_line}')
 
         succeed = False
         try:
@@ -62,8 +65,9 @@ class CMKTest(TestCase):
             self.assertTrue(err.code == exit_code)
             succeed = True
         finally:
-            logging.info(f'{"Finished" if succeed else "Failed"} case ({CMKTest.test_n}): {cmd_line}')
-            if not succeed:
+            logging.info(
+                f'{"Finished" if succeed else "Failed"} case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}): {cmd_line}')
+            if self.fail_first and not succeed:
                 sys.exit()
 
         CMKTest.test_n += 1

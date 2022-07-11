@@ -77,9 +77,11 @@ if __name__ == '__main__':
 
     runner = unittest.TextTestRunner()
     if args['serial']:
+        CMKTest.fail_first = True
         # runner.run(suites)
         sys.argv = sys.argv[:1]
         unittest.main(failfast=True)
     else:
+        CMKTest.fail_first = False
         concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
         runner.run(concurrent_suite)
