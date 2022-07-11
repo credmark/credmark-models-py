@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
@@ -75,7 +76,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.2',
+                version='1.3',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -111,11 +112,15 @@ class UniswapPoolPriceInfo(Model):
         if input.token.address == token0.address:
             inverse = False
             price = scaled_reserve1 / scaled_reserve0
-            input_reserve = scaled_reserve0
+            liquidity = scaled_reserve0
         else:
             inverse = True
             price = scaled_reserve0 / scaled_reserve1
-            input_reserve = scaled_reserve1
+            liquidity = scaled_reserve1
+
+        # https://uniswap.org/blog/uniswap-v3-dominance
+        # Appendix B: methodology
+        tick_liquidity = (1 / np.sqrt(1 - 0.0001) - 1) * liquidity
 
         weth_multiplier = 1
         weth = Token(symbol='WETH')
@@ -134,7 +139,8 @@ class UniswapPoolPriceInfo(Model):
 
         pool_price_info = PoolPriceInfo(src=self.slug,
                                         price=price,
-                                        liquidity=input_reserve,
+                                        liquidity=liquidity,
+                                        tick_liquidity=tick_liquidity,
                                         weth_multiplier=weth_multiplier,
                                         inverse=inverse,
                                         token0_address=token0.address,
@@ -149,7 +155,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -162,7 +168,6 @@ class UniswapV2GetTokenPriceInfo(Model):
                                        input,
                                        return_type=Contracts)
 
-        # TODO: Too depths issue
         def _use_compose():
             model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]

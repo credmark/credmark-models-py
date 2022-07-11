@@ -85,6 +85,7 @@ class PoolPriceInfo(DTO):
     src: str
     price: float
     liquidity: float
+    tick_liquidity: float
     weth_multiplier: float
     inverse: bool
     token0_address: Address
