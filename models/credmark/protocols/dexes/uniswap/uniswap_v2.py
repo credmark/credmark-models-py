@@ -2,14 +2,14 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, Contract, ContractLedger,
-                                Contracts, Maybe, Portfolio, Position, Price,
-                                Some, Token, Tokens)
+from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
+                                Maybe, Portfolio, Position, Price, Some, Token,
+                                Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo, DexPoolPriceInput
+from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
@@ -311,7 +311,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.6',
+                 version='1.7',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
@@ -356,41 +356,38 @@ class DexPoolSwapVolumeHistorical(Model):
             errors=None)
 
         if input.pool_info_model == 'uniswap-v2.pool-tvl':
-            event_swap_args = sorted(
-                [c.lower() for c in pool.abi.events.Swap.args if c.lower().startswith('amount')])  # type: ignore
-            df_all_swaps = (pool.ledger.events.Swap(
-                columns=[],
-                aggregates=(
-                    [self.context.ledger.Aggregate(
-                        f'sum((sign({ContractLedger.Events.InputCol(field)})+1) / 2 * {ContractLedger.Events.InputCol(field)})',
-                        f'sum_pos_{ContractLedger.Events.InputCol(field)}')
-                     for field in event_swap_args] +
-                    [self.context.ledger.Aggregate(
-                        f'sum((sign({ContractLedger.Events.InputCol(field)})-1) / 2 * {ContractLedger.Events.InputCol(field)})',
-                        f'sum_neg_{ContractLedger.Events.InputCol(field)}')
-                     for field in event_swap_args] +
-                    [self.context.ledger.Aggregate(
-                        f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                        'interval_n')] +
-                    [self.context.ledger.Aggregate(
-                        f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                     for func in ['min', 'max', 'count']]),
-                where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                       f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                group_by=f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)')
-                .to_dataframe())
+            with pool.ledger.events.Swap as q:
+                event_swap_args = [c for c in q.colnames if c.lower().startswith('amount')]
+                df_all_swaps = (q.select(
+                    aggregates=(
+                        [(f'sum((sign({q[field]})+1) / 2 * {q[field]})', f'sum_pos_{q[field]}')
+                         for field in event_swap_args] +
+                        [(f'sum((sign({q[field]})-1) / 2 * {q[field]})', f'sum_neg_{q[field]}')
+                         for field in event_swap_args] +
+                        [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                            'interval_n')] +
+                        [(q.EVT_BLOCK_NUMBER.func_(func), f'{func}_block_number')
+                         for func in ['min', 'max', 'count']]),
+                    where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                        q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                    group_by=['"interval_n"']
+                ).to_dataframe())
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history
 
-            if event_swap_args == sorted(['amount0in', 'amount1in', 'amount0out', 'amount1out']):
-                df_all_swaps = (df_all_swaps.drop(columns=([f'sum_neg_inp_amount{n}in' for n in range(tokens_n)] +  # type: ignore
-                                                           [f'sum_neg_inp_amount{n}out' for n in range(tokens_n)]))  # type: ignore
-                                .rename(columns=(
-                                    {f'sum_pos_inp_amount{n}in': f'inp_amount{n}_in' for n in range(tokens_n)} |
-                                    {f'sum_pos_inp_amount{n}out': f'inp_amount{n}_out' for n in range(tokens_n)}))
-                                .sort_values('min_block_number')
-                                .reset_index(drop=True))
+            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
+
+            event_swap_args_lower = sorted([c.lower() for c in event_swap_args])
+            if event_swap_args_lower == sorted(['amount0in', 'amount1in', 'amount0out', 'amount1out']):
+                df_all_swaps = (df_all_swaps.drop(
+                    columns=([f'sum_neg_inp_amount{n}in' for n in range(tokens_n)] +  # type: ignore
+                             [f'sum_neg_inp_amount{n}out' for n in range(tokens_n)]))  # type: ignore
+                    .rename(columns=(
+                        {f'sum_pos_inp_amount{n}in': f'inp_amount{n}_in' for n in range(tokens_n)} |
+                        {f'sum_pos_inp_amount{n}out': f'inp_amount{n}_out' for n in range(tokens_n)}))
+                    .sort_values('min_block_number')
+                    .reset_index(drop=True))
             else:
                 df_all_swaps = (df_all_swaps.rename(columns=(
                     {f'sum_pos_inp_amount{n}': f'inp_amount{n}_in' for n in range(tokens_n)} |
@@ -410,25 +407,21 @@ class DexPoolSwapVolumeHistorical(Model):
                     assert sorted(event_tokenexchange_args) == sorted(
                         ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
 
-                    df_all_swap_1 = (pool.ledger.events.TokenExchange(
-                        columns=[ContractLedger.Events.InputCol(
-                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                        aggregates=(
-                            [self.context.ledger.Aggregate(
-                                f'sum({ContractLedger.Events.InputCol(field)})',
-                                f'{ContractLedger.Events.InputCol(field)}')
-                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                            [self.context.ledger.Aggregate(
-                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                                'interval_n')] +
-                            [self.context.ledger.Aggregate(
-                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                                for func in ['min', 'max', 'count']]),
-                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                        .to_dataframe())
+                    with pool.ledger.events.TokenExchange as q:
+                        df_all_swap_1 = (q.select(
+                            aggregates=(
+                                [(f'sum({q[field]})', f'{q[field]}')
+                                 for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                                [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                  'interval_n')] +
+                                [(f'{func}({q.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                 for func in ['min', 'max', 'count']]),
+                            where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                                q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                            group_by=['"interval_n"',
+                                      q.SOLD_ID,
+                                      q.BOUGHT_ID])
+                            .to_dataframe())
                 except ModelDataError:
                     pass
 
@@ -438,25 +431,21 @@ class DexPoolSwapVolumeHistorical(Model):
                 assert sorted(event_tokenexchange_args) == sorted(
                     ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
                 try:
-                    df_all_swap_2 = (pool.ledger.events.TokenExchangeUnderlying(
-                        columns=[ContractLedger.Events.InputCol(
-                            "SOLD_ID"), ContractLedger.Events.InputCol("BOUGHT_ID")],
-                        aggregates=(
-                            [self.context.ledger.Aggregate(
-                                f'sum({ContractLedger.Events.InputCol(field)})',
-                                f'{ContractLedger.Events.InputCol(field)}')
-                                for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                            [self.context.ledger.Aggregate(
-                                f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
-                                'interval_n')] +
-                            [self.context.ledger.Aggregate(
-                                f'{func}({ContractLedger.Events.Columns.EVT_BLOCK_NUMBER})', f'{func}_block_number')
-                                for func in ['min', 'max', 'count']]),
-                        where=(f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} > {self.context.block_number - input.interval * input.count} AND '
-                               f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER} <= {self.context.block_number}'),
-                        group_by=(f'floor(({self.context.block_number} - {ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}) / {input.interval}, 0)' +
-                                  f',{ContractLedger.Events.InputCol("SOLD_ID")},{ContractLedger.Events.InputCol("BOUGHT_ID")}'))
-                        .to_dataframe())
+                    with pool.ledger.events.TokenExchangeUnderlying as q:
+                        df_all_swap_2 = (q.select(
+                            aggregates=(
+                                [(q[field].sum_().str(), f'{q[field]}')
+                                    for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
+                                [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                    'interval_n')] +
+                                [(q.EVT_BLOCK_NUMBER.func_(func), f'{func}_block_number')
+                                    for func in ['min', 'max', 'count']]),
+                            where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                                q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                            group_by=['"interval_n"',
+                                      q.SOLD_ID,
+                                      q.BOUGHT_ID])
+                            .to_dataframe())
                 except ModelDataError:
                     pass
 
@@ -464,6 +453,8 @@ class DexPoolSwapVolumeHistorical(Model):
 
             if len(df_all_swaps) == 0:
                 return pool_volume_history
+
+            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
 
             for col in ['inp_tokens_bought', 'inp_tokens_sold']:
                 df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore

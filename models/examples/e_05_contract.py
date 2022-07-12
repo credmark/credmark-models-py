@@ -1,17 +1,18 @@
 import socket
 
 from credmark.cmf.model import EmptyInput, Model
-from credmark.cmf.types import Contract, ContractLedger
-from .dtos import ExampleModelOutput
+from credmark.cmf.types import Contract
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 from web3._utils.events import get_event_data
 from web3._utils.filters import construct_event_filter_params
 
+from .dtos import ExampleModelOutput
+
 
 @Model.describe(
     slug='example.contract',
-    version='1.2',
+    version='1.3',
     display_name='Example - Contract',
     description='This model gives examples of the functionality available on the Contract class',
     developer='Credmark',
@@ -106,40 +107,50 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                                  f'{contract.address}')
 
         # Contract ledger queries
-        output.log("You can query ledger data for contract function calls")
-        output.log_io(input="""
-contract.ledger.functions.addVestingSchedule(columns=[
-        ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
-        ContractLedger.Functions.InputCol('account'),
-        ContractLedger.Functions.InputCol('allocation')
-    ],
-    order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
-    limit='5')
-        """, output=contract.ledger.functions.addVestingSchedule(
-            columns=[
-                ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER,
-                ContractLedger.Functions.InputCol('account'),
-                ContractLedger.Functions.InputCol('allocation')
-            ],
-            order_by=f'{ContractLedger.Functions.Columns.TXN_BLOCK_NUMBER}',
-            limit='5'))
+        with contract.ledger.functions.addVestingSchedule as q:
+            output.log("You can query ledger data for contract function calls")
+            output.log_io(
+                input="""
+with contract.ledger.functions.addVestingSchedule as q:
+    q.select(columns=[
+                q.TXN_BLOCK_NUMBER,
+                q.ACCOUNT,
+                q.ALLOCATION
+             ],
+             order_by=q.TXN_BLOCK_NUMBER.asc(),
+             limit=5)
+""",
+                output=q.select(
+                    columns=[
+                        q.TXN_BLOCK_NUMBER,
+                        q.ACCOUNT,
+                        q.ALLOCATION
+                    ],
+                    order_by=q.TXN_BLOCK_NUMBER,
+                    limit=5))
 
         output.log("You can query ledger data for contract events")
-        output.log_io(input="""
-contract.ledger.events.VestingScheduleAdded(columns=[
-        ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
-        ContractLedger.Events.InputCol('account'),
-        ContractLedger.Events.InputCol('allocation')
-    ],
-    order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
-    limit='5')
-        """, output=contract.ledger.events.VestingScheduleAdded(
-            columns=[
-                ContractLedger.Events.Columns.EVT_BLOCK_NUMBER,
-                ContractLedger.Events.InputCol('account'),
-                ContractLedger.Events.InputCol('allocation')
+        with contract.ledger.events.VestingScheduleAdded as q:
+            output.log_io(
+                input="""
+Get help of the event-specific columns with ``q.colnames``
+
+with contract.ledger.events.VestingScheduleAdded as q:
+    q.select(columns=[
+                q.EVT_BLOCK_NUMBER,
+                q.ACCOUNT,
+                q.ALLOCATION
             ],
-            order_by=f'{ContractLedger.Events.Columns.EVT_BLOCK_NUMBER}',
-            limit='5'))
+            order_by=f'{q.EVT_BLOCK_NUMBER}',
+            limit=5))
+""",
+                output=q.select(
+                    columns=[
+                        q.EVT_BLOCK_NUMBER,
+                        q.ACCOUNT,
+                        q.ALLOCATION
+                    ],
+                    order_by=q.EVT_BLOCK_NUMBER.asc(),
+                    limit=5))
 
         return output

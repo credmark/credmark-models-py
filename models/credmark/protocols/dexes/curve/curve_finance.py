@@ -6,12 +6,11 @@ from typing import List
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price, Some,
                                 Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.cmf.types.ledger import TransactionTable
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
@@ -478,23 +477,25 @@ class CurveFinanceAllGauges(Model):
 
 
 @ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.2',
+                 version='1.4',
                  category='protocol',
                  subcategory='curve',
                  input=Contract,
                  output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
     def run(self, input: Contract) -> Accounts:
-        addrs = self.context.ledger.get_transactions(
-            columns=[TransactionTable.Columns.FROM_ADDRESS],
-            where=f'{TransactionTable.Columns.TO_ADDRESS}=\'{input.address.lower()}\'')
-        return Accounts(accounts=[
-            Account(address=address)
-            for address in
-            list(dict.fromkeys([
-                a[TransactionTable.Columns.FROM_ADDRESS]
-                for a
-                in addrs]))])
+        with self.context.ledger.Transaction as txn:
+            addrs = txn.select(
+                columns=[txn.FROM_ADDRESS],
+                where=txn.TO_ADDRESS.eq(input.address))
+
+            return Accounts(accounts=[
+                Account(address=address)
+                for address in
+                list(dict.fromkeys([
+                    a[txn.FROM_ADDRESS]
+                    for a
+                    in addrs]))])
 
 
 @ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',

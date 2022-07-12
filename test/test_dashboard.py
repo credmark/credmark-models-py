@@ -63,6 +63,8 @@ class TestDashboard(CMKTest):
                        "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=14048685)
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=15048685)
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f"}, block_number=14048685)
 
     def test_lp_var(self):
         block_number = 14830357

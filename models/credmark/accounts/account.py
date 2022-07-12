@@ -6,13 +6,12 @@ from credmark.cmf.model import Model
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 NativePosition, NativeToken, Portfolio,
                                 Position, Token, TokenPosition, Tokens)
-from credmark.cmf.types.ledger import TokenTransferTable
 
 np.seterr(all='raise')
 
 
 @Model.describe(slug='account.token-erc20',
-                version='1.0',
+                version='1.2',
                 display_name='Account Token ERC20',
                 description='Account ERC20 transaction table',
                 developer="Credmark",
@@ -24,22 +23,20 @@ np.seterr(all='raise')
 class AccountERC20Token(Model):
     def run(self, input: Account) -> dict:
         # pylint:disable=locally-disabled,line-too-long
-        transfer_cols = [TokenTransferTable.Columns.BLOCK_NUMBER,
-                         TokenTransferTable.Columns.LOG_INDEX,
-                         TokenTransferTable.Columns.TRANSACTION_HASH,
-                         TokenTransferTable.Columns.TO_ADDRESS,
-                         TokenTransferTable.Columns.FROM_ADDRESS,
-                         TokenTransferTable.Columns.TOKEN_ADDRESS]
+        with self.context.ledger.TokenTransfer as q:
+            transfer_cols = [q.BLOCK_NUMBER,
+                             q.LOG_INDEX,
+                             q.TRANSACTION_HASH,
+                             q.TO_ADDRESS,
+                             q.FROM_ADDRESS,
+                             q.TOKEN_ADDRESS]
 
-        df_tt = (self.context.ledger.get_erc20_transfers(
-            columns=transfer_cols,
-            aggregates=[self.context.ledger.Aggregate(
-                f'SUM(CASE WHEN {TokenTransferTable.Columns.TO_ADDRESS} = lower(\'{input.address}\') '
-                f'THEN {TokenTransferTable.Columns.VALUE} ELSE -{TokenTransferTable.Columns.VALUE} END)', 'sum_value')],
-            where=(f'{TokenTransferTable.Columns.TO_ADDRESS} = lower(\'{input.address}\') or '
-                   f'{TokenTransferTable.Columns.FROM_ADDRESS} = lower(\'{input.address}\')'),
-            group_by=','.join(transfer_cols))
-            .to_dataframe())
+            df_tt = (q.select(
+                aggregates=[((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.address)} '
+                             f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'sum_value')],
+                where=(q.TO_ADDRESS.eq(input.address).or_(q.FROM_ADDRESS.eq(input.address))).parentheses_(),
+                group_by=transfer_cols)
+                .to_dataframe())
 
         if df_tt.empty:
             return pd.DataFrame(columns=transfer_cols, data=[]).to_dict()
@@ -49,7 +46,7 @@ class AccountERC20Token(Model):
                     .to_dict())
 
 
-@Model.describe(
+@ Model.describe(
     slug="account.portfolio",
     version="0.2",
     display_name="Account Portfolio",
@@ -72,14 +69,11 @@ class WalletInfoModel(Model):
                 )
             )
 
-        token_addresses = self.context.ledger.get_erc20_transfers(
-            columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
-            where=' '.join(
-                [f"{TokenTransferTable.Columns.FROM_ADDRESS}='{input.address}'",
-                 'or',
-                 f"{TokenTransferTable.Columns.TO_ADDRESS}='{input.address}'"]),
-            group_by=TokenTransferTable.Columns.TOKEN_ADDRESS
-        )
+        with self.context.ledger.TokenTransfer as q:
+            token_addresses = q.select(
+                columns=[q.TOKEN_ADDRESS],
+                where=q.FROM_ADDRESS.eq(input.address).or_(
+                    q.TO_ADDRESS.eq(input.address)))
 
         for t in list(dict.fromkeys([t['token_address'] for t in token_addresses])):
             try:
@@ -118,13 +112,11 @@ class AccountsPortfolio(Model):
         token_addresses = []
         native_balance = 0.0
         for a in input:
-            token_addresses += self.context.ledger.get_erc20_transfers(
-                columns=[TokenTransferTable.Columns.TOKEN_ADDRESS],
-                where=' '.join(
-                    [f"{TokenTransferTable.Columns.FROM_ADDRESS}='{a.address}'",
-                     "or",
-                     f"{TokenTransferTable.Columns.TO_ADDRESS}='{a.address}'"]),
-                group_by=TokenTransferTable.Columns.TOKEN_ADDRESS)
+            with self.context.ledger.TokenTransfer as q:
+                token_addresses += q.select(
+                    where=q.FROM_ADDRESS.eq(a.address).or_(
+                        q.TO_ADDRESS.eq(a.address)),
+                    group_by=[q.TOKEN_ADDRESS])
             native_balance += self.context.web3.eth.get_balance(a.address)
         positions = []
 
@@ -164,7 +156,7 @@ class CurveLPPosition(Position):
     lp_position: Portfolio
 
 
-@Model.describe(
+@ Model.describe(
     slug="account.position-in-curve",
     version="1.1",
     display_name="account position in Curve LP",

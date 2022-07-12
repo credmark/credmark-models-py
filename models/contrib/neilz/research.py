@@ -1,12 +1,11 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, BlockNumber, Token
-from credmark.cmf.types.ledger import TokenTransferTable
 from credmark.dto import EmptyInput
 
 
 @Model.describe(
     slug='contrib.neilz-redacted-votium-cashflow',
-    version='1.1',
+    version='1.2',
     display_name='Redacted Cartel Votium Cashflow',
     description='Redacted Cartel Votium Cashflow',
     category='protocol',
@@ -15,16 +14,18 @@ from credmark.dto import EmptyInput
     output=dict
 )
 class RedactedVotiumCashflow(Model):
-    def run(self, input: None) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         votium_claim_address = Address("0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A")
         redacted_multisig_address = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
-        transfers = self.context.ledger.get_erc20_transfers(columns=[
-            TokenTransferTable.Columns.BLOCK_NUMBER,
-            TokenTransferTable.Columns.VALUE,
-            TokenTransferTable.Columns.TOKEN_ADDRESS,
-            TokenTransferTable.Columns.TRANSACTION_HASH
-        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
-        and {TokenTransferTable.Columns.FROM_ADDRESS}=\'{votium_claim_address}\'')
+        with self.context.ledger.TokenTransfer as q:
+            transfers = q.select(columns=[
+                q.BLOCK_NUMBER,
+                q.VALUE,
+                q.TOKEN_ADDRESS,
+                q.TRANSACTION_HASH
+            ], where=q.TO_ADDRESS.eq(redacted_multisig_address).and_(
+                q.FROM_ADDRESS.eq(votium_claim_address)))
+
         for transfer in transfers:
             token = Token(address=transfer['token_address'])
             try:
@@ -45,7 +46,7 @@ class RedactedVotiumCashflow(Model):
 
 @Model.describe(
     slug='contrib.neilz-redacted-convex-cashflow',
-    version='1.1',
+    version='1.2',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
     category='protocol',
@@ -54,19 +55,20 @@ class RedactedVotiumCashflow(Model):
     output=dict
 )
 class RedactedConvexCashflow(Model):
-    def run(self, input: None) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         convex_addresses = [
             Address("0x72a19342e8F1838460eBFCCEf09F6585e32db86E"),
             Address("0xD18140b4B819b895A3dba5442F959fA44994AF50"),
         ]
         redacted_multisig_address = Address("0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
-        transfers = self.context.ledger.get_erc20_transfers(columns=[
-            TokenTransferTable.Columns.BLOCK_NUMBER,
-            TokenTransferTable.Columns.VALUE,
-            TokenTransferTable.Columns.TOKEN_ADDRESS
-        ], where=f'{TokenTransferTable.Columns.TO_ADDRESS}=\'{redacted_multisig_address}\' \
-            and {TokenTransferTable.Columns.FROM_ADDRESS} \
-                in(\'{convex_addresses[0]}\',\'{convex_addresses[1]}\')')
+        with self.context.ledger.TokenTransfer as q:
+            transfers = q.select(columns=[
+                q.BLOCK_NUMBER,
+                q.VALUE,
+                q.TOKEN_ADDRESS
+            ], where=q.TO_ADDRESS.eq(redacted_multisig_address).and_(
+                q.FROM_ADDRESS.in_([convex_addresses[0], convex_addresses[1]]))
+            )
         for transfer in transfers:
             token = Token(address=transfer['token_address'])
             try:

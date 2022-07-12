@@ -1,5 +1,6 @@
 # pylint:disable=locally-disabled,line-too-long
 
+from numpy import block
 from cmk_test import CMKTest
 
 
@@ -52,3 +53,9 @@ class TestExample(CMKTest):
         self.run_model('example.iteration', {})
 
         self.run_model('contrib.token-net-inflow', {'blocks': 7000}, block_number=15038786)
+        self.run_model('contrib.debt-dao-generalized-cashflow',
+                       {"sender_address": "0xf16E9B0D03470827A95CDfd0Cb8a8A3b46969B91",
+                           "receiver_address": "0xf596c85d4ec5572dfB2351F9395ca6A185aAec6D"},
+                       block_number=15086281)
+        self.run_model('contrib.neilz-redacted-votium-cashflow', {}, block_number=15086281)
+        self.run_model('contrib.neilz-redacted-convex-cashflow', {}, block_number=15086281)
