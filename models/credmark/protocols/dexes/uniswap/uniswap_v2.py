@@ -76,7 +76,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.3',
+                version='1.4',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -155,7 +155,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',

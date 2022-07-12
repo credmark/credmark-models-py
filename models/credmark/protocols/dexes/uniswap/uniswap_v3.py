@@ -209,7 +209,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.3',
+                version='0.4',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -279,7 +279,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @ Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                 version='1.7',
+                 version='1.8',
                  display_name='Uniswap v3 Token Pools Price ',
                  description='Gather price and liquidity information from pools',
                  category='protocol',
