@@ -155,7 +155,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -535,7 +535,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 
 @ Model.describe(slug='dex.pool-volume',
-                 version='1.9',
+                 version='1.10',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current'),

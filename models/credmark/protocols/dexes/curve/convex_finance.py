@@ -54,7 +54,7 @@ def fix_crv_reward(crv_rewards):
 
 
 @Model.describe(slug="convex-fi.all-pool-info",
-                version="0.1",
+                version="0.2",
                 display_name="Convex Finance Pools",
                 description="Get All Pools Information in Convex Finance",
                 category='protocol',

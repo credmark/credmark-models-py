@@ -124,7 +124,7 @@ class CompoundV2GetAllPools(Model):
 
 
 @Model.describe(slug="compound-v2.all-pools-info",
-                version="1.3",
+                version="1.4",
                 display_name="Compound V2 - get all pool info",
                 description="Get all pools and query for their info (deposit, borrow, rates)",
                 category='protocol',
@@ -165,7 +165,7 @@ class CompoundV2AllPoolsInfo(Model):
 
 
 @ Model.describe(slug="compound-v2.all-pools-value",
-                 version="0.1",
+                 version="0.2",
                  display_name="Compound V2 - get all pools value",
                  description="Compound V2 - convert pool's info to value",
                  category='protocol',
