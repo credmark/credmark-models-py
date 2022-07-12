@@ -2,11 +2,11 @@
 from typing import List
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelInputError, ModelRunError, ModelDataError
+from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
+                                       ModelRunError)
 from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
-                                Currency, Price, Token)
+                                Currency, Maybe, Price, Token)
 from credmark.dto import DTO, IterableListGenericDTO
-from models.dtos.price import Maybe
 from models.tmp_abi_lookup import ERC_20_ABI
 
 

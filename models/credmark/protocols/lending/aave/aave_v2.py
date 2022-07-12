@@ -1,11 +1,11 @@
-from typing import List, Optional
+from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
-                                Portfolio, Position, Price, Token)
+                                Portfolio, Position, Price, Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
@@ -28,11 +28,6 @@ class AaveDebtInfo(DTO):
     totalVariableDebt_qty: float
     totalDebt_qty: float
     totalLiquidity_qty: float
-
-
-class AaveDebtInfos(IterableListGenericDTO[AaveDebtInfo]):
-    aaveDebtInfos: List[AaveDebtInfo]
-    _iterator: str = 'aaveDebtInfos'
 
 
 # PriceOracle
@@ -222,9 +217,9 @@ class AaveV2GetTokenLiability(Model):
                  description="Aave V2 assets for the main lending pool",
                  category='protocol',
                  subcategory='aave-v2',
-                 output=AaveDebtInfos)
+                 output=Some[AaveDebtInfo])
 class AaveV2GetAssets(Model):
-    def run(self, input: EmptyInput) -> IterableListGenericDTO[AaveDebtInfo]:
+    def run(self, input: EmptyInput) -> Some[AaveDebtInfo]:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract)
@@ -258,7 +253,7 @@ class AaveV2GetAssets(Model):
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
-        return AaveDebtInfos(aaveDebtInfos=aave_debts_infos)
+        return Some[AaveDebtInfo](some=aave_debts_infos)
 
 
 @ Model.describe(slug="aave-v2.token-asset",

@@ -1,11 +1,11 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Token
+from credmark.cmf.types import Address, Contract, Contracts, Maybe, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
     UniswapV2PoolMeta
-from models.dtos.price import Maybe, PoolPriceInfo, PoolPriceInfos
+from models.dtos.price import PoolPriceInfo
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -100,22 +100,22 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.2',
+                version='1.3',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
                 subcategory='sushi',
                 input=Token,
-                output=PoolPriceInfos)
+                output=Some[PoolPriceInfo])
 class SushiswapGetTokenPriceInfo(Model):
-    def run(self, input: Token) -> PoolPriceInfos:
+    def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts)
 
         # TODO: Too depths issue
         def _use_compose():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
@@ -138,7 +138,7 @@ class SushiswapGetTokenPriceInfo(Model):
             return infos
 
         def _use_for():
-            model_slug = 'uniswap-v2.get-price-pool-info'
+            model_slug = 'uniswap-v2.get-pool-price-info'
             model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             infos = []
             for minput in model_inputs:
@@ -151,4 +151,4 @@ class SushiswapGetTokenPriceInfo(Model):
 
         infos = _use_compose()
 
-        return PoolPriceInfos(infos=infos)
+        return Some[PoolPriceInfo](some=infos)

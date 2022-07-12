@@ -1,43 +1,7 @@
-from typing import Generic, List, Optional, TypeVar, Iterator
-
-from credmark.cmf.types import Address, Currency, FiatCurrency, Price, Token
+from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
+                                Some, Token)
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
-from credmark.dto import (DTO, DTOField, GenericDTO, IterableListGenericDTO,
-                          PrivateAttr)
-
-DTOCLS = TypeVar('DTOCLS')
-
-
-class Prices(IterableListGenericDTO[Price]):
-    prices: List[Price]
-    _iterator: str = 'prices'
-
-
-class Maybe(GenericDTO, Generic[DTOCLS]):
-    just: Optional[DTOCLS] = DTOField(None)
-
-    def is_just(self):
-        return self.just is not None
-
-
-class Many(GenericDTO, Generic[DTOCLS]):
-    some: List[DTOCLS] = DTOField([])
-    _iterator: str = 'some'
-
-    def __iter__(self) -> Iterator[DTOCLS]:
-        return getattr(self, self._iterator).__iter__()
-
-    def __getitem__(self, key) -> DTOCLS:
-        return getattr(self, self._iterator).__getitem__(key)
-
-    def append(self, obj):
-        return getattr(self, self._iterator).append(obj)
-
-    def extend(self, obj):
-        return getattr(self, self._iterator).extend(obj)
-
-    def __len__(self) -> int:
-        return len(self.some)
+from credmark.dto import DTO, DTOField
 
 
 class PriceInput(DTO):
@@ -86,21 +50,21 @@ class PriceInput(DTO):
         }
 
 
-class PriceInputs(IterableListGenericDTO[PriceInput]):
-    inputs: List[PriceInput]
-    _iterator: str = 'inputs'
-
-
 class PriceHistoricalInput(PriceInput, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
 
 
-class PriceHistoricalInputs(PriceInputs, MapBlockTimeSeriesInput):
+class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
+
+
+class DexPoolPriceInput(DTO):
+    token: Token
+    pool: Contract
 
 
 class PoolPriceInfo(DTO):
@@ -121,6 +85,7 @@ class PoolPriceInfo(DTO):
     src: str
     price: float
     liquidity: float
+    tick_liquidity: float
     weth_multiplier: float
     inverse: bool
     token0_address: Address
@@ -132,12 +97,7 @@ class PoolPriceInfo(DTO):
     pool_address: Address
 
 
-class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
-    infos: List[PoolPriceInfo] = []
-    _iterator: str = PrivateAttr('infos')
-
-
-class PoolPriceAggregatorInput(PoolPriceInfos):
+class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
     token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
     price_src: str

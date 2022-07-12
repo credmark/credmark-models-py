@@ -2,10 +2,10 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Price
+from credmark.cmf.types import Contract, Maybe, Price
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
-from models.dtos.price import Maybe, PriceInput
+from models.dtos.price import PriceInput
 from web3.exceptions import ContractLogicError
 
 

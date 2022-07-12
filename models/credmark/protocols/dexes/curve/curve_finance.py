@@ -8,13 +8,12 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price, Token,
-                                Tokens)
+                                Contracts, Portfolio, Position, Price, Some,
+                                Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.ledger import TransactionTable
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import Prices
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
 from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
@@ -47,10 +46,6 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
     is_meta: bool
     gauges: Accounts
     gauges_type: List[int]
-
-
-class CurveFiPoolInfos(DTO):
-    pool_infos: List[CurveFiPoolInfo]
 
 
 @ Model.describe(slug='curve-fi.get-provider',
@@ -301,8 +296,8 @@ class CurveFinancePoolInfo(Model):
         def _use_compose():
             token_prices = self.context.run_model(
                 'price.quote-multiple',
-                input={'inputs': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Prices).prices
+                input={'some': [{'base': tok} for tok in pool_info.tokens]},
+                return_type=Some[Price]).some
             return token_prices
 
         token_prices = _use_for()
@@ -393,9 +388,9 @@ class CurveFinancePoolTVL(Model):
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
                 subcategory='curve',
-                output=CurveFiPoolInfos)
+                output=Some[CurveFiPoolInfo])
 class CurveFinanceTotalTokenLiqudity(Model):
-    def run(self, _) -> CurveFiPoolInfos:
+    def run(self, _) -> Some[CurveFiPoolInfo]:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
                                                 return_type=Contracts)
@@ -436,9 +431,9 @@ class CurveFinanceTotalTokenLiqudity(Model):
             return pool_infos
 
         pool_infos = _use_compose()
-        all_pools_info = CurveFiPoolInfos(pool_infos=pool_infos)
+        all_pools_info = Some[CurveFiPoolInfo](some=pool_infos)
 
-        # (pd.DataFrame((all_pools_info.dict())['pool_infos'])
+        # (pd.DataFrame((all_pools_info.dict())['some'])
         # .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
         return all_pools_info
 

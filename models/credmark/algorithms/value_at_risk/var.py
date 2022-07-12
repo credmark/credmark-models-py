@@ -2,20 +2,66 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Account, Price, PriceList, TokenPosition
+from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
+                                PriceList, Some, TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
                                                           PortfolioVaRInput,
                                                           VaRHistoricalInput)
 from models.credmark.algorithms.value_at_risk.risk_method import (VaROutput,
                                                                   calc_var)
-from models.dtos.price import Prices
 
 np.seterr(all='raise')
 
 
+class AccountValueInput(Accounts):
+    quote: Currency = DTOField(Currency("USD", description='Quote currency for the value'))
+
+
 @Model.describe(
+    slug="account.value",
+    version="0.0",
+    display_name="Value for an account",
+    description="Value for an account",
+    developer="Credmark",
+    category='financial',
+    input=AccountValueInput,
+    output=dict)
+class AccountValue(Model):
+    def run(self, input: AccountValueInput) -> dict:
+        portfolio = self.context.run_model('account.portfolio-aggregate',
+                                           Accounts(accounts=input.accounts),
+                                           return_type=Portfolio)
+
+        values = []
+        total_value = 0
+        for pos in portfolio:
+            try:
+                price = self.context.run_model(
+                    'price.quote',
+                    input={'base': pos.asset, 'quote': input.quote},
+                    return_type=Price)
+            except ModelRunError as _err:
+                if 'No pool to aggregate' in _err.data.message:
+                    price = Price(price=0.0, src='Cannot find price')
+                else:
+                    raise
+
+            pos_value = pos.amount * price.price
+            values.append({
+                'asset': pos.asset,
+                'amount': pos.amount,
+                'value': pos_value
+            })
+            total_value += pos_value
+
+        return {'values': values,
+                'total_value': total_value}
+
+
+@ Model.describe(
     slug="account.var",
     version="0.2",
     display_name="VaR for an account",
@@ -39,12 +85,12 @@ class AccountVaR(Model):
                                       port_var_input)
 
 
-@Model.describe(slug='finance.var-portfolio-historical',
-                version='1.5',
-                display_name='Value at Risk - for a portfolio',
-                description='Calculate VaR based on input portfolio',
-                input=PortfolioVaRInput,
-                output=dict)
+@ Model.describe(slug='finance.var-portfolio-historical',
+                 version='1.5',
+                 display_name='Value at Risk - for a portfolio',
+                 description='Calculate VaR based on input portfolio',
+                 input=PortfolioVaRInput,
+                 output=dict)
 class VaRPortfolio(Model):
     def run(self, input: PortfolioVaRInput) -> dict:
         portfolio = input.portfolio
@@ -67,17 +113,17 @@ class VaRPortfolio(Model):
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',
-                input={"inputs": [{'base': {'address': tok_addr}}
-                                  for tok_addr in assets_to_quote_list],
+                input={"some": [{'base': {'address': tok_addr}}
+                                for tok_addr in assets_to_quote_list],
                        "interval": interval,
                        "count": count,
                        "exclusive": False},
-                return_type=MapBlockTimeSeriesOutput[Prices])
+                return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
             price_lists = []
             for tok_n, asset_addr in enumerate(assets_to_quote_list):
                 ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
-                                                  ('src', lambda p, n=tok_n:p.prices[n].src), ])
+                                                  ('src', lambda p, n=tok_n:p.some[n].src), ])
                       .sort_values('blockNumber', ascending=False)
                       .reset_index(drop=True))
 
@@ -125,13 +171,13 @@ class VaRPortfolio(Model):
                                       return_type=dict)
 
 
-@Model.describe(slug='finance.var-engine-historical',
-                version='1.5',
-                display_name='Value at Risk',
-                description='Value at Risk',
-                category='financial',
-                input=VaRHistoricalInput,
-                output=dict)
+@ Model.describe(slug='finance.var-engine-historical',
+                 version='1.5',
+                 display_name='Value at Risk',
+                 description='Value at Risk',
+                 category='financial',
+                 input=VaRHistoricalInput,
+                 output=dict)
 class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices

@@ -1,11 +1,9 @@
-from typing import List
-
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Price, Token
+from credmark.cmf.types import Address, Contract, Price, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, EmptyInput
 
 np.seterr(all='raise')
 
@@ -21,8 +19,6 @@ class CompoundV2PoolInfo(DTO):
     cToken: Token
     tokenDecimal: int
     cTokenDecimal: int
-    tokenPrice: float
-    tokenPriceSrc: str
     cash: float
     totalBorrows: float
     totalReserves: float
@@ -45,9 +41,11 @@ class CompoundV2PoolInfo(DTO):
 
 
 class CompoundV2PoolValue(DTO):
+    tp: float
+    tpSrc: str
     cTokenSymbol: str
     cTokenAddress: Address
-    tokenPrice: float
+    tp: float
     qty_cash: float
     qty_borrow: float
     qty_liability: float
@@ -60,16 +58,6 @@ class CompoundV2PoolValue(DTO):
     net: float
     block_number: int
     block_datetime: str
-
-
-class CompoundV2PoolInfos(IterableListGenericDTO[CompoundV2PoolInfo]):
-    infos: List[CompoundV2PoolInfo]
-    _iterator: str = 'infos'
-
-
-class CompoundV2PoolValues(IterableListGenericDTO[CompoundV2PoolValue]):
-    values: List[CompoundV2PoolValue]
-    _iterator: str = 'values'
 
 
 def get_comptroller(model):
@@ -142,13 +130,12 @@ class CompoundV2GetAllPools(Model):
                 category='protocol',
                 subcategory='compound',
                 input=EmptyInput,
-                output=CompoundV2PoolInfos)
+                output=Some[CompoundV2PoolInfo])
 class CompoundV2AllPoolsInfo(Model):
-    def run(self, input: EmptyInput) -> CompoundV2PoolInfos:
-        pool_infos = []
+    def run(self, input: EmptyInput) -> Some[CompoundV2PoolInfo]:
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
-        model_slug = 'compound-v2.get-pool-info'
+        model_slug = 'compound-v2.pool-info'
         model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
 
         def _use_compose():
@@ -156,7 +143,7 @@ class CompoundV2AllPoolsInfo(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': model_slug,
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[dict, dict]
+                return_type=MapInputsOutput[dict, CompoundV2PoolInfo]
             )
 
             pool_infos = []
@@ -173,40 +160,62 @@ class CompoundV2AllPoolsInfo(Model):
 
         pool_infos = _use_compose()
 
-        ret = CompoundV2PoolInfos(infos=pool_infos)
+        ret = Some[CompoundV2PoolInfo](some=pool_infos)
         return ret
 
 
-@ Model.describe(slug="compound-v2.all-pools-values",
-                 version="1.2",
+@ Model.describe(slug="compound-v2.all-pools-value",
+                 version="0.1",
                  display_name="Compound V2 - get all pools value",
                  description="Compound V2 - convert pool's info to value",
                  category='protocol',
                  subcategory='compound',
-                 input=CompoundV2PoolInfos,
-                 output=CompoundV2PoolValues)
+                 input=EmptyInput,
+                 output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
-    def run(self, input: CompoundV2PoolInfos) -> CompoundV2PoolValues:
-        self.logger.info(f'Data as of {self.context.block_number=}')
-        pool_infos = input
+    def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:
+        pools = self.context.run_model(slug='compound-v2.get-pools')
+        model_slug = 'compound-v2.pool-value'
+        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
+
+        def _use_compose():
+            all_pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, CompoundV2PoolValue]
+            )
+
+            pool_infos = []
+            for pool_n, pool_result in enumerate(all_pool_infos):
+                if pool_result.output is not None:
+                    pool_infos.append(pool_result.output)
+                elif pool_result.error is not None:
+                    self.logger.error(pool_result.error)
+                    raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
+                                        pool_result.error.message)
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return pool_infos
 
         def _use_for():
             pool_values = []
-            for pool_info in pool_infos:
+            for pool_token in model_inputs:
                 pool_value = self.context.run_model(
                     slug='compound-v2.pool-value',
-                    input=pool_info,
+                    input=pool_token,
                     return_type=CompoundV2PoolValue)
                 pool_values.append(pool_value)
             return pool_values
 
-        pool_values = _use_for()
-        ret = CompoundV2PoolValues(values=pool_values)
+        pool_infos = _use_compose()
+
+        ret = Some[CompoundV2PoolValue](some=pool_infos)
         return ret
 
 
-@Model.describe(slug="compound-v2.get-pool-info",
-                version="1.3",
+@Model.describe(slug="compound-v2.pool-info",
+                version="1.4",
                 display_name="Compound V2 - pool/market information",
                 description="Compound V2 - pool/market information",
                 category='protocol',
@@ -398,13 +407,6 @@ class CompoundV2GetPoolInfo(Model):
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        tokenprice = self.context.run_model(slug='price.quote',
-                                            input={'base': token},
-                                            return_type=Price)
-
-        if tokenprice.price is None or tokenprice.src is None:
-            raise ModelRunError(f'Can not get price for token {token.symbol=}/{token.address=}')
-
         block_dt = self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat()
         pool_info = CompoundV2PoolInfo(
             tokenSymbol=input.symbol,
@@ -412,8 +414,6 @@ class CompoundV2GetPoolInfo(Model):
             tokenDecimal=token.decimals,
             cTokenDecimal=cToken.decimals,
             token=token,
-            tokenPrice=tokenprice.price,
-            tokenPriceSrc=tokenprice.src,
             cToken=cToken,
             cash=getCash,
             totalReserves=totalReserves,
@@ -440,34 +440,45 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @ Model.describe(slug="compound-v2.pool-value",
-                 version="1.1",
+                 version="1.2",
                  display_name="Compound V2 - value of a market",
                  description="Compound V2 - value of a market",
                  category='protocol',
                  subcategory='compound',
-                 input=CompoundV2PoolInfo,
+                 input=Token,
                  output=CompoundV2PoolValue)
 class CompoundV2GetPoolValue(Model):
-    def run(self, input: CompoundV2PoolInfo) -> CompoundV2PoolValue:
+    def run(self, input: Token) -> CompoundV2PoolValue:
+        pool_info = self.context.run_model(slug='compound-v2.pool-info',
+                                           input=input,
+                                           return_type=CompoundV2PoolInfo)
+        tp = self.context.run_model(slug='price.quote',
+                                    input={'base': pool_info.token},
+                                    return_type=Price)
+
+        if tp.price is None or tp.src is None:
+            raise ModelRunError(f'Can not get price for token {input.symbol=}/{input.address=}')
+
         # Liquidity = cash (reserve is part of it)
         # Asset = cash + totalBorrow
         # Liability = from totalSupply
         # Net = Asset - Liability
 
         return CompoundV2PoolValue(
-            cTokenSymbol=input.cTokenSymbol,
-            cTokenAddress=input.token.address,
-            tokenPrice=input.tokenPrice,
-            qty_cash=input.cash,
-            qty_borrow=input.totalBorrows,
-            qty_liability=input.totalLiability,
-            qty_reserve=input.totalReserves,
-            qty_net=(input.cash + input.totalBorrows - input.totalLiability),
-            cash=input.tokenPrice * input.cash,
-            borrow=input.tokenPrice * input.totalBorrows,
-            liability=input.tokenPrice * input.totalLiability,
-            reserve=input.tokenPrice * input.totalReserves,
-            net=input.tokenPrice * (input.cash + input.totalBorrows - input.totalLiability),
-            block_number=input.block_number,
-            block_datetime=input.block_datetime,
+            tp=tp.price,
+            tpSrc=tp.src,
+            cTokenSymbol=pool_info.cTokenSymbol,
+            cTokenAddress=pool_info.token.address,
+            qty_cash=pool_info.cash,
+            qty_borrow=pool_info.totalBorrows,
+            qty_liability=pool_info.totalLiability,
+            qty_reserve=pool_info.totalReserves,
+            qty_net=(pool_info.cash + pool_info.totalBorrows - pool_info.totalLiability),
+            cash=tp.price * pool_info.cash,
+            borrow=tp.price * pool_info.totalBorrows,
+            liability=tp.price * pool_info.totalLiability,
+            reserve=tp.price * pool_info.totalReserves,
+            net=tp.price * (pool_info.cash + pool_info.totalBorrows - pool_info.totalLiability),
+            block_number=pool_info.block_number,
+            block_datetime=pool_info.block_datetime,
         )
