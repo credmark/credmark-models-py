@@ -25,6 +25,7 @@ class CMKTest(TestCase):
     start_n: int = 0
     test_main: ModuleType
     fail_first: bool = True
+    skip_nonzero: bool = False
 
     def title(self, title):
         logging.info(f'\n{title}\n')
@@ -56,6 +57,9 @@ class CMKTest(TestCase):
 
         logging.info(
             f'Running case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}): expected {exit_code=} {cmd_line}')
+
+        if self.skip_nonzero and exit_code != 0:
+            return
 
         succeed = False
         try:
