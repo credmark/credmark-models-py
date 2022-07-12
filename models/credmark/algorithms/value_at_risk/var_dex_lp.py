@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Contract, Token
+from credmark.cmf.types import Contract, Price, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
     UniswapV3PoolInfo
-from models.dtos.price import Prices
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
@@ -68,14 +67,14 @@ class UniswapPoolVaR(Model):
 
         token_hp = self.context.run_model(
             slug='price.quote-historical-multiple',
-            input={'inputs': [{'base': token0}, {'base': token1}],
+            input={'some': [{'base': token0}, {'base': token1}],
                    "interval": interval,
                    "count": count,
                    "exclusive": False},
-            return_type=MapBlockTimeSeriesOutput[Prices])
+            return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
         token_historical_prices = [
-            (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.prices[n].price)])
+            (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.some[n].price)])
              .sort_values('blockNumber', ascending=False)
              .reset_index(drop=True))
             for tok_n in range(2)]

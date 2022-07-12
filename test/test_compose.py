@@ -27,4 +27,4 @@ class TestCompose(CMKTest):
                             {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}}]})
 
         self.run_model('price.quote-historical-multiple',
-                       {"inputs": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": True})
+                       {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": True})

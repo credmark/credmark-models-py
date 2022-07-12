@@ -1,12 +1,11 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
-from credmark.cmf.types import Currency, NativeToken, Price, Token
+from credmark.cmf.types import Currency, Maybe, NativeToken, Price, Some, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (Address, Maybe, PriceHistoricalInput,
-                               PriceHistoricalInputs, PriceInput, PriceInputs,
-                               Prices)
+from models.dtos.price import (Address, PriceHistoricalInput,
+                               PriceHistoricalInputs, PriceInput)
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -14,26 +13,26 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.quote-historical-multiple',
-                version='1.5',
+                version='1.6',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
                 input=PriceHistoricalInputs,
-                output=MapBlockTimeSeriesOutput[Prices],
+                output=MapBlockTimeSeriesOutput[Some[Price]],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteHistoricalMultiple(Model):
-    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Prices]:
+    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Some[Price]]:
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote-multiple',
-                   "modelInput": {'inputs': input.inputs},
+                   "modelInput": {'some': input.some},
                    "endTimestamp": self.context.block_number.timestamp,
                    "interval": input.interval,
                    "count": input.count,
                    "exclusive": input.exclusive},
-            return_type=MapBlockTimeSeriesOutput[Prices])
+            return_type=MapBlockTimeSeriesOutput[Some[Price]])
 
         for result in price_historical_result:
             if result.error is not None:
@@ -74,20 +73,20 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.5',
+                version='1.7',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=PriceInputs,
-                output=Prices,
+                input=Some[PriceInput],
+                output=Some[Price],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultiple(Model):
-    def run(self, input: PriceInputs) -> Prices:
+    def run(self, input: Some[PriceInput]) -> Some[Price]:
         token_prices_run = self.context.run_model(
             slug='compose.map-inputs',
-            input={'modelSlug': 'price.quote', 'modelInputs': input.inputs},
+            input={'modelSlug': 'price.quote', 'modelInputs': input.some},
             return_type=MapInputsOutput[PriceInput, Price])
 
         prices = []
@@ -100,7 +99,7 @@ class PriceQuoteMultiple(Model):
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
-        return Prices(prices=prices)
+        return Some[Price](some=prices)
 
 
 @Model.describe(slug='price',

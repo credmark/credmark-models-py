@@ -7,16 +7,10 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price, Token,
-                                Tokens)
-from credmark.cmf.types.compose import MapInputsOutput
-from credmark.cmf.types.ledger import TransactionTable
+                                Contracts, Portfolio, Position, Price, Some,
+                                Token, Tokens)
 from credmark.dto import DTO, EmptyInput
-from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import Many, Prices
-from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CRV_REWARD
-from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
 np.seterr(all='raise')
 
@@ -60,15 +54,15 @@ def fix_crv_reward(crv_rewards):
 
 
 @Model.describe(slug="convex-fi.all-pool-info",
-                version="0.1",
+                version="0.2",
                 display_name="Convex Finance Pools",
                 description="Get All Pools Information in Convex Finance",
                 category='protocol',
                 subcategory='convex',
                 input=EmptyInput,
-                output=Many[ConvexPoolInfo])
+                output=Some[ConvexPoolInfo])
 class ConvexFinanceAllPools(Model):
-    def run(self, _: EmptyInput) -> Many[ConvexPoolInfo]:
+    def run(self, _: EmptyInput) -> Some[ConvexPoolInfo]:
         booster = Contract(**self.context.models.convex_fi.booster())
         pool_length = booster.functions.poolLength().call()
 
@@ -89,7 +83,7 @@ class ConvexFinanceAllPools(Model):
                                        tvl=crv_reward_contract.functions.totalSupply().call())
             pool_infos.append(pool_info)
 
-        return Many(some=pool_infos)
+        return Some[ConvexPoolInfo](some=pool_infos)
 
 
 @Model.describe(slug="convex-fi.earned",
@@ -103,7 +97,7 @@ class ConvexFinanceAllPools(Model):
 class ConvexFinanceEarning(Model):
     def run(self, input: Account) -> dict:
         all_pools = self.context.run_model('convex-fi.all-pool-info',
-                                           input=EmptyInput(), return_type=Many[ConvexPoolInfo])
+                                           input=EmptyInput(), return_type=Some[ConvexPoolInfo])
 
         earnings = []
         for pp in all_pools:

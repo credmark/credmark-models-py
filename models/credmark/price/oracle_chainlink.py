@@ -1,8 +1,8 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import Address, Currency, Price
-from models.dtos.price import Maybe, PriceInput
+from credmark.cmf.types import Address, Currency, Maybe, Price
+from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,

@@ -7,7 +7,7 @@ class TestSushiSwap(CMKTest):
     def test(self):
         self.title('SushiSwap')
 
-        # sushiswap.get-pool-info-token-price, uniswap-v2.get-price-pool-info
+        # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
         self.run_model('sushiswap.get-weighted-price', {"symbol": "USDC"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "AAVE"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "DAI"})

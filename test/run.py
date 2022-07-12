@@ -65,8 +65,6 @@ if __name__ == '__main__':
         sys.exit()
 
     CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
-    mod_model_api = import_module('credmark.cmf.engine.model_api')
-    mod_model_api.RUN_REQUEST_TIMEOUT = 6400  # type: ignore
 
     CMKTest.block_number = args["block_number"]
     CMKTest.start_n = args["start_n"]
@@ -79,9 +77,11 @@ if __name__ == '__main__':
 
     runner = unittest.TextTestRunner()
     if args['serial']:
-        runner.run(suites)
-        # sys.argv = sys.argv[:1]
-        # unittest.main(failfast=True)
+        CMKTest.fail_first = True
+        # runner.run(suites)
+        sys.argv = sys.argv[:1]
+        unittest.main(failfast=True)
     else:
+        CMKTest.fail_first = False
         concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
         runner.run(concurrent_suite)

@@ -6,7 +6,7 @@ from urllib3.exceptions import ReadTimeoutError
 from web3._utils.events import get_event_data
 from web3._utils.filters import construct_event_filter_params
 
-from credmark.cmf.model import Model, describe
+from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
 from credmark.cmf.types import (Account, Accounts, Contract, Contracts, Price,
@@ -32,7 +32,7 @@ class AccountVestingInfo(DTO):
     claims: List[dict]
 
 
-@describe(
+@Model.describe(
     slug="cmk.vesting-contracts",
     version="1.0",
     display_name='CMK Vesting Contracts',
@@ -59,7 +59,7 @@ class CMKGetVestingContracts(Model):
                              code=ModelDataError.Codes.NO_DATA)
 
 
-@describe(
+@Model.describe(
     slug="cmk.get-vesting-accounts",
     version="1.0",
     display_name='CMK Vesting Accounts',
@@ -105,7 +105,7 @@ class CMKGetVestingAccounts(Model):
         return Accounts(accounts=accounts_info)
 
 
-@describe(
+@Model.describe(
     slug="cmk.get-vesting-info-by-account",
     version="1.1",
     display_name='CMK Vesting Info by Account',
@@ -247,7 +247,7 @@ class CMKGetVestingByAccount(Model):
         return result
 
 
-@describe(
+@Model.describe(
     slug="cmk.get-all-vesting-balances",
     version="1.1",
     display_name='CMK Vesting Balances',
@@ -291,7 +291,7 @@ class CMKGetAllVestingBalances(Model):
         return results
 
 
-@ describe(
+@Model.describe(
     slug="cmk.vesting-events",
     version="1.0",
     display_name='CMK Vesting Events',
