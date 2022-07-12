@@ -60,6 +60,7 @@ if __name__ == '__main__':
     elif args['type'] == 'gw':
         CMKTest.post_flag = ['-l', '-']
         CMKTest.pre_flag = ['--model_path', 'x']
+        CMKTest.skip_nonzero = True
     else:
         print(f'Unknown test type {args["type"]}')
         sys.exit()
