@@ -1,0 +1,25 @@
+@Model.describe(slug='token.price',
+                version='1.1',
+                display_name='Token Price - weighted by liquidity',
+                description='The Current Credmark Supported Price Algorithm',
+                developer='Credmark',
+                input=Token,
+                output=Price)
+class TokenPriceModel(Model, PriceWeight):
+   """
+   Return token's price
+   """
+
+
+   def run(self, input: Token) -> Price:
+       all_pool_infos = self.context.run_model('token.pool-price-info',
+                                               input=input,
+                                               return_type=PoolPriceInfos)
+       non_zero_pools = {ii.src for ii in all_pool_infos.pool_price_infos if ii.liquidity > 0}
+       pool_aggregator_input = PoolPriceAggregatorInput(
+           pool_price_infos=all_pool_infos.pool_price_infos,
+           price_src=f'{self.slug}:{"|".join(non_zero_pools)}',
+           weight_power=self.WEIGHT_POWER)
+       return self.context.run_model('price.pool-aggregator',
+                                     input=pool_aggregator_input,
+                                     return_type=Price)
