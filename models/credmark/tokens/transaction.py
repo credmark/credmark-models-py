@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import Token
 from credmark.dto import DTO
@@ -109,8 +110,8 @@ def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
     return df_txn_out
 
 
-def plot_dig(dig: nx.DiGraph):
-    _ax = plt.figure(3, figsize=(7, 7))
+def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
+    _ax = plt.figure(3, figsize=figsize)
 
     etwo = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) > 1]  # type: ignore
     eone = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) == 1]  # type: ignore
@@ -156,7 +157,7 @@ def plot_dig(dig: nx.DiGraph):
 
 
 @Model.describe(slug='token.transaction',
-                version='0.0',
+                version='0.1',
                 display_name='Token Transactin',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
@@ -177,14 +178,28 @@ class TokenTransferTransactionTag(Model):
 
     def run(self, input: TransactionTagInput) -> dict:
         if input.block_number != self.context.block_number:
-            input.block_number = self.context.block_number
-            return self.context.run_model(self.slug, input=input)
+            return self.context.run_model(self.slug, input=input, block_number=input.block_number)
 
         with self.context.ledger.TokenTransfer as q:
             df_txn = q.select(columns=q.columns,
                               where=q.TRANSACTION_HASH.eq(input.hash).and_(
                                   q.BLOCK_NUMBER.eq(input.block_number))).to_dataframe()
 
+        return self.context.run_model('token.txn-classify', input=df_txn.to_dict())
+
+
+@Model.describe(slug='token.txn-classify',
+                version='0.0',
+                display_name='Token Transactin',
+                description='Tagged transactions for token transfer',
+                developer='Credmark',
+                category='transaction',
+                tags=['token'],
+                input=dict,
+                output=dict)
+class ClassifyTxn(Model):
+    def run(self, input: dict) -> dict:
+        df_txn = pd.DataFrame.from_dict(input)
         dig = create_graph_from_txn(df_txn)
         df_txn_new = classify_dig(self.logger, dig, df_txn)
         # plot_dig(dig)
