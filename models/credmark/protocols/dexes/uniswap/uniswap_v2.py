@@ -311,7 +311,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.7',
+                 version='1.8',
                  display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                  description=('The volume of each token swapped in a pool '
                               'during the block interval from the current - Historical'),
@@ -346,12 +346,14 @@ class DexPoolSwapVolumeHistorical(Model):
                   for token_info in pool_info['portfolio']['positions']]
 
         # initialize empty TradingVolume
-        trading_volume = Some[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
+        def new_trading_volume():
+            return Some[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
+
         pool_volume_history = BlockSeries(
             series=[BlockSeriesRow(blockNumber=0,
                                    blockTimestamp=0,
                                    sampleTimestamp=0,
-                                   output=trading_volume)
+                                   output=new_trading_volume())
                     for _ in range(input.count)],
             errors=None)
 
@@ -476,6 +478,7 @@ class DexPoolSwapVolumeHistorical(Model):
                                  {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)}))
             df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
             df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
+
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
 
@@ -507,15 +510,15 @@ class DexPoolSwapVolumeHistorical(Model):
                 continue
 
             block_number = df_swap_sel.max_block_number.to_list()[0]  # type: ignore
+            pool_volume_history.series[cc].blockNumber = int(block_number)
+            pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
+            pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
+
             pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
             for n in range(tokens_n):
                 token_price = pool_info_past['prices'][n]['price']  # type: ignore
                 token_out = df_swap_sel[f'inp_amount{n}_out'].sum()  # type: ignore
                 token_in = df_swap_sel[f'inp_amount{n}_in'].sum()  # type: ignore
-
-                pool_volume_history.series[cc].blockNumber = int(block_number)
-                pool_volume_history.series[cc].blockTimestamp = int(BlockNumber(block_number).timestamp)
-                pool_volume_history.series[cc].sampleTimestamp = BlockNumber(block_number).timestamp
 
                 pool_volume_history.series[cc].output[n].sellAmount = tokens[n].scaled(token_out)
                 pool_volume_history.series[cc].output[n].buyAmount = tokens[n].scaled(token_in)
