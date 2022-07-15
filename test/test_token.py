@@ -7,11 +7,11 @@ class TestToken(CMKTest):
     def test_transaction(self):
         self.run_model(
             'token.transaction',
-            {"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867})
+            {"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867}, block_number=15225867)
 
         self.run_model(
             'token.transaction',
-            {"hash": "0x7ee67c4b2b5540a503fdf3b2f3a44c955c22884c0e286f5d89e67d4d8989264a", "block_number": 13984858})
+            {"hash": "0x7ee67c4b2b5540a503fdf3b2f3a44c955c22884c0e286f5d89e67d4d8989264a", "block_number": 13984858}, block_number=15125867)
 
     def test_account(self):
         self.title("Account Examples")
