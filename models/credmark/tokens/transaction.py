@@ -65,7 +65,7 @@ def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
     df_txn_out = df_txn.copy()
     types = []
     values_scaled = []
-    for n, r in df_txn_out.iterrows():
+    for _n, r in df_txn_out.iterrows():
         tok = Token(address=r.token_address)
         values_scaled.append(tok.scaled(float(r.value)))
 
