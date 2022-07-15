@@ -4,6 +4,15 @@ from cmk_test import CMKTest
 
 
 class TestToken(CMKTest):
+    def test_holders(self):
+        self.run_model(
+            'token.holders',
+            {"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "top_n": 20})
+
+        self.run_model(
+            'token.holders',
+            {"address": "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B", "top_n": 20})
+
     def test_transaction(self):
         self.run_model(
             'token.transaction',

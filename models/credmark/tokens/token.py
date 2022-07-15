@@ -5,8 +5,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
-                                Currency, Maybe, Price, Token)
-from credmark.dto import DTO, IterableListGenericDTO
+                                Maybe, Price, Token)
+from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
 
 
@@ -176,18 +176,27 @@ class TokenInfoModel(Model):
         return input.info
 
 
+class TokenHolderInput(Token):
+    top_n: int = DTOField(10, description='Top N holders')
+
+
 @Model.describe(slug='token.holders',
-                version='1.0',
+                version='0.0',
                 display_name='Token Holders',
                 description='The number of holders of a Token',
                 category='protocol',
                 tags=['token'],
-                input=Token,
+                input=TokenHolderInput,
                 output=dict)
 class TokenHolders(Model):
-    def run(self, _input: Token) -> dict:
-        # TODO: Get Holders
-        return {"result": 0}
+    def run(self, input: TokenHolderInput) -> dict:
+        with self.context.ledger.TokenBalance as q:
+            df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_().neg_(), 'sum_value')],
+                          group_by=[q.ADDRESS],
+                          where=q.TOKEN_ADDRESS.eq(input.address),
+                          order_by=q.field('sum_value').dquote().asc(),
+                          limit=input.top_n).to_dataframe()
+        return df.to_dict()
 
 
 @Model.describe(slug='token.swap-pools',
