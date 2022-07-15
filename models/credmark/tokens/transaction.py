@@ -101,7 +101,7 @@ def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
             if r.from_address in link_nton_nodes:
                 types[-1].append('link_nn_out')
 
-            if len(types[n]) == 0:
+            if len(types[-1]) == 0:
                 raise ValueError('Unclassifiable row:', r)
 
     df_txn_out.loc[:, 'type'] = types
@@ -200,6 +200,9 @@ class TokenTransferTransactionTag(Model):
 class ClassifyTxn(Model):
     def run(self, input: dict) -> dict:
         df_txn = pd.DataFrame.from_dict(input)
+        df_txn.value = df_txn.value.astype(float)
+        df_txn.log_index = df_txn.log_index.astype(float)
+        df_txn.log_index = df_txn.log_index.astype(float)
         dig = create_graph_from_txn(df_txn)
         df_txn_new = classify_dig(self.logger, dig, df_txn)
         # plot_dig(dig)
