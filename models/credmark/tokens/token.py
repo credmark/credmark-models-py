@@ -194,7 +194,7 @@ class TokenHolders(Model):
             df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_().neg_(), 'sum_value')],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
-                          order_by=q.field('sum_value').dquote().asc(),
+                          order_by=q.field('sum_value').dquote().desc(),
                           limit=input.top_n).to_dataframe()
         return df.to_dict()
 
