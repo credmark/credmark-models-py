@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
@@ -8,6 +10,7 @@ from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
+from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.dtos.tvl import TVLInfo
@@ -209,16 +212,27 @@ class UniswapV2GetTokenPriceInfo(Model):
         return Some[PoolPriceInfo](some=infos)
 
 
+class UniswapV2PoolInfo(DTO):
+    pool_address: Address
+    tokens: Tokens
+    tokens_name: List[str]
+    tokens_symbol: List[str]
+    tokens_decimals: List[int]
+    tokens_balance: List[float]
+    tokens_price: List[Price]
+    ratio: float
+
+
 @ Model.describe(slug="uniswap-v2.get-pool-info",
-                 version="1.5",
+                 version="1.6",
                  display_name="Uniswap/Sushiswap get details for a pool",
                  description="Returns the token details of the pool",
                  category='protocol',
                  subcategory='uniswap-v2',
                  input=Contract,
-                 output=dict)
+                 output=UniswapV2PoolInfo)
 class UniswapGetPoolInfo(Model):
-    def run(self, input: Contract) -> dict:
+    def run(self, input: Contract) -> UniswapV2PoolInfo:
         contract = input
         try:
             contract.abi
@@ -257,17 +271,18 @@ class UniswapGetPoolInfo(Model):
 
         balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
 
-        output = {'pool_address': input.address,
-                  'tokens': Tokens(tokens=[token0, token1]),
-                  'tokens_name': [token0.name, token1.name],
-                  'tokens_symbol': [token0.symbol, token1.symbol],
-                  'tokens_decimals': [token0.decimals, token1.decimals],
-                  'tokens_balance': [token0_balance, token1_balance],
-                  'tokens_price': prices.some,
-                  'ratio': balance_ratio
-                  }
+        pool_info = UniswapV2PoolInfo(
+            pool_address=input.address,
+            tokens=Tokens(tokens=[token0, token1]),
+            tokens_name=[token0.name, token1.name],
+            tokens_symbol=[token0.symbol, token1.symbol],
+            tokens_decimals=[token0.decimals, token1.decimals],
+            tokens_balance=[token0_balance, token1_balance],
+            tokens_price=prices.some,
+            ratio=balance_ratio
+        )
 
-        return output
+        return pool_info
 
 
 @ Model.describe(slug='uniswap-v2.pool-tvl',

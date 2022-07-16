@@ -1,26 +1,30 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Some, Tokens
-from credmark.dto import EmptyInput
+from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
 from models.credmark.protocols.lending.compound.compound_v2 import \
     CompoundV2PoolInfo
 
 
+class MinRiskOutput(DTO):
+    min_risk_rate: float
+
+
 @Model.describe(slug="finance.min-risk-rate",
-                version="1.0",
+                version="1.1",
                 display_name="Calculate minimal risk rate",
                 description='Rates from stablecoins\' loans to Aave and Compound, '
                             'then weighted by their debt size and total supply',
                 category='financial',
                 input=EmptyInput,
-                output=dict)
+                output=MinRiskOutput)
 class Minrisk(Model):
     """
     Doc is
         https://docs.credmark.com/smart-money-in-defi/investment-concepts/minimum-risk-rate-of-defi
     """
 
-    def run(self, _) -> dict:
+    def run(self, _) -> MinRiskOutput:
         aave_debts = self.context.run_model('aave-v2.lending-pool-assets',
                                             input=EmptyInput(),
                                             return_type=Some[AaveDebtInfo])
@@ -58,4 +62,4 @@ class Minrisk(Model):
             all_sb_supply += scaled_supply
 
         supply_weighted_rate = weighted_supply / all_sb_supply
-        return {'min_risk_rate': supply_weighted_rate}
+        return MinRiskOutput(min_risk_rate=supply_weighted_rate)

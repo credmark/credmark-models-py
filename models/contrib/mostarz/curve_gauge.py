@@ -4,12 +4,12 @@ from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Accounts, Contract
 
 
-@ Model.describe(slug='contrib.curve-fi-get-gauge-amounts',
-                 version='1.2',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='contrib.curve-fi-get-gauge-amounts',
+                version='1.2',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=dict)
 class CurveFinanceGaugeAmounts(Model):
     def run(self, input: Contract) -> dict:
         balances = []
