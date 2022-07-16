@@ -2,7 +2,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, PriceList, Token
 from credmark.dto import DTO
 from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
-                                                          VaRHistoricalInput)
+                                                          VaRHistoricalInput,
+                                                          VaRHistoricalOutput)
 
 
 class ExampleHistoricalPriceInput(DTO):
@@ -35,14 +36,14 @@ class VaRPriceHistorical(Model):
 
 
 @Model.describe(slug='finance.example-var-contract',
-                version='1.2',
+                version='1.3',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
                 category='example',
                 subcategory='financial',
                 tags=['var'],
                 input=ContractVaRInput,
-                output=dict)
+                output=VaRHistoricalOutput)
 class DemoContractVaR(Model):
     """
     For below Demo VaR of 100 Aave + 100 USDC + 1 USDC
@@ -59,7 +60,7 @@ class DemoContractVaR(Model):
     -b 14234904 --format_json
     """
 
-    def run(self, input: ContractVaRInput) -> dict:
+    def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
         portfolio = Portfolio(
             positions=[
                 Position(asset=Token(symbol='AAVE'), amount=100),
@@ -88,4 +89,4 @@ class DemoContractVaR(Model):
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
-                                      return_type=dict)
+                                      return_type=VaRHistoricalOutput)

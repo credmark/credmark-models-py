@@ -3,15 +3,15 @@ import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
-                                PriceList, Some, TokenPosition)
+                                PriceList, Some, Token, TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
                                                           PortfolioVaRInput,
-                                                          VaRHistoricalInput)
-from models.credmark.algorithms.value_at_risk.risk_method import (VaROutput,
-                                                                  calc_var)
+                                                          VaRHistoricalInput,
+                                                          VaRHistoricalOutput)
+from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
 np.seterr(all='raise')
 
@@ -69,9 +69,9 @@ class AccountValue(Model):
     developer="Credmark",
     category='financial',
     input=AccountVaRInput,
-    output=dict)
+    output=VaRHistoricalOutput)
 class AccountVaR(Model):
-    def run(self, input: AccountVaRInput) -> dict:
+    def run(self, input: AccountVaRInput) -> VaRHistoricalOutput:
         portfolio = self.context.run_model('account.portfolio',
                                            Account(address=input.address))
 
@@ -82,17 +82,18 @@ class AccountVaR(Model):
                           'interval': input.interval,
                           'confidence': input.confidence}
         return self.context.run_model('finance.var-portfolio-historical',
-                                      port_var_input)
+                                      port_var_input,
+                                      return_type=VaRHistoricalOutput)
 
 
 @ Model.describe(slug='finance.var-portfolio-historical',
-                 version='1.5',
+                 version='1.6',
                  display_name='Value at Risk - for a portfolio',
                  description='Calculate VaR based on input portfolio',
                  input=PortfolioVaRInput,
-                 output=dict)
+                 output=VaRHistoricalOutput)
 class VaRPortfolio(Model):
-    def run(self, input: PortfolioVaRInput) -> dict:
+    def run(self, input: PortfolioVaRInput) -> VaRHistoricalOutput:
         portfolio = input.portfolio
 
         assets_to_quote = set()
@@ -168,16 +169,16 @@ class VaRPortfolio(Model):
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
-                                      return_type=dict)
+                                      return_type=VaRHistoricalOutput)
 
 
 @ Model.describe(slug='finance.var-engine-historical',
-                 version='1.5',
+                 version='1.6',
                  display_name='Value at Risk',
                  description='Value at Risk',
                  category='financial',
                  input=VaRHistoricalInput,
-                 output=dict)
+                 output=VaRHistoricalOutput)
 class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices
@@ -204,7 +205,10 @@ class VaREngineHistorical(Model):
 
         value = amount * np_priceList[0]
         self.total_value += value
-        self.value_list.append((token.address, amount, np_priceList[0], value))
+        self.value_list.append(VaRHistoricalOutput.ValueList(token=Token(address=token.address),
+                                                             amount=amount,
+                                                             price=np_priceList[0],
+                                                             value=value))
         ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
         # ppl: potential profit&loss
         ppl_vector = value * ret_series
@@ -223,7 +227,7 @@ class VaREngineHistorical(Model):
 
             self.all_ppl_arr = np.column_stack([self.all_ppl_arr, ppl_vector])
 
-    def run(self, input: VaRHistoricalInput) -> dict:
+    def run(self, input: VaRHistoricalInput) -> VaRHistoricalOutput:
         self.value_list = []
         self.total_value = 0
         self.all_ppl_arr = np.array([])
@@ -246,10 +250,10 @@ class VaREngineHistorical(Model):
                 ppl_vector = self.calculate_ppl(token, amount, input)
                 self.fill_ppl(ppl_vector, token)
 
-        output = {}
+        output = VaRHistoricalOutput.default()
 
         if self.all_ppl_arr.shape[0] == 0:
-            return {'cvar': [], 'var': VaROutput.default(), 'total_vlaue': 0, 'value_list': []}
+            return output
 
         all_ppl_vec = self.all_ppl_arr.sum(axis=1)
         weights = np.ones(len(input.portfolio.positions))
@@ -262,10 +266,10 @@ class VaREngineHistorical(Model):
                     weights[i] = 0
         weights /= weights.sum()
 
-        output['cvar'] = weights
+        output.cvar = weights
         var_result = calc_var(all_ppl_vec, input.confidence)
-        output['var'] = var_result.var
+        output.var = var_result.var
 
-        output['total_value'] = self.total_value
-        output['value_list'] = self.value_list
+        output.total_value = self.total_value
+        output.value_list = self.value_list
         return output

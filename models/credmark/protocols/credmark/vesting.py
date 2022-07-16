@@ -298,8 +298,7 @@ class CMKGetAllVestingBalances(Model):
     category='protocol',
     subcategory='cmk',
     input=Contract,
-    output=dict
-)
+    output=dict)
 class CMKVestingEvents(Model):
     def run(self, input: Contract) -> dict:
         try:

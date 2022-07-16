@@ -4,7 +4,9 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Contract, Price, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from models.credmark.algorithms.value_at_risk.dto import UniswapPoolVaRInput
+from models.credmark.algorithms.value_at_risk.dto import (DexVaR,
+                                                          UniswapPoolVaRInput,
+                                                          UniswapPoolVaROutput)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
     UniswapV3PoolInfo
@@ -14,14 +16,14 @@ np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.4",
+                version="1.5",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
                 subcategory='uniswap',
                 tags=['var'],
                 input=UniswapPoolVaRInput,
-                output=dict)
+                output=UniswapPoolVaROutput)
 class UniswapPoolVaR(Model):
     """
     This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
@@ -29,7 +31,7 @@ class UniswapPoolVaR(Model):
     for a portfolio worth of $1.
     """
 
-    def run(self, input: UniswapPoolVaRInput) -> dict:
+    def run(self, input: UniswapPoolVaRInput) -> UniswapPoolVaROutput:
         pool = input.pool
 
         try:
@@ -174,47 +176,43 @@ class UniswapPoolVaR(Model):
         var_il = {}
         conf = input.confidence
         var_result = calc_var(total_pnl_vector, conf)
-        var = {
-            'var': var_result.var,
-            'scenarios': (token_historical_prices[0].blockTime
-                          .iloc[var_result.unsorted_index, ].to_list()),
-            'ppl': total_pnl_vector[var_result.unsorted_index].tolist(),
-            'weights': var_result.weights
-        }
+        var = DexVaR(
+            var=var_result.var,
+            scenarios=(token_historical_prices[0]
+                       .blockTime.iloc[var_result.unsorted_index, ].to_list()),
+            ppl=total_pnl_vector[var_result.unsorted_index].tolist(),
+            weights=var_result.weights)
 
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
-        var_without_il = {
-            'var': var_result_without_il.var,
-            'scenarios': (token_historical_prices[0].blockTime
-                          .iloc[var_result_without_il.unsorted_index, ].to_list()),
-            'ppl': total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
-            'weights': var_result_without_il.weights
-        }
+        var_without_il = DexVaR(
+            var=var_result_without_il.var,
+            scenarios=(token_historical_prices[0]
+                       .blockTime.iloc[var_result_without_il.unsorted_index, ].to_list()),
+            ppl=total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
+            weights=var_result_without_il.weights)
 
         var_result_il = calc_var(total_pnl_il_vector, conf)
-        var_il = {
-            'var': var_result_il.var,
-            'scenarios': (token_historical_prices[0].blockTime
-                          .iloc[var_result_il.unsorted_index, ].to_list()),
-            'ppl': total_pnl_vector[var_result_il.unsorted_index].tolist(),
-            'weights': var_result_il.weights
-        }
+        var_il = DexVaR(
+            var=var_result_il.var,
+            scenarios=(token_historical_prices[0]
+                       .blockTime.iloc[var_result_il.unsorted_index, ].to_list()),
+            ppl=total_pnl_vector[var_result_il.unsorted_index].tolist(),
+            weights=var_result_il.weights)
 
         # For V3, as existing assumptions, we need to cap the loss at -100%.
         if impermenant_loss_type == 'V3':
-            var['var'] = np.max([-1, var['var']])
-            var_without_il['var'] = np.max([-1, var_without_il['var']])
-            var_il['var'] = np.max([-1, var_il['var']])
+            var.var = np.max([-1, var.var])
+            var_without_il.var = np.max([-1, var_without_il.var])
+            var_il.var = np.max([-1, var_il.var])
 
-        return {
-            'pool': input.pool,
-            'tokens_address': [token0.address, token1.address],
-            'tokens_symbol': [token0.symbol, token1.symbol],
-            'ratio': p_0,
-            'IL_type': impermenant_loss_type,
-            'range': ([] if impermenant_loss_type == 'V2'
-                      else [input.lower_range, input.upper_range]),
-            'var': var,
-            'var_without_il': var_without_il,
-            'var_il': var_il,
-        }
+        return UniswapPoolVaROutput(
+            pool=input.pool,
+            tokens_address=[token0.address, token1.address],
+            tokens_symbol=[token0.symbol, token1.symbol],
+            ratio=p_0,
+            IL_type=impermenant_loss_type,
+            lp_range=(None if impermenant_loss_type == 'V2'
+                      else (input.lower_range, input.upper_range)),
+            var=var,
+            var_without_il=var_without_il,
+            var_il=var_il)

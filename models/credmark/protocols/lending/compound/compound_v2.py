@@ -104,23 +104,23 @@ class CompoundV2Comptroller(Model):
             raise ModelRunError('proxy implementation is missing.')
 
 
-@ Model.describe(slug="compound-v2.get-pools",
-                 version="1.1",
-                 display_name="Compound V2 - get cTokens/markets",
-                 description="Query the comptroller for all cTokens/markets",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=dict)
+@Model.describe(slug="compound-v2.get-pools",
+                version="1.2",
+                display_name="Compound V2 - get cTokens/markets",
+                description="Query the comptroller for all cTokens/markets",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=Some[Address])
 class CompoundV2GetAllPools(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> Some[Address]:
         comptroller = get_comptroller(self)
         cTokens = comptroller.functions.getAllMarkets().call()
 
         # Check whether our list is complete
         # assert ( sorted([Address(x) for x in COMPOUND_CTOKEN.values()]) ==
         #          sorted([Address(x) for x in cTokens]) )
-        return {'cTokens': cTokens}
+        return Some[Address](some=[Address(c) for c in cTokens])
 
 
 @Model.describe(slug="compound-v2.all-pools-info",
@@ -136,7 +136,7 @@ class CompoundV2AllPoolsInfo(Model):
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
         model_slug = 'compound-v2.pool-info'
-        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
+        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['some']]
 
         def _use_compose():
             all_pool_infos_results = self.context.run_model(

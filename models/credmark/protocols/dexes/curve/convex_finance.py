@@ -86,16 +86,25 @@ class ConvexFinanceAllPools(Model):
         return Some[ConvexPoolInfo](some=pool_infos)
 
 
+class ConvexPoolEarning(DTO):
+    lp_token: Token
+    balance: float
+    earned: float
+    rewards: float
+    reward_token: Token
+    user_reward_per_token_paid: float
+
+
 @Model.describe(slug="convex-fi.earned",
-                version="0.0",
+                version="0.1",
                 display_name="Convex Finance - Earned for a user",
                 description="Get all earned for an account",
                 category='protocol',
                 subcategory='convex',
                 input=Account,
-                output=dict)
+                output=Some[ConvexPoolEarning])
 class ConvexFinanceEarning(Model):
-    def run(self, input: Account) -> dict:
+    def run(self, input: Account) -> Some[ConvexPoolEarning]:
         all_pools = self.context.run_model('convex-fi.all-pool-info',
                                            input=EmptyInput(), return_type=Some[ConvexPoolInfo])
 
@@ -111,13 +120,14 @@ class ConvexFinanceEarning(Model):
             user_reward_per_token_paid = (pp.crv_rewards.functions
                                           .userRewardPerTokenPaid(input.address.checksum).call())
             if balance != 0 or earned != 0 or rewards != 0:
-                earnings.append(dict(
+                earnings.append(ConvexPoolEarning(
                     lp_token=pp.lp_token,
                     balance=balance,
                     earned=earned,
                     rewards=rewards,
                     reward_token=reward_token,
                     user_reward_per_token_paid=user_reward_per_token_paid
+
                 ))
 
-        return {'earnings': earnings}
+        return Some[ConvexPoolEarning](some=earnings)
