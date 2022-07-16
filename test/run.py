@@ -46,6 +46,8 @@ if __name__ == '__main__':
                         help=('Block number to run'))
     parser.add_argument('-s', '--serial', action='store_true', default=False,
                         help=('Run tests in serial'))
+    parser.add_argument('-p', '--parallel_count', type=int, default=None,
+                        help=('Paralle count'))
 
     args = vars(parser.parse_args())
     CMKTest.type = args['type']
@@ -54,13 +56,16 @@ if __name__ == '__main__':
         sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
         CMKTest.post_flag = ['-l', '-', '--api_url=http://localhost:8700']
         CMKTest.pre_flag = ['--model_path', 'x']
+        parallel_count = 20 if args['parallel_count'] is None else args['parallel_count']
     elif args['type'] == 'prod':
         CMKTest.post_flag = []
         CMKTest.pre_flag = []
+        parallel_count = 12 if args['parallel_count'] is None else args['parallel_count']
     elif args['type'] == 'gw':
         CMKTest.post_flag = ['-l', '-']
         CMKTest.pre_flag = ['--model_path', 'x']
         CMKTest.skip_nonzero = True
+        parallel_count = 12 if args['parallel_count'] is None else args['parallel_count']
     else:
         print(f'Unknown test type {args["type"]}')
         sys.exit()
@@ -84,5 +89,5 @@ if __name__ == '__main__':
         unittest.main(failfast=True)
     else:
         CMKTest.fail_first = False
-        concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(20))
+        concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(parallel_count))
         runner.run(concurrent_suite)
