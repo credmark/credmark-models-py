@@ -1,11 +1,11 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 from abc import abstractmethod
 from typing import List
 
 import pandas as pd
-from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Price, Some, Token
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Maybe, Price, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, PoolPriceAggregatorInput,
                                PoolPriceInfo)
@@ -163,17 +163,42 @@ class PriceInfoFromDex(Model):
         return Some[PoolPriceInfo](some=_use_for())
 
 
-@ Model.describe(slug='price.dex-blended',
-                 version='1.8',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=Token,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.dex-blended-maybe',
+                version='0.1',
+                display_name='Token price - Credmark',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=Token,
+                output=Maybe[Price])
+class PriceFromDexModelMaybe(Model, PriceWeight):
+    """
+    Return token's price
+    """
+
+    def run(self, input: Token) -> Maybe[Price]:
+        try:
+            price = self.context.run_model('price.dex-blended', input=input, return_type=Price)
+            return Maybe(just=price)
+        except ModelRunError as err:
+            if 'No pool to aggregate' in err.data.message:
+                return Maybe.none()
+            raise
+
+
+@Model.describe(slug='price.dex-blended',
+                version='1.8',
+                display_name='Token price - Credmark',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=Token,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceFromDexModel(Model, PriceWeight):
     """
     Return token's price

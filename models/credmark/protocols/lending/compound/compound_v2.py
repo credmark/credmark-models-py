@@ -1,7 +1,7 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Price, Some, Token
+from credmark.cmf.types import Address, Contract, Network, Price, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
@@ -62,8 +62,8 @@ class CompoundV2PoolValue(DTO):
 
 def get_comptroller(model):
     compound_comptroller = {
-        1: '0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b',
-        42: '0x5eae89dc1c671724a672ff0630122ee834098657'
+        Network.Mainnet: '0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b',
+        Network.Kovan: '0x5eae89dc1c671724a672ff0630122ee834098657'
     }
     addr = compound_comptroller[model.context.chain_id]
 
@@ -255,16 +255,16 @@ class CompoundV2GetPoolInfo(Model):
         - getBorrowRate/multiplier/baseRate/blocksPerYear
     """
     COMPOUND_GOVERNANCE = {
-        1: '0xc0da02939e1441f497fd74f78ce7decb17b66529',
-        42: '0x100044c436dfb66ff106157970bc89f243411ffd',
+        Network.Mainnet: '0xc0da02939e1441f497fd74f78ce7decb17b66529',
+        Network.Kovan: '0x100044c436dfb66ff106157970bc89f243411ffd',
     }
     COMPOUND_TIMELOCK = {
-        1: '0x6d903f6003cca6255d85cca4d3b5e5146dc33925',
-        42: '0xe3e07f4f3e2f5a5286a99b9b8deed08b8e07550b'
+        Network.Mainnet: '0x6d903f6003cca6255d85cca4d3b5e5146dc33925',
+        Network.Kovan: '0xe3e07f4f3e2f5a5286a99b9b8deed08b8e07550b'
     }
 
     COMPOUND_ASSETS = {
-        1: {
+        Network.Mainnet: {
             "AAVE": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
             "BAT": "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
             "COMP": "0xc00e94Cb662C3520282E6f5717214004A7f26888",
@@ -286,13 +286,13 @@ class CompoundV2GetPoolInfo(Model):
             "YFI": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
             "ZRX": "0xE41d2489571d322189246DaFA5ebDe1F4699F498",
         },
-        42: {
+        Network.Kovan: {
             # TODO: to be filled
         }
     }
 
     COMPOUND_CTOKEN = {
-        1: {
+        Network.Mainnet: {
             'cAAVE': '0xe65cdb6479bac1e22340e4e755fae7e509ecd06c',
             'cBAT': '0x6c8c6b02e7b2be14d4fa6022dfd6d75921d90e4e',
             'cCOMP': '0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4',
@@ -314,7 +314,7 @@ class CompoundV2GetPoolInfo(Model):
             'cYFI': '0x80a2ae356fc9ef4305676f7a3e2ed04e12c33946',
             'cZRX': '0xb3319f5d18bc0d84dd1b4825dcde5d5f7266d407',
         },
-        42: {
+        Network.Kovan: {
             'cBAT': '0x4a77faee9650b09849ff459ea1476eab01606c7a',
             'cDAI': '0xf0d0eb522cfa50b716b3b1604c4f0fa6f04376ad',
             'cETH': '0x41b5844f4680a8c38fbb695b7f9cfd1f64474a72',
@@ -352,12 +352,12 @@ class CompoundV2GetPoolInfo(Model):
 
         # From cToken to Token
         if input.symbol == 'cETH':
-            token = Token(address=self.COMPOUND_ASSETS[self.context.chain_id]['WETH'])
-        elif (input.address == self.COMPOUND_CTOKEN[self.context.chain_id]['cSAI'] and
+            token = Token(address=self.COMPOUND_ASSETS[self.context.network]['WETH'])
+        elif (input.address == self.COMPOUND_CTOKEN[self.context.network]['cSAI'] and
               input.symbol == 'cDAI'):
             # When input = cSAI, it has been renamed to cDAI in the contract.
             # We will still call up SAI
-            token = Token(address=self.COMPOUND_ASSETS[self.context.chain_id]['SAI'])
+            token = Token(address=self.COMPOUND_ASSETS[self.context.network]['SAI'])
         else:
             token = Token(address=cToken.functions.underlying().call())
 
@@ -373,7 +373,7 @@ class CompoundV2GetPoolInfo(Model):
         #        self.logger.error(f'{cToken.functions.implementation().call()}, '
         #                          f'{cToken.proxy_for.address=}')
         assert cToken.functions.admin().call() == \
-            Address(self.COMPOUND_TIMELOCK[self.context.chain_id])
+            Address(self.COMPOUND_TIMELOCK[self.context.network])
         assert cToken.functions.comptroller().call() == Address(comptroller.address)
         assert cToken.functions.symbol().call()
         if cToken.name != 'Compound Ether':

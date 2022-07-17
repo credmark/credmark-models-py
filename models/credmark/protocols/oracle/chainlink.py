@@ -2,7 +2,7 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Maybe, Price
+from credmark.cmf.types import Contract, Maybe, Network, Price
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
 from models.dtos.price import PriceInput
@@ -19,12 +19,12 @@ from web3.exceptions import ContractLogicError
                 output=Contract)
 class ChainLinkFeedRegistry(Model):
     CHAINLINK_REGISTRY = {
-        1: '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf',
-        42: '0xAa7F6f7f507457a1EE157fE97F6c7DB2BEec5cD0'
+        Network.Mainnet: '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf',
+        Network.Kovan: '0xAa7F6f7f507457a1EE157fE97F6c7DB2BEec5cD0'
     }
 
     def run(self, _) -> Contract:
-        registry = Contract(address=self.CHAINLINK_REGISTRY[self.context.chain_id])
+        registry = Contract(address=self.CHAINLINK_REGISTRY[self.context.network])
         _ = registry.abi
         return registry
 

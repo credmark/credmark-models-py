@@ -1,12 +1,13 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Some, Price, Token
+from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
+                                Some, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo, DexPoolPriceInput
+from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
 
@@ -52,7 +53,7 @@ class UniswapV3PoolInfo(DTO):
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
     UNISWAP_V3_FACTORY_ADDRESS = {
-        1: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+        Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     }
 
     def run(self, input: Token) -> Contracts:
@@ -66,7 +67,7 @@ class UniswapV3GetPoolsForToken(Model):
             return Contracts(contracts=[])
 
         try:
-            addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.chain_id]
+            addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network]
             uniswap_factory = Contract(address=addr)
             pools = []
             for fee in fees:

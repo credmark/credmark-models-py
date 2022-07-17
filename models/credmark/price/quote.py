@@ -1,7 +1,8 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelRunError,
                                        create_instance_from_error_dict)
-from credmark.cmf.types import Currency, Maybe, NativeToken, Price, Some, Token
+from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price,
+                                Some, Token)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
@@ -175,7 +176,7 @@ class PriceQuote(Model):
     """
 
     CONVERT_TO_WRAP = {
-        1: {
+        Network.Mainnet: {
             Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
             {'symbol': 'WETH'},
             Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'):
@@ -184,7 +185,7 @@ class PriceQuote(Model):
     }
 
     def replace_wrap(self, token):
-        new_token = self.CONVERT_TO_WRAP[self.context.chain_id].get(token.address, None)
+        new_token = self.CONVERT_TO_WRAP[self.context.network].get(token.address, None)
         if new_token is not None:
             return Currency(**new_token)
         return token

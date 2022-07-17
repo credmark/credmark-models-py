@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import Address, Currency, Maybe, Price
+from credmark.cmf.types import Address, Currency, Maybe, Network, Price
 from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -43,7 +43,7 @@ class PriceOracleChainlink(Model):
     # The native token on other chain, give a direct address of feed.
     # TODO: find the token address so to find the feed in Chainlink's registry
     OVERRIDE_FEED = {
-        1: {
+        Network.Mainnet: {
             # WAVAX: avax-usd.data.eth
             Address('0x85f138bfEE4ef8e540890CFb48F620571d67Eda3'):
             {'ens': {'domain': 'avax-usd.data.eth'},
@@ -82,7 +82,7 @@ class PriceOracleChainlink(Model):
     ]
 
     WRAP_TOKEN = {
-        1: {
+        Network.Mainnet: {
             # WETH => ETH
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
             {'symbol': 'ETH'},
@@ -97,8 +97,8 @@ class PriceOracleChainlink(Model):
     """
 
     def check_wrap(self, token):
-        if token.address in self.WRAP_TOKEN[self.context.chain_id]:
-            return Currency(**self.WRAP_TOKEN[self.context.chain_id][token.address])
+        if token.address in self.WRAP_TOKEN[self.context.network]:
+            return Currency(**self.WRAP_TOKEN[self.context.network][token.address])
         return token
 
     def replace_input(self, input):
@@ -123,7 +123,7 @@ class PriceOracleChainlink(Model):
         if price_maybe.just is not None:
             return price_maybe.just
 
-        try_override_base = self.OVERRIDE_FEED[self.context.chain_id].get(base.address, None)
+        try_override_base = self.OVERRIDE_FEED[self.context.network].get(base.address, None)
         if try_override_base is not None:
             override_feed = try_override_base['ens']
             override_quote = Currency(**try_override_base['quote'])
@@ -139,7 +139,7 @@ class PriceOracleChainlink(Model):
                                             return_type=Price)
                 return p0.cross(p1)
 
-        try_override_quote = self.OVERRIDE_FEED[self.context.chain_id].get(quote.address, None)
+        try_override_quote = self.OVERRIDE_FEED[self.context.network].get(quote.address, None)
         if try_override_quote is not None:
             override_feed = try_override_quote['ens']
             override_quote = Currency(**try_override_quote['quote'])

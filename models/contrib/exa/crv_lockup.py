@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token
+from credmark.cmf.types import Token, Network
 
 
 @Model.describe(
@@ -15,25 +15,25 @@ from credmark.cmf.types import Address, Token
 )
 class CurveFinanceVeCRVLockup(Model):
     CRV_ADDRESS = {
-        1: Address('0xD533a949740bb3306d119CC777fa900bA034cd52')
+        Network.Mainnet: '0xD533a949740bb3306d119CC777fa900bA034cd52'
     }
 
     veCRV_ADDRESS = {
-        1: Address('0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2')
+        Network.Mainnet: '0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2'
     }
 
     vestCRV_ADDRESS = {
-        1: Address('0xd2D43555134dC575BF7279F4bA18809645dB0F1D')
+        Network.Mainnet: '0xd2D43555134dC575BF7279F4bA18809645dB0F1D'
     }
 
     def run(self, input):
-        crv_token = Token(address=self.CRV_ADDRESS[self.context.chain_id])
+        crv_token = Token(address=self.CRV_ADDRESS[self.context.network])
 
         crv_total_supply = crv_token.total_supply
         crv_locked = crv_token.functions.balanceOf(
-            self.veCRV_ADDRESS[self.context.chain_id]).call()
+            self.veCRV_ADDRESS[self.context.network]).call()
         crv_vested = crv_token.functions.balanceOf(
-            self.vestCRV_ADDRESS[self.context.chain_id]).call()
+            self.vestCRV_ADDRESS[self.context.network]).call()
 
         return {
             'total_supply': crv_token.scaled(crv_total_supply),

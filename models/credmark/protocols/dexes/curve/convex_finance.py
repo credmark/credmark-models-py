@@ -8,7 +8,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price, Some,
-                                Token, Tokens)
+                                Token, Tokens, Network)
 from credmark.dto import DTO, EmptyInput
 from models.tmp_abi_lookup import CRV_REWARD
 
@@ -35,11 +35,11 @@ class ConvexPoolInfo(DTO):
                 output=Contract)
 class ConvexFinanceBooster(Model):
     BOOSTER = {
-        1: Address('0xF403C135812408BFbE8713b5A23a04b3D48AAE31')
+        Network.Mainnet: '0xF403C135812408BFbE8713b5A23a04b3D48AAE31'
     }
 
     def run(self, input: EmptyInput) -> Contract:
-        booster = Contract(address=self.BOOSTER[self.context.chain_id])
+        booster = Contract(address=self.BOOSTER[self.context.network])
         _ = booster.abi
         return booster
 

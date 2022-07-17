@@ -46,7 +46,7 @@ class RedactedVotiumCashflow(Model):
 
 @Model.describe(
     slug='contrib.neilz-redacted-convex-cashflow',
-    version='1.2',
+    version='1.3',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
     category='protocol',
