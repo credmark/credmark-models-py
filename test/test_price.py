@@ -126,6 +126,15 @@ class TestPrice(CMKTest):
                         '0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b',
                         '0x92d6c1e31e14520e676a687f0a93788b716beff5', ]
 
+    def test_1inch(self):
+        self.run_model('price.one-inch', {"address": "0xdac17f958d2ee523a2206206994597c13d831ec7"})
+        self.run_model('price.one-inch', {"symbol": "WETH"})
+        self.run_model('price.one-inch', {"symbol": "USDC"})
+        self.run_model('price.one-inch', {"symbol": "AAVE"})
+        self.run_model('price.one-inch', {"symbol": "CMK"})
+        self.run_model('price.one-inch', {"symbol": "USD"})
+        self.run_model('price.one-inch', {"symbol": "ETH"})
+
     def test_currency_dto(self):
         self.title('Price - Currency DTO')
         self.run_model('price.quote', {"base": "CMK"})
