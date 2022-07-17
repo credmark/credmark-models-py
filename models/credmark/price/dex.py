@@ -7,11 +7,8 @@ from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Price, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
-from models.dtos.price import PoolPriceAggregatorInput, PoolPriceInfo
-
-PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
-    code=ModelDataError.Codes.NO_DATA,
-    code_desc='No pools to aggregate for token price')
+from models.dtos.price import (PRICE_DATA_ERROR_DESC, PoolPriceAggregatorInput,
+                               PoolPriceInfo)
 
 
 @Model.describe(slug='price.pool-aggregator',
@@ -196,6 +193,8 @@ class PriceFromDexModel(Model, PriceWeight):
                        f'Non-zero:{",".join(non_zero_pools)}|'
                        f'Zero:{",".join(zero_pools)}'),
             weight_power=self.WEIGHT_POWER)
+        if len(all_pool_infos) == 0:
+            raise ModelRunError(f'No pool to aggregate for {input}')
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
                                       return_type=Price)

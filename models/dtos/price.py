@@ -1,3 +1,5 @@
+from credmark.cmf.model import ModelDataErrorDesc
+from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
                                 Some, Token)
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
@@ -101,3 +103,8 @@ class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
     token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
     price_src: str
+
+
+PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
+    code=ModelDataError.Codes.NO_DATA,
+    code_desc='No pool to aggregate for token price')

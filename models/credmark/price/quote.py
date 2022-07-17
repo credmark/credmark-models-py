@@ -1,15 +1,12 @@
-from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import (ModelRunError,
                                        create_instance_from_error_dict)
 from credmark.cmf.types import Currency, Maybe, NativeToken, Price, Some, Token
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (Address, PriceHistoricalInput,
-                               PriceHistoricalInputs, PriceInput)
-
-PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
-    code=ModelDataError.Codes.NO_DATA,
-    code_desc='No pools to aggregate for token price')
+from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
+                               PriceHistoricalInput, PriceHistoricalInputs,
+                               PriceInput)
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -136,6 +133,30 @@ class TokenPriceModelDeprecated(Model):
 
     def run(self, input: Token) -> Price:
         return self.context.run_model('price.quote', {'base': input}, return_type=Price)
+
+
+@Model.describe(slug='price.quote-maybe',
+                version='0.0',
+                display_name='Token Price - Quoted - Maybe',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=Maybe[Price])
+class PriceQuoteMaybe(Model):
+    """
+    Return token's price in Maybe
+    """
+
+    def run(self, input: PriceInput) -> Maybe[Price]:
+        try:
+            price = self.context.run_model('price.quote', input=input, return_type=Price)
+            return Maybe[Price](just=price)
+        except ModelRunError as err:
+            if 'No pool to aggregate' in err.data.message:
+                return Maybe.none()
+            raise
 
 
 @Model.describe(slug='price.quote',
