@@ -91,7 +91,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -152,26 +152,26 @@ class UniswapV3GetPoolInfo(Model):
         sb = self.tick_to_price(tick_top // 2)
         sp = p_current ** 0.5
 
-        amount0 = liquidity * (1 / sp - 1 / sb)
-        amount1 = liquidity * (sp - sa)
+        in_tick_amount0 = liquidity * (1 / sp - 1 / sb)
+        in_tick_amount1 = liquidity * (sp - sa)
 
         # Scale the amounts to the token's unit
-        adjusted_amount0 = token0.scaled(amount0)
-        adjusted_amount1 = token1.scaled(amount1)
+        adjusted_in_tick_amount0 = token0.scaled(in_tick_amount0)
+        adjusted_in_tick_amount1 = token1.scaled(in_tick_amount1)
 
         # Below shall be equal for the tick liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.2
         assert np.isclose(
-            (amount0 + liquidity / sb) * (amount1 + liquidity * sa),
+            (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
             float(liquidity * liquidity))
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        _tick_liquidity_combined_in_0 = amount0 + amount1 / p_current
+        _tick_liquidity_combined_in_0 = in_tick_amount0 + in_tick_amount1 / p_current
         _tick_liquidity_combined_in_1 = _tick_liquidity_combined_in_0 * p_current
 
-        tick_liquidity_0_scaled = token0.scaled(adjusted_amount0)
-        tick_liquidity_1_scaled = token1.scaled(adjusted_amount1)
+        _tick_liquidity_combined_s_in_0 = token0.scaled(_tick_liquidity_combined_in_0)
+        _tick_liquidity_combined_s_in_1 = token1.scaled(_tick_liquidity_combined_in_1)
 
         # Calculate the virtual liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.1
@@ -196,8 +196,8 @@ class UniswapV3GetPoolInfo(Model):
             'token0_symbol': token0_symbol,
             'token1_symbol': token1_symbol,
             "liquidity": liquidity,
-            'tick_liquidity_token0': tick_liquidity_0_scaled,
-            'tick_liquidity_token1': tick_liquidity_1_scaled,
+            'tick_liquidity_token0': adjusted_in_tick_amount0,
+            'tick_liquidity_token1': adjusted_in_tick_amount1,
             "fee": fee,
             'virtual_liquidity_token0': virtual_x,
             'virtual_liquidity_token1': virtual_y,

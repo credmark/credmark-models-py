@@ -12,7 +12,7 @@ from models.dtos.price import (PRICE_DATA_ERROR_DESC, PoolPriceAggregatorInput,
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.3',
+                version='1.4',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 input=PoolPriceAggregatorInput,
@@ -31,8 +31,8 @@ class PoolPriceAggregator(Model):
         if len(input.some) == 1:
             return Price(price=input.some[0].price, src=input.price_src)
 
-        product_of_price_liquidity = (df.price * df.liquidity ** input.weight_power).sum()
-        sum_of_liquidity = (df.liquidity ** input.weight_power).sum()
+        product_of_price_liquidity = (df.price * df.tick_liquidity ** input.weight_power).sum()
+        sum_of_liquidity = (df.tick_liquidity ** input.weight_power).sum()
         price = product_of_price_liquidity / sum_of_liquidity
         return Price(price=price, src=input.price_src)
 
@@ -189,7 +189,7 @@ class PriceFromDexModelMaybe(Model, PriceWeight):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.8',
+                version='1.9',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -209,8 +209,8 @@ class PriceFromDexModel(Model, PriceWeight):
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo]).some
 
-        non_zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity > 0}
-        zero_pools = {ii.src for ii in all_pool_infos if ii.liquidity == 0}
+        non_zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity > 0}
+        zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity == 0}
         pool_aggregator_input = PoolPriceAggregatorInput(
             some=all_pool_infos,
             token=input,
