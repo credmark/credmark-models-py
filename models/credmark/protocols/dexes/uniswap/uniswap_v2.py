@@ -79,7 +79,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -112,18 +112,18 @@ class UniswapPoolPriceInfo(Model):
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
+        # https://uniswap.org/blog/uniswap-v3-dominance
+        # Appendix B: methodology
         if input.token.address == token0.address:
             inverse = False
             price = scaled_reserve1 / scaled_reserve0
             liquidity = scaled_reserve0
+            tick_liquidity = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * liquidity
         else:
             inverse = True
             price = scaled_reserve0 / scaled_reserve1
             liquidity = scaled_reserve1
-
-        # https://uniswap.org/blog/uniswap-v3-dominance
-        # Appendix B: methodology
-        tick_liquidity = (1 / np.sqrt(1 - 0.0001) - 1) * liquidity
+            tick_liquidity = (np.sqrt(1 + 0.0001) - 1) * liquidity
 
         weth_multiplier = 1
         weth = Token(symbol='WETH')

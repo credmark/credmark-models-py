@@ -1,6 +1,5 @@
 # pylint: disable=locally-disabled, unused-import
 
-from queue import Empty
 from typing import List
 
 import numpy as np
