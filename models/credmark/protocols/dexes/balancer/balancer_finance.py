@@ -83,10 +83,11 @@ class GetBalancerAllPools(Model):
             pool = Contract(address=pool_addr, abi=BALANCER_POOL_ABI)
             try:
                 _pool_id = pool.functions.getPoolId().call()
-                print(_n, pool_addr, pool._meta.contract_name)  # pylint:disable=protected-access
+                # print(_n, pool_addr, pool._meta.contract_name)  # pylint:disable=protected-access
                 contracts.append(pool)
             except ABIFunctionNotFound:
-                print(pool_addr)
+                # print(pool_addr)
+                pass
 
         return Contracts(contracts=contracts)
 
