@@ -132,7 +132,6 @@ class TestPrice(CMKTest):
         self.run_model('price.one-inch', {"symbol": "USDC"})
         self.run_model('price.one-inch', {"symbol": "AAVE"})
         self.run_model('price.one-inch', {"symbol": "CMK"})
-        self.run_model('price.one-inch', {"symbol": "USD"})
         self.run_model('price.one-inch', {"symbol": "ETH"})
 
     def test_currency_dto(self):

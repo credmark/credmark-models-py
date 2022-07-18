@@ -1,9 +1,10 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Contract, NativeToken, Network, Price, Token, Maybe
+from credmark.cmf.types import (Contract, Maybe, NativeToken, Network, Price,
+                                Token)
 
 
 @Model.describe(slug='price.one-inch',
-                version='1.6',
+                version='0.1',
                 display_name='Token Price - Spot Aggregator',
                 description='Returns price in Eth for Token from 1Inch',
                 developer='Credmark',
@@ -21,6 +22,8 @@ class PriceOneInch(Model):
         offchain_contract = Contract(address=addr)
         eth = NativeToken()
         p = offchain_contract.functions.getRateToEth(input.address, True).call(
+        ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
+        _p2 = offchain_contract.functions.getRateToEth(input.address, False).call(
         ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
         if p == 0:
             return Maybe.none()
