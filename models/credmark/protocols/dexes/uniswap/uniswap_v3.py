@@ -1,12 +1,13 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Some, Price, Token
+from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
+                                Some, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import PoolPriceInfo, DexPoolPriceInput
+from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from web3.exceptions import BadFunctionCallOutput
 
@@ -52,7 +53,7 @@ class UniswapV3PoolInfo(DTO):
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
     UNISWAP_V3_FACTORY_ADDRESS = {
-        1: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+        Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     }
 
     def run(self, input: Token) -> Contracts:
@@ -66,7 +67,7 @@ class UniswapV3GetPoolsForToken(Model):
             return Contracts(contracts=[])
 
         try:
-            addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.chain_id]
+            addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network]
             uniswap_factory = Contract(address=addr)
             pools = []
             for fee in fees:
@@ -90,7 +91,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.4',
+                version='1.7',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -151,26 +152,26 @@ class UniswapV3GetPoolInfo(Model):
         sb = self.tick_to_price(tick_top // 2)
         sp = p_current ** 0.5
 
-        amount0 = liquidity * (1 / sp - 1 / sb)
-        amount1 = liquidity * (sp - sa)
+        in_tick_amount0 = liquidity * (1 / sp - 1 / sb)
+        in_tick_amount1 = liquidity * (sp - sa)
 
         # Scale the amounts to the token's unit
-        _adjusted_amount0 = token0.scaled(amount0)
-        _adjusted_amount1 = token1.scaled(amount1)
+        adjusted_in_tick_amount0 = token0.scaled(in_tick_amount0)
+        adjusted_in_tick_amount1 = token1.scaled(in_tick_amount1)
 
         # Below shall be equal for the tick liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.2
         assert np.isclose(
-            (amount0 + liquidity / sb) * (amount1 + liquidity * sa),
+            (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
             float(liquidity * liquidity))
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        tick_liquidity_0 = amount0 + amount1 / p_current
-        tick_liquidity_1 = tick_liquidity_0 * p_current
+        _tick_liquidity_combined_in_0 = in_tick_amount0 + in_tick_amount1 / p_current
+        _tick_liquidity_combined_in_1 = _tick_liquidity_combined_in_0 * p_current
 
-        tick_liquidity_0_scaled = token0.scaled(tick_liquidity_0)
-        tick_liquidity_1_scaled = token1.scaled(tick_liquidity_1)
+        _tick_liquidity_combined_s_in_0 = token0.scaled(_tick_liquidity_combined_in_0)
+        _tick_liquidity_combined_s_in_1 = token1.scaled(_tick_liquidity_combined_in_1)
 
         # Calculate the virtual liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.1
@@ -195,8 +196,8 @@ class UniswapV3GetPoolInfo(Model):
             'token0_symbol': token0_symbol,
             'token1_symbol': token1_symbol,
             "liquidity": liquidity,
-            'tick_liquidity_token0': tick_liquidity_0_scaled,
-            'tick_liquidity_token1': tick_liquidity_1_scaled,
+            'tick_liquidity_token0': adjusted_in_tick_amount0,
+            'tick_liquidity_token1': adjusted_in_tick_amount1,
             "fee": fee,
             'virtual_liquidity_token0': virtual_x,
             'virtual_liquidity_token1': virtual_y,

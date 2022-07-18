@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                NativePosition, NativeToken, Portfolio,
-                                Position, Token, TokenPosition, Tokens)
+                                NativePosition, NativeToken, Network,
+                                Portfolio, Position, Token, TokenPosition,
+                                Tokens)
 
 np.seterr(all='raise')
 
@@ -169,7 +170,7 @@ class CurveLPPosition(Position):
     output=Portfolio)
 class GetCurveLPPosition(Model):
     CURVE_LP_TOKEN = {
-        1: {
+        Network.Mainnet: {
             Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff')
         }
     }
@@ -178,7 +179,7 @@ class GetCurveLPPosition(Model):
         df_dict = self.context.run_model('account.token-erc20', input=input)
         df = pd.DataFrame.from_dict(df_dict)
 
-        _lp_tokens = self.CURVE_LP_TOKEN[self.context.chain_id]
+        _lp_tokens = self.CURVE_LP_TOKEN[self.context.network]
         lp_tx = df.query('token_address in @_lp_tokens')
 
         txs = lp_tx.transaction_hash.unique().tolist()

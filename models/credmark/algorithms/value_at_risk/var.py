@@ -3,7 +3,7 @@ import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
-                                PriceList, Some, Token, TokenPosition)
+                                PriceList, Some, Token, TokenPosition, Maybe)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
@@ -37,17 +37,15 @@ class AccountValue(Model):
 
         values = []
         total_value = 0
+
+        def zero_price():
+            return Price(price=0.0, src='Cannot find price')
+
         for pos in portfolio:
-            try:
-                price = self.context.run_model(
-                    'price.quote',
-                    input={'base': pos.asset, 'quote': input.quote},
-                    return_type=Price)
-            except ModelRunError as _err:
-                if 'No pool to aggregate' in _err.data.message:
-                    price = Price(price=0.0, src='Cannot find price')
-                else:
-                    raise
+            price = self.context.run_model(
+                'price.quote-maybe',
+                input={'base': pos.asset, 'quote': input.quote},
+                return_type=Maybe[Price]).get_just(zero_price())
 
             pos_value = pos.amount * price.price
             values.append({

@@ -1,6 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Maybe, Some, Token
+from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
+                                Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
@@ -18,13 +19,14 @@ from models.dtos.price import PoolPriceInfo
                 output=Contract)
 class SushiswapV2Factory(Model):
     SUSHISWAP_V2_FACTORY_ADDRESS = {
-        1: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
+        Network.Mainnet: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
     } | {
-        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4' for k in [3, 4, 5, 42]
+        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'
+        for k in [Network.Rinkeby, Network.Görli, Network.Kovan]
     }
 
     def run(self, _) -> Contract:
-        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
+        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.network]
         cc = Contract(address=addr)
         _ = cc.abi
         return cc
@@ -51,7 +53,7 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
                 category='protocol',
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
-    def run(self, input) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         contract = Contract(**self.context.models.sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []

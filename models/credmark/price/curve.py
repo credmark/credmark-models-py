@@ -1,7 +1,7 @@
 import numpy as np
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Maybe, Price, Token
+from credmark.cmf.types import Address, Contract, Maybe, Network, Price, Token
 from models.credmark.protocols.dexes.curve.curve_finance import \
     CurveFiPoolInfoToken
 
@@ -58,7 +58,7 @@ class CurveFinancePrice(Model):
     - Chainlink: https://blog.chain.link/using-chainlink-oracles-to-securely-utilize-curve-lp-pools/
     """
     CRV_CTOKENS = {
-        1: {
+        Network.Mainnet: {
             'cyDAI': Address('0x8e595470ed749b85c6f7669de83eae304c2ec68f'),
             'cyUSDC': Address('0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c'),
             'cyUSDT': Address('0x48759f220ed983db51fa7a8c0d2aab8f3ce4166a'),
@@ -66,7 +66,7 @@ class CurveFinancePrice(Model):
     }
 
     CRV_DERIVED = {
-        1: {
+        Network.Mainnet: {
             Address('0xFEEf77d3f69374f66429C91d732A244f074bdf74'):
             {
                 'name': 'cvxFXS',
@@ -91,7 +91,7 @@ class CurveFinancePrice(Model):
     }
 
     CRV_LP = {
-        1: {
+        Network.Mainnet: {
             Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'),
             Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'),
             Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff'),
@@ -106,7 +106,7 @@ class CurveFinancePrice(Model):
             list(CurveFinancePrice.CRV_LP[chain_id]))
 
     def run(self, input: Token) -> Price:
-        if input.address in self.CRV_CTOKENS[self.context.chain_id].values():
+        if input.address in self.CRV_CTOKENS[self.context.network].values():
             ctoken = Token(address=input.address)
             ctoken_decimals = ctoken.decimals
             underlying_addr = ctoken.functions.underlying().call()
@@ -129,7 +129,7 @@ class CurveFinancePrice(Model):
                 price_underlying.src = price_underlying.src + '|cToken'
             return price_underlying
 
-        derived_info = self.CRV_DERIVED[self.context.chain_id].get(input.address)
+        derived_info = self.CRV_DERIVED[self.context.network].get(input.address)
         if derived_info is not None:
             pool = Contract(address=derived_info['pool_address'])
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
@@ -167,7 +167,7 @@ class CurveFinancePrice(Model):
                      f'{pool_info.tokens_symbol[n_price_min]}|{ratio_to_others[n_price_min]}|'
                      f'{pool_info.tokens[n_price_min].symbol}|{price_others[n_price_min]}'))
 
-        if input.address in self.CRV_LP[self.context.chain_id]:
+        if input.address in self.CRV_LP[self.context.network]:
             if input.abi is not None and 'minter' in input.abi.functions:
                 pool_addr = input.functions.minter().call()
             else:

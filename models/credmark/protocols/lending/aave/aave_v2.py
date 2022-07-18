@@ -3,7 +3,7 @@ from typing import Optional
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
-                                Portfolio, Position, Price, Some, Token)
+                                Portfolio, Position, Price, Some, Token, Network)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
@@ -49,12 +49,12 @@ class AaveV2GetLendingPoolProviders(Model):
     Returns the lending pool providers
     """
     LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = {
-        1: '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413',
-        42: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
+        Network.Mainnet: '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413',
+        Network.Kovan: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
     }
 
     def run(self, _) -> Contracts:
-        addr = Address(self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.chain_id]).checksum
+        addr = Address(self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.network])
         address_provider_registry = Contract(address=addr)
         address_providers = address_provider_registry.functions.getAddressesProvidersList().call()
         all_providers = []
@@ -85,25 +85,25 @@ class AaveV2GetLendingPoolProvider(Model):
     """
     LENDING_POOL_ADDRESS_PROVIDER = {
         # For mainnet
-        1: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
+        Network.Mainnet: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
         # Kovan
-        42: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+        Network.Kovan: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
     }
 
     def run(self, _) -> Contract:
-        cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.chain_id])
+        cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.network])
         _ = cc.abi
         return cc
 
 
-@ Model.describe(slug="aave-v2.get-lending-pool",
-                 version="1.1",
-                 display_name="Aave V2 - Get lending pool for main market",
-                 description="Aave V2 - Get lending pool for main market",
-                 category='protocol',
-                 subcategory='aave-v2',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug="aave-v2.get-lending-pool",
+                version="1.1",
+                display_name="Aave V2 - Get lending pool for main market",
+                description="Aave V2 - Get lending pool for main market",
+                category='protocol',
+                subcategory='aave-v2',
+                input=EmptyInput,
+                output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, input: EmptyInput) -> Contract:
         lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
