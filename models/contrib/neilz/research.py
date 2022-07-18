@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, BlockNumber, Maybe, Price, Token
+from credmark.cmf.types import Address, BlockNumber, Maybe, Price, Token, MapBlocksOutput
 from credmark.dto import EmptyInput
 
 
@@ -69,15 +69,31 @@ class RedactedConvexCashflow(Model):
             ], where=q.TO_ADDRESS.eq(self.REDACTED_MULTISIG_ADDRESS).and_(
                 q.FROM_ADDRESS.in_(self.CONVEX_ADDRESSES))
             )
+
+        token_prices = {}
+        for transfer in transfers:
+            token_address = transfer['token_address']
+            block_number = transfer['block_number']
+            if token_address in token_prices and block_number not in token_prices[token_address]:
+                token_prices[token_address][block_number] = None
+            elif token_address not in token_prices:
+                token_prices[token_address] = {block_number: None}
+
+        for k, v in token_prices.items():
+            pp = self.context.run_model('compose.map-blocks',
+                                        {"modelSlug": "price.quote-maybe",
+                                         "modelInput": {'base': k},
+                                         "blockNumbers": list(v.keys())},
+                                        return_type=MapBlocksOutput[Maybe[Price]])
+            for r in pp.results:
+                if r.output is not None:
+                    v[r.blockNumber] = r.output.get_just(Price(price=0.0, src='NA')).price
+                else:
+                    v[r.blockNumber] = 0
+
         for transfer in transfers:
             token = Token(address=transfer['token_address'])
-            transfer['price'] = (self.context.run_model(
-                'price.quote-maybe',
-                input={'base': token},
-                block_number=transfer['block_number'],
-                return_type=Maybe[Price])
-                .get_just(Price(price=0.0, src='NA'))
-                .price)
+            transfer['price'] = token_prices[transfer['token_address']][transfer['block_number']]
             transfer['value_usd'] = transfer['price'] * token.scaled(float(transfer['value']))
             transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
             transfer['token_symbol'] = token.symbol

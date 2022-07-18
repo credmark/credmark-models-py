@@ -91,7 +91,7 @@ class UniswapV3GetPoolsForToken(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.4',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -156,8 +156,8 @@ class UniswapV3GetPoolInfo(Model):
         amount1 = liquidity * (sp - sa)
 
         # Scale the amounts to the token's unit
-        _adjusted_amount0 = token0.scaled(amount0)
-        _adjusted_amount1 = token1.scaled(amount1)
+        adjusted_amount0 = token0.scaled(amount0)
+        adjusted_amount1 = token1.scaled(amount1)
 
         # Below shall be equal for the tick liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.2
@@ -167,11 +167,11 @@ class UniswapV3GetPoolInfo(Model):
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        tick_liquidity_0 = amount0 + amount1 / p_current
-        tick_liquidity_1 = tick_liquidity_0 * p_current
+        _tick_liquidity_combined_in_0 = amount0 + amount1 / p_current
+        _tick_liquidity_combined_in_1 = _tick_liquidity_combined_in_0 * p_current
 
-        tick_liquidity_0_scaled = token0.scaled(tick_liquidity_0)
-        tick_liquidity_1_scaled = token1.scaled(tick_liquidity_1)
+        tick_liquidity_0_scaled = token0.scaled(adjusted_amount0)
+        tick_liquidity_1_scaled = token1.scaled(adjusted_amount1)
 
         # Calculate the virtual liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.1

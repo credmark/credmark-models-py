@@ -23,8 +23,8 @@ class PriceOneInch(Model):
         eth = NativeToken()
         p = offchain_contract.functions.getRateToEth(input.address, True).call(
         ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
-        _p2 = offchain_contract.functions.getRateToEth(input.address, False).call(
-        ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
+        # _p2 = offchain_contract.functions.getRateToEth(input.address, False).call(
+        # ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
         if p == 0:
             return Maybe.none()
         else:
