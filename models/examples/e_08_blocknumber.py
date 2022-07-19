@@ -5,6 +5,7 @@ from credmark.cmf.model.errors import ModelInputError, ModelRunError
 from credmark.cmf.types.block_number import (BlockNumber,
                                              BlockNumberOutOfRangeError)
 from credmark.dto import EmptyInput
+
 from .dtos import ExampleBlockTimeInput, ExampleModelOutput
 
 

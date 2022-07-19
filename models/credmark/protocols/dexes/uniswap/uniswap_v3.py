@@ -44,7 +44,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
-                version='1.2',
+                version='1.3',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -59,7 +59,6 @@ class UniswapV3GetPoolsForToken(Model):
     def run(self, input: Token) -> Contracts:
         fees = [100, 500, 3000, 10000]
         primary_tokens = [Token(symbol='DAI'),
-                          Token(symbol='USDT'),
                           Token(symbol='WETH'),
                           Token(symbol='USDC')]
 
@@ -72,7 +71,8 @@ class UniswapV3GetPoolsForToken(Model):
             pools = []
             for fee in fees:
                 for primary_token in primary_tokens:
-                    if input.address and primary_token.address:
+                    if (input.address and primary_token.address and
+                            input.address != primary_token.address):
                         pool = uniswap_factory.functions.getPool(
                             input.address.checksum,
                             primary_token.address.checksum,
@@ -81,9 +81,11 @@ class UniswapV3GetPoolsForToken(Model):
                             cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
                             try:
                                 _ = cc.abi
-                            except ModelDataError:
+                                pools.append(cc)
+                            except BlockNumberOutOfRangeError:
                                 pass
-                            pools.append(cc)
+                            except ModelDataError:
+                                pools.append(cc)
 
             return Contracts(contracts=pools)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
@@ -311,8 +313,9 @@ class UniswapV3GetTokenPoolInfo(Model):
                 elif p.error is not None:
                     self.logger.error(p.error)
                     raise ModelRunError(
-                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                        p.error.message)
+                        (f'Error with models({self.context.block_number}).'
+                         f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
+                         p.error.message))
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return infos

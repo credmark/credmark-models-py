@@ -5,8 +5,8 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
-                                Maybe, Portfolio, Position, Price, Some, Token,
-                                Tokens)
+                                Maybe, Network, Portfolio, Position, Price,
+                                Some, Token, Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -26,22 +26,27 @@ class UniswapV2PoolMeta:
     def get_uniswap_pools(model_input, factory_addr):
         factory = Contract(address=factory_addr)
         tokens = [Token(symbol='USDC'),
-                  Token(symbol='USDT'),
                   Token(symbol='WETH'),
                   Token(symbol='DAI')]
 
         contracts = []
         try:
             for token in tokens:
+                if token.address == model_input.address:
+                    continue
+
                 pair_address = factory.functions.getPair(
                     model_input.address, token.address).call()
                 if not pair_address == Address.null():
                     cc = Contract(address=pair_address)
                     try:
                         _ = cc.abi
-                    except ModelDataError:
+                        contracts.append(cc)
+                    except BlockNumberOutOfRangeError:
                         pass
-                    contracts.append(cc)
+                    except ModelDataError as _err:
+                        contracts.append(cc)
+
                 else:
                     pair_address = factory.functions.getPair(
                         token.address, model_input.address).call()
@@ -49,9 +54,11 @@ class UniswapV2PoolMeta:
                         cc = Contract(address=pair_address)
                         try:
                             _ = cc.abi
-                        except ModelDataError:
+                            contracts.append(cc)
+                        except BlockNumberOutOfRangeError:
                             pass
-                        contracts.append(cc)
+                        except ModelDataError as _err:
+                            contracts.append(cc)
 
             return Contracts(contracts=contracts)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
@@ -61,7 +68,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.1',
+                version='1.5',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -71,10 +78,12 @@ class UniswapV2PoolMeta:
 class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
     # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
     UNISWAP_V2_FACTORY_ADDRESS = {
-        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f' for k in [1, 3, 4, 5, 42]}
+        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
+        for k in
+        [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
 
     def run(self, input: Token) -> Contracts:
-        addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
+        addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network]
         return self.get_uniswap_pools(input, Address(addr))
 
 
@@ -132,7 +141,7 @@ class UniswapPoolPriceInfo(Model):
                 if weth_price is None:
                     weth_price = self.context.run_model(
                         'price.quote',  # uniswap-v2.get-weighted-price
-                        {'base': weth},  # weth
+                        {'base': weth},
                         return_type=Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
@@ -188,8 +197,9 @@ class UniswapV2GetTokenPriceInfo(Model):
                 elif p.error is not None:
                     self.logger.error(p.error)
                     raise ModelRunError(
-                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                        p.error.message)
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
+                         p.error.message))
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return infos

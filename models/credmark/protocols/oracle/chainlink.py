@@ -3,6 +3,7 @@ import sys
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Contract, Maybe, Network, Price
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
 from models.dtos.price import PriceInput
@@ -99,6 +100,8 @@ class ChainLinkFeedFromRegistryMaybe(Model):
                                            input=input,
                                            return_type=Price)
             return Maybe[Price](just=price)
+        except BlockNumberOutOfRangeError:
+            return Maybe[Price](just=None)
         except ModelRunError as _err:
             try:
                 price = self.context.run_model('chainlink.price-by-registry',

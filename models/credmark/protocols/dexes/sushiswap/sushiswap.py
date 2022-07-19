@@ -33,7 +33,7 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.1',
+                version='1.2',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
@@ -133,8 +133,9 @@ class SushiswapGetTokenPriceInfo(Model):
                 elif p.error is not None:
                     self.logger.error(p.error)
                     raise ModelRunError(
-                        f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                        p.error.message)
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
+                         p.error.message))
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return infos
