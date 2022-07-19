@@ -28,14 +28,14 @@ class SharpRatioOutput(DTO):
     blockTimestamp: int
 
 
-@ Model.describe(slug="finance.sharpe-ratio-token",
-                 version="1.3",
-                 display_name="Sharpe ratio for a token's historical price performance",
-                 description=("Sharpe ratio is return (averaged returns, annualized) "
-                              "versus risk (std. dev. of return)"),
-                 category='financial',
-                 input=SharpRatioInput,
-                 output=SharpRatioOutput)
+@Model.describe(slug="finance.sharpe-ratio-token",
+                version="1.3",
+                display_name="Sharpe ratio for a token's historical price performance",
+                description=("Sharpe ratio is return (averaged returns, annualized) "
+                             "versus risk (std. dev. of return)"),
+                category='financial',
+                input=SharpRatioInput,
+                output=SharpRatioOutput)
 class SharpeRatioToken(Model):
     """
     Calculate Sharpe ratio for a single token's past historical price performance.
@@ -99,3 +99,6 @@ class SharpeRatioToken(Model):
             blockTimestamp=int(df_pl.blockTimestamp[0]),
         )
         return output
+
+# type: actual: base on past PnL, last, using last PnL,
+# extension: extend to fill the length.
