@@ -24,7 +24,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
                 output=Maybe[Price])
 class CurveFinanceMaybePrice(Model):
     def run(self, input: Token) -> Maybe[Price]:
-        if input.address in CurveFinancePrice.supported_coins(self.context.chain_id):
+        if input.address in CurveFinancePrice.supported_coins(self.context.network):
             try:
                 price = self.context.run_model('price.dex-curve-fi',
                                                input=input,
@@ -37,7 +37,7 @@ class CurveFinanceMaybePrice(Model):
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.4",
+                version="1.5",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 category='protocol',
@@ -99,11 +99,11 @@ class CurveFinancePrice(Model):
     }
 
     @staticmethod
-    def supported_coins(chain_id):
+    def supported_coins(network):
         return set(
-            list(CurveFinancePrice.CRV_CTOKENS[chain_id].values()) +
-            list(CurveFinancePrice.CRV_DERIVED[chain_id].keys()) +
-            list(CurveFinancePrice.CRV_LP[chain_id]))
+            list(CurveFinancePrice.CRV_CTOKENS[network].values()) +
+            list(CurveFinancePrice.CRV_DERIVED[network].keys()) +
+            list(CurveFinancePrice.CRV_LP[network]))
 
     def run(self, input: Token) -> Price:
         if input.address in self.CRV_CTOKENS[self.context.network].values():
@@ -117,7 +117,7 @@ class CurveFinancePrice(Model):
             exchange_rate_stored = ctoken.functions.exchangeRateStored().call()
             exchange_rate = exchange_rate_stored / 10**mantissa
 
-            if underlying_token.address in self.supported_coins(self.context.chain_id):
+            if underlying_token.address in self.supported_coins(self.context.network):
                 raise ModelRunError(f'{underlying_token=} is self-referenced in {self.slug}')
 
             price_underlying = self.context.run_model('price.quote',
@@ -147,7 +147,7 @@ class CurveFinancePrice(Model):
             price_others = []
             for n_token_other, other_token in enumerate(pool_info.tokens):
                 if (n_token_other != n_token_input and
-                        other_token.address not in self.supported_coins(self.context.chain_id)):
+                        other_token.address not in self.supported_coins(self.context.network)):
                     ratio_to_other = other_token.scaled(
                         pool.functions.get_dy(n_token_input,  # token to send
                                               n_token_other,  # token to receive

@@ -212,7 +212,7 @@ class AaveV2GetTokenLiability(Model):
 
 
 @ Model.describe(slug="aave-v2.lending-pool-assets",
-                 version="1.3",
+                 version="1.4",
                  display_name="Aave V2 Lending Pool Assets",
                  description="Aave V2 assets for the main lending pool",
                  category='protocol',
@@ -248,8 +248,9 @@ class AaveV2GetAssets(Model):
             elif pool_result.error is not None:
                 self.logger.error(pool_result.error)
                 raise ModelRunError(
-                    f'Error with {model_slug}(input={model_inputs[pool_n]}). ' +
-                    pool_result.error.message)
+                    (f'Error with models({self.context.block_number}).' +
+                     f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
+                     pool_result.error.message))
             else:
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 

@@ -139,14 +139,16 @@ class PriceInfoFromDex(Model):
                         elif pool_result.error is not None:
                             self.logger.error(pool_result.error)
                             raise ModelRunError(
-                                f'Error with {model_inputs[dex_n]}'
-                                f'({pool_result.input}). ' +
-                                pool_result.error.message)
+                                (f'Error with models({self.context.block_number}).' +
+                                 f'{model_inputs[dex_n]["modelSlug"].replace("-","_")}' +
+                                 f'({pool_result.input}). ' +
+                                 pool_result.error.message))
                 elif dex_result.error is not None:
                     self.logger.error(dex_result.error)
                     raise ModelRunError(
-                        f'Error with {model_inputs[dex_n]}. ' +
-                        dex_result.error.message)
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_inputs[dex_n]}. ' +
+                         dex_result.error.message))
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return all_pool_infos

@@ -8,7 +8,7 @@ class TestCompose(CMKTest):
         self.title('Compose')
 
         self.run_model('compose.map-block-time-series',
-                       {"modelSlug": "price.oracle-chainlink",
+                       {"modelSlug": "price.quote",
                         "modelInput": {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}},
                         "endTimestamp": 1645446694,
                         "interval": 86400,
@@ -16,12 +16,12 @@ class TestCompose(CMKTest):
                         "exclusive": True})
 
         self.run_model('compose.map-blocks',
-                       {"modelSlug": "price.oracle-chainlink",
+                       {"modelSlug": "price.quote",
                         "modelInput": {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}},
                         "blockNumbers": [14249443, 14219443, 14209443]})
 
         self.run_model('compose.map-inputs',
-                       {"modelSlug": "price.oracle-chainlink",
+                       {"modelSlug": "price.quote",
                         "modelInputs": [
                             {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}},
                             {"base": {"address": "0xD533a949740bb3306d119CC777fa900bA034cd52"}}]})

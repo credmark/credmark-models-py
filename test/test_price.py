@@ -143,6 +143,11 @@ class TestPrice(CMKTest):
         self.run_model('price.quote', {"base": "AAVE", "quote": "ETH"})
         self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e"})
 
+    def test_historical(self):
+        self.title('Price - Historical')
+        self.run_model('price.quote', {'base': 'AAVE'}, block_number=11266884)
+
+
     def test_general(self):
         self.title('Price - General')
 

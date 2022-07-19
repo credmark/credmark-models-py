@@ -100,5 +100,5 @@ class SharpeRatioToken(Model):
         )
         return output
 
-# type: actual: base on past PnL, last, using last PnL,
+# account_sharpe_type, [actual: base on past PnL, last: using last positions]
 # extension: extend to fill the length.

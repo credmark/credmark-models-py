@@ -381,7 +381,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.9",
+                version="2.0",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
@@ -421,8 +421,9 @@ class CurveFinanceTotalTokenLiqudity(Model):
             if len(errors) > 0:
                 for error_n, (pool_n, err) in enumerate(errors):
                     self.logger.error(
-                        f'{error_n+1}/{len(errors)}: '
-                        f'Error with {model_slug}({pool_contracts.contracts[pool_n]})')
+                        (f'{error_n+1}/{len(errors)}: ' +
+                         f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}({pool_contracts.contracts[pool_n]})'))
                     self.logger.error(err)
                 raise ModelRunError(errors[0][1].message)
 
