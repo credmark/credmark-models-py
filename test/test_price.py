@@ -127,12 +127,12 @@ class TestPrice(CMKTest):
                         '0x92d6c1e31e14520e676a687f0a93788b716beff5', ]
 
     def test_1inch(self):
-        self.run_model('price.one-inch', {"address": "0xdac17f958d2ee523a2206206994597c13d831ec7"})
-        self.run_model('price.one-inch', {"symbol": "WETH"})
-        self.run_model('price.one-inch', {"symbol": "USDC"})
-        self.run_model('price.one-inch', {"symbol": "AAVE"})
-        self.run_model('price.one-inch', {"symbol": "CMK"})
-        self.run_model('price.one-inch', {"symbol": "ETH"})
+        self.run_model('price.one-inch', {"base": "0xdac17f958d2ee523a2206206994597c13d831ec7"})
+        self.run_model('price.one-inch', {"base": "WETH"})
+        self.run_model('price.one-inch', {"base": "USDC"})
+        self.run_model('price.one-inch', {"base": "AAVE"})
+        self.run_model('price.one-inch', {"base": "CMK"})
+        self.run_model('price.one-inch', {"base": "ETH"})
 
     def test_currency_dto(self):
         self.title('Price - Currency DTO')
@@ -146,7 +146,6 @@ class TestPrice(CMKTest):
     def test_historical(self):
         self.title('Price - Historical')
         self.run_model('price.quote', {'base': 'AAVE'}, block_number=11266884)
-
 
     def test_general(self):
         self.title('Price - General')

@@ -137,7 +137,7 @@ class TokenPriceModelDeprecated(Model):
 
 
 @Model.describe(slug='price.quote-maybe',
-                version='0.0',
+                version='0.1',
                 display_name='Token Price - Quoted - Maybe',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -154,10 +154,9 @@ class PriceQuoteMaybe(Model):
         try:
             price = self.context.run_model('price.quote', input=input, return_type=Price)
             return Maybe[Price](just=price)
-        except ModelRunError as err:
-            if 'No pool to aggregate' in err.data.message:
-                return Maybe.none()
-            raise
+        except ModelRunError as _err:
+            pass
+        return Maybe.none()
 
 
 @Model.describe(slug='price.quote',
