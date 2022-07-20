@@ -181,7 +181,7 @@ class TokenHolderInput(Token):
 
 
 @Model.describe(slug='token.holders',
-                version='0.0',
+                version='0.2',
                 display_name='Token Holders',
                 description='The number of holders of a Token',
                 category='protocol',
@@ -191,7 +191,7 @@ class TokenHolderInput(Token):
 class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> dict:
         with self.context.ledger.TokenBalance as q:
-            df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_().neg_(), 'sum_value')],
+            df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
                           order_by=q.field('sum_value').dquote().desc(),
