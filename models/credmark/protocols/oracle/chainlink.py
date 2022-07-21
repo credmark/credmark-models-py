@@ -36,7 +36,7 @@ class ENSDomainName(DTO):
 
 # TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
-                version="1.0",
+                version="1.1",
                 display_name="Chainlink - Price by ENS",
                 description="Use ENS domain name for a token pair",
                 category='protocol',
@@ -49,9 +49,7 @@ class ChainLinkPriceByENS(Model):
         feed_address = ns.address(input.domain)
         if feed_address is None:
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
-        return self.context.run_model('chainlink.price-by-feed',
-                                      input={'address': feed_address},
-                                      return_type=Price)
+        return ChainLinkPriceByFeed(self.context).run(Contract(address=feed_address))
 
 
 @ Model.describe(slug='chainlink.price-by-feed',
@@ -109,7 +107,7 @@ class ChainLinkFeedFromRegistryMaybe(Model):
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.2",
+                version="1.3",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
@@ -121,9 +119,7 @@ class ChainLinkPriceByRegistry(Model):
         base_address = input.base.address
         quote_address = input.quote.address
 
-        registry = self.context.run_model('chainlink.get-feed-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract)
+        registry = ChainLinkFeedRegistry(self.context).run(EmptyInput())
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(base_address, quote_address).call()

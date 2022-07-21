@@ -5,10 +5,12 @@ from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price,
                                 Some, Token)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.credmark.tokens.token import TokenUnderlying
+from models.credmark.tokens.token import token_underlying
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
                                PriceHistoricalInput, PriceHistoricalInputs,
                                PriceInput)
+
+from models.credmark.price.oracle_chainlink import price_oracle_chainlink_maybe
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -161,7 +163,7 @@ class PriceQuoteMaybe(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.8',
+                version='1.9',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -192,32 +194,31 @@ class PriceQuote(Model):
 
     def replace_underlying(self, token):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
-            addr_maybe = TokenUnderlying(self.context).run(input=token)
+            addr_maybe = token_underlying(self, input=token)
             if addr_maybe.just is not None:
                 return Currency(address=addr_maybe.just)
         return token
 
     def get_price_usd(self, input):
-        if input.quote == Currency(symbol='USD'):
-            price_usd_maybe = Maybe[Price].none()
-        else:
+        # We already tried base with quote in USD.
+        # When quote is non-USD, we try to obtain base's price quote in USD
+        if input.quote != Currency(symbol='USD'):
             price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                                      input=input.quote_usd(),
                                                      return_type=Maybe[Price])
-
-        if price_usd_maybe.just is not None:
-            price_usd = price_usd_maybe.just
-        else:
-            price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
-                                                     input=input.base,
-                                                     return_type=Maybe[Price])
             if price_usd_maybe.just is not None:
-                price_usd = price_usd_maybe.just
-            else:
-                price_usd = self.context.run_model(
-                    'price.dex-blended',
-                    input=self.wrapper(input.base),
-                    return_type=Price)
+                return price_usd_maybe.just
+
+        price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
+                                                 input=input.base,
+                                                 return_type=Maybe[Price])
+        if price_usd_maybe.just is not None:
+            return price_usd_maybe.just
+
+        price_usd = self.context.run_model(
+            'price.dex-blended',
+            input=self.wrapper(input.base),
+            return_type=Price)
 
         return price_usd
 
@@ -225,20 +226,13 @@ class PriceQuote(Model):
         input.base = self.replace_underlying(input.base)
         input.quote = self.replace_underlying(input.quote)
 
-        # Cache for the flip pair by keeping an order
-        if input.base.address >= input.quote.address:
-            price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                                 input=input,
-                                                 return_type=Maybe[Price])
-            if price_maybe.just is not None:
-                return price_maybe.just
-        else:
-            price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                                 input=input.inverse(),
-                                                 return_type=Maybe[Price])
-            if price_maybe.just is not None:
-                return price_maybe.just.inverse()
+        # 1. Try chainlink (include check for same base and quote)
+        try_price = price_oracle_chainlink_maybe(self.context, input)
+        if try_price is not None:
+            return try_price
 
+        # 2. Try price with single-side of USD
+        # 2.1 For the case of one of input is USD
         if input.base == Currency(symbol='USD'):
             price_usd = self.get_price_usd(input.inverse()).inverse()
         else:
@@ -246,9 +240,10 @@ class PriceQuote(Model):
 
         if Currency(symbol='USD') in [input.base, input.quote]:
             return price_usd
-        else:
-            quote_usd = self.context.run_model(
-                self.slug,
-                {'base': input.quote},
-                return_type=Price)
-            return price_usd.cross(quote_usd.inverse())
+
+        # 2.2 For the case of neither input is USD
+        quote_usd = self.context.run_model(
+            self.slug,
+            {'base': input.quote},
+            return_type=Price)
+        return price_usd.cross(quote_usd.inverse())

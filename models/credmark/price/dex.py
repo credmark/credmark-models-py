@@ -105,7 +105,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='price.dex-pool',
-                version='0.0',
+                version='0.1',
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
