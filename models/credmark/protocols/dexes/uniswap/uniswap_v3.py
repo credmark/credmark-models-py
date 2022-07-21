@@ -212,7 +212,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.5',
+                version='0.6',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -240,11 +240,11 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         virtual_liquidity = info.virtual_liquidity_token0
         ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
-        inverse = False
+        _inverse = False
         if input.token.address == info.token1.address:
             tick_price = 1/tick_price
             ratio_price = 1/ratio_price
-            inverse = True
+            _inverse = True
             tick_liquidity = info.tick_liquidity_token1
             virtual_liquidity = info.virtual_liquidity_token1
 
@@ -267,17 +267,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
         pool_price_info = PoolPriceInfo(src=self.slug,
                                         price=tick_price,
-                                        liquidity=virtual_liquidity,
-                                        tick_liquidity=tick_liquidity,
-                                        weth_multiplier=weth_multiplier,
-                                        inverse=inverse,
-                                        token0_address=info.token0.address,
-                                        token1_address=info.token1.address,
-                                        token0_symbol=info.token0.symbol,
-                                        token1_symbol=info.token1.symbol,
-                                        token0_decimals=info.token0.decimals,
-                                        token1_decimals=info.token1.decimals,
-                                        pool_address=info.address)
+                                        tick_liquidity=tick_liquidity)
         return pool_price_info
 
 

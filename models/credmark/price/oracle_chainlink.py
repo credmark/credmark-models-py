@@ -10,7 +10,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.oracle-chainlink-maybe',
-                version='1.1',
+                version='1.2',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
                 category='protocol',
@@ -21,12 +21,10 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 class PriceOracleChainlinkMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[Price]:
         try:
-            price = self.context.run_model('price.oracle-chainlink',
-                                           input=input,
-                                           return_type=Price)
+            price = PriceOracleChainlink(self.context).run(input)
             return Maybe[Price](just=price)
         except ModelRunError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
 
 
 @Model.describe(slug='price.oracle-chainlink',

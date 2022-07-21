@@ -5,6 +5,7 @@ from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price,
                                 Some, Token)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
+from models.credmark.tokens.token import TokenUnderlying
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
                                PriceHistoricalInput, PriceHistoricalInputs,
                                PriceInput)
@@ -160,7 +161,7 @@ class PriceQuoteMaybe(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.7',
+                version='1.8',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -191,16 +192,14 @@ class PriceQuote(Model):
 
     def replace_underlying(self, token):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
-            addr_maybe = self.context.run_model('token.underlying-maybe',
-                                                input=token,
-                                                return_type=Maybe[Address])
+            addr_maybe = TokenUnderlying(self.context).run(input=token)
             if addr_maybe.just is not None:
                 return Currency(address=addr_maybe.just)
         return token
 
     def get_price_usd(self, input):
         if input.quote == Currency(symbol='USD'):
-            price_usd_maybe = Maybe[Price](just=None)
+            price_usd_maybe = Maybe[Price].none()
         else:
             price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
                                                      input=input.quote_usd(),

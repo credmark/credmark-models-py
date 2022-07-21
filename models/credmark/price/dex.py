@@ -191,7 +191,7 @@ class PriceFromDexModelMaybe(Model, PriceWeight):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.9',
+                version='1.10',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -207,9 +207,7 @@ class PriceFromDexModel(Model, PriceWeight):
     """
 
     def run(self, input: Token) -> Price:
-        all_pool_infos = self.context.run_model('price.dex-pool',
-                                                input=input,
-                                                return_type=Some[PoolPriceInfo]).some
+        all_pool_infos = PriceInfoFromDex(self.context).run(input).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity == 0}
@@ -222,6 +220,5 @@ class PriceFromDexModel(Model, PriceWeight):
             weight_power=self.WEIGHT_POWER)
         if len(all_pool_infos) == 0:
             raise ModelRunError(f'No pool to aggregate for {input}')
-        return self.context.run_model('price.pool-aggregator',
-                                      input=pool_aggregator_input,
-                                      return_type=Price)
+
+        return PoolPriceAggregator(self.context).run(pool_aggregator_input)

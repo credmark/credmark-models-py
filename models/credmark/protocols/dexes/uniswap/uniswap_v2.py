@@ -88,7 +88,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -112,7 +112,7 @@ class UniswapPoolPriceInfo(Model):
         weth_price = None
         reserves = pool.functions.getReserves().call()
         if reserves == [0, 0, 0]:
-            return Maybe[PoolPriceInfo](just=None)
+            return Maybe[PoolPriceInfo].none()
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
@@ -124,12 +124,12 @@ class UniswapPoolPriceInfo(Model):
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
         if input.token.address == token0.address:
-            inverse = False
+            _inverse = False
             price = scaled_reserve1 / scaled_reserve0
             liquidity = scaled_reserve0
             tick_liquidity = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * liquidity
         else:
-            inverse = True
+            _inverse = True
             price = scaled_reserve0 / scaled_reserve1
             liquidity = scaled_reserve1
             tick_liquidity = (np.sqrt(1 + 0.0001) - 1) * liquidity
@@ -151,17 +151,7 @@ class UniswapPoolPriceInfo(Model):
 
         pool_price_info = PoolPriceInfo(src=self.slug,
                                         price=price,
-                                        liquidity=liquidity,
-                                        tick_liquidity=tick_liquidity,
-                                        weth_multiplier=weth_multiplier,
-                                        inverse=inverse,
-                                        token0_address=token0.address,
-                                        token1_address=token1.address,
-                                        token0_symbol=token0.symbol,
-                                        token1_symbol=token1.symbol,
-                                        token0_decimals=token0.decimals,
-                                        token1_decimals=token1.decimals,
-                                        pool_address=pool.address)
+                                        tick_liquidity=tick_liquidity)
 
         return Maybe[PoolPriceInfo](just=pool_price_info)
 
@@ -571,7 +561,5 @@ class DexPoolSwapVolumeHistorical(Model):
 class DexPoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
-        volumes = self.context.run_model('dex.pool-volume-historical',
-                                         input=input_historical,
-                                         return_type=BlockSeries[Some[TokenTradingVolume]])
+        volumes = DexPoolSwapVolumeHistorical(self.context).run(input_historical)
         return volumes.series[0].output

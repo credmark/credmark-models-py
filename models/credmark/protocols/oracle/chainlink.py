@@ -86,7 +86,7 @@ class ChainLinkPriceByFeed(Model):
 
 
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.1",
+                version="1.2",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
@@ -96,20 +96,16 @@ class ChainLinkPriceByFeed(Model):
 class ChainLinkFeedFromRegistryMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[Price]:
         try:
-            price = self.context.run_model('chainlink.price-by-registry',
-                                           input=input,
-                                           return_type=Price)
+            price = ChainLinkPriceByRegistry(self.context).run(input)
             return Maybe[Price](just=price)
         except BlockNumberOutOfRangeError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
         except ModelRunError as _err:
             try:
-                price = self.context.run_model('chainlink.price-by-registry',
-                                               input=input.inverse(),
-                                               return_type=Price).inverse()
+                price = ChainLinkPriceByRegistry(self.context).run(input.inverse()).inverse()
                 return Maybe[Price](just=price)
             except ModelRunError as _err2:
-                return Maybe[Price](just=None)
+                return Maybe.none()
 
 
 @Model.describe(slug='chainlink.price-by-registry',

@@ -85,19 +85,15 @@ class PoolPriceInfo(DTO):
     @token1_decimals: token1's decimals
     @pool_address: pool's address
     """
+    class Meta(DTO):
+        liquidity: float
+        token0_address: Address
+        token1_address: Address
+        token0_symbol: str
+        token1_symbol: str
     src: str
     price: float
-    liquidity: float
     tick_liquidity: float
-    weth_multiplier: float
-    inverse: bool
-    token0_address: Address
-    token1_address: Address
-    token0_symbol: str
-    token1_symbol: str
-    token0_decimals: int
-    token1_decimals: int
-    pool_address: Address
 
 
 class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
