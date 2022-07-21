@@ -212,7 +212,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.4',
+                version='0.5',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -253,8 +253,8 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         if input.token.address != weth.address:
             if weth.address in (info.token1.address, info.token0.address):
                 if weth_price is None:
-                    weth_price = self.context.run_model('price.quote',
-                                                        {"base": weth},
+                    weth_price = self.context.run_model(input.price_slug,
+                                                        weth,
                                                         return_type=Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
@@ -282,7 +282,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @ Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                 version='1.9',
+                 version='1.10',
                  display_name='Uniswap v3 Token Pools Price ',
                  description='Gather price and liquidity information from pools',
                  category='protocol',
@@ -296,7 +296,9 @@ class UniswapV3GetTokenPoolInfo(Model):
                                        return_type=Contracts)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
-        model_inputs = [DexPoolPriceInput(token=input, pool=pool)
+        model_inputs = [DexPoolPriceInput(token=input,
+                                          pool=pool,
+                                          price_slug='uniswap-v3.get-weighted-price')
                         for pool in pools.contracts]
 
         def _use_compose():

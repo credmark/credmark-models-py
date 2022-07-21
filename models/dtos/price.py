@@ -67,6 +67,7 @@ class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
 class DexPoolPriceInput(DTO):
     token: Token
     pool: Contract
+    price_slug: str
 
 
 class PoolPriceInfo(DTO):

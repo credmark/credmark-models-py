@@ -183,7 +183,7 @@ class PriceQuote(Model):
         }
     }
 
-    def replace_wrap(self, token):
+    def wrapper(self, token):
         new_token = self.CONVERT_TO_WRAP[self.context.network].get(token.address, None)
         if new_token is not None:
             return Currency(**new_token)
@@ -217,7 +217,7 @@ class PriceQuote(Model):
             else:
                 price_usd = self.context.run_model(
                     'price.dex-blended',
-                    input=self.replace_wrap(input.base),
+                    input=self.wrapper(input.base),
                     return_type=Price)
 
         return price_usd

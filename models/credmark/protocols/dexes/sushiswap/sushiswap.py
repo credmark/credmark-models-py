@@ -6,7 +6,7 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
     UniswapV2PoolMeta
-from models.dtos.price import PoolPriceInfo
+from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -102,7 +102,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.4',
+                version='1.5',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -118,7 +118,10 @@ class SushiswapGetTokenPriceInfo(Model):
         # TODO: Too depths issue
         def _use_compose():
             model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+            model_inputs = [DexPoolPriceInput(token=input,
+                                              pool=pool,
+                                              price_slug='sushiswap.get-weighted-price')
+                            for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': model_slug,
@@ -142,7 +145,10 @@ class SushiswapGetTokenPriceInfo(Model):
 
         def _use_for():
             model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+            model_inputs = [DexPoolPriceInput(token=input,
+                                              pool=pool,
+                                              price_slug='sushiswap.get-weighted-price')
+                            for pool in pools]
             infos = []
             for minput in model_inputs:
                 pi = self.context.run_model(model_slug,

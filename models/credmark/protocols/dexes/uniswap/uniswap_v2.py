@@ -88,7 +88,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -140,8 +140,8 @@ class UniswapPoolPriceInfo(Model):
             if weth.address in (token1.address, token0.address):
                 if weth_price is None:
                     weth_price = self.context.run_model(
-                        'price.quote',  # uniswap-v2.get-weighted-price
-                        {'base': weth},
+                        input.price_slug,
+                        weth,
                         return_type=Price)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
@@ -167,7 +167,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -182,7 +182,10 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         def _use_compose():
             model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+            model_inputs = [DexPoolPriceInput(token=input,
+                                              pool=pool,
+                                              price_slug='uniswap-v2.get-weighted-price')
+                            for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': model_slug,
@@ -206,7 +209,10 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         def _use_for():
             model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
+            model_inputs = [DexPoolPriceInput(token=input,
+                                              pool=pool,
+                                              price_slug='uniswap-v2.get-weighted-price')
+                            for pool in pools]
 
             infos = []
             for minput in model_inputs:
