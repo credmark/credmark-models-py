@@ -237,7 +237,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         scale_multiplier = (10 ** (info.token0.decimals - info.token1.decimals))
         tick_price = 1.0001 ** info.tick * scale_multiplier
         tick_liquidity = info.tick_liquidity_token0
-        virtual_liquidity = info.virtual_liquidity_token0
+        _virtual_liquidity = info.virtual_liquidity_token0
         ratio_price = info.sqrtPriceX96 * info.sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
         _inverse = False
@@ -246,7 +246,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
             ratio_price = 1/ratio_price
             _inverse = True
             tick_liquidity = info.tick_liquidity_token1
-            virtual_liquidity = info.virtual_liquidity_token1
+            _virtual_liquidity = info.virtual_liquidity_token1
 
         weth_multiplier = 1.0
         weth = Token(symbol='WETH')
