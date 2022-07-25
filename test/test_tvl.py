@@ -5,13 +5,16 @@ from cmk_test import CMKTest
 
 class TestTVL(CMKTest):
     def test(self):
+        block_number = 14830357
         self.title('TVL')
 
         # curve_pool_info_tvl=curve-fi.pool-info,price.quote,chainlink.price-by-registry
 
-        self.run_model('curve-fi.pool-info', {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"})
+        self.run_model('curve-fi.pool-info',
+                       {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}, block_number=block_number)
         # ${curve_pool_info_tvl}
-        self.run_model('curve-fi.pool-tvl', {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"})
+        self.run_model('curve-fi.pool-tvl',
+                       {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"}, block_number=block_number)
 
         curve_pools = ['0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
                        '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
@@ -25,13 +28,15 @@ class TestTVL(CMKTest):
                        '0xd658A338613198204DCa1143Ac3F01A722b5d94A']
 
         for pool_addr in curve_pools:
-            self.run_model('curve-fi.pool-tvl', {"address": pool_addr})  # ${curve_pool_info_tvl}
+            self.run_model('curve-fi.pool-tvl', {"address": pool_addr},
+                           block_number=block_number)  # ${curve_pool_info_tvl}
 
         self.title('TVL Historical')
 
         for pool_addr in curve_pools:
             self.run_model('historical.run-model', {"model_slug": "curve-fi.pool-tvl", "model_input": {
-                "address": pool_addr}, "window": "3 days", "interval": "1 day"})  # ${curve_pool_info_tvl}
+                "address": pool_addr}, "window": "3 days", "interval": "1 day"},
+                block_number=block_number)  # ${curve_pool_info_tvl}
 
         # UniV3
         # 0x5777d92f208679db4b9778590fa3cab3ac9e2168 (DAI/USDC)
@@ -42,7 +47,8 @@ class TestTVL(CMKTest):
         # Sushi
         # 0x055475920a8c93CfFb64d039A8205F7AcC7722d3 OHM/DAI
         self.title('TVL and Volume')
-        self.run_model('contrib.curve-get-tvl-and-volume', {"address": "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8"})
+        self.run_model('contrib.curve-get-tvl-and-volume', {"address": "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8"},
+                       block_number=block_number)
 
         pools = ['0x055475920a8c93CfFb64d039A8205F7AcC7722d3',
                  '0x5777d92f208679db4b9778590fa3cab3ac9e2168',
@@ -51,4 +57,5 @@ class TestTVL(CMKTest):
                  '0x7379e81228514a1d2a6cf7559203998e20598346']
 
         for pool in pools:
-            self.run_model('contrib.uni-sushi-get-tvl-and-volume', {"address": pool})
+            self.run_model('contrib.uni-sushi-get-tvl-and-volume', {"address": pool},
+                           block_number=block_number)

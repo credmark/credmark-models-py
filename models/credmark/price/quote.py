@@ -217,10 +217,9 @@ class PriceQuote(Model):
         if price_usd_maybe.just is not None:
             return price_usd_maybe.just
 
-        price_usd = self.context.run_model(
-            'price.dex-blended',
-            input=self.wrapper(input.base),
-            return_type=Price)
+        price_usd = self.context.run_model('price.dex-blended',
+                                           input=self.wrapper(input.base),
+                                           return_type=Price)
 
         return price_usd
 
