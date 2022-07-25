@@ -49,7 +49,10 @@ class ChainLinkPriceByENS(Model):
         feed_address = ns.address(input.domain)
         if feed_address is None:
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
-        return ChainLinkPriceByFeed(self.context).run(Contract(address=feed_address))
+        return self.context.run_model('chainlink.price-by-feed',
+                                      input={'address': feed_address},
+                                      return_type=Price,
+                                      local=True)
 
 
 @ Model.describe(slug='chainlink.price-by-feed',
@@ -94,13 +97,19 @@ class ChainLinkPriceByFeed(Model):
 class ChainLinkFeedFromRegistryMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[Price]:
         try:
-            price = ChainLinkPriceByRegistry(self.context).run(input)
+            price = self.context.run_model('chainlink.price-by-registry',
+                                           input=input,
+                                           return_type=Price,
+                                           local=True)
             return Maybe[Price](just=price)
         except BlockNumberOutOfRangeError:
             return Maybe.none()
         except ModelRunError as _err:
             try:
-                price = ChainLinkPriceByRegistry(self.context).run(input.inverse()).inverse()
+                price = self.context.run_model('chainlink.price-by-registry',
+                                               input=input.inverse(),
+                                               return_type=Price,
+                                               local=True).inverse()
                 return Maybe[Price](just=price)
             except ModelRunError as _err2:
                 return Maybe.none()
@@ -119,7 +128,10 @@ class ChainLinkPriceByRegistry(Model):
         base_address = input.base.address
         quote_address = input.quote.address
 
-        registry = ChainLinkFeedRegistry(self.context).run(EmptyInput())
+        registry = self.context.run_model('chainlink.get-feed-registry',
+                                          input=EmptyInput(),
+                                          return_type=Contract,
+                                          local=True)
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(base_address, quote_address).call()

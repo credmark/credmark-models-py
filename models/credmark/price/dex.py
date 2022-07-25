@@ -158,11 +158,12 @@ class PriceInfoFromDex(Model):
             for mrun in model_inputs:
                 infos = self.context.run_model(mrun['modelSlug'],
                                                mrun['modelInputs'][0],
-                                               Some[PoolPriceInfo])
+                                               Some[PoolPriceInfo],
+                                               local=True)
                 all_pool_infos.extend(infos.some)
             return all_pool_infos
 
-        return Some[PoolPriceInfo](some=_use_compose())
+        return Some[PoolPriceInfo](some=_use_for())
 
 
 @Model.describe(slug='price.dex-blended-maybe',
@@ -207,7 +208,12 @@ class PriceFromDexModel(Model, PriceWeight):
     """
 
     def run(self, input: Token) -> Price:
-        all_pool_infos = PriceInfoFromDex(self.context).run(input).some
+        all_pool_infos = self.context.run_model('price.dex-pool',
+                                                input=input,
+                                                return_type=Some[PoolPriceInfo],
+                                                local=False).some
+
+        # all_pool_infos = PriceInfoFromDex(self.context).run(input).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity == 0}
@@ -221,4 +227,8 @@ class PriceFromDexModel(Model, PriceWeight):
         if len(all_pool_infos) == 0:
             raise ModelRunError(f'No pool to aggregate for {input}')
 
-        return PoolPriceAggregator(self.context).run(pool_aggregator_input)
+        # return PoolPriceAggregator(self.context).run(pool_aggregator_input)
+        return self.context.run_model('price.pool-aggregator',
+                                      input=pool_aggregator_input,
+                                      return_type=Price,
+                                      local=True)

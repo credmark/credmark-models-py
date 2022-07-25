@@ -5,7 +5,7 @@ from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
-    UniswapV2PoolMeta, uniswap_v2_get_pool_price_info)
+    UniswapV2PoolMeta)
 from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 
 
@@ -42,7 +42,7 @@ class SushiswapV2Factory(Model):
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
-        contract = SushiswapV2Factory(self.context).run(EmptyInput())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
         return self.get_uniswap_pools(input, contract.address)
 
 
@@ -54,7 +54,7 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
     def run(self, _: EmptyInput) -> dict:
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []
 
@@ -89,7 +89,7 @@ class SushiSwapPool(DTO):
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -111,7 +111,10 @@ class SushiswapGetPair(Model):
                 output=Some[PoolPriceInfo])
 class SushiswapGetTokenPriceInfo(Model):
     def run(self, input: Token) -> Some[PoolPriceInfo]:
-        pools = SushiswapGetPoolsForToken(self.context).run(input)
+        pools = self.context.run_model('sushiswap.get-pools',
+                                       input,
+                                       return_type=Contracts,
+                                       local=True)
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [DexPoolPriceInput(token=input,
                                           pool=pool,
@@ -153,7 +156,10 @@ class SushiswapGetTokenPriceInfo(Model):
         def _use_local():
             infos = []
             for minput in model_inputs:
-                pi = uniswap_v2_get_pool_price_info(self, minput)
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo],
+                                            local=True)
                 if pi.is_just():
                     infos.append(pi.just)
             return infos

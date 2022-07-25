@@ -236,7 +236,10 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
     WETH_ADDRESS = Address(get_token_from_configuration('1', 'WETH')['address'])  # type: ignore
 
     def run(self, input: DexPoolPriceInput) -> PoolPriceInfo:
-        info = UniswapV3GetPoolInfo(self.context).run(input.pool)
+        info = self.context.run_model('uniswap-v3.get-pool-info',
+                                      input=input.pool,
+                                      return_type=UniswapV3PoolInfo,
+                                      local=True)
         weth_price = None
 
         tick_price = info.tick_price0
@@ -290,7 +293,10 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                  output=Some[PoolPriceInfo])
 class UniswapV3GetTokenPoolInfo(Model):
     def run(self, input: Token) -> Some[PoolPriceInfo]:
-        pools = UniswapV3GetPoolsForToken(self.context).run(input)
+        pools = self.context.run_model('uniswap-v3.get-pools',
+                                       input,
+                                       return_type=Contracts,
+                                       local=True)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
         model_inputs = [DexPoolPriceInput(token=input,
@@ -329,7 +335,8 @@ class UniswapV3GetTokenPoolInfo(Model):
         def _use_local():
             infos = []
             for minput in model_inputs:
-                pi = UniswapV3GetTokenPoolPriceInfo(self.context).run(minput)
+                pi = self.context.run_model(model_slug, minput, return_type=PoolPriceInfo,
+                                            local=True)
                 infos.append(pi)
             return infos
 

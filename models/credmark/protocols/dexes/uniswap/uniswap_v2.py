@@ -7,10 +7,10 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
                                 Maybe, Network, Portfolio, Position, Price,
                                 Some, Token, Tokens)
-from credmark.cmf.types.token import get_token_from_configuration
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
+from credmark.cmf.types.token import get_token_from_configuration
 from credmark.dto import DTO
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
@@ -87,68 +87,6 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
         return self.get_uniswap_pools(input, Address(addr))
 
 
-def uniswap_v2_get_pool_price_info(self, input: DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
-    pool = input.pool
-    try:
-        _ = pool.abi
-    except ModelDataError:
-        pool = Contract(address=input.pool.address, abi=UNISWAP_V2_POOL_ABI)
-
-    weth_price = None
-    reserves = pool.functions.getReserves().call()
-    if reserves == [0, 0, 0]:
-        return Maybe[PoolPriceInfo].none()
-
-    token0 = Token(address=Address(pool.functions.token0().call()))
-    token1 = Token(address=Address(pool.functions.token1().call()))
-    token0 = fix_erc20_token(token0)
-    token1 = fix_erc20_token(token1)
-    scaled_reserve0 = token0.scaled(reserves[0])
-    scaled_reserve1 = token1.scaled(reserves[1])
-
-    # https://uniswap.org/blog/uniswap-v3-dominance
-    # Appendix B: methodology
-    if input.token.address == token0.address:
-        _inverse = False
-        price = scaled_reserve1 / scaled_reserve0
-        liquidity = scaled_reserve0
-        tick_liquidity = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * liquidity
-    elif input.token.address == token1.address:
-        _inverse = True
-        price = scaled_reserve0 / scaled_reserve1
-        liquidity = scaled_reserve1
-        tick_liquidity = (np.sqrt(1 + 0.0001) - 1) * liquidity
-    else:
-        raise ModelRunError('input token is not one of the pool tokens.')
-
-    weth_multiplier = 1
-    weth = Token(symbol='WETH')
-    if input.token.address != weth.address:
-        if weth.address in (token1.address, token0.address):
-            if weth_price is None:
-                weth_price = self.context.run_model(
-                    input.price_slug,
-                    weth,
-                    return_type=Price)
-                if weth_price.price is None:
-                    raise ModelRunError('Can not retriev price for WETH')
-            weth_multiplier = weth_price.price
-
-    price *= weth_multiplier
-
-    pool_price_info = PoolPriceInfo(src=self.slug,
-                                    price=price,
-                                    tick_liquidity=tick_liquidity,
-                                    token0_address=token0.address,
-                                    token1_address=token1.address,
-                                    token0_symbol=token0.symbol,
-                                    token1_symbol=token1.symbol,
-                                    weth_multiplier=weth_multiplier,
-                                    pool_address=input.pool.address)
-
-    return Maybe[PoolPriceInfo](just=pool_price_info)
-
-
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
                 version='1.8',
                 display_name='Uniswap v2 Token Pool Price Info',
@@ -163,7 +101,65 @@ class UniswapPoolPriceInfo(Model):
     """
 
     def run(self, input: DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
-        return uniswap_v2_get_pool_price_info(self, input)
+        pool = input.pool
+        try:
+            _ = pool.abi
+        except ModelDataError:
+            pool = Contract(address=input.pool.address, abi=UNISWAP_V2_POOL_ABI)
+
+        weth_price = None
+        reserves = pool.functions.getReserves().call()
+        if reserves == [0, 0, 0]:
+            return Maybe[PoolPriceInfo].none()
+
+        token0 = Token(address=Address(pool.functions.token0().call()))
+        token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
+        scaled_reserve0 = token0.scaled(reserves[0])
+        scaled_reserve1 = token1.scaled(reserves[1])
+
+        # https://uniswap.org/blog/uniswap-v3-dominance
+        # Appendix B: methodology
+        if input.token.address == token0.address:
+            _inverse = False
+            price = scaled_reserve1 / scaled_reserve0
+            liquidity = scaled_reserve0
+            tick_liquidity = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * liquidity
+        elif input.token.address == token1.address:
+            _inverse = True
+            price = scaled_reserve0 / scaled_reserve1
+            liquidity = scaled_reserve1
+            tick_liquidity = (np.sqrt(1 + 0.0001) - 1) * liquidity
+        else:
+            raise ModelRunError('input token is not one of the pool tokens.')
+
+        weth_multiplier = 1
+        weth = Token(symbol='WETH')
+        if input.token.address != weth.address:
+            if weth.address in (token1.address, token0.address):
+                if weth_price is None:
+                    weth_price = self.context.run_model(
+                        input.price_slug,
+                        weth,
+                        return_type=Price)
+                    if weth_price.price is None:
+                        raise ModelRunError('Can not retriev price for WETH')
+                weth_multiplier = weth_price.price
+
+        price *= weth_multiplier
+
+        pool_price_info = PoolPriceInfo(src=self.slug,
+                                        price=price,
+                                        tick_liquidity=tick_liquidity,
+                                        token0_address=token0.address,
+                                        token1_address=token1.address,
+                                        token0_symbol=token0.symbol,
+                                        token1_symbol=token1.symbol,
+                                        weth_multiplier=weth_multiplier,
+                                        pool_address=input.pool.address)
+
+        return Maybe[PoolPriceInfo](just=pool_price_info)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
@@ -176,8 +172,10 @@ class UniswapPoolPriceInfo(Model):
                 output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
     def run(self, input: Token) -> Some[PoolPriceInfo]:
-        pools = UniswapV2GetPoolsForToken(self.context).run(input)
-
+        pools = self.context.run_model('uniswap-v2.get-pools',
+                                       input,
+                                       return_type=Contracts,
+                                       local=True)
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [DexPoolPriceInput(token=input,
                                           pool=pool,
@@ -219,7 +217,10 @@ class UniswapV2GetTokenPriceInfo(Model):
         def _use_local():
             infos = []
             for minput in model_inputs:
-                pi = UniswapPoolPriceInfo(self.context).run(minput)
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo],
+                                            local=True)
                 if pi.is_just():
                     infos.append(pi.just)
             return infos
@@ -559,5 +560,8 @@ class DexPoolSwapVolumeHistorical(Model):
 class DexPoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
-        volumes = DexPoolSwapVolumeHistorical(self.context).run(input_historical)
+        volumes = self.context.run_model('dex.pool-volume-historical',
+                                         input=input_historical,
+                                         return_type=BlockSeries[Some[TokenTradingVolume]],
+                                         local=True)
         return volumes.series[0].output

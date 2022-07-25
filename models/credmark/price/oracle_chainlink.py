@@ -1,5 +1,4 @@
-from typing import Optional
-from credmark.cmf.model import Model, ModelDataErrorDesc, ModelContext
+from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import Address, Currency, Maybe, Network, Price
@@ -8,20 +7,6 @@ from models.dtos.price import PriceInput
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='No possible feed/routing for token pair')
-
-
-def price_oracle_chainlink_maybe(context: ModelContext, input) -> Optional[Price]:
-    # Cache for the flip pair by keeping an order
-    if input.base.address >= input.quote.address:
-        price_maybe = PriceOracleChainlinkMaybe(context).run(input)
-        if price_maybe.just is not None:
-            return price_maybe.just
-    else:
-        price_maybe = PriceOracleChainlinkMaybe(context).run(input.inverse())
-        if price_maybe.just is not None:
-            return price_maybe.just.inverse()
-
-    return None
 
 
 @Model.describe(slug='price.oracle-chainlink-maybe',
@@ -36,7 +21,10 @@ def price_oracle_chainlink_maybe(context: ModelContext, input) -> Optional[Price
 class PriceOracleChainlinkMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[Price]:
         try:
-            price = PriceOracleChainlink(self.context).run(input)
+            price = self.context.run_model('price.oracle-chainlink',
+                                           input=input,
+                                           return_type=Price,
+                                           local=True)
             return Maybe[Price](just=price)
         except ModelRunError:
             return Maybe.none()
