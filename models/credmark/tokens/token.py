@@ -82,68 +82,6 @@ def fix_erc20_token(tok):
     return tok
 
 
-def token_underlying(model, input):
-    # pylint: disable=too-many-return-statements)
-    try_eip1967 = get_eip1967_proxy(model.context, model.logger, input.address, False)
-    if try_eip1967 is not None:
-        input = try_eip1967
-    if input.abi is not None:
-        if input.proxy_for is not None:
-            abi_functions = input.proxy_for.abi.functions
-        else:
-            abi_functions = input.abi.functions
-
-        if 'UNDERLYING_ASSET_ADDRESS' in abi_functions:
-            return Maybe(just=input.functions.UNDERLYING_ASSET_ADDRESS().call())
-
-        if 'underlyingAssetAddress' in abi_functions:
-            return Maybe(just=input.functions.underlyingAssetAddress().call())
-
-    # TODO: iearn DAI
-    if input.address == Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'):
-        return Maybe(just=Token(symbol='DAI').address)
-
-    if input.address == Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'):
-        return Maybe(just=Token(symbol='DAI').address)
-
-    # TODO: iearn USDC
-    if input.address == Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'):
-        return Maybe(just=Token(symbol='USDC').address)
-
-    if input.address == Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'):
-        return Maybe(just=Token(symbol='USDC').address)
-
-    if input.address == Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'):
-        return Maybe(just=Token(symbol='USDT').address)
-
-    if input.address == Address('0x83f798e925bcd4017eb265844fddabb448f1707d'):
-        return Maybe(just=Token(symbol='USDT').address)
-
-    if input.address == Address('0x73a052500105205d34daf004eab301916da8190f'):
-        return Maybe(just=Token(symbol='TUSD').address)
-
-    if input.address == Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'):
-        return Maybe(just=Token(symbol='BUSD').address)
-
-    if input.address == Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'):
-        return Maybe(just=Token(symbol='LINK').address)
-
-    if input.address == Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'):
-        return Maybe(just=Token(symbol='LINK').address)
-
-    # TODO: ycDAI
-    if input.address == Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'):
-        return Maybe(just=Token(symbol='DAI').address)
-
-    if input.address == Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'):
-        return Maybe(just=Token(symbol='USDC').address)
-
-    if input.address == Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'):
-        return Maybe(just=Token(symbol='USDT').address)
-
-    return Maybe(just=None)
-
-
 @Model.describe(slug='token.underlying-maybe',
                 version='1.1',
                 display_name='Token Price - Underlying',
@@ -160,7 +98,64 @@ class TokenUnderlying(Model):
 
     def run(self, input: Token) -> Maybe[Address]:
         # pylint: disable=too-many-return-statements)
-        return token_underlying(self, input)
+        try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
+        if try_eip1967 is not None:
+            input = try_eip1967
+        if input.abi is not None:
+            if input.proxy_for is not None:
+                abi_functions = input.proxy_for.abi.functions
+            else:
+                abi_functions = input.abi.functions
+
+            if 'UNDERLYING_ASSET_ADDRESS' in abi_functions:
+                return Maybe(just=input.functions.UNDERLYING_ASSET_ADDRESS().call())
+
+            if 'underlyingAssetAddress' in abi_functions:
+                return Maybe(just=input.functions.underlyingAssetAddress().call())
+
+        # TODO: iearn DAI
+        if input.address == Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'):
+            return Maybe(just=Token(symbol='DAI').address)
+
+        if input.address == Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'):
+            return Maybe(just=Token(symbol='DAI').address)
+
+        # TODO: iearn USDC
+        if input.address == Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'):
+            return Maybe(just=Token(symbol='USDC').address)
+
+        if input.address == Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'):
+            return Maybe(just=Token(symbol='USDC').address)
+
+        if input.address == Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'):
+            return Maybe(just=Token(symbol='USDT').address)
+
+        if input.address == Address('0x83f798e925bcd4017eb265844fddabb448f1707d'):
+            return Maybe(just=Token(symbol='USDT').address)
+
+        if input.address == Address('0x73a052500105205d34daf004eab301916da8190f'):
+            return Maybe(just=Token(symbol='TUSD').address)
+
+        if input.address == Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'):
+            return Maybe(just=Token(symbol='BUSD').address)
+
+        if input.address == Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'):
+            return Maybe(just=Token(symbol='LINK').address)
+
+        if input.address == Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'):
+            return Maybe(just=Token(symbol='LINK').address)
+
+        # TODO: ycDAI
+        if input.address == Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'):
+            return Maybe(just=Token(symbol='DAI').address)
+
+        if input.address == Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'):
+            return Maybe(just=Token(symbol='USDC').address)
+
+        if input.address == Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'):
+            return Maybe(just=Token(symbol='USDT').address)
+
+        return Maybe(just=None)
 
 
 @Model.describe(

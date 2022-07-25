@@ -43,7 +43,7 @@ class SushiswapV2Factory(Model):
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
-        return self.get_uniswap_pools(input, contract.address)
+        return self.get_uniswap_pools(self.context, input, contract.address)
 
 
 @Model.describe(slug="sushiswap.all-pools",

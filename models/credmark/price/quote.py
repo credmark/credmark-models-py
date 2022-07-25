@@ -5,7 +5,6 @@ from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price,
                                 Some, Token)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.credmark.tokens.token import token_underlying
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
                                PriceHistoricalInput, PriceHistoricalInputs,
                                PriceInput)
@@ -192,7 +191,10 @@ class PriceQuote(Model):
 
     def replace_underlying(self, token):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
-            addr_maybe = token_underlying(self, input=token)
+            addr_maybe = self.context.run_model('token.underlying-maybe',
+                                                input=token,
+                                                return_type=Maybe[Address],
+                                                local=True)
             if addr_maybe.just is not None:
                 return Currency(address=addr_maybe.just)
         return token

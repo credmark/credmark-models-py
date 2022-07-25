@@ -23,16 +23,19 @@ from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 
 
 class UniswapV2PoolMeta:
-    PRIMARY_TOKENS = [Address(get_token_from_configuration('1', 'USDC')['address']),  # type: ignore
-                      Address(get_token_from_configuration('1', 'WETH')['address']),  # type: ignore
-                      Address(get_token_from_configuration('1', 'DAI')['address'])]  # type: ignore
+    PRIMARY_TOKENS = {
+        Network.Mainnet:
+        [Address(get_token_from_configuration('1', 'USDC')['address']),  # type: ignore
+         Address(get_token_from_configuration('1', 'WETH')['address']),  # type: ignore
+         Address(get_token_from_configuration('1', 'DAI')['address'])]  # type: ignore
+    }
 
     @staticmethod
-    def get_uniswap_pools(model_input, factory_addr) -> Contracts:
+    def get_uniswap_pools(context, model_input, factory_addr) -> Contracts:
         factory = Contract(address=factory_addr)
         contracts = []
         try:
-            for token_address in UniswapV2PoolMeta.PRIMARY_TOKENS:
+            for token_address in UniswapV2PoolMeta.PRIMARY_TOKENS[context.network]:
                 if token_address == model_input.address:
                     continue
 
@@ -84,7 +87,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
     def run(self, input: Token) -> Contracts:
         addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network]
-        return self.get_uniswap_pools(input, Address(addr))
+        return self.get_uniswap_pools(self.context, input, Address(addr))
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',

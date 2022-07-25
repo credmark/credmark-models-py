@@ -57,9 +57,12 @@ class UniswapV3PoolInfo(DTO):
                 input=Token,
                 output=Contracts)
 class UniswapV3GetPoolsForToken(Model):
-    PRIMARY_TOKENS = [Address(get_token_from_configuration('1', 'USDC')['address']),  # type: ignore
-                      Address(get_token_from_configuration('1', 'WETH')['address']),  # type: ignore
-                      Address(get_token_from_configuration('1', 'DAI')['address'])]  # type: ignore
+    PRIMARY_TOKENS = {
+        Network.Mainnet:
+        [Address(get_token_from_configuration('1', 'USDC')['address']),  # type: ignore
+         Address(get_token_from_configuration('1', 'WETH')['address']),  # type: ignore
+         Address(get_token_from_configuration('1', 'DAI')['address'])]  # type: ignore
+    }
 
     UNISWAP_V3_FACTORY_ADDRESS = {
         Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
@@ -75,7 +78,7 @@ class UniswapV3GetPoolsForToken(Model):
             uniswap_factory = Contract(address=addr)
             pools = []
             for fee in fees:
-                for primary_token in self.PRIMARY_TOKENS:
+                for primary_token in self.PRIMARY_TOKENS[self.context.network]:
                     if (input.address and primary_token and
                             input.address != primary_token):
                         pool = uniswap_factory.functions.getPool(
@@ -97,14 +100,14 @@ class UniswapV3GetPoolsForToken(Model):
             return Contracts(contracts=[])
 
 
-@Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.8',
-                display_name='Uniswap v3 Token Pools Info',
-                description='The Uniswap v3 pools that support a token contract',
-                category='protocol',
-                subcategory='uniswap-v3',
-                input=Contract,
-                output=UniswapV3PoolInfo)
+@ Model.describe(slug='uniswap-v3.get-pool-info',
+                 version='1.8',
+                 display_name='Uniswap v3 Token Pools Info',
+                 description='The Uniswap v3 pools that support a token contract',
+                 category='protocol',
+                 subcategory='uniswap-v3',
+                 input=Contract,
+                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
     UNISWAP_BASE = 1.0001
 
@@ -224,14 +227,14 @@ class UniswapV3GetPoolInfo(Model):
             ratio_price1=ratio_price1)
 
 
-@Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.8',
-                display_name='Uniswap v3 Token Pools Info for Price',
-                description='Extract price information for a UniV3 pool',
-                category='protocol',
-                subcategory='uniswap-v3',
-                input=DexPoolPriceInput,
-                output=PoolPriceInfo)
+@ Model.describe(slug='uniswap-v3.get-pool-price-info',
+                 version='0.8',
+                 display_name='Uniswap v3 Token Pools Info for Price',
+                 description='Extract price information for a UniV3 pool',
+                 category='protocol',
+                 subcategory='uniswap-v3',
+                 input=DexPoolPriceInput,
+                 output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
     WETH_ADDRESS = Address(get_token_from_configuration('1', 'WETH')['address'])  # type: ignore
 

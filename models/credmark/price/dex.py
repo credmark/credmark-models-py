@@ -211,7 +211,7 @@ class PriceFromDexModel(Model, PriceWeight):
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo],
-                                                local=False).some
+                                                local=True).some
 
         # all_pool_infos = PriceInfoFromDex(self.context).run(input).some
 
