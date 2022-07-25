@@ -49,7 +49,9 @@ class DexWeightedPrice(Model, PriceWeight):
 
     def aggregate_pool(self, model_slug, input: Token):
         pool_price_infos = self.context.run_model(model_slug,
-                                                  input=input)
+                                                  input=input,
+                                                  local=True)
+
         pool_aggregator_input = PoolPriceAggregatorInput(token=input,
                                                          **pool_price_infos,
                                                          price_src=self.slug,
