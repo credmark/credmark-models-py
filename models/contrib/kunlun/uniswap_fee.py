@@ -132,6 +132,9 @@ class UniswapFee(Model):
                                                     't0_amount', 't1_amount',
                                                     't1/t0'])
 
+        if df_tx_swap_one_line.empty:
+            return UniswapFeeOutput.default(input)
+
         # Fee model: take the incoming amount's X.X% from pool's fee value.
         # TODO: my rough idea of how the fee is collected. I might be wrong.
 

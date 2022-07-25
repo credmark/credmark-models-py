@@ -115,6 +115,7 @@ class SushiswapGetTokenPriceInfo(Model):
                                        input,
                                        return_type=Contracts,
                                        local=True)
+
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [DexPoolPriceInput(token=input,
                                           pool=pool,

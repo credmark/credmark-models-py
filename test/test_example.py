@@ -59,3 +59,5 @@ class TestExample(CMKTest):
                        block_number=15086281)
         self.run_model('contrib.neilz-redacted-votium-cashflow', {}, block_number=15086281)
         self.run_model('contrib.neilz-redacted-convex-cashflow', {}, block_number=15086281)
+
+        self.run_model('contrib.uniswap-fee', {"interval": 500}, block_number=15211790)

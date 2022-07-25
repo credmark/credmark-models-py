@@ -56,7 +56,8 @@ class DexWeightedPrice(Model, PriceWeight):
                                                          weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
-                                      return_type=Price)
+                                      return_type=Price,
+                                      local=True)
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
@@ -212,8 +213,6 @@ class PriceFromDexModel(Model, PriceWeight):
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo],
                                                 local=True).some
-
-        # all_pool_infos = PriceInfoFromDex(self.context).run(input).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity == 0}

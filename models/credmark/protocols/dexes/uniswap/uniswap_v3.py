@@ -94,6 +94,20 @@ class UniswapV3GetPoolsForToken(Model):
                             except ModelDataError:
                                 pass
                             pools.append(cc)
+                        else:
+                            pool = uniswap_factory.functions.getPool(
+                                input.address.checksum,
+                                primary_token.checksum,
+                                fee).call()
+                            if pool != Address.null():
+                                cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
+                                try:
+                                    _ = cc.abi
+                                except BlockNumberOutOfRangeError:
+                                    continue
+                                except ModelDataError:
+                                    pass
+                                pools.append(cc)
 
             return Contracts(contracts=pools)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
@@ -236,8 +250,6 @@ class UniswapV3GetPoolInfo(Model):
                  input=DexPoolPriceInput,
                  output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
-    WETH_ADDRESS = Address(get_token_from_configuration('1', 'WETH')['address'])  # type: ignore
-
     def run(self, input: DexPoolPriceInput) -> PoolPriceInfo:
         info = self.context.run_model('uniswap-v3.get-pool-info',
                                       input=input.pool,
@@ -259,12 +271,14 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
             _virtual_liquidity = info.virtual_liquidity_token1
 
         weth_multiplier = 1.0
-        if input.token.address != self.WETH_ADDRESS:
-            if self.WETH_ADDRESS in (info.token1.address, info.token0.address):
+        weth_address = Token('WETH').address
+        if input.token.address != weth_address:
+            if weth_address in (info.token1.address, info.token0.address):
                 if weth_price is None:
                     weth_price = self.context.run_model(input.price_slug,
-                                                        {'address': self.WETH_ADDRESS},
-                                                        return_type=Price)
+                                                        {'address': weth_address},
+                                                        return_type=Price,
+                                                        local=True)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
 

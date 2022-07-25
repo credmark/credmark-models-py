@@ -138,14 +138,15 @@ class UniswapPoolPriceInfo(Model):
             raise ModelRunError('input token is not one of the pool tokens.')
 
         weth_multiplier = 1
-        weth = Token(symbol='WETH')
-        if input.token.address != weth.address:
-            if weth.address in (token1.address, token0.address):
+        weth_address = Token('WETH').address
+        if input.token.address != weth_address:
+            if weth_address in (token1.address, token0.address):
                 if weth_price is None:
                     weth_price = self.context.run_model(
                         input.price_slug,
-                        weth,
-                        return_type=Price)
+                        {'address': weth_address},
+                        return_type=Price,
+                        local=True)
                     if weth_price.price is None:
                         raise ModelRunError('Can not retriev price for WETH')
                 weth_multiplier = weth_price.price
@@ -179,6 +180,7 @@ class UniswapV2GetTokenPriceInfo(Model):
                                        input,
                                        return_type=Contracts,
                                        local=True)
+
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [DexPoolPriceInput(token=input,
                                           pool=pool,
