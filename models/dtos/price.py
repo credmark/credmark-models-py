@@ -67,6 +67,7 @@ class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
 class DexPoolPriceInput(DTO):
     token: Token
     pool: Contract
+    price_slug: str
 
 
 class PoolPriceInfo(DTO):
@@ -84,19 +85,17 @@ class PoolPriceInfo(DTO):
     @token1_decimals: token1's decimals
     @pool_address: pool's address
     """
+    class Meta(DTO):
+        liquidity: float
     src: str
     price: float
-    liquidity: float
     tick_liquidity: float
-    weth_multiplier: float
-    inverse: bool
     token0_address: Address
     token1_address: Address
     token0_symbol: str
     token1_symbol: str
-    token0_decimals: int
-    token1_decimals: int
     pool_address: Address
+    weth_multiplier: float
 
 
 class PoolPriceAggregatorInput(Some[PoolPriceInfo]):

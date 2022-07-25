@@ -31,9 +31,9 @@ class CurveFinanceMaybePrice(Model):
                                                return_type=Price)
                 return Maybe[Price](just=price)
             except ModelRunError:
-                return Maybe[Price](just=None)
+                pass
 
-        return Maybe[Price](just=None)
+        return Maybe.none()
 
 
 @Model.describe(slug="price.dex-curve-fi",

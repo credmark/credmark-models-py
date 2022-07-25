@@ -36,7 +36,7 @@ class ENSDomainName(DTO):
 
 # TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
-                version="1.0",
+                version="1.1",
                 display_name="Chainlink - Price by ENS",
                 description="Use ENS domain name for a token pair",
                 category='protocol',
@@ -51,7 +51,8 @@ class ChainLinkPriceByENS(Model):
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
         return self.context.run_model('chainlink.price-by-feed',
                                       input={'address': feed_address},
-                                      return_type=Price)
+                                      return_type=Price,
+                                      local=True)
 
 
 @ Model.describe(slug='chainlink.price-by-feed',
@@ -86,7 +87,7 @@ class ChainLinkPriceByFeed(Model):
 
 
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.1",
+                version="1.2",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
@@ -98,22 +99,24 @@ class ChainLinkFeedFromRegistryMaybe(Model):
         try:
             price = self.context.run_model('chainlink.price-by-registry',
                                            input=input,
-                                           return_type=Price)
+                                           return_type=Price,
+                                           local=True)
             return Maybe[Price](just=price)
         except BlockNumberOutOfRangeError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
         except ModelRunError as _err:
             try:
                 price = self.context.run_model('chainlink.price-by-registry',
                                                input=input.inverse(),
-                                               return_type=Price).inverse()
+                                               return_type=Price,
+                                               local=True).inverse()
                 return Maybe[Price](just=price)
             except ModelRunError as _err2:
-                return Maybe[Price](just=None)
+                return Maybe.none()
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.2",
+                version="1.3",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
@@ -127,7 +130,8 @@ class ChainLinkPriceByRegistry(Model):
 
         registry = self.context.run_model('chainlink.get-feed-registry',
                                           input=EmptyInput(),
-                                          return_type=Contract)
+                                          return_type=Contract,
+                                          local=True)
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(base_address, quote_address).call()

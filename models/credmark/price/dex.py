@@ -49,14 +49,17 @@ class DexWeightedPrice(Model, PriceWeight):
 
     def aggregate_pool(self, model_slug, input: Token):
         pool_price_infos = self.context.run_model(model_slug,
-                                                  input=input)
+                                                  input=input,
+                                                  local=True)
+
         pool_aggregator_input = PoolPriceAggregatorInput(token=input,
                                                          **pool_price_infos,
                                                          price_src=self.slug,
                                                          weight_power=self.WEIGHT_POWER)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
-                                      return_type=Price)
+                                      return_type=Price,
+                                      local=True)
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
@@ -105,7 +108,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='price.dex-pool',
-                version='0.0',
+                version='0.1',
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -158,7 +161,8 @@ class PriceInfoFromDex(Model):
             for mrun in model_inputs:
                 infos = self.context.run_model(mrun['modelSlug'],
                                                mrun['modelInputs'][0],
-                                               Some[PoolPriceInfo])
+                                               Some[PoolPriceInfo],
+                                               local=True)
                 all_pool_infos.extend(infos.some)
             return all_pool_infos
 
@@ -191,7 +195,7 @@ class PriceFromDexModelMaybe(Model, PriceWeight):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.9',
+                version='1.10',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -209,7 +213,8 @@ class PriceFromDexModel(Model, PriceWeight):
     def run(self, input: Token) -> Price:
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
-                                                return_type=Some[PoolPriceInfo]).some
+                                                return_type=Some[PoolPriceInfo],
+                                                local=True).some
 
         non_zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity > 0}
         zero_pools = {ii.src for ii in all_pool_infos if ii.tick_liquidity == 0}
@@ -222,6 +227,9 @@ class PriceFromDexModel(Model, PriceWeight):
             weight_power=self.WEIGHT_POWER)
         if len(all_pool_infos) == 0:
             raise ModelRunError(f'No pool to aggregate for {input}')
+
+        # return PoolPriceAggregator(self.context).run(pool_aggregator_input)
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,
-                                      return_type=Price)
+                                      return_type=Price,
+                                      local=True)

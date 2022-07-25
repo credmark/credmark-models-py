@@ -83,7 +83,7 @@ def fix_erc20_token(tok):
 
 
 @Model.describe(slug='token.underlying-maybe',
-                version='1.0',
+                version='1.1',
                 display_name='Token Price - Underlying',
                 description='For token backed by underlying - get the address',
                 developer='Credmark',
@@ -96,7 +96,8 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> Maybe[Address]:  # pylint: disable=too-many-return-statements)
+    def run(self, input: Token) -> Maybe[Address]:
+        # pylint: disable=too-many-return-statements)
         try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
         if try_eip1967 is not None:
             input = try_eip1967

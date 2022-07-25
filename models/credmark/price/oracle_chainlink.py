@@ -10,7 +10,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.oracle-chainlink-maybe',
-                version='1.1',
+                version='1.2',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
                 category='protocol',
@@ -23,10 +23,11 @@ class PriceOracleChainlinkMaybe(Model):
         try:
             price = self.context.run_model('price.oracle-chainlink',
                                            input=input,
-                                           return_type=Price)
+                                           return_type=Price,
+                                           local=True)
             return Maybe[Price](just=price)
         except ModelRunError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
 
 
 @Model.describe(slug='price.oracle-chainlink',
@@ -119,7 +120,9 @@ class PriceOracleChainlink(Model):
             return Price(price=1, src=f'{self.slug}|Equal')
 
         price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                             input=new_input, return_type=Maybe[Price])
+                                             input=new_input,
+                                             return_type=Maybe[Price],
+                                             local=True)
         if price_maybe.just is not None:
             return price_maybe.just
 
@@ -130,7 +133,8 @@ class PriceOracleChainlink(Model):
 
             p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
-                                        return_type=Price)
+                                        return_type=Price,
+                                        local=True)
             if override_quote.address == quote.address:
                 return p0
             else:
@@ -146,7 +150,8 @@ class PriceOracleChainlink(Model):
 
             p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
-                                        return_type=Price).inverse()
+                                        return_type=Price,
+                                        local=True).inverse()
             if override_quote.address == base.address:
                 return p0
             else:
@@ -163,7 +168,8 @@ class PriceOracleChainlink(Model):
 
                 p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                   input=price_input,
-                                                  return_type=Maybe[Price])
+                                                  return_type=Maybe[Price],
+                                                  local=True)
                 if p1_maybe.just is not None:
                     p1 = p1_maybe.just
                     r1 = rt_addr
@@ -178,7 +184,8 @@ class PriceOracleChainlink(Model):
 
                     p2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                       input=price_input,
-                                                      return_type=Maybe[Price])
+                                                      return_type=Maybe[Price],
+                                                      local=True)
                     if p2_maybe.just is not None:
                         p2 = p2_maybe.just
                         r2 = rt_addr

@@ -4,9 +4,9 @@ from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
                                 Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
-    UniswapV2PoolMeta
-from models.dtos.price import PoolPriceInfo
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
+    UniswapV2PoolMeta)
+from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -33,7 +33,7 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.2',
+                version='1.3',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
@@ -42,8 +42,8 @@ class SushiswapV2Factory(Model):
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
-        return self.get_uniswap_pools(input, contract.address)
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
+        return self.get_uniswap_pools(self.context, input, contract.address)
 
 
 @Model.describe(slug="sushiswap.all-pools",
@@ -54,7 +54,7 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
     def run(self, _: EmptyInput) -> dict:
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []
 
@@ -89,7 +89,7 @@ class SushiSwapPool(DTO):
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -102,7 +102,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.4',
+                version='1.7',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -113,12 +113,16 @@ class SushiswapGetTokenPriceInfo(Model):
     def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
-                                       return_type=Contracts)
+                                       return_type=Contracts,
+                                       local=True)
 
-        # TODO: Too depths issue
+        model_slug = 'uniswap-v2.get-pool-price-info'
+        model_inputs = [DexPoolPriceInput(token=input,
+                                          pool=pool,
+                                          price_slug='sushiswap.get-weighted-price')
+                        for pool in pools]
+
         def _use_compose():
-            model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             pool_infos = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': model_slug,
@@ -141,8 +145,6 @@ class SushiswapGetTokenPriceInfo(Model):
             return infos
 
         def _use_for():
-            model_slug = 'uniswap-v2.get-pool-price-info'
-            model_inputs = [{'token': input, 'pool': pool} for pool in pools]
             infos = []
             for minput in model_inputs:
                 pi = self.context.run_model(model_slug,
@@ -152,6 +154,17 @@ class SushiswapGetTokenPriceInfo(Model):
                     infos.append(pi.just)
             return infos
 
-        infos = _use_compose()
+        def _use_local():
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo],
+                                            local=True)
+                if pi.is_just():
+                    infos.append(pi.just)
+            return infos
+
+        infos = _use_local()
 
         return Some[PoolPriceInfo](some=infos)

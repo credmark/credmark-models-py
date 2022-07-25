@@ -95,6 +95,7 @@ class TestCurve(CMKTest):
         # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
 
     def test_lp_token(self):
+        block_number = 14830357
         self.title('Curve - Pool Info from LP')
         lp_token_addresses = ['0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8',
                               '0xC25a3A3b969415c80451098fa907EC722572917F',
@@ -112,8 +113,8 @@ class TestCurve(CMKTest):
                               '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490']
 
         for lp_addr in lp_token_addresses:
-            self.run_model('curve-fi.pool-info', {"address": lp_addr})
-            self.run_model('curve-fi.pool-tvl', {"address": lp_addr})
+            self.run_model('curve-fi.pool-info', {"address": lp_addr}, block_number=block_number)
+            self.run_model('curve-fi.pool-tvl', {"address": lp_addr}, block_number=block_number)
 
     def test_convex(self):
         self.title('Curve - Convex')
