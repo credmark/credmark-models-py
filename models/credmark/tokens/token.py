@@ -83,6 +83,7 @@ def fix_erc20_token(tok):
 
 
 def token_underlying(model, input):
+    # pylint: disable=too-many-return-statements)
     try_eip1967 = get_eip1967_proxy(model.context, model.logger, input.address, False)
     if try_eip1967 is not None:
         input = try_eip1967
@@ -157,7 +158,8 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> Maybe[Address]:  # pylint: disable=too-many-return-statements)
+    def run(self, input: Token) -> Maybe[Address]:
+        # pylint: disable=too-many-return-statements)
         return token_underlying(self, input)
 
 
