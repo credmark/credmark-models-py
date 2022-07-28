@@ -3,9 +3,6 @@ from typing import List
 
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
-from web3._utils.events import get_event_data
-from web3._utils.filters import construct_event_filter_params
-
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
@@ -61,7 +58,7 @@ class CMKGetVestingContracts(Model):
 
 @Model.describe(
     slug="cmk.get-vesting-accounts",
-    version="1.0",
+    version="1.1",
     display_name='CMK Vesting Accounts',
     category='protocol',
     subcategory='cmk',
@@ -81,20 +78,10 @@ class CMKGetVestingAccounts(Model):
                 except ValueError:
                     # Some Eth node does not support the newer eth_newFilter method
                     try:
-                        # pylint:disable=locally-disabled,protected-access
-                        event_abi = ctt.instance.events.VestingScheduleAdded._get_event_abi()
-
-                        __data_filter_set, event_filter_params = construct_event_filter_params(
-                            abi_codec=self.context.web3.codec,
-                            event_abi=event_abi,
-                            address=ctt.address.checksum,
-                            fromBlock=0,
-                            toBlock=self.context.block_number
-                        )
-                        vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
-                        vesting_added_events = [get_event_data(self.context.web3.codec,
-                                                               event_abi, s)
-                                                for s in vesting_added_events]
+                        vesting_added_events = ctt.fetch_events(
+                            input.events.VestingScheduleAdded,
+                            from_block=0,
+                            to_block=self.context.block_number)
                     except (ReadTimeoutError, ReadTimeout):
                         raise ModelRunError(
                             f'There was timeout error when reading logs for {ctt.address}')
@@ -127,7 +114,7 @@ class CMKGetVestingAccounts(Model):
 
 @Model.describe(
     slug="cmk.get-vesting-info-by-account",
-    version="1.1",
+    version="1.2",
     display_name='CMK Vesting Info by Account',
     category='protocol',
     subcategory='cmk',
@@ -180,20 +167,11 @@ class CMKGetVestingByAccount(Model):
                         .get_all_entries())
                 except ValueError:
                     try:
-                        # pylint:disable=locally-disabled,protected-access,line-too-long
-                        event_abi = vesting_contract.events.AllocationClaimed._get_event_abi()
+                        allocation_claimed_events = vesting_contract.fetch_events(
+                            vesting_contract.events.AllocationClaimed,
+                            from_block=0,
+                            to_block=self.context.block_number)
 
-                        __data_filter_set, event_filter_params = construct_event_filter_params(
-                            abi_codec=self.context.web3.codec,
-                            event_abi=event_abi,
-                            address=input.address.checksum,
-                            fromBlock=0,
-                            toBlock=self.context.block_number
-                        )
-                        allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
-                        allocation_claimed_events = [
-                            get_event_data(self.context.web3.codec, event_abi, s)
-                            for s in allocation_claimed_events]
                     except (ReadTimeoutError, ReadTimeout):
                         raise ModelRunError(
                             f'There was timeout error when reading logs for {input.address}')
@@ -316,7 +294,7 @@ class CMKGetAllVestingBalances(Model):
 
 @Model.describe(
     slug="cmk.vesting-events",
-    version="1.0",
+    version="1.1",
     display_name='CMK Vesting Events',
     category='protocol',
     subcategory='cmk',
@@ -332,19 +310,11 @@ class CMKVestingEvents(Model):
                 # Some Eth node does not support the newer eth_newFilter method
                 try:
                     # pylint:disable=locally-disabled,protected-access
-                    event_abi = input.instance.events.AllocationClaimed._get_event_abi()
+                    allocation_claimed_events = input.fetch_events(
+                        input.events.AllocationClaimed,
+                        from_block=0,
+                        to_block=self.context.block_number)
 
-                    _data_filter_set, event_filter_params = construct_event_filter_params(
-                        abi_codec=self.context.web3.codec,
-                        event_abi=event_abi,
-                        address=input.address.checksum,
-                        fromBlock=0,
-                        toBlock=self.context.block_number
-                    )
-                    allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
-                    allocation_claimed_events = [get_event_data(self.context.web3.codec,
-                                                                event_abi, s)
-                                                 for s in allocation_claimed_events]
                 except (ReadTimeoutError, ReadTimeout):
                     raise ModelRunError(
                         f'There was timeout error when reading logs for {input.address}')
