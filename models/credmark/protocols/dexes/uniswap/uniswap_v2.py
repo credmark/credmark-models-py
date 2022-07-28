@@ -41,7 +41,7 @@ class UniswapV2PoolMeta:
 
                 pair_address = factory.functions.getPair(
                     model_input.address, token_address).call()
-                if not pair_address == Address.null():
+                if not Address(pair_address).is_null():
                     cc = Contract(address=pair_address)
                     try:
                         _ = cc.abi
@@ -53,7 +53,7 @@ class UniswapV2PoolMeta:
                 else:
                     pair_address = factory.functions.getPair(
                         token_address, model_input.address).call()
-                    if not pair_address == Address.null():
+                    if not Address(pair_address).is_null():
                         cc = Contract(address=pair_address)
                         try:
                             _ = cc.abi

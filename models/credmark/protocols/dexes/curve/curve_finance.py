@@ -5,12 +5,12 @@ from typing import List
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price, Some,
                                 Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
@@ -135,7 +135,7 @@ class CurveFinancePoolInfoTokens(Model):
 
         for addr in addrs:
             tok_addr = Address(addr)
-            if tok_addr != Address.null():
+            if not tok_addr.is_null():
                 tok = Token(address=tok_addr.checksum)
                 tok = fix_erc20_token(tok)
                 symbols_list.append(tok.symbol)
@@ -178,7 +178,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
-                if pool_addr != Address.null():
+                if not pool_addr.is_null():
                     return self.context.run_model(self.slug,
                                                   input=Contract(address=Address(pool_addr)),
                                                   return_type=CurveFiPoolInfoToken)
@@ -234,7 +234,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     pass
 
-        if lp_token_addr != Address.null():
+        if not lp_token_addr.is_null():
             lp_token = Token(address=lp_token_addr.checksum)
             lp_token_name = lp_token.name
         else:
@@ -321,7 +321,7 @@ class CurveFinancePoolInfo(Model):
         chi = pool_A * ratio
 
         gauges, gauges_type = registry.functions.get_gauges(input.address.checksum).call()
-        gauges = [Account(address=g) for g in gauges if g != Address.null()]
+        gauges = [Account(address=g) for g in gauges if not Address(g).is_null()]
         gauges_type = gauges_type[:len(gauges)]
 
         if len(gauges) == 0:
@@ -456,10 +456,10 @@ class CurveFinanceAllGauges(Model):
         lp_tokens = []
         i = 0
         while True:
-            address = gauge_controller.functions.gauges(i).call()
-            if address == Address.null():
+            addr = gauge_controller.functions.gauges(i).call()
+            if Address(addr).is_null():
                 break
-            gauge_contract = Contract(address=address)
+            gauge_contract = Contract(address=addr)
             gauges.append(gauge_contract)
             i += 1
             try:
@@ -546,7 +546,7 @@ class CurveFinanceAverageGaugeYield(Model):
                                           input=EmptyInput(),
                                           return_type=Contract)
         pool_addr = registry.functions.get_pool_from_lp_token(lp_token_addr).call()
-        if pool_addr != Address.null():
+        if not Address(pool_addr).is_null():
             pool_info = self.context.run_model('curve-fi.pool-info', Contract(address=pool_addr))
             pool_virtual_price = pool_info['virtualPrice']
         else:

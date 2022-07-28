@@ -85,7 +85,7 @@ class UniswapV3GetPoolsForToken(Model):
                             input.address.checksum,
                             primary_token.checksum,
                             fee).call()
-                        if pool != Address.null():
+                        if not Address(pool).is_null():
                             cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
                             try:
                                 _ = cc.abi
@@ -99,7 +99,7 @@ class UniswapV3GetPoolsForToken(Model):
                                 input.address.checksum,
                                 primary_token.checksum,
                                 fee).call()
-                            if pool != Address.null():
+                            if not Address(pool).is_null():
                                 cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
                                 try:
                                     _ = cc.abi
