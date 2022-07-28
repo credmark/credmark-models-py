@@ -158,7 +158,13 @@ class CompoundV2AllPoolsInfo(Model):
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return pool_infos
 
-        pool_infos = _use_compose()
+        def _use_for():
+            pool_infos = [self.context.run_model(model_slug, minput, return_type=CompoundV2PoolInfo)
+                          for minput in model_inputs]
+            return pool_infos
+
+        # pool_infos = _use_compose()
+        pool_infos = _use_for()
 
         ret = Some[CompoundV2PoolInfo](some=pool_infos)
         return ret

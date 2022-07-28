@@ -178,7 +178,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
-                if not pool_addr.is_null():
+                if not Address(pool_addr).is_null():
                     return self.context.run_model(self.slug,
                                                   input=Contract(address=Address(pool_addr)),
                                                   return_type=CurveFiPoolInfoToken)
