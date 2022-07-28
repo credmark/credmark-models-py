@@ -65,42 +65,62 @@ class CMKGetVestingContracts(Model):
     display_name='CMK Vesting Accounts',
     category='protocol',
     subcategory='cmk',
-    input=EmptyInput,
     output=Accounts
 )
 class CMKGetVestingAccounts(Model):
-    def run(self, input) -> Accounts:
+    def run(self, _) -> Accounts:
         accounts = set()
         accounts_info = []
         for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-            try:
-                vesting_added_events = c.events.VestingScheduleAdded.createFilter(
-                    fromBlock=0,
-                    toBlock=self.context.block_number
-                ).get_all_entries()
-            except ValueError:
-                # Some Eth node does not support the newer eth_newFilter method
+            def _use_filter(ctt):
                 try:
-                    # pylint:disable=locally-disabled,protected-access
-                    event_abi = c.instance.events.VestingScheduleAdded._get_event_abi()
-
-                    __data_filter_set, event_filter_params = construct_event_filter_params(
-                        abi_codec=self.context.web3.codec,
-                        event_abi=event_abi,
-                        address=c.address.checksum,
+                    vesting_added_events = ctt.events.VestingScheduleAdded.createFilter(
                         fromBlock=0,
                         toBlock=self.context.block_number
-                    )
-                    vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
-                    vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
-                                            for s in vesting_added_events]
-                except (ReadTimeoutError, ReadTimeout):
-                    raise ModelRunError(
-                        f'There was timeout error when reading logs for {c.address}')
-            for vae in vesting_added_events:
-                if vae['args']['account'] not in accounts:
-                    accounts.add(vae['args']['account'])
-                    accounts_info.append(Account(address=vae['args']['account']))
+                    ).get_all_entries()
+                except ValueError:
+                    # Some Eth node does not support the newer eth_newFilter method
+                    try:
+                        # pylint:disable=locally-disabled,protected-access
+                        event_abi = ctt.instance.events.VestingScheduleAdded._get_event_abi()
+
+                        __data_filter_set, event_filter_params = construct_event_filter_params(
+                            abi_codec=self.context.web3.codec,
+                            event_abi=event_abi,
+                            address=ctt.address.checksum,
+                            fromBlock=0,
+                            toBlock=self.context.block_number
+                        )
+                        vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
+                        vesting_added_events = [get_event_data(self.context.web3.codec,
+                                                               event_abi, s)
+                                                for s in vesting_added_events]
+                    except (ReadTimeoutError, ReadTimeout):
+                        raise ModelRunError(
+                            f'There was timeout error when reading logs for {ctt.address}')
+
+                for vae in vesting_added_events:
+                    acc = vae['args']['account']
+                    if acc not in accounts:
+                        accounts.add(acc)
+                        accounts_info.append(Account(address=acc))
+
+            def _use_ledger(ctt):
+                with ctt.ledger.events.VestingScheduleAdded as q:
+                    ledger_events = (q.select(
+                        columns=q.columns,
+                        order_by=q.ACCOUNT,
+                        limit=5000))
+                    for evt in ledger_events:
+                        acc = evt['inp_account']
+                        if acc not in accounts:
+                            accounts.add(acc)
+                            accounts_info.append(Account(address=acc))
+
+            try:
+                _use_filter(c)
+            except ValueError:
+                _use_ledger(c)
 
         return Accounts(accounts=accounts_info)
 
@@ -238,8 +258,11 @@ class CMKGetVestingByAccount(Model):
                         vesting_claims.append(claim)
                 return vesting_claims
 
-            vesting_claims = _use_filter(vesting_contract)
-            # vesting_claims = _use_ledger(vesting_contract)
+            try:
+                vesting_claims = _use_filter(vesting_contract)
+            except ValueError:
+                vesting_claims = _use_ledger(vesting_contract)
+
             claims.extend(vesting_claims)
 
         result.claims = claims
@@ -301,30 +324,47 @@ class CMKGetAllVestingBalances(Model):
     output=dict)
 class CMKVestingEvents(Model):
     def run(self, input: Contract) -> dict:
-        try:
-            allocation_claimed_events = input.events.AllocationClaimed.createFilter(
-                fromBlock=0, toBlock=self.context.block_number).get_all_entries()
-        except ValueError:
-            # Some Eth node does not support the newer eth_newFilter method
+        def _use_filter():
             try:
-                # pylint:disable=locally-disabled,protected-access
-                event_abi = input.instance.events.AllocationClaimed._get_event_abi()
+                allocation_claimed_events = input.events.AllocationClaimed.createFilter(
+                    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
+            except ValueError:
+                # Some Eth node does not support the newer eth_newFilter method
+                try:
+                    # pylint:disable=locally-disabled,protected-access
+                    event_abi = input.instance.events.AllocationClaimed._get_event_abi()
 
-                __data_filter_set, event_filter_params = construct_event_filter_params(
-                    abi_codec=self.context.web3.codec,
-                    event_abi=event_abi,
-                    address=input.address.checksum,
-                    fromBlock=0,
-                    toBlock=self.context.block_number
-                )
-                allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
-                allocation_claimed_events = [get_event_data(self.context.web3.codec, event_abi, s)
-                                             for s in allocation_claimed_events]
-            except (ReadTimeoutError, ReadTimeout):
-                raise ModelRunError(
-                    f'There was timeout error when reading logs for {input.address}')
+                    _data_filter_set, event_filter_params = construct_event_filter_params(
+                        abi_codec=self.context.web3.codec,
+                        event_abi=event_abi,
+                        address=input.address.checksum,
+                        fromBlock=0,
+                        toBlock=self.context.block_number
+                    )
+                    allocation_claimed_events = self.context.web3.eth.get_logs(event_filter_params)
+                    allocation_claimed_events = [get_event_data(self.context.web3.codec,
+                                                                event_abi, s)
+                                                 for s in allocation_claimed_events]
+                except (ReadTimeoutError, ReadTimeout):
+                    raise ModelRunError(
+                        f'There was timeout error when reading logs for {input.address}')
 
-        claims = [dict(d['args']) for d in allocation_claimed_events]
+            claims = [dict(d['args']) for d in allocation_claimed_events]
+            return claims
+
+        def _use_ledger():
+            with input.ledger.events.AllocationClaimed as q:
+                ledger_events = (q.select(
+                    columns=q.columns,
+                    order_by=q.ACCOUNT,
+                    limit=5000))
+                claims = ledger_events.data
+                return claims
+
+        try:
+            claims = _use_filter()
+        except ValueError:
+            claims = _use_ledger()
 
         # cancels = [
         #     dict(d['args']) for d in
