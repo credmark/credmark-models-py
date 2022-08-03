@@ -38,9 +38,11 @@ class UniswapV2PoolMeta:
             for token_address in UniswapV2PoolMeta.PRIMARY_TOKENS[context.network]:
                 if token_address == model_input.address:
                     continue
-
-                pair_address = factory.functions.getPair(
-                    model_input.address, token_address).call()
+                if model_input.address.to_int() < token_address.to_int():
+                    token_pair = model_input.address.checksum, token_address.checksum
+                else:
+                    token_pair = token_address.checksum, model_input.address.checksum
+                pair_address = factory.functions.getPair(*token_pair).call()
                 if not Address(pair_address).is_null():
                     cc = Contract(address=pair_address)
                     try:
@@ -50,18 +52,6 @@ class UniswapV2PoolMeta:
                     except ModelDataError as _err:
                         pass
                     contracts.append(cc)
-                else:
-                    pair_address = factory.functions.getPair(
-                        token_address, model_input.address).call()
-                    if not Address(pair_address).is_null():
-                        cc = Contract(address=pair_address)
-                        try:
-                            _ = cc.abi
-                        except BlockNumberOutOfRangeError:
-                            continue
-                        except ModelDataError as _err:
-                            pass
-                        contracts.append(cc)
 
             return Contracts(contracts=contracts)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):

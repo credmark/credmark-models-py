@@ -79,35 +79,22 @@ class UniswapV3GetPoolsForToken(Model):
             pools = []
             for fee in fees:
                 for primary_token in self.PRIMARY_TOKENS[self.context.network]:
-                    if (input.address and primary_token and
-                            input.address != primary_token):
-                        pool = uniswap_factory.functions.getPool(
-                            input.address.checksum,
-                            primary_token.checksum,
-                            fee).call()
-                        if not Address(pool).is_null():
-                            cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
-                            try:
-                                _ = cc.abi
-                            except BlockNumberOutOfRangeError:
-                                continue
-                            except ModelDataError:
-                                pass
-                            pools.append(cc)
-                        else:
-                            pool = uniswap_factory.functions.getPool(
-                                input.address.checksum,
-                                primary_token.checksum,
-                                fee).call()
-                            if not Address(pool).is_null():
-                                cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
-                                try:
-                                    _ = cc.abi
-                                except BlockNumberOutOfRangeError:
-                                    continue
-                                except ModelDataError:
-                                    pass
-                                pools.append(cc)
+                    if input.address == primary_token:
+                        continue
+                    if input.address.to_int() < primary_token.to_int():
+                        token_pair = input.address.checksum, primary_token.checksum
+                    else:
+                        token_pair = primary_token.checksum, input.address.checksum
+                    pool = uniswap_factory.functions.getPool(*token_pair, fee).call()
+                    if not Address(pool).is_null():
+                        cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
+                        try:
+                            _ = cc.abi
+                        except BlockNumberOutOfRangeError:
+                            continue
+                        except ModelDataError:
+                            pass
+                        pools.append(cc)
 
             return Contracts(contracts=pools)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
