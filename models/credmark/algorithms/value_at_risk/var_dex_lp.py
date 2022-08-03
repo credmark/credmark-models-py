@@ -81,6 +81,9 @@ class UniswapPoolVaR(Model):
              .reset_index(drop=True))
             for tok_n in range(2)]
 
+        historical_days = (token_historical_prices[0]
+                           .blockTime)
+
         df = pd.DataFrame({
             'TOKEN0/USD': token_historical_prices[0].price.to_numpy(),
             'TOKEN1/USD': token_historical_prices[1].price.to_numpy(),
@@ -126,45 +129,59 @@ class UniswapPoolVaR(Model):
         #   2*np.sqrt(1/ratio_change)/(1+1/ratio_change)-1
         # )
 
-        if impermenant_loss_type == 'V2':
-            impermenant_loss_vector = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
+        # Demo for extreme values
+        # ratio_change[0] = 0.05
+        # ratio_change[1] = 1000
+
+        # V2
+        impermenant_loss_vector_v2 = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
+
+        # V3
+        p_a = (1-input.lower_range) * p_0
+        p_b = (1+input.upper_range) * p_0
+
+        if np.isclose(p_a, 0):
+            impermenant_loss_vector_under = np.zeros(ratio_change.shape)
         else:
-            p_a = (1-input.lower_range) * p_0
-            p_b = (1+input.upper_range) * p_0
+            impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
+                (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
+                (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
 
-            if np.isclose(p_a, 0):
-                impermenant_loss_vector_under = np.zeros(ratio_change.shape)
-            else:
-                impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
-                    (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
-                    (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
+        impermenant_loss_vector_between = (
+            (2*np.sqrt(ratio_change) - 1 - ratio_change) /
+            (1 + ratio_change - np.sqrt(1-input.lower_range) -
+                ratio_change * np.sqrt(1 / (1 + input.upper_range))))
 
-            impermenant_loss_vector_between = (
-                (2*np.sqrt(ratio_change) - 1 - ratio_change) /
-                (1 + ratio_change - np.sqrt(1-input.lower_range) -
-                 ratio_change * np.sqrt(1 / (1 + input.upper_range))))
+        impermenant_loss_vector_above = (
+            np.sqrt(p_b) - np.sqrt(p_a)) / (
+            (np.sqrt(p_b) - np.sqrt(p_0)) / (
+                np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
+            (np.sqrt(p_0) - np.sqrt(p_a))) - 1
 
-            impermenant_loss_vector_above = (
-                np.sqrt(p_b) - np.sqrt(p_a)) / (
-                (np.sqrt(p_b) - np.sqrt(p_0)) / (
-                    np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
-                (np.sqrt(p_0) - np.sqrt(p_a))) - 1
+        impermenant_loss_vector_v3 = impermenant_loss_vector_between.copy()
+        impermenant_loss_vector_v3[
+            (ratio_change < 1 - input.lower_range)] = impermenant_loss_vector_under[
+                (ratio_change < 1 - input.lower_range)]
+        impermenant_loss_vector_v3[
+            (ratio_change > 1 + input.upper_range)] = impermenant_loss_vector_above[
+                (ratio_change > 1 + input.lower_range)]
 
-            impermenant_loss_vector = impermenant_loss_vector_between.copy()
-            impermenant_loss_vector[
-                (ratio_change < 1 - input.lower_range)] = impermenant_loss_vector_under[
-                    (ratio_change < 1 - input.lower_range)]
-            impermenant_loss_vector[
-                (ratio_change > 1 + input.upper_range)] = impermenant_loss_vector_above[
-                    (ratio_change > 1 + input.lower_range)]
+        if impermenant_loss_type == 'V2':
+            impermenant_loss_vector = impermenant_loss_vector_v2.copy()
+        else:
+            impermenant_loss_vector = impermenant_loss_vector_v3.copy()
 
         # IL check
         # import matplotlib.pyplot as plt
-        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v2); plt.show()
-        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v3); plt.show()
+        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v2)
+        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v3)
+        # plt.title(f'Pool PPL for -{input.lower_range}/+{input.upper_range}')
+        # plt.show()
+
         # Or,
-        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v2); plt.show()
-        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v3); plt.show()
+        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v2)
+        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v3)
+        # plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
         total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1
@@ -178,25 +195,22 @@ class UniswapPoolVaR(Model):
         var_result = calc_var(total_pnl_vector, conf)
         var = DexVaR(
             var=var_result.var,
-            scenarios=(token_historical_prices[0]
-                       .blockTime.iloc[var_result.unsorted_index, ].to_list()),
+            scenarios=historical_days[var_result.unsorted_index].to_list(),
             ppl=total_pnl_vector[var_result.unsorted_index].tolist(),
             weights=var_result.weights)
 
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = DexVaR(
             var=var_result_without_il.var,
-            scenarios=(token_historical_prices[0]
-                       .blockTime.iloc[var_result_without_il.unsorted_index, ].to_list()),
-            ppl=total_pnl_vector[var_result_without_il.unsorted_index].tolist(),
+            scenarios=historical_days[var_result_without_il.unsorted_index].to_list(),
+            ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(),
             weights=var_result_without_il.weights)
 
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = DexVaR(
             var=var_result_il.var,
-            scenarios=(token_historical_prices[0]
-                       .blockTime.iloc[var_result_il.unsorted_index, ].to_list()),
-            ppl=total_pnl_vector[var_result_il.unsorted_index].tolist(),
+            scenarios=historical_days[var_result_il.unsorted_index].to_list(),
+            ppl=total_pnl_il_vector[var_result_il.unsorted_index].tolist(),
             weights=var_result_il.weights)
 
         # For V3, as existing assumptions, we need to cap the loss at -100%.
