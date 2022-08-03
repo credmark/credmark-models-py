@@ -75,6 +75,16 @@ class TestDashboard(CMKTest):
                         "window": "23 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
                        block_number=block_number)
 
+        self.run_model('finance.var-dex-lp',
+                       {"pool": {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"},
+                        "window": "90 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
+                       block_number=15263892)
+
+        self.run_model('finance.var-dex-lp',
+                       {"pool": {"address": "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8"},
+                        "window": "90 days", "interval": 10, "confidence": 0.01, "lower_range": 0.01, "upper_range": 0.01},
+                       block_number=15263892)
+
         for range_of_pool in [0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0]:
             print(f'LP VaR Range: {range_of_pool}')
             self.run_model('finance.var-dex-lp',
