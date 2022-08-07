@@ -34,5 +34,20 @@ class TestUniswap(CMKTest):
         # WETH/CMK pool: 0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3
         self.run_model('uniswap-v3.get-pool-info', {"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"})
 
-        self.run_model('uniswap-v2.get-pool-info-token-price', {"address":"0x853d955acef822db058eb8505911ed77f175b99e"}, block_number=15048685)
-        self.run_model('uniswap-v2.get-pool-info-token-price', {"address":"0x853d955acef822db058eb8505911ed77f175b99e"}, block_number=14048685)
+        self.run_model('uniswap-v2.get-pool-info-token-price',
+                       {"address": "0x853d955acef822db058eb8505911ed77f175b99e"}, block_number=15048685)
+        self.run_model('uniswap-v2.get-pool-info-token-price',
+                       {"address": "0x853d955acef822db058eb8505911ed77f175b99e"}, block_number=14048685)
+
+        # liquidity
+        self.run_model('uniswap-v3.get-liquidity-by-ticks',
+                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "min_tick": 202000, "max_tick": 203000},
+                       block_number=15276693)
+
+        current_tick = 202180
+
+        self.run_model('uniswap-v3.get-amount-in-ticks',
+                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                        "min_tick": current_tick-1000,
+                        "max_tick": current_tick+1000},
+                       block_number=12377278)
