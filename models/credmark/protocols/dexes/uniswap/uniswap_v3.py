@@ -55,7 +55,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -128,7 +128,7 @@ def in_range(liquidity, sb, sa, sp):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -334,7 +334,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='0.9',
+                version='1.0',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -411,7 +411,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @ Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                 version='1.12',
+                 version='1.13',
                  display_name='Uniswap v3 Token Pools Price ',
                  description='Gather price and liquidity information from pools',
                  category='protocol',

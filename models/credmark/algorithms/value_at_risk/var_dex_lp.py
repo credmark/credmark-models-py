@@ -16,7 +16,7 @@ np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.5",
+                version="1.6",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
