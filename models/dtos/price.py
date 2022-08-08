@@ -102,6 +102,7 @@ class PoolPriceInfo(DTO):
 class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
     token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
+    debug: bool = DTOField(False, description='Turn on debug log')
 
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(

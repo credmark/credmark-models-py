@@ -1,4 +1,5 @@
 # pylint: disable=locally-disabled
+import sys
 from abc import abstractmethod
 from typing import List
 
@@ -79,7 +80,8 @@ class PoolPriceAggregator(Model):
         if len(input.some) == 1:
             return Price(price=df.price_t[0], src=price_src)
 
-        breakpoint()
+        if input.debug:
+            print(df, file=sys.stderr)
 
         if len(zero_pools) == len(all_pool_infos):
             return Price(price=df.price_t.min(), src=price_src)
@@ -271,7 +273,8 @@ class PriceFromDexModel(Model, PriceWeight):
         pool_aggregator_input = PoolPriceAggregatorInput(
             some=all_pool_infos,
             token=input,
-            weight_power=self.WEIGHT_POWER)
+            weight_power=self.WEIGHT_POWER,
+            debug=False)
 
         # return PoolPriceAggregator(self.context).run(pool_aggregator_input)
         return self.context.run_model('price.pool-aggregator',
