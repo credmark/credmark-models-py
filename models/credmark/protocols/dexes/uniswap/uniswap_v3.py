@@ -451,21 +451,14 @@ class UniswapV3GetTokenPoolInfo(Model):
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return infos
 
-        def _use_for():
-            infos = []
-            for minput in model_inputs:
-                pi = self.context.run_model(model_slug, minput, return_type=PoolPriceInfo)
-                infos.append(pi)
-            return infos
-
-        def _use_local():
+        def _use_for(local):
             infos = []
             for minput in model_inputs:
                 pi = self.context.run_model(model_slug, minput, return_type=PoolPriceInfo,
-                                            local=True)
+                                            local=local)
                 infos.append(pi)
             return infos
 
-        infos = _use_local()
+        infos = _use_for(local=True)
 
         return Some[PoolPriceInfo](some=infos)
