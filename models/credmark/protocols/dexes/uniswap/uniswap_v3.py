@@ -357,7 +357,8 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         ref_price = 1.0
         weth_address = Token('WETH').address
 
-        # 1. If both are stablecoins (non-WETH): do nothing
+        # 1. If both are stablecoins (non-WETH): use the relative ratio between each other.
+        #    So we are able to support depegged SB (like USDT in May 13th 2022)
         # 2. If SB-WETH: use SB to price WETH
         # 3. If WETH-X: use WETH to price
         # 4. If SB-X: use SB to price
