@@ -64,9 +64,7 @@ class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
     endTimestamp: int = DTOField(0, hidden=True)
 
 
-class DexPoolPriceInput(DTO):
-    token: Token
-    pool: Contract
+class DexPoolPriceInput(Contract):
     price_slug: str
 
 
@@ -85,23 +83,26 @@ class PoolPriceInfo(DTO):
     @token1_decimals: token1's decimals
     @pool_address: pool's address
     """
-    class Meta(DTO):
-        liquidity: float
     src: str
-    price: float
-    tick_liquidity: float
+    price_usd0: float
+    price_usd1: float
+    one_tick_liquidity0: float
+    one_tick_liquidity1: float
+    full_tick_liquidity0: float
+    full_tick_liquidity1: float
     token0_address: Address
     token1_address: Address
     token0_symbol: str
     token1_symbol: str
     pool_address: Address
-    weth_multiplier: float
+    ref_price: float
+    tick_spacing: int
 
 
 class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
     token: Token
     weight_power: float = DTOField(1.0, ge=1.0)
-    price_src: str
+    debug: bool = DTOField(False, description='Turn on debug log')
 
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(

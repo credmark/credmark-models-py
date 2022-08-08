@@ -43,7 +43,7 @@ class SushiswapV2Factory(Model):
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
-        return self.get_uniswap_pools(self.context, input, contract.address)
+        return self.get_uniswap_pools(self.context, input.address, contract.address)
 
 
 @Model.describe(slug="sushiswap.all-pools",
@@ -117,8 +117,7 @@ class SushiswapGetTokenPriceInfo(Model):
                                        local=True)
 
         model_slug = 'uniswap-v2.get-pool-price-info'
-        model_inputs = [DexPoolPriceInput(token=input,
-                                          pool=pool,
+        model_inputs = [DexPoolPriceInput(address=pool.address,
                                           price_slug='sushiswap.get-weighted-price')
                         for pool in pools]
 

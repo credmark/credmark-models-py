@@ -45,6 +45,6 @@ class CirculatingCMK(Model):
         cmk_token = Token(symbol='CMK')
 
         for addr in lockedAddresses:
-            supply = supply - cmk_token.balance_of(Address(addr))
+            supply = supply - cmk_token.balance_of(Address(addr).checksum)
 
         return {'result': supply}

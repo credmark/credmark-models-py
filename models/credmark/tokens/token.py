@@ -4,10 +4,13 @@ from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
-                                Maybe, Price, Token)
+from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Maybe,
+                                Price, Token)
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
+from web3 import Web3
+
+SLOT_EIP1967 = hex(int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
 
 
 def get_eip1967_proxy(context, logger, address, verbose):
@@ -15,8 +18,6 @@ def get_eip1967_proxy(context, logger, address, verbose):
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
-    default_proxy_address = ''.join(['0'] * 40)
-
     token = Token(address=address)
 
     # trigger loading
@@ -32,11 +33,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
-    proxy_address = context.web3.eth.get_storage_at(
-        token.address,
-        '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
-    if proxy_address[-40:] != default_proxy_address:
-        proxy_address = '0x' + proxy_address[-40:]
+    proxy_address = Address(context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
+    if not proxy_address.is_null():
         token_implemenation = Token(address=proxy_address)
         # TODO: Work around before we can load proxy in the past based on block number.
         if (token._meta.is_transparent_proxy and
