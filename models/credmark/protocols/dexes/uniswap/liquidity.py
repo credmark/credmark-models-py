@@ -22,7 +22,7 @@ class V3PoolLiquidityByTicksOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-liquidity-by-ticks',
-                version='1.8',
+                version='0.0',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
@@ -49,13 +49,12 @@ class UniswapV3LiquidityHistorical(Model):
         change_on_tick = {}
         liquidity_pos_on_tick = {}
 
-        liquidity = current_liquidity
-        x = 0
-        tick_b = tick_bottom
-
         min_tick = self.MIN_TICK if input.min_tick is None else input.min_tick
         max_tick = self.MAX_TICK if input.max_tick is None else input.max_tick
 
+        liquidity = current_liquidity
+        x = 0
+        tick_b = tick_bottom
         while tick_b >= min_tick:
             ticks = pool_contract.functions.ticks(tick_b).call()
             if ticks[1] != 0:
@@ -133,7 +132,10 @@ def price_to_tick(price):
     return log(price) / log(UNISWAP_BASE)
 
 
-def get_amount_in_ticks(logger, pool_contract: 'Contract', token0: 'Token', token1: 'Token', change_on_tick: Dict[int, int], should_print_tick=False):
+def get_amount_in_ticks(logger, pool_contract: 'Contract',
+                        token0: 'Token', token1: 'Token',
+                        change_on_tick: Dict[int, int],
+                        should_print_tick=False):
     # pylint:disable=line-too-long
     """
     Reference: https://github.com/atiselsts/uniswap-v3-liquidity-math/blob/master/subgraph-liquidity-range-example.py
@@ -145,7 +147,7 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract', token0: 'Token', toke
     slot0 = pool_contract.functions.slot0().call()
     current_tick = slot0[1]
     current_price = tick_to_price(current_tick)
-    adjusted_current_price = current_price / (10 ** (decimals1 - decimals0))
+    _adjusted_current_price = current_price / (10 ** (decimals1 - decimals0))
 
     tick_spacing = pool_contract.functions.tickSpacing().call()
 
@@ -216,7 +218,7 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract', token0: 'Token', toke
 
 
 @ Model.describe(slug='uniswap-v3.get-amount-in-ticks',
-                 version='1.8',
+                 version='0.0',
                  display_name='Uniswap v3 - Liquidity',
                  description='Liquidity at every range - restored from Mint/Burn events',
                  category='protocol',
@@ -234,9 +236,8 @@ class UniswapV3AmountInTicks(Model):
         token0 = Token(address=Address(token0_addr).checksum)
         token1 = Token(address=Address(token1_addr).checksum)
 
-        df_pool = get_amount_in_ticks(self.logger, pool_contract, token0, token1, liquidity_by_ticks.change_on_tick)
-
-        breakpoint()
+        df_pool = get_amount_in_ticks(self.logger, pool_contract, token0, token1,
+                                      liquidity_by_ticks.change_on_tick)
 
         return df_pool.to_dict()
 
@@ -249,7 +250,7 @@ def plot_liquidity_amount(context):
 
     out = context.run_model(
         'uniswap-v3.get-amount-in-ticks',
-        {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+        {"address": pool.address,
          "min_tick": current_tick-1000,
          "max_tick": current_tick+1000},
         block_number=12377278)
@@ -269,11 +270,11 @@ def plot_liquidity_amount(context):
 
     out = context.run_model(
         'uniswap-v3.get-amount-in-ticks',
-        {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+        {"address": pool.address,
          "min_tick": 186730,
          "max_tick": 198080},
         block_number=12377278)
 
     out = context.run_model(
         'uniswap-v3.get-amount-in-ticks',
-        {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"})
+        {"address": pool.address})

@@ -75,6 +75,7 @@ class CMKGetVestingAccounts(Model):
                         fromBlock=0,
                         toBlock=self.context.block_number
                     ).get_all_entries()
+
                 except ValueError:
                     # Some Eth node does not support the newer eth_newFilter method
                     try:

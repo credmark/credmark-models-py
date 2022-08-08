@@ -1,12 +1,14 @@
+from collections import namedtuple
+from math import log
+
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
                                 Some, Token)
-from credmark.cmf.types.token import get_token_from_configuration
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO
+from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -18,7 +20,7 @@ np.seterr(all='raise')
 class UniswapV3PoolInfo(DTO):
     address: Address
     sqrtPriceX96: float
-    tick: int
+    current_tick: int
     tick_bottom: int
     tick_top: int
     observationIndex: int
@@ -27,10 +29,12 @@ class UniswapV3PoolInfo(DTO):
     feeProtocol: int
     unlocked: bool
     liquidity: float
-    tick_liquidity_token0: float
-    tick_liquidity_token1: float
-    virtual_liquidity_token0: float
-    virtual_liquidity_token1: float
+    full_tick_liquidity0: float
+    full_tick_liquidity1: float
+    one_tick_liquidity0: float
+    one_tick_liquidity1: float
+    virtual_liquidity0: float
+    virtual_liquidity1: float
     fee: int
     token0: Token
     token1: Token
@@ -46,6 +50,8 @@ class UniswapV3PoolInfo(DTO):
     ratio_price1: float
     tick_price0: float
     tick_price1: float
+    is_primary_pool: bool
+    primary_address: Address
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
@@ -56,29 +62,29 @@ class UniswapV3PoolInfo(DTO):
                 subcategory='uniswap-v3',
                 input=Token,
                 output=Contracts)
-class UniswapV3GetPoolsForToken(Model):
-    PRIMARY_TOKENS = {
-        Network.Mainnet:
-        [Address(get_token_from_configuration('1', 'USDC')['address']),  # type: ignore
-         Address(get_token_from_configuration('1', 'WETH')['address']),  # type: ignore
-         Address(get_token_from_configuration('1', 'DAI')['address'])]  # type: ignore
-    }
-
+class UniswapV3GetPools(Model):
     UNISWAP_V3_FACTORY_ADDRESS = {
         Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     }
 
     def run(self, input: Token) -> Contracts:
         fees = [100, 500, 3000, 10000]
-        if self.context.chain_id != 1:
-            return Contracts(contracts=[])
-
         try:
+            primary_tokens = self.context.run_model('dex.primary-tokens',
+                                                    input=EmptyInput(),
+                                                    return_type=Some[Address]).some
+
+            # For stablecoins, exclude use WETH pools.
+            # In those pools, the price for stablecoins in those pools will always be 1.
+            weth_address = Token('WETH').address
+            if input.address not in primary_tokens and input.address != weth_address:
+                primary_tokens.append(weth_address)
+
             addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network]
             uniswap_factory = Contract(address=addr)
             pools = []
             for fee in fees:
-                for primary_token in self.PRIMARY_TOKENS[self.context.network]:
+                for primary_token in primary_tokens:
                     if input.address == primary_token:
                         continue
                     if input.address.to_int() < primary_token.to_int():
@@ -101,21 +107,61 @@ class UniswapV3GetPoolsForToken(Model):
             return Contracts(contracts=[])
 
 
-@ Model.describe(slug='uniswap-v3.get-pool-info',
-                 version='1.8',
-                 display_name='Uniswap v3 Token Pools Info',
-                 description='The Uniswap v3 pools that support a token contract',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 input=Contract,
-                 output=UniswapV3PoolInfo)
+Tick = namedtuple("Tick",
+                  ("liquidityGross liquidityNet feeGrowthOutside0X128 feeGrowthOutside1X128 "
+                   "tickCumulativeOutside secondsPerLiquidityOutsideX128 secondsOutside "
+                   "initialized"))
+
+
+# pylint:disable=invalid-name
+# out-of-range
+def out_of_range(liquidity, sb, sa):
+    amount0 = int(liquidity * (sb - sa) / (sb * sa))
+    amount1 = int(liquidity * (sb - sa))
+    return amount0, amount1
+
+
+def in_range(liquidity, sb, sa, sp):
+    amount0 = int(liquidity * (sb - sp) / (sb * sp))
+    amount1 = int(liquidity * (sp - sa))
+    return amount0, amount1
+
+
+@Model.describe(slug='uniswap-v3.get-pool-info',
+                version='1.8',
+                display_name='Uniswap v3 Token Pools Info',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=Contract,
+                output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
     UNISWAP_BASE = 1.0001
+    # v3/TickMath.sol
+    MIN_TICK = -887272
+    MAX_TICK = 887272
+
+    # tick spacing
+    # 1
+    # 10
+    # 60
+    # 200
 
     def tick_to_price(self, tick):
         return pow(self.UNISWAP_BASE, tick)
 
+    def price_to_tick(self, price):
+        return log(price) / log(self.UNISWAP_BASE)
+
     def run(self, input: Contract) -> UniswapV3PoolInfo:
+        primary_tokens = self.context.run_model('dex.primary-tokens',
+                                                input=EmptyInput(),
+                                                return_type=Some[Address],
+                                                local=True).some
+
+        # Count WETH-pool as primary pool
+        primary_tokens.append(Token('WETH').address)
+
         try:
             _ = input.abi
         except ModelDataError:
@@ -126,44 +172,63 @@ class UniswapV3GetPoolInfo(Model):
         slot0 = pool.functions.slot0().call()
         sqrtPriceX96 = slot0[0]
         fee = pool.functions.fee().call()
-        ticks = pool.functions.ticks(slot0[1]).call()
-        _liquidityGross = ticks[0]
-        _liquidityNet = ticks[1]
+        ticks = Tick(*pool.functions.ticks(slot0[1]).call())
+        _liquidityGross = ticks.liquidityGross
+        _liquidityNet = ticks.liquidityNet
 
         token0_addr = pool.functions.token0().call()
         token1_addr = pool.functions.token1().call()
-        token0 = Token(address=token0_addr)
-        token1 = Token(address=token1_addr)
+        token0 = Token(address=Address(token0_addr).checksum)
+        token1 = Token(address=Address(token1_addr).checksum)
         token0 = fix_erc20_token(token0)
         token1 = fix_erc20_token(token1)
         token0_symbol = token0.symbol
         token1_symbol = token1.symbol
 
-        token0_balance = token0.balance_of_scaled(input.address)
-        token1_balance = token1.balance_of_scaled(input.address)
+        is_primary_pool = token0.address in primary_tokens and token1.address in primary_tokens
+        if token0.address in primary_tokens:
+            primary_address = token0.address
+        elif token1.address in primary_tokens:
+            primary_address = token1.address
+        else:
+            primary_address = Address.null()
+
+        token0_balance = token0.balance_of_scaled(input.address.checksum)
+        token1_balance = token1.balance_of_scaled(input.address.checksum)
 
         # 1. Liquidity for virutal amount of x and y
         liquidity = pool.functions.liquidity().call()
 
         # 2. To calculate liquidity within the range of tick
         # Get the current tick and tick_spacing for the pool (set based on the fee)
-        tick = slot0[1]
+        current_tick = slot0[1]
         tick_spacing = pool.functions.tickSpacing().call()
-        # Compute the current price
-        p_current = self.tick_to_price(tick)
 
         # Compute the tick range near the current tick
-        tick_bottom = (np.floor(tick / tick_spacing)) * tick_spacing
+        tick_bottom = current_tick // tick_spacing * tick_spacing
         tick_top = tick_bottom + tick_spacing
-        assert tick_bottom <= tick <= tick_top
+        assert tick_bottom <= current_tick <= tick_top
+
+        # Compute the current price
+        # p_current = 1.0001 ** tick
+        # tick = log(p_current) / log(1.0001)
+        p_current = self.tick_to_price(current_tick)
+
+        # lets say currentTick is 5 , then Liquiditys are like this:
+        #             2  -> Liquidity = Liquidity at tick3  - LiquidityNet at tick2
+        #             3  -> Liquidity = Liquidity at tick4  - LiquidityNet at tick3
+        #             4  -> Liquidity = Liquidity at tick5  - LiquidityNet at tick4
+        # currentTick 5  -> Liquidity = pools Liquidity
+        #             6  -> Liquidity = Liquidity at tick5  + LiquidityNet at tick6
+        #             7  -> Liquidity = Liquidity at tick6  + LiquidityNet at tick7
 
         # Compute square roots of prices corresponding to the bottom and top ticks
-        sa = self.tick_to_price(tick_bottom // 2)
-        sb = self.tick_to_price(tick_top // 2)
+        sa = self.tick_to_price(tick_bottom / 2)
+        sb = self.tick_to_price(tick_top / 2)
         sp = p_current ** 0.5
 
-        in_tick_amount0 = liquidity * (1 / sp - 1 / sb)
-        in_tick_amount1 = liquidity * (sp - sa)
+        # Liquidity in 1 tick
+        in_tick_amount0, in_tick_amount1 = in_range(liquidity, sb, sa, sp)
 
         # Scale the amounts to the token's unit
         adjusted_in_tick_amount0 = token0.scaled(in_tick_amount0)
@@ -175,13 +240,30 @@ class UniswapV3GetPoolInfo(Model):
             (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
             float(liquidity * liquidity))
 
+        sa_p = self.tick_to_price((current_tick - 1) / 2)
+        sb_p = self.tick_to_price((current_tick + 1) / 2)
+
+        # Liquidity in 1 tick
+        if current_tick == tick_bottom:
+            tick1_amount0, tick1_amount1 = out_of_range(liquidity-_liquidityNet, sp, sa_p)
+            # _tick1_amount0 == 0, tick1_amount1 = in_range(liquidity, sb_p, sp, sp)
+        elif current_tick == tick_top:
+            # tick1_amount0, _tick1_amount1 == 0 = in_range(liquidity, sp, sa_p, sp)
+            tick1_amount0, tick1_amount1 = out_of_range(liquidity+_liquidityNet, sb_p, sp)
+        else:
+            tick1_amount0, tick1_amount1 = in_range(liquidity, sb_p, sa_p, sp)
+            # equivalent to
+            # _tick1_amount0 == 0, _tick1_amount1 = in_range(liquidity, sp, sa_p, sp)
+            # tick1_amount0, _tick1_amount1 == 0 = in_range(liquidity, sb_p, sp, sp)
+
+        one_tick_liquidity0 = token0.scaled(tick1_amount0)
+        one_tick_liquidity1 = token1.scaled(tick1_amount1)
+
+        # Combined liquidity
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        _tick_liquidity_combined_in_0 = in_tick_amount0 + in_tick_amount1 / p_current
-        _tick_liquidity_combined_in_1 = _tick_liquidity_combined_in_0 * p_current
-
-        _tick_liquidity_combined_s_in_0 = token0.scaled(_tick_liquidity_combined_in_0)
-        _tick_liquidity_combined_s_in_1 = token1.scaled(_tick_liquidity_combined_in_1)
+        _tick_liquidity_combined0 = in_tick_amount0 + in_tick_amount1 / p_current
+        _tick_liquidity_combined1 = _tick_liquidity_combined0 * p_current
 
         # Calculate the virtual liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.1
@@ -189,7 +271,11 @@ class UniswapV3GetPoolInfo(Model):
         virtual_y = token1.scaled(liquidity * sp)
 
         scale_multiplier = (10 ** (token0.decimals - token1.decimals))
-        tick_price0 = 1.0001 ** tick * scale_multiplier
+        tick_price0 = 1.0001 ** current_tick * scale_multiplier
+
+        _tick_price_bottom0 = 1.0001 ** tick_bottom * scale_multiplier
+        _tick_price_top0 = 1.0001 ** tick_top * scale_multiplier
+
         ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
         tick_price1 = 1/tick_price0
@@ -198,7 +284,7 @@ class UniswapV3GetPoolInfo(Model):
         return UniswapV3PoolInfo(
             address=input.address,
             sqrtPriceX96=sqrtPriceX96,
-            tick=tick,
+            current_tick=current_tick,
             tick_bottom=tick_bottom,
             tick_top=tick_top,
             observationIndex=slot0[2],
@@ -213,11 +299,13 @@ class UniswapV3GetPoolInfo(Model):
             token0_symbol=token0_symbol,
             token1_symbol=token1_symbol,
             liquidity=liquidity,
-            tick_liquidity_token0=adjusted_in_tick_amount0,
-            tick_liquidity_token1=adjusted_in_tick_amount1,
+            full_tick_liquidity0=adjusted_in_tick_amount0,
+            full_tick_liquidity1=adjusted_in_tick_amount1,
+            one_tick_liquidity0=one_tick_liquidity0,
+            one_tick_liquidity1=one_tick_liquidity1,
             fee=fee,
-            virtual_liquidity_token0=virtual_x,
-            virtual_liquidity_token1=virtual_y,
+            virtual_liquidity0=virtual_x,
+            virtual_liquidity1=virtual_y,
             tick_spacing=tick_spacing,
             sqrt_current_price=sp,
             sqrt_lower_price=sa,
@@ -225,65 +313,84 @@ class UniswapV3GetPoolInfo(Model):
             tick_price0=tick_price0,
             tick_price1=tick_price1,
             ratio_price0=ratio_price0,
-            ratio_price1=ratio_price1)
+            ratio_price1=ratio_price1,
+            is_primary_pool=is_primary_pool,
+            primary_address=primary_address)
 
 
-@ Model.describe(slug='uniswap-v3.get-pool-price-info',
-                 version='0.8',
-                 display_name='Uniswap v3 Token Pools Info for Price',
-                 description='Extract price information for a UniV3 pool',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 input=DexPoolPriceInput,
-                 output=PoolPriceInfo)
+@Model.describe(slug='uniswap-v3.get-pool-price-info',
+                version='0.9',
+                display_name='Uniswap v3 Token Pools Info for Price',
+                description='Extract price information for a UniV3 pool',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=DexPoolPriceInput,
+                output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
     def run(self, input: DexPoolPriceInput) -> PoolPriceInfo:
         info = self.context.run_model('uniswap-v3.get-pool-info',
-                                      input=input.pool,
+                                      input=input,
                                       return_type=UniswapV3PoolInfo,
                                       local=True)
-        weth_price = None
 
-        tick_price = info.tick_price0
-        tick_liquidity = info.tick_liquidity_token0
-        _virtual_liquidity = info.virtual_liquidity_token0
-        ratio_price = info.ratio_price0
+        tick_price_usd0 = info.tick_price0
+        one_tick_liquidity0 = info.one_tick_liquidity0
 
-        _inverse = False
-        if input.token.address == info.token1.address:
-            tick_price = 1/tick_price
-            ratio_price = 1/ratio_price
-            _inverse = True
-            tick_liquidity = info.tick_liquidity_token1
-            _virtual_liquidity = info.virtual_liquidity_token1
+        tick_price_usd1 = 1/tick_price_usd0
+        one_tick_liquidity1 = info.one_tick_liquidity1
 
-        weth_multiplier = 1.0
+        ref_price = 1.0
         weth_address = Token('WETH').address
-        if input.token.address != weth_address:
-            if weth_address in (info.token1.address, info.token0.address):
-                if weth_price is None:
-                    weth_price = self.context.run_model(input.price_slug,
-                                                        {'address': weth_address},
-                                                        return_type=Price,
-                                                        local=True)
-                    if weth_price.price is None:
-                        raise ModelRunError('Can not retriev price for WETH')
 
-                    weth_price = weth_price.price
-                weth_multiplier = weth_price
+        # 1. If both are stablecoins (non-WETH): do nothing
+        # 2. If SB-WETH: use SB to price WETH
+        # 3. If WETH-X: use WETH to price
+        # 4. If SB-X: use SB to price
 
-        tick_price *= weth_multiplier
-        ratio_price *= weth_multiplier
+        if info.is_primary_pool:
+            if info.token0.address == weth_address:
+                ref_price = self.context.run_model(input.price_slug,
+                                                   info.token1,
+                                                   return_type=Price).price
+                tick_price_usd1 = ref_price
+                tick_price_usd0 *= ref_price
 
-        pool_price_info = PoolPriceInfo(src=self.slug,
-                                        price=tick_price,
-                                        tick_liquidity=tick_liquidity,
+            if info.token1.address == weth_address:
+                ref_price = self.context.run_model(input.price_slug,
+                                                   info.token0,
+                                                   return_type=Price).price
+                tick_price_usd0 = ref_price
+                tick_price_usd1 *= ref_price
+        else:
+            if not info.primary_address.is_null():
+                ref_price = self.context.run_model(input.price_slug,
+                                                   {'address': info.primary_address},
+                                                   return_type=Price).price
+                if ref_price is None:
+                    raise ModelRunError('Can not retriev price for WETH')
+
+                if info.token0.address == info.primary_address:
+                    tick_price_usd0 = ref_price
+                    tick_price_usd1 *= ref_price
+
+                if info.token1.address == info.primary_address:
+                    tick_price_usd0 *= ref_price
+                    tick_price_usd1 = ref_price
+
+        pool_price_info = PoolPriceInfo(src=input.price_slug,
+                                        price_usd0=tick_price_usd0,
+                                        price_usd1=tick_price_usd1,
+                                        one_tick_liquidity0=one_tick_liquidity0,
+                                        one_tick_liquidity1=one_tick_liquidity1,
+                                        full_tick_liquidity0=info.full_tick_liquidity0,
+                                        full_tick_liquidity1=info.full_tick_liquidity1,
                                         token0_address=info.token0.address,
                                         token1_address=info.token1.address,
                                         token0_symbol=info.token0_symbol,
                                         token1_symbol=info.token1_symbol,
-                                        weth_multiplier=weth_multiplier,
-                                        pool_address=input.pool.address)
+                                        ref_price=ref_price,
+                                        pool_address=input.address,
+                                        tick_spacing=info.tick_spacing)
         return pool_price_info
 
 
@@ -303,8 +410,7 @@ class UniswapV3GetTokenPoolInfo(Model):
                                        local=True)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
-        model_inputs = [DexPoolPriceInput(token=input,
-                                          pool=pool,
+        model_inputs = [DexPoolPriceInput(address=pool.address,
                                           price_slug='uniswap-v3.get-weighted-price')
                         for pool in pools.contracts]
 

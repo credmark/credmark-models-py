@@ -205,7 +205,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.balance_of_scaled(input.address) for t in tokens]
+        balances_token = [t.balance_of_scaled(input.address.checksum) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 

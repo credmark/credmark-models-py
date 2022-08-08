@@ -75,7 +75,8 @@ class GetBalancerAllPools(Model):
         vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
         with vault.ledger.events.PoolRegistered as q:
             df = q.select(columns=[q.EVT_BLOCK_NUMBER, q.POOLADDRESS],
-                          order_by=q.EVT_BLOCK_NUMBER, limit=5000).to_dataframe()
+                          order_by=q.EVT_BLOCK_NUMBER,
+                          limit=5000).to_dataframe()
 
         contracts = []
         for _n, r in df.iterrows():

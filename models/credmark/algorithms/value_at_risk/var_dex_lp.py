@@ -62,7 +62,7 @@ class UniswapPoolVaR(Model):
                                              return_type=UniswapV3PoolInfo)
             scale_multiplier = (10 ** (v3_info.token0.decimals - v3_info.token1.decimals))
             # p_0 = tick_price = token0 / token1
-            p_0 = 1.0001 ** v3_info.tick * scale_multiplier
+            p_0 = 1.0001 ** v3_info.current_tick * scale_multiplier
 
         t_unit, count = self.context.historical.parse_timerangestr(input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
