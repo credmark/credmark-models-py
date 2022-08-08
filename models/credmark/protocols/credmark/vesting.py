@@ -69,9 +69,10 @@ class CMKGetVestingAccounts(Model):
         accounts = set()
         accounts_info = []
         for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-            def _use_filter(ctt):
+
+            def _use_filter(contract):
                 try:
-                    vesting_added_events = ctt.events.VestingScheduleAdded.createFilter(
+                    vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
                         fromBlock=0,
                         toBlock=self.context.block_number
                     ).get_all_entries()
@@ -79,13 +80,13 @@ class CMKGetVestingAccounts(Model):
                 except ValueError:
                     # Some Eth node does not support the newer eth_newFilter method
                     try:
-                        vesting_added_events = ctt.fetch_events(
-                            input.events.VestingScheduleAdded,
+                        vesting_added_events = contract.fetch_events(
+                            contract.events.VestingScheduleAdded,
                             from_block=0,
                             to_block=self.context.block_number)
                     except (ReadTimeoutError, ReadTimeout):
                         raise ModelRunError(
-                            f'There was timeout error when reading logs for {ctt.address}')
+                            f'There was timeout error when reading logs for {contract.address}')
 
                 for vae in vesting_added_events:
                     acc = vae['args']['account']
@@ -93,8 +94,8 @@ class CMKGetVestingAccounts(Model):
                         accounts.add(acc)
                         accounts_info.append(Account(address=acc))
 
-            def _use_ledger(ctt):
-                with ctt.ledger.events.VestingScheduleAdded as q:
+            def _use_ledger(contract):
+                with contract.ledger.events.VestingScheduleAdded as q:
                     ledger_events = (q.select(
                         columns=q.columns,
                         order_by=q.ACCOUNT,

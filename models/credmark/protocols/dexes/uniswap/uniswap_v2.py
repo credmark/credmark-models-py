@@ -167,7 +167,8 @@ class UniswapPoolPriceInfo(Model):
                                                    {'address': primary_address},
                                                    return_type=Price).price
                 if ref_price is None:
-                    raise ModelRunError(f'Can not retriev price for {Token(address=primary_address)}')
+                    raise ModelRunError(f'Can not retriev price for '
+                                        f'{Token(address=primary_address)}')
 
                 if token0.address == primary_address:
                     tick_price_usd0 = ref_price
@@ -465,7 +466,7 @@ class DexPoolSwapVolumeHistorical(Model):
                     with pool.ledger.events.TokenExchange as q:
                         df_all_swap_1 = (q.select(
                             aggregates=(
-                                [(f'sum({q[field]})', f'{q[field]}')
+                                [(q[field].as_integer().sum_(), q[field])
                                  for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
                                 [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
                                   'interval_n')] +
@@ -489,7 +490,7 @@ class DexPoolSwapVolumeHistorical(Model):
                     with pool.ledger.events.TokenExchangeUnderlying as q:
                         df_all_swap_2 = (q.select(
                             aggregates=(
-                                [(q[field].sum_().str(), f'{q[field]}')
+                                [(q[field].as_integer().sum_().str(), f'{q[field]}')
                                     for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
                                 [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
                                     'interval_n')] +

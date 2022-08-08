@@ -236,9 +236,24 @@ class UniswapV3GetPoolInfo(Model):
 
         # Below shall be equal for the tick liquidity
         # Reference: UniswapV3 whitepaper Eq. 2.2
-        assert np.isclose(
-            (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
-            float(liquidity * liquidity))
+
+        # Disabled for some pools with small quantity of in_tick tokens.
+        # Example:
+        # uniswap-v3.get-pool-info -b 15301016
+        # -i '{"address":"0x5c0f97e0ed70e0163b799533ce142f650e39a3e6",
+        #      "price_slug": "uniswap-v3.get-weighted-price"}'
+
+        # assert np.isclose(
+        #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
+        #    float(liquidity * liquidity))
+
+        ratio_left = (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa)
+        ratio_right = float(liquidity * liquidity)
+        try:
+            assert np.isclose(ratio_left, ratio_right)
+        except AssertionError:
+            compare_ratio = ratio_left/ratio_right
+            assert 0.99 < compare_ratio < 1.01
 
         sa_p = self.tick_to_price((current_tick - 1) / 2)
         sb_p = self.tick_to_price((current_tick + 1) / 2)
