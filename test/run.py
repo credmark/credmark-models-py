@@ -49,13 +49,15 @@ if __name__ == '__main__':
                         help=('Run tests in serial'))
     parser.add_argument('-p', '--parallel_count', type=int, default=None,
                         help=('Paralle count'))
+    parser.add_argument('--api_url', type=str, default='http://localhost:8700',
+                        help=('API to use'))
 
     args = vars(parser.parse_args())
     CMKTest.type = args['type']
 
     if args['type'] == 'test':
         sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
-        CMKTest.post_flag = ['-l', '-', '--api_url=http://localhost:8700']
+        CMKTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
         CMKTest.pre_flag = ['--model_path', 'x']
         parallel_count = 20 if args['parallel_count'] is None else args['parallel_count']
     elif args['type'] == 'prod':
@@ -70,6 +72,8 @@ if __name__ == '__main__':
     else:
         print(f'Unknown test type {args["type"]}')
         sys.exit()
+
+    print(f'Run with flags of: {CMKTest.pre_flag} {CMKTest.post_flag}')
 
     CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
 

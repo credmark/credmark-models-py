@@ -94,6 +94,30 @@ class TestCurve(CMKTest):
         # TODO
         # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
 
+    def test_pool_info(self):
+        block_number = 15311050
+        curve_pools = ['0x961226b64ad373275130234145b96d100dc0b655',
+                        '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511',
+                        '0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c',
+                        '0xd658A338613198204DCa1143Ac3F01A722b5d94A',
+                        '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
+                        '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
+                        '0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B',
+                        '0xCEAF7747579696A2F0bb206a14210e3c9e6fB269',
+                        '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46',
+                        '0x5a6A4D54456819380173272A5E8E9B9904BdF41B',
+                        '0x93054188d876f558f4a66B2EF1d97d16eDf0895B',
+                        '0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF',
+                        '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8',
+                        '0x828b154032950C8ff7CF8085D841723Db2696056',
+                        '0x4e0915C88bC70750D68C481540F081fEFaF22273',
+                        '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD',]
+
+        for pool_addr in curve_pools:
+            self.run_model('curve-fi.pool-info', {"address": pool_addr}, block_number=block_number)
+            self.run_model('curve-fi.pool-tvl', {"address": pool_addr}, block_number=block_number)
+
+
     def test_lp_token(self):
         block_number = 14830357
         self.title('Curve - Pool Info from LP')
