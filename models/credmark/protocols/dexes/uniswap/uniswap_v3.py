@@ -1,7 +1,9 @@
+from scipy.optimize import minimize
 from collections import namedtuple
 from math import log
 
 import numpy as np
+import numpy.linalg as nplin
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
@@ -72,7 +74,8 @@ class UniswapV3GetPools(Model):
         try:
             primary_tokens = self.context.run_model('dex.primary-tokens',
                                                     input=EmptyInput(),
-                                                    return_type=Some[Address]).some
+                                                    return_type=Some[Address],
+                                                    local=True).some
 
             # For stablecoins, exclude use WETH pools.
             # In those pools, the price for stablecoins in those pools will always be 1.
@@ -334,7 +337,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.0',
+                version='1.2',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -367,21 +370,24 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
             if info.token0.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    info.token1,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd1 = ref_price
                 tick_price_usd0 *= ref_price
 
             if info.token1.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    info.token0,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd0 = ref_price
                 tick_price_usd1 *= ref_price
         else:
             if not info.primary_address.is_null():
                 ref_price = self.context.run_model(input.price_slug,
                                                    {'address': info.primary_address},
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 if ref_price is None:
                     raise ModelRunError('Can not retriev price for WETH')
 
@@ -410,14 +416,14 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         return pool_price_info
 
 
-@ Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                 version='1.13',
-                 display_name='Uniswap v3 Token Pools Price ',
-                 description='Gather price and liquidity information from pools',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 input=Token,
-                 output=Some[PoolPriceInfo])
+@Model.describe(slug='uniswap-v3.get-pool-info-token-price',
+                version='1.14',
+                display_name='Uniswap v3 Token Pools Price ',
+                description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=Token,
+                output=Some[PoolPriceInfo])
 class UniswapV3GetTokenPoolInfo(Model):
     def run(self, input: Token) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v3.get-pools',
@@ -462,3 +468,84 @@ class UniswapV3GetTokenPoolInfo(Model):
         infos = _use_for(local=True)
 
         return Some[PoolPriceInfo](some=infos)
+
+
+class PriceAddress(Price):
+    address: Address
+
+
+@Model.describe(slug='uniswap-v3.get-weighted-price-primary-tokens',
+                version='0.1',
+                display_name='Uniswap V3 - Obtain value of stable coins',
+                description='Derive value of each coin from their 2-pools',
+                category='protocol',
+                subcategory='dex',
+                tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'stablecoin'],
+                output=Some[PriceAddress])
+class DexPrimaryTokensUniV3(Model):
+    def run(self, _) -> Some[PriceAddress]:
+        primary_tokens = self.context.run_model('dex.primary-tokens',
+                                                input=EmptyInput(),
+                                                return_type=Some[Address],
+                                                local=True).some
+
+        # tokens = primary_tokens[:2]
+        # tokens = primary_tokens[1:]
+        # tokens = [primary_tokens[0], primary_tokens[2]]
+        tokens = primary_tokens
+
+        prices = {}
+        weights = []
+        for tok_addr in tokens:
+            pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
+                                                input={'address': tok_addr},
+                                                return_type=Some[PoolPriceInfo])
+
+            df = (pool_infos
+                  .to_dataframe()
+                  .assign(
+                      price_t=lambda x, addr=str(tok_addr): x.price_usd0.where(
+                          x.token0_address == addr,
+                          x.price_usd1),
+                      tick_liquidity_t=lambda x, addr=str(tok_addr): x.one_tick_liquidity0.where(
+                          x.token0_address == addr,
+                          x.one_tick_liquidity1),
+                      other_token_t=lambda x, addr=str(tok_addr): x.token0_address.where(
+                          x.token0_address != addr,
+                          x.token1_address))
+                  .assign(tick_liquidity_norm=(lambda x:
+                                               x.tick_liquidity_t / x.tick_liquidity_t.sum()))
+                  .assign(price_x_liq=lambda x: x.price_t * x.tick_liquidity_norm)
+                  .query('other_token_t.isin(@tokens)')
+                  )
+
+            weight = {}
+            weight[tok_addr] = -df.tick_liquidity_norm.sum()
+            weight |= (df
+                       .groupby('other_token_t')
+                       .price_x_liq
+                       .sum()
+                       .to_dict())
+            prices[tok_addr] = df.price_x_liq.sum()
+
+            weights.append(weight)
+
+        a = np.array([
+            [w.get(tok_addr, 0) for tok_addr in tokens]
+            for w in weights])
+
+        def opt_target(x):
+            return ((x - 1)**2).sum()
+            # (a.dot(x)**2).sum() +
+
+        # try optimize
+        x0 = np.zeros(shape=(len(tokens), 1))
+        _opt_result = minimize(opt_target, x0, method='nelder-mead',
+                               options={'xatol': 1e-8, 'disp': False})
+
+        # try linear system
+        b = np.zeros(shape=(len(tokens), 1))
+        _lin_result = nplin.solve(a, b)
+
+        return Some(some=[PriceAddress(price=v, src=self.slug, address=k)
+                          for k, v in prices.items()])

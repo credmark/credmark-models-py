@@ -10,6 +10,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, PoolPriceAggregatorInput,
                                PoolPriceInfo)
+from web3.exceptions import BadFunctionCallOutput
 
 
 @Model.describe(slug='dex.primary-tokens',
@@ -32,7 +33,7 @@ class DexPrimaryTokens(Model):
                 _ = (t.deployed_block_number is not None and
                      t.deployed_block_number >= self.context.block_number)
                 valid_tokens.append(t.address)
-            except BlockNumberOutOfRangeError:
+            except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
                 pass
         return Some(some=valid_tokens)
 
@@ -210,17 +211,17 @@ class PriceInfoFromDex(Model):
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return all_pool_infos
 
-        def _use_for():
+        def _use_for(local):
             all_pool_infos = []
             for mrun in model_inputs:
                 infos = self.context.run_model(mrun['modelSlug'],
                                                mrun['modelInputs'][0],
                                                Some[PoolPriceInfo],
-                                               local=True)
+                                               local=local)
                 all_pool_infos.extend(infos.some)
             return all_pool_infos
 
-        return Some[PoolPriceInfo](some=_use_for())
+        return Some[PoolPriceInfo](some=_use_for(local=True))
 
 
 @ Model.describe(slug='price.dex-blended-maybe',

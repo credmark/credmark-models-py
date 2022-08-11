@@ -63,7 +63,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -83,7 +83,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -151,21 +151,24 @@ class UniswapPoolPriceInfo(Model):
             if token0.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    token1,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd1 = ref_price
                 tick_price_usd0 *= ref_price
 
             if token1.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    token0,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd0 = ref_price
                 tick_price_usd1 *= ref_price
         else:
             if not primary_address.is_null():
                 ref_price = self.context.run_model(input.price_slug,
                                                    {'address': primary_address},
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 if ref_price is None:
                     raise ModelRunError(f'Can not retriev price for '
                                         f'{Token(address=primary_address)}')

@@ -299,6 +299,7 @@ class CurveFinancePoolInfo(Model):
             return token_prices
 
         token_prices = _use_for()
+
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
