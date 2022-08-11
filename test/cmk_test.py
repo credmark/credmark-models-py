@@ -3,10 +3,11 @@
 import json
 import logging
 import sys
+from datetime import datetime, timedelta
+from importlib import import_module
 from types import ModuleType
 from typing import List, Optional
 from unittest import TestCase
-from importlib import import_module
 
 
 class CMKTest(TestCase):
@@ -62,15 +63,20 @@ class CMKTest(TestCase):
             return
 
         succeed = False
+        start = None
+        duration = timedelta(seconds=0)
         try:
+            start = datetime.now()
             self.test_main.main()
         except SystemExit as err:
             logging.info(f'{err=}, {err.code=}, Expected {exit_code=}')
             self.assertTrue(err.code == exit_code)
             succeed = True
         finally:
+            if start is not None:
+                duration = datetime.now() - start
             logging.info(
-                f'{"Finished" if succeed else "Failed"} case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}): {cmd_line}')
+                f'{"Finished" if succeed else "Failed"} case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}) {duration.total_seconds():.2f}: {cmd_line}')
             if self.fail_first and not succeed:
                 sys.exit()
 
