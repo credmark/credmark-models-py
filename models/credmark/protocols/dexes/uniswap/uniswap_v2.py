@@ -151,21 +151,24 @@ class UniswapPoolPriceInfo(Model):
             if token0.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    token1,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd1 = ref_price
                 tick_price_usd0 *= ref_price
 
             if token1.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    token0,
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 tick_price_usd0 = ref_price
                 tick_price_usd1 *= ref_price
         else:
             if not primary_address.is_null():
                 ref_price = self.context.run_model(input.price_slug,
                                                    {'address': primary_address},
-                                                   return_type=Price).price
+                                                   return_type=Price,
+                                                   local=True).price
                 if ref_price is None:
                     raise ModelRunError(f'Can not retriev price for '
                                         f'{Token(address=primary_address)}')
