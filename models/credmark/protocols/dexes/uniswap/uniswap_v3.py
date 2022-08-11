@@ -1,4 +1,3 @@
-import pandas as pd
 from scipy.optimize import minimize
 from collections import namedtuple
 from math import log
