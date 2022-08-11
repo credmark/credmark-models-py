@@ -1,9 +1,11 @@
-from scipy.optimize import minimize
+# pylint: disable=locally-disabled, unused-import
+
 from collections import namedtuple
 from math import log
 
 import numpy as np
 import numpy.linalg as nplin
+import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
@@ -14,6 +16,7 @@ from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+from scipy.optimize import minimize
 from web3.exceptions import BadFunctionCallOutput
 
 np.seterr(all='raise')
@@ -470,8 +473,9 @@ class UniswapV3GetTokenPoolInfo(Model):
         return Some[PoolPriceInfo](some=infos)
 
 
-class PriceAddress(Price):
+class TokenPrice(Price):
     address: Address
+    symbol: str
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-primary-tokens',
@@ -481,9 +485,9 @@ class PriceAddress(Price):
                 category='protocol',
                 subcategory='dex',
                 tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'stablecoin'],
-                output=Some[PriceAddress])
+                output=Some[TokenPrice])
 class DexPrimaryTokensUniV3(Model):
-    def run(self, _) -> Some[PriceAddress]:
+    def run(self, _) -> Some[TokenPrice]:
         primary_tokens = self.context.run_model('dex.primary-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
@@ -496,6 +500,7 @@ class DexPrimaryTokensUniV3(Model):
 
         prices = {}
         weights = []
+        all_dfs = []
         for tok_addr in tokens:
             pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
                                                 input={'address': tok_addr},
@@ -504,6 +509,7 @@ class DexPrimaryTokensUniV3(Model):
             df = (pool_infos
                   .to_dataframe()
                   .assign(
+                      token_t=tok_addr,
                       price_t=lambda x, addr=str(tok_addr): x.price_usd0.where(
                           x.token0_address == addr,
                           x.price_usd1),
@@ -518,6 +524,8 @@ class DexPrimaryTokensUniV3(Model):
                   .assign(price_x_liq=lambda x: x.price_t * x.tick_liquidity_norm)
                   .query('other_token_t.isin(@tokens)')
                   )
+
+            all_dfs.append(df)
 
             weight = {}
             weight[tok_addr] = -df.tick_liquidity_norm.sum()
@@ -540,12 +548,20 @@ class DexPrimaryTokensUniV3(Model):
 
         # try optimize
         x0 = np.zeros(shape=(len(tokens), 1))
-        _opt_result = minimize(opt_target, x0, method='nelder-mead',
-                               options={'xatol': 1e-8, 'disp': False})
+        try:
+            _opt_result = minimize(opt_target, x0, method='nelder-mead',
+                                   options={'xatol': 1e-8, 'disp': False})
+        except Exception as _err:
+            pass
 
         # try linear system
         b = np.zeros(shape=(len(tokens), 1))
-        _lin_result = nplin.solve(a, b)
+        try:
+            _lin_result = nplin.solve(a, b)
+        except Exception as _err:
+            pass
 
-        return Some(some=[PriceAddress(price=v, src=self.slug, address=k)
+        # pd.concat(all_dfs).to_csv(f'tmp/primary_{self.context.block_number}_{len(primary_tokens)}.csv')
+
+        return Some(some=[TokenPrice(price=v, src=self.slug, address=k, symbol=Token(k).symbol)
                           for k, v in prices.items()])
