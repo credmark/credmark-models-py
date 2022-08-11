@@ -338,7 +338,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -534,140 +534,6 @@ class DexPrimaryTokensUniV3(Model):
         a = np.array([
             [w.get(tok_addr, 0) for tok_addr in tokens]
             for w in weights])
-
-        pd.DataFrame(a).to_csv('tmp/a0.csv')
-
-        tokens = primary_tokens[:2]
-
-        prices = {}
-        weights = []
-        for tok_addr in tokens:
-            pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
-                                                input={'address': tok_addr},
-                                                return_type=Some[PoolPriceInfo])
-
-            df = (pool_infos
-                  .to_dataframe()
-                  .assign(
-                      price_t=lambda x, addr=str(tok_addr): x.price_usd0.where(
-                          x.token0_address == addr,
-                          x.price_usd1),
-                      tick_liquidity_t=lambda x, addr=str(tok_addr): x.one_tick_liquidity0.where(
-                          x.token0_address == addr,
-                          x.one_tick_liquidity1),
-                      other_token_t=lambda x, addr=str(tok_addr): x.token0_address.where(
-                          x.token0_address != addr,
-                          x.token1_address))
-                  .assign(tick_liquidity_norm=(lambda x:
-                                               x.tick_liquidity_t / x.tick_liquidity_t.sum()))
-                  .assign(price_x_liq=lambda x: x.price_t * x.tick_liquidity_norm)
-                  .query('other_token_t.isin(@tokens)')
-                  )
-
-            weight = {}
-            weight[tok_addr] = -df.tick_liquidity_norm.sum()
-            weight |= (df
-                       .groupby('other_token_t')
-                       .price_x_liq
-                       .sum()
-                       .to_dict())
-            prices[tok_addr] = df.price_x_liq.sum()
-
-            weights.append(weight)
-
-        a = np.array([
-            [w.get(tok_addr, 0) for tok_addr in tokens]
-            for w in weights])
-
-        pd.DataFrame(a).to_csv('tmp/a1.csv')
-
-        tokens = primary_tokens[1:]
-
-        prices = {}
-        weights = []
-        for tok_addr in tokens:
-            pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
-                                                input={'address': tok_addr},
-                                                return_type=Some[PoolPriceInfo])
-
-            df = (pool_infos
-                  .to_dataframe()
-                  .assign(
-                      price_t=lambda x, addr=str(tok_addr): x.price_usd0.where(
-                          x.token0_address == addr,
-                          x.price_usd1),
-                      tick_liquidity_t=lambda x, addr=str(tok_addr): x.one_tick_liquidity0.where(
-                          x.token0_address == addr,
-                          x.one_tick_liquidity1),
-                      other_token_t=lambda x, addr=str(tok_addr): x.token0_address.where(
-                          x.token0_address != addr,
-                          x.token1_address))
-                  .assign(tick_liquidity_norm=(lambda x:
-                                               x.tick_liquidity_t / x.tick_liquidity_t.sum()))
-                  .assign(price_x_liq=lambda x: x.price_t * x.tick_liquidity_norm)
-                  .query('other_token_t.isin(@tokens)')
-                  )
-
-            weight = {}
-            weight[tok_addr] = -df.tick_liquidity_norm.sum()
-            weight |= (df
-                       .groupby('other_token_t')
-                       .price_x_liq
-                       .sum()
-                       .to_dict())
-            prices[tok_addr] = df.price_x_liq.sum()
-
-            weights.append(weight)
-
-        a = np.array([
-            [w.get(tok_addr, 0) for tok_addr in tokens]
-            for w in weights])
-
-        pd.DataFrame(a).to_csv('tmp/a2.csv')
-
-        tokens = [primary_tokens[0], primary_tokens[2]]
-
-        prices = {}
-        weights = []
-        for tok_addr in tokens:
-            pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
-                                                input={'address': tok_addr},
-                                                return_type=Some[PoolPriceInfo])
-
-            df = (pool_infos
-                  .to_dataframe()
-                  .assign(
-                      price_t=lambda x, addr=str(tok_addr): x.price_usd0.where(
-                          x.token0_address == addr,
-                          x.price_usd1),
-                      tick_liquidity_t=lambda x, addr=str(tok_addr): x.one_tick_liquidity0.where(
-                          x.token0_address == addr,
-                          x.one_tick_liquidity1),
-                      other_token_t=lambda x, addr=str(tok_addr): x.token0_address.where(
-                          x.token0_address != addr,
-                          x.token1_address))
-                  .assign(tick_liquidity_norm=(lambda x:
-                                               x.tick_liquidity_t / x.tick_liquidity_t.sum()))
-                  .assign(price_x_liq=lambda x: x.price_t * x.tick_liquidity_norm)
-                  .query('other_token_t.isin(@tokens)')
-                  )
-
-            weight = {}
-            weight[tok_addr] = -df.tick_liquidity_norm.sum()
-            weight |= (df
-                       .groupby('other_token_t')
-                       .price_x_liq
-                       .sum()
-                       .to_dict())
-            prices[tok_addr] = df.price_x_liq.sum()
-
-            weights.append(weight)
-
-        a = np.array([
-            [w.get(tok_addr, 0) for tok_addr in tokens]
-            for w in weights])
-
-        pd.DataFrame(a).to_csv('tmp/a3.csv')
 
         def opt_target(x):
             return ((x - 1)**2).sum()
