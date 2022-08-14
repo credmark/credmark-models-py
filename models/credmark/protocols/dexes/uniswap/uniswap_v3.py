@@ -375,16 +375,12 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                                                    info.token1,
                                                    return_type=Price,
                                                    local=True).price
-                tick_price_usd1 = ref_price
-                tick_price_usd0 *= ref_price
 
             if info.token1.address == weth_address:
                 ref_price = self.context.run_model(input.price_slug,
                                                    info.token0,
                                                    return_type=Price,
                                                    local=True).price
-                tick_price_usd0 = ref_price
-                tick_price_usd1 *= ref_price
         else:
             if not info.primary_address.is_null():
                 ref_price = self.context.run_model(input.price_slug,
@@ -393,14 +389,6 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                                                    local=True).price
                 if ref_price is None:
                     raise ModelRunError('Can not retriev price for WETH')
-
-                if info.token0.address == info.primary_address:
-                    tick_price_usd0 = ref_price
-                    tick_price_usd1 *= ref_price
-
-                if info.token1.address == info.primary_address:
-                    tick_price_usd0 *= ref_price
-                    tick_price_usd1 = ref_price
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
                                         price_usd0=tick_price_usd0,
