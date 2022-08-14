@@ -549,7 +549,8 @@ class DexPrimaryTokensUniV3(Model):
         except Exception as _err:
             pass
 
-        # pd.concat(all_dfs).to_csv(f'tmp/primary_{self.context.block_number}_{len(primary_tokens)}.csv')
+        # (pd.concat(all_dfs)
+        # .to_csv(f'tmp/primary_{self.context.block_number}_{len(primary_tokens)}.csv'))
 
         return Some(some=[TokenPrice(price=v, src=self.slug, address=k, symbol=Token(k).symbol)
                           for k, v in prices.items()])
