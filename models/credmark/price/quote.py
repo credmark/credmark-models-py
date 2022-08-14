@@ -71,7 +71,7 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.7',
+                version='1.8',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -82,22 +82,32 @@ class PriceQuoteHistorical(Model):
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultiple(Model):
     def run(self, input: Some[PriceInput]) -> Some[Price]:
-        token_prices_run = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': 'price.quote', 'modelInputs': input.some},
-            return_type=MapInputsOutput[PriceInput, Price])
+        price_slug = 'price.quote'
 
-        prices = []
-        for p in token_prices_run:
-            if p.output is not None:
-                prices.append(p.output)
-            elif p.error is not None:
-                self.logger.error(p.error)
-                raise create_instance_from_error_dict(p.error.dict())
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+        def _use_compose():
+            token_prices_run = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': price_slug, 'modelInputs': input.some},
+                return_type=MapInputsOutput[PriceInput, Price])
 
-        return Some[Price](some=prices)
+            prices = []
+            for p in token_prices_run:
+                if p.output is not None:
+                    prices.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise create_instance_from_error_dict(p.error.dict())
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+
+            return Some[Price](some=prices)
+
+        def _use_for():
+            prices = [self.context.run_model(price_slug, input=m, return_type=Price)
+                      for m in input]
+            return Some[Price](some=prices)
+
+        return _use_for()
 
 
 @Model.describe(slug='price',

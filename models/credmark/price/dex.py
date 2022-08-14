@@ -73,7 +73,7 @@ class PoolPriceAggregator(Model):
               .to_dataframe()
               .assign(
             price_t=lambda x: x.price_usd0.where(x.token0_address == input.token.address,
-                                                 x.price_usd1),
+                                                 x.price_usd1) * x.ref_price,
             tick_liquidity_t=lambda x: x.one_tick_liquidity0.where(
                 x.token0_address == input.token.address, x.one_tick_liquidity1))
               )
