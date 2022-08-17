@@ -83,8 +83,8 @@ if __name__ == '__main__':
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
-    allTests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
-    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in allTests])
+    all_tests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
+    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
 
     runner = unittest.TextTestRunner()
     if args['serial']:
