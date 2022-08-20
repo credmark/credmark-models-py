@@ -18,7 +18,7 @@ class MinRiskOutput(DTO):
                 category='financial',
                 input=EmptyInput,
                 output=MinRiskOutput)
-class Minrisk(Model):
+class MinRisk(Model):
     """
     Doc is
         https://docs.credmark.com/smart-money-in-defi/investment-concepts/minimum-risk-rate-of-defi
