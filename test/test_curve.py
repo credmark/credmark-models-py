@@ -47,6 +47,12 @@ class TestCurve(CMKTest):
         # Curve.fi : 0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6
         self.run_model('curve-fi.pool-info', {"address": "0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6"})
 
+        # Curve.fi :
+        self.run_model('curve-fi.pool-info', {"address": "0x42d7025938bEc20B69cBae5A77421082407f053A"})
+
+        # Curve.fi :
+        self.run_model('curve-fi.pool-info', {"address": "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1"})
+
         # Curve.fi renBTC/wBTC: 0x93054188d876f558f4a66b2ef1d97d16edf0895b
         self.run_model('curve-fi.pool-info', {"address": "0x93054188d876f558f4a66b2ef1d97d16edf0895b"})
 
