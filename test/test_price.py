@@ -147,7 +147,7 @@ class TestPrice(CMKTest):
         self.title('Price - Historical')
         self.run_model('price.quote', {'base': 'AAVE'}, block_number=11266884)
 
-    def test_general(self):
+    def test_price_general(self):
         self.title('Price - General')
 
         self.run_model('price.dex-blended', {"symbol": "CMK"})  # price.pool-aggregator
