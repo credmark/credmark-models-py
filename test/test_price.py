@@ -262,7 +262,7 @@ class TestPrice(CMKTest):
                                "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}, block_number=block_number)  # __all__
 
 
-def run_test_chainlink(self, tok):
+def run_test_price_mix(self, tok):
     block_number = 15000108
     self.run_model('price.quote', {"base": {"address": tok},
                                    "quote": {"symbol": "USD"}}, block_number=block_number)
@@ -289,5 +289,5 @@ def run_test_chainlink(self, tok):
 
 
 for n, token in enumerate(TestPrice.CHAINLINK_TOKENS):
-    setattr(TestPrice, f'test_chainlink_{n+1}',
-            lambda self, token=token: run_test_chainlink(self, tok=token))
+    setattr(TestPrice, f'test_price_mix_{n+1}',
+            lambda self, token=token: run_test_price_mix(self, tok=token))
