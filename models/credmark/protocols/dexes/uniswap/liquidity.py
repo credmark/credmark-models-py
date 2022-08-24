@@ -4,13 +4,18 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import pandas as pd
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO, DTOField
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+
+UNISWAP_V3_MIN_TICK = -887272
+UNISWAP_V3_MAX_TICK = 887272
 
 
 class V3PoolLiquidityByTicksInput(Contract):
-    min_tick: Optional[int] = DTOField(None, description='(Optional) minimal tick to search')
-    max_tick: Optional[int] = DTOField(None, description='(Optional) maximum tick to search')
+    min_tick: int = DTOField(UNISWAP_V3_MIN_TICK, description='(Optional) minimal tick to search')
+    max_tick: int = DTOField(UNISWAP_V3_MAX_TICK, description='(Optional) maximum tick to search')
 
 
 class V3PoolLiquidityByTicksOutput(DTO):
@@ -30,11 +35,13 @@ class V3PoolLiquidityByTicksOutput(DTO):
                 input=V3PoolLiquidityByTicksInput,
                 output=V3PoolLiquidityByTicksOutput)
 class UniswapV3LiquidityHistorical(Model):
-    MIN_TICK = -887272
-    MAX_TICK = 887272
-
     def run(self, input: V3PoolLiquidityByTicksInput) -> V3PoolLiquidityByTicksOutput:
         pool_contract = input
+
+        try:
+            _ = pool_contract.abi
+        except ModelDataError:
+            pool_contract = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
 
         current_liquidity = pool_contract.functions.liquidity().call()
         slot0 = pool_contract.functions.slot0().call()
@@ -49,8 +56,8 @@ class UniswapV3LiquidityHistorical(Model):
         change_on_tick = {}
         liquidity_pos_on_tick = {}
 
-        min_tick = self.MIN_TICK if input.min_tick is None else input.min_tick
-        max_tick = self.MAX_TICK if input.max_tick is None else input.max_tick
+        min_tick = input.min_tick
+        max_tick = input.max_tick
 
         liquidity = current_liquidity
         x = 0
@@ -92,8 +99,11 @@ class UniswapV3LiquidityHistorical(Model):
             tick_spacing=tick_spacing)
 
 
-def plot_liquidity(context):
-    pool = Contract(address='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640')
+def plot_liquidity(context,
+                   pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
+                   upper_range=1000,
+                   lower_range=1000):
+    pool = Contract(address=pool_addr, abi=UNISWAP_V3_POOL_ABI)
 
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
@@ -103,16 +113,21 @@ def plot_liquidity(context):
 
     out = context.run_model(
         'uniswap-v3.get-liquidity-by-ticks',
-        {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
-         "min_tick": current_tick-1000,
-         "max_tick": current_tick+1000})
+        {"address": pool_addr,
+         "min_tick": current_tick-lower_range,
+         "max_tick": current_tick+upper_range},
+        block_number=context.block_number)
 
-    (pd.DataFrame([(int(k), int(v)) for k, v in out['liquidity'].items()],
-                  columns=['tick', 'liquidity'])
-        .plot('tick', 'liquidity')
-     )
+    df_pool_mode = (pd.DataFrame([(int(k), int(v)) for k, v in out['liquidity'].items()],
+                                 columns=['tick', 'liquidity'])
+                    .astype({'liquidity': 'float64'}))
+
+    df_pool_mode.plot('tick', 'liquidity')
+
     plt.scatter(current_tick, current_liquidity, color='red')
     plt.show()
+
+    return df_pool_mode, pool
 
 
 UNISWAP_BASE = 1.0001
@@ -132,11 +147,16 @@ def price_to_tick(price):
     return log(price) / log(UNISWAP_BASE)
 
 
-def get_amount_in_ticks(logger, pool_contract: 'Contract',
-                        token0: 'Token', token1: 'Token',
+# pylint:disable=too-many-arguments
+def get_amount_in_ticks(logger,
+                        pool_contract: 'Contract',
+                        token0: 'Token',
+                        token1: 'Token',
                         change_on_tick: Dict[int, int],
+                        min_tick: int,
+                        max_tick: int,
                         should_print_tick=False):
-    # pylint:disable=line-too-long
+    # pylint:disable=line-too-long, too-many-locals
     """
     Reference: https://github.com/atiselsts/uniswap-v3-liquidity-math/blob/master/subgraph-liquidity-range-example.py
     """
@@ -146,6 +166,7 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract',
 
     slot0 = pool_contract.functions.slot0().call()
     current_tick = slot0[1]
+
     current_price = tick_to_price(current_tick)
     _adjusted_current_price = current_price / (10 ** (decimals1 - decimals0))
 
@@ -158,8 +179,8 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract',
 
     token_amounts = []
 
-    min_tick = min(change_on_tick.keys())
-    max_tick = max(change_on_tick.keys())
+    min_tick = min_tick if len(change_on_tick.keys()) == 0 else min(change_on_tick.keys())
+    max_tick = max_tick if len(change_on_tick.keys()) == 0 else max(change_on_tick.keys())
 
     for tick in range(min_tick, max_tick, tick_spacing):
         liquidity += change_on_tick.get(tick, 0)
@@ -211,8 +232,7 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract',
         .assign(token0_locked_scaled=lambda x, dec=token0_dec: x.token0_locked / dec,
                 token1_locked_scaled=lambda x, dec=token1_dec: x.token1_locked / dec,
                 token0_locked_prop=lambda x, bal=token0_bal: x.token0_locked / bal,
-                token1_locked_prop=lambda x, bal=token1_bal: x.token1_locked / bal
-                )
+                token1_locked_prop=lambda x, bal=token1_bal: x.token1_locked / bal)
     )
     return df_pool
 
@@ -228,53 +248,88 @@ def get_amount_in_ticks(logger, pool_contract: 'Contract',
 class UniswapV3AmountInTicks(Model):
     def run(self, input: V3PoolLiquidityByTicksInput) -> dict:
         liquidity_by_ticks = self.context.run_model(
-            'uniswap-v3.get-liquidity-by-ticks', input, return_type=V3PoolLiquidityByTicksOutput)
+            'uniswap-v3.get-liquidity-by-ticks',
+            input,
+            return_type=V3PoolLiquidityByTicksOutput)
 
         pool_contract = input
+
+        try:
+            _ = pool_contract.abi
+        except ModelDataError:
+            pool_contract = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
+
         token0_addr = pool_contract.functions.token0().call()
         token1_addr = pool_contract.functions.token1().call()
         token0 = Token(address=Address(token0_addr).checksum)
         token1 = Token(address=Address(token1_addr).checksum)
 
-        df_pool = get_amount_in_ticks(self.logger, pool_contract, token0, token1,
-                                      liquidity_by_ticks.change_on_tick)
+        df_pool = get_amount_in_ticks(self.logger,
+                                      pool_contract,
+                                      token0, token1,
+                                      liquidity_by_ticks.change_on_tick,
+                                      min_tick=input.min_tick,
+                                      max_tick=input.max_tick)
 
         return df_pool.to_dict()
 
 
-def plot_liquidity_amount(context):
-    pool = Contract(address='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640')
+def plot_liquidity_amount(context,
+                          pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
+                          upper_range: Optional[int] = 1000,
+                          lower_range: Optional[int] = 1000):
+    pool = Contract(address=pool_addr, abi=UNISWAP_V3_POOL_ABI)
+
+    token0_addr = pool.functions.token0().call()
+    token1_addr = pool.functions.token1().call()
+    token0 = Token(address=Address(token0_addr).checksum)
+    token1 = Token(address=Address(token1_addr).checksum)
+
+    scale_multiplier = (10 ** (token0.decimals - token1.decimals))
+
+    def tick_to_price_with_scaling(tick, scale_multiplier=scale_multiplier):
+        return 1.0001 ** tick * scale_multiplier
 
     slot0 = pool.functions.slot0().call()
     current_tick = slot0[1]
+    current_price = tick_to_price_with_scaling(current_tick)
+
+    context.logger.info(f'{current_tick=} {current_price=}')
 
     out = context.run_model(
         'uniswap-v3.get-amount-in-ticks',
         {"address": pool.address,
-         "min_tick": current_tick-1000,
-         "max_tick": current_tick+1000},
-        block_number=12377278)
+         "min_tick": (UNISWAP_V3_MIN_TICK if lower_range is None
+                      else max(current_tick-lower_range, UNISWAP_V3_MIN_TICK)),
+         "max_tick": (UNISWAP_V3_MAX_TICK if upper_range is None
+                      else min(current_tick+upper_range, UNISWAP_V3_MAX_TICK))},
+        block_number=context.block_number)
 
     df_pool = pd.DataFrame(out)
     df_pool.token0_locked_prop.sum()  # close to 1
     df_pool.token1_locked_prop.sum()  # close to 1
 
-    (df_pool
-        .astype({'token0_locked': 'float64', 'token1_locked': 'float64'})
-        .plot(x='tick',
-              y=['liquidity', 'token0_locked', 'token1_locked'],
-              sharex=True,
-              subplots=True,
-              kind='line'))
+    df_pool_mod = (
+        df_pool
+        .astype({'token0_locked': 'float64', 'token1_locked': 'float64', 'liquidity': 'float64'})
+        .assign(price=lambda x: tick_to_price_with_scaling(x.tick)))
+
+    (df_pool_mod.plot(x='tick',
+                      y=['liquidity', 'token0_locked', 'token1_locked'],
+                      sharex=True,
+                      subplots=True,
+                      kind='line'))
+    plt.title(pool_addr)
     plt.show()
 
-    out = context.run_model(
-        'uniswap-v3.get-amount-in-ticks',
-        {"address": pool.address,
-         "min_tick": 186730,
-         "max_tick": 198080},
-        block_number=12377278)
+    (df_pool_mod.plot(x='price',
+                      y=['liquidity', 'token0_locked_scaled', 'token1_locked_scaled',
+                          'token0_locked_prop', 'token1_locked_prop'],
+                      sharex=True,
+                      subplots=True,
+                      kind='line'))
+    plt.title(pool_addr)
+    plt.plot(current_price, df_pool_mod.token1_locked_prop.max())
+    plt.show()
 
-    out = context.run_model(
-        'uniswap-v3.get-amount-in-ticks',
-        {"address": pool.address})
+    return df_pool_mod, pool

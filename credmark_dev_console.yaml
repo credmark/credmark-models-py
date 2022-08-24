@@ -13,4 +13,6 @@ imports:
     - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfo
     - models.dtos.volume.TokenTradingVolume
     - models.dtos.price.PoolPriceInfo
-    - models.dtos.price.PoolPriceAggregatorInput
+    - models.dtos.price.DexPoolAggregationInput
+    - models.dtos.price.DexPriceTokenInput
+    - models.dtos.price.DexPricePoolInput

@@ -4,9 +4,10 @@ from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
                                 Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
-    UniswapV2PoolMeta)
-from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
+    UniswapV2PoolMeta
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
+                               PoolPriceInfo)
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -102,24 +103,28 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.8',
+                version='1.9',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
                 subcategory='sushi',
-                input=Token,
+                input=DexPriceTokenInput,
                 output=Some[PoolPriceInfo])
 class SushiswapGetTokenPriceInfo(Model):
-    def run(self, input: Token) -> Some[PoolPriceInfo]:
+    def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
                                        return_type=Contracts,
                                        local=True)
 
         model_slug = 'uniswap-v2.get-pool-price-info'
-        model_inputs = [DexPoolPriceInput(address=pool.address,
-                                          price_slug='sushiswap.get-weighted-price')
-                        for pool in pools]
+        model_inputs = [
+            DexPricePoolInput(
+                address=pool.address,
+                price_slug='sushiswap.get-weighted-price',
+                weight_power=input.weight_power,
+                debug=input.debug)
+            for pool in pools]
 
         def _use_compose():
             pool_infos = self.context.run_model(

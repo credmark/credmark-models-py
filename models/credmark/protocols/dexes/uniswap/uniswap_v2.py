@@ -12,7 +12,8 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
-from models.dtos.price import DexPoolPriceInput, PoolPriceInfo
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
+                               PoolPriceInfo)
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
@@ -83,19 +84,19 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.10',
+                version='1.11',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=DexPoolPriceInput,
+                input=DexPricePoolInput,
                 output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
     """
 
-    def run(self, input: DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
+    def run(self, input: DexPricePoolInput) -> Maybe[PoolPriceInfo]:
         pool = input
         try:
             _ = pool.abi
@@ -122,11 +123,11 @@ class UniswapPoolPriceInfo(Model):
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        tick_price_usd0 = scaled_reserve1 / scaled_reserve0
+        tick_price0 = scaled_reserve1 / scaled_reserve0
         full_tick_liquidity0 = scaled_reserve0
         one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
 
-        tick_price_usd1 = 1 / tick_price_usd0
+        tick_price1 = 1 / tick_price0
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
 
@@ -149,28 +150,40 @@ class UniswapPoolPriceInfo(Model):
 
         if is_primary_pool:
             if token0.address == weth_address:
-                ref_price = self.context.run_model(input.price_slug,
-                                                   token1,
-                                                   return_type=Price,
-                                                   local=True).price
+                ref_price = self.context.run_model(
+                    slug=input.price_slug,
+                    input=DexPriceTokenInput(
+                        **token1.dict(),
+                        weight_power=input.weight_power,
+                        debug=input.debug),
+                    return_type=Price,
+                    local=True).price
             if token1.address == weth_address:
-                ref_price = self.context.run_model(input.price_slug,
-                                                   token0,
-                                                   return_type=Price,
-                                                   local=True).price
+                ref_price = self.context.run_model(
+                    slug=input.price_slug,
+                    input=DexPriceTokenInput(
+                        **token0.dict(),
+                        weight_power=input.weight_power,
+                        debug=input.debug),
+                    return_type=Price,
+                    local=True).price
         else:
             if not primary_address.is_null():
-                ref_price = self.context.run_model(input.price_slug,
-                                                   {'address': primary_address},
-                                                   return_type=Price,
-                                                   local=True).price
+                ref_price = self.context.run_model(
+                    slug=input.price_slug,
+                    input=DexPriceTokenInput(
+                        address=primary_address,
+                        weight_power=input.weight_power,
+                        debug=input.debug),
+                    return_type=Price,
+                    local=True).price
                 if ref_price is None:
                     raise ModelRunError(f'Can not retriev price for '
                                         f'{Token(address=primary_address)}')
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
-                                        price_usd0=tick_price_usd0,
-                                        price_usd1=tick_price_usd1,
+                                        price0=tick_price0,
+                                        price1=tick_price1,
                                         one_tick_liquidity0=one_tick_liquidity0,
                                         one_tick_liquidity1=one_tick_liquidity1,
                                         full_tick_liquidity0=full_tick_liquidity0,
@@ -187,24 +200,28 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=Token,
+                input=DexPriceTokenInput,
                 output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
-    def run(self, input: Token) -> Some[PoolPriceInfo]:
+    def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v2.get-pools',
                                        input,
                                        return_type=Contracts,
                                        local=True)
 
         model_slug = 'uniswap-v2.get-pool-price-info'
-        model_inputs = [DexPoolPriceInput(address=pool.address,
-                                          price_slug='uniswap-v2.get-weighted-price')
-                        for pool in pools]
+        model_inputs = [
+            DexPricePoolInput(
+                address=pool.address,
+                price_slug='uniswap-v2.get-weighted-price',
+                weight_power=input.weight_power,
+                debug=input.debug)
+            for pool in pools]
 
         def _use_compose():
             pool_infos = self.context.run_model(

@@ -152,7 +152,7 @@ class ChainLinkPriceByRegistry(Model):
                               f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                self.logger.info(f'No feed found for {base_address}/{quote_address}')
+                self.logger.debug(f'No feed found for {base_address}/{quote_address}')
                 raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
             raise err
         finally:
