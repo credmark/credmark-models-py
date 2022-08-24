@@ -102,9 +102,9 @@ class UniswapFee(Model):
         df_tx_swap = df_tx_total.merge(df_groupby_hash.loc[(
             df_groupby_hash.token_address == 2), ['transaction_hash']], how='inner')
 
-        self.logger.info((f'{df_tx_swap.shape},'
+        self.logger.debug((f'{df_tx_swap.shape},'
                           f'Block({df_tx_swap.block_number.min()},'
-                          f'{df_tx_swap.block_number.max()})'))
+                           f'{df_tx_swap.block_number.max()})'))
         # Summarize the swap transaction from two rows to one row
         full_tx = []
         for dfg, df in df_tx_swap.groupby('transaction_hash', as_index=False):
