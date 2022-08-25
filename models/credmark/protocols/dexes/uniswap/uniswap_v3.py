@@ -391,7 +391,7 @@ class UniswapV3GetPoolInfo(Model):
 class UniswapV3GetTokenPoolPriceInfo(Model):
     def run(self, input: DexPricePoolInput) -> PoolPriceInfo:
         info = self.context.run_model('uniswap-v3.get-pool-info',
-                                      input=input,
+                                      input=Contract(**input.dict()),
                                       return_type=UniswapV3PoolInfo,
                                       local=True)
 
