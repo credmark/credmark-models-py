@@ -105,10 +105,8 @@ class DexWeightedPrice(Model):
 
         pool_aggregator_input = DexPoolAggregationInput(**input.dict(),
                                                         **pool_price_infos)
-        return self.context.run_model('price.pool-aggregator',
-                                      input=pool_aggregator_input,
-                                      return_type=Price,
-                                      local=True)
+
+        return PoolPriceAggregator(self.context).run(pool_aggregator_input)
 
 
 @ Model.describe(slug='uniswap-v3.get-weighted-price',
@@ -269,11 +267,11 @@ class PriceFromDexModel(Model):
             **input.dict(),
             some=all_pool_infos)
 
-        # return PoolPriceAggregator(self.context).run(pool_aggregator_input)
-        return self.context.run_model('price.pool-aggregator',
-                                      input=pool_aggregator_input,
-                                      return_type=Price,
-                                      local=True)
+        return PoolPriceAggregator(self.context).run(pool_aggregator_input)
+        # return self.context.run_model('price.pool-aggregator',
+        #                              input=pool_aggregator_input,
+        #                              return_type=Price,
+        #                              local=True)
 
 
 @ Model.describe(slug='price.dex-blended-tokens',
@@ -322,10 +320,6 @@ class PriceFromDexModelTokens(Model):
                 **token_input.dict(),
                 some=all_pool_infos)
 
-            # return PoolPriceAggregator(self.context).run(pool_aggregator_input)
-            return self.context.run_model('price.pool-aggregator',
-                                          input=pool_aggregator_input,
-                                          return_type=Price,
-                                          local=True)
+            return PoolPriceAggregator(self.context).run(pool_aggregator_input)
 
         raise ModelRunError(f'No Token has been specified {input}')
