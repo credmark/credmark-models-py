@@ -335,7 +335,10 @@ class UniswapV3GetPoolInfo(Model):
         ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
         tick_price1 = 1/tick_price0
-        ratio_price1 = 1/ratio_price0
+        if np.isclose(0, ratio_price0):
+            ratio_price1 = 0
+        else:
+            ratio_price1 = 1/ratio_price0
 
         return UniswapV3PoolInfo(
             address=input.address,
