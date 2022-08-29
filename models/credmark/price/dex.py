@@ -162,14 +162,20 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                  category='price',
                  subcategory='dex',
                  tags=['dex', 'price'],
-                 input=Token,
+                 input=DexPriceTokenInput,
                  output=Some[PoolPriceInfo])
 class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
                                              'sushiswap.get-pool-info-token-price',
                                              'uniswap-v3.get-pool-info-token-price']
 
-    def run(self, input: Token) -> Some[PoolPriceInfo]:
+    def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
+        # For testing with other power, set this = default power for the token here
+        # if input.address == '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': # WETH
+        #    input.weight_power = 4.0
+        # if input.address == '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':  # AAVE
+        #    input.weight_power = 4.0
+
         model_inputs = [{"modelSlug": slug, "modelInputs": [input]}
                         for slug in self.DEX_POOL_PRICE_INFO_MODELS]
 
@@ -216,31 +222,6 @@ class PriceInfoFromDex(Model):
         return Some[PoolPriceInfo](some=_use_for(local=True))
 
 
-@ Model.describe(slug='price.dex-blended-maybe',
-                 version='0.3',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=Token,
-                 output=Maybe[Price])
-class PriceFromDexModelMaybe(Model):
-    """
-    Return token's price
-    """
-
-    def run(self, input: Token) -> Maybe[Price]:
-        try:
-            price = self.context.run_model('price.dex-blended', input=input, return_type=Price)
-            return Maybe(just=price)
-        except ModelRunError as err:
-            if 'No pool to aggregate' in err.data.message:
-                return Maybe.none()
-            raise
-
-
 @ Model.describe(slug='price.dex-blended',
                  version='1.12',
                  display_name='Token price - Credmark',
@@ -272,6 +253,31 @@ class PriceFromDexModel(Model):
         #                              input=pool_aggregator_input,
         #                              return_type=Price,
         #                              local=True)
+
+
+@ Model.describe(slug='price.dex-blended-maybe',
+                 version='0.3',
+                 display_name='Token price - Credmark',
+                 description='The Current Credmark Supported Price Algorithms',
+                 developer='Credmark',
+                 category='price',
+                 subcategory='dex',
+                 tags=['dex', 'price'],
+                 input=Token,
+                 output=Maybe[Price])
+class PriceFromDexModelMaybe(Model):
+    """
+    Return token's price
+    """
+
+    def run(self, input: Token) -> Maybe[Price]:
+        try:
+            price = self.context.run_model('price.dex-blended', input=input, return_type=Price)
+            return Maybe(just=price)
+        except ModelRunError as err:
+            if 'No pool to aggregate' in err.data.message:
+                return Maybe.none()
+            raise
 
 
 @ Model.describe(slug='price.dex-blended-tokens',
