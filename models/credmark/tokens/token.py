@@ -198,6 +198,25 @@ class TokenHolders(Model):
         return df.to_dict()
 
 
+@Model.describe(slug='token.holders-all',
+                version='0.2',
+                display_name='Token Holders All',
+                description='All holders of a Token',
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=dict)
+class TokenNumberHolders(Model):
+    def run(self, input: Token) -> dict:
+        with self.context.ledger.TokenBalance as q:
+            df = q.select(aggregates=[],
+                          group_by=[q.ADDRESS],
+                          where=q.TOKEN_ADDRESS.eq(input.address),
+                          having=q.TRANSACTION_VALUE.sum_().gt(0)
+                          ).to_dataframe()
+        return df.to_dict()
+
+
 @Model.describe(slug='token.swap-pools',
                 version='1.0',
                 display_name='Swap Pools for Token',
