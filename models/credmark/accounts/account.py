@@ -123,7 +123,6 @@ class AccountERC20TokenReturn(Model):
                 'total_current_value': total_current_value,
                 'total_return': total_return}
 
-
 @Model.describe(slug='account.token-erc20',
                 version='1.2',
                 display_name='Account Token ERC20',
