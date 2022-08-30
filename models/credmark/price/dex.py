@@ -65,10 +65,6 @@ class PoolPriceAggregator(Model):
             if (ii.token0_address == input.address and ii.one_tick_liquidity0 == 0) or
             (ii.token1_address == input.address and ii.one_tick_liquidity1 == 0)]
 
-        price_src = (f'{self.slug}|'
-                     f'Non-zero:{len(non_zero_pools)}|'
-                     f'Zero:{len(zero_pools)}')
-
         df = (Some(some=input.some)
               .to_dataframe()
               .assign(
@@ -77,6 +73,10 @@ class PoolPriceAggregator(Model):
             tick_liquidity_t=lambda x: x.one_tick_liquidity0.where(
                 x.token0_address == input.address, x.one_tick_liquidity1))
               )
+
+        price_src = (f'{",".join([x.split(".")[0] for x in df.src.unique()])}|'
+                     f'Non-zero:{len(non_zero_pools)}|'
+                     f'Zero:{len(zero_pools)}')
 
         if len(input.some) == 1:
             return Price(price=df.price_t[0], src=price_src)
