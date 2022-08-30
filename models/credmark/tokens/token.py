@@ -389,10 +389,10 @@ class TokenCirculatingSupply(Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled - sum([c.amountScaled for c in response.categories])
+            amountScaled=total_supply_scaled - sum(c.amountScaled for c in response.categories)
         ))
         response.circulatingSupplyScaled = sum(
-            [c.amountScaled for c in response.categories if c.circulating])
+            c.amountScaled for c in response.categories if c.circulating)
         if isinstance(token_price.price, float):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
