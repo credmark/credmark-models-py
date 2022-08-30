@@ -114,7 +114,14 @@ class AccountERC20TokenReturn(Model):
                 'return': tok_return,
             })
 
-        return {'token_returns': all_tokens}
+        total_current_value = sum(x['current_value'] for x in all_tokens
+                                  if x['current_value'] is not None)
+        total_return = sum(x['return'] for x in all_tokens
+                           if x['return'] is not None)
+
+        return {'token_returns': all_tokens,
+                'total_current_value': total_current_value,
+                'total_return': total_return}
 
 
 @Model.describe(slug='account.token-erc20',
