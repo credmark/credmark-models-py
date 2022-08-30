@@ -64,6 +64,10 @@ if __name__ == '__main__':
         CMKTest.post_flag = []
         CMKTest.pre_flag = []
         parallel_count = args['parallel_count']
+    elif args['type'] == 'prod-local':
+        CMKTest.post_flag = ['-l', '*']
+        CMKTest.pre_flag = []
+        parallel_count = args['parallel_count']
     elif args['type'] == 'gw':
         CMKTest.post_flag = ['-l', '-']
         CMKTest.pre_flag = ['--model_path', 'x']
@@ -84,6 +88,9 @@ if __name__ == '__main__':
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
     all_tests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
+
+    all_tests = [TestToken]
+
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
 
     runner = unittest.TextTestRunner()

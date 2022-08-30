@@ -258,7 +258,7 @@ class VaREngineHistorical(Model):
         for i in range(len(input.portfolio.positions)):
             try:
                 linreg_result = sps.linregress(all_ppl_vec, self.all_ppl_arr[:, i])
-                weights[i] = linreg_result.slope
+                weights[i] = linreg_result.slope  # type: ignore
             except ValueError as err:
                 if 'Cannot calcualte a linear regression if all x values are identical' in str(err):
                     weights[i] = 0

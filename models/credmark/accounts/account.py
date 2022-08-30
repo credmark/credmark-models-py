@@ -124,8 +124,8 @@ class AccountsPortfolio(Model):
         for t in set(dict.fromkeys([t['token_address'] for t in token_addresses])):
             try:
                 token = Token(address=t)
-                balance = sum([token.scaled(token.functions.balanceOf(a.address).call())
-                               for a in input])
+                balance = sum(token.scaled(token.functions.balanceOf(a.address).call())
+                              for a in input)
                 if balance > 0.0:
                     found = False
                     for p in positions:

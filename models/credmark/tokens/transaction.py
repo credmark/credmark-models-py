@@ -30,9 +30,10 @@ def create_graph_from_txn(df_txn) -> nx.DiGraph:
 
 
 def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
-    input_nodes = {u for u, deg in dig.in_degree() if not deg}
-    output_nodes = {u for u, deg in dig.out_degree() if not deg}
-    in_and_out_nodes = {u for u, _deg in dig.in_degree()} & {u for u, _deg in dig.out_degree()}
+    input_nodes = {u for u, deg in dig.in_degree() if not deg}  # type: ignore
+    output_nodes = {u for u, deg in dig.out_degree() if not deg}  # type: ignore
+    in_and_out_nodes = ({u for u, _deg in dig.in_degree()} &  # type: ignore
+                        {u for u, _deg in dig.out_degree()})  # type: ignore
 
     swap_nodes = set()
     link_1to1_nodes = set()

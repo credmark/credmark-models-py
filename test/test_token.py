@@ -4,6 +4,16 @@ from cmk_test import CMKTest
 
 
 class TestToken(CMKTest):
+    def test_volume(self):
+        self.run_model('token.overall-volume-block',
+                {'symbol': 'USDC', 'block_number': -1000})
+
+        self.run_model('token.overall-volume-block',
+                {'symbol': 'USDC', 'block_number': self.block_number - 1000})
+
+        self.run_model('token.overall-volume-window',
+                {'symbol': 'USDC', 'window': '24 hours'})
+
     def test_holders(self):
         self.run_model(
             'token.holders',
