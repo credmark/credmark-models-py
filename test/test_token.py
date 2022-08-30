@@ -6,13 +6,13 @@ from cmk_test import CMKTest
 class TestToken(CMKTest):
     def test_volume(self):
         self.run_model('token.overall-volume-block',
-                {'symbol': 'USDC', 'block_number': -1000})
+                       {'symbol': 'USDC', 'block_number': -1000})
 
         self.run_model('token.overall-volume-block',
-                {'symbol': 'USDC', 'block_number': self.block_number - 1000})
+                       {'symbol': 'USDC', 'block_number': self.block_number - 1000})
 
         self.run_model('token.overall-volume-window',
-                {'symbol': 'USDC', 'window': '24 hours'})
+                       {'symbol': 'USDC', 'window': '24 hours'})
 
     def test_holders(self):
         self.run_model(
@@ -80,6 +80,9 @@ class TestToken(CMKTest):
 
         # account.token-erc20
         self.run_model('account.token-erc20', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
+
+        self.run_model('account.token-return', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
+
         self.run_model('account.position-in-curve', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
         self.run_model('account.portfolio', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
         self.run_model('account.portfolio-aggregate', {"accounts": [{"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, {

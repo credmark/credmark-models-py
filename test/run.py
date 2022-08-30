@@ -89,8 +89,6 @@ if __name__ == '__main__':
 
     all_tests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
 
-    all_tests = [TestToken]
-
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
 
     runner = unittest.TextTestRunner()

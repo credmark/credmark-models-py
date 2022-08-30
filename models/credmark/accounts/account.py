@@ -85,7 +85,7 @@ class AccountERC20TokenReturn(Model):
                                                             return_type=Price,
                                                             block_number=r.block_number).price
                         value += -r.value * then_price
-                        self.logger.info((tok_symbol, r.block_number, then_price, r.value))
+                        self.logger.info((r.block_number, tok_symbol, then_price, r.value))
                     except ModelRunError as err:
                         if 'No pool to aggregate for' not in err.data.message:
                             raise
