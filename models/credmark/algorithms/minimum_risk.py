@@ -56,7 +56,7 @@ class MinRisk(Model):
         weighted_supply = 0
         all_sb_supply = 0
         for sb_address, info in sb_debt_infos.items():
-            weighted_rate = sum([r * q for r, q in info]) / sum([q for _r, q in info])
+            weighted_rate = sum(r * q for r, q in info) / sum(q for _r, q in info)
             scaled_supply = sb_tokens[sb_address].scaled(sb_tokens[sb_address].total_supply)
             weighted_supply += weighted_rate * scaled_supply
             all_sb_supply += scaled_supply
