@@ -140,7 +140,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='sushiswap.get-weighted-price',
-                 version='1.4',
+                 version='1.5',
                  display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                  description='The Sushi v2 pools that support a token contract',
                  category='protocol',
@@ -155,7 +155,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='price.dex-pool',
-                 version='0.3',
+                 version='0.4',
                  display_name='',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -223,7 +223,7 @@ class PriceInfoFromDex(Model):
 
 
 @ Model.describe(slug='price.dex-blended',
-                 version='1.12',
+                 version='1.13',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',

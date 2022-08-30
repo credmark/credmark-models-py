@@ -2,6 +2,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
                                 Some, Token)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
@@ -34,7 +35,7 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.4',
+                version='1.5',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
@@ -43,8 +44,13 @@ class SushiswapV2Factory(Model):
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
-        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
-        return self.get_uniswap_pools(self.context, input.address, contract.address)
+        try:
+            contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
+            return self.get_uniswap_pools(self.context, input.address, contract.address)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
 
 
 @Model.describe(slug="sushiswap.all-pools",
@@ -103,7 +109,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.9',
+                version='1.10',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
