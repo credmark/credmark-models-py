@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+from posixpath import split
 import sys
 import unittest
 import testtools
@@ -51,6 +52,8 @@ if __name__ == '__main__':
                         help=('Paralle count'))
     parser.add_argument('--api_url', type=str, default='http://localhost:8700',
                         help=('API to use'))
+    parser.add_argument('-t', '--tests', type=str, default='__all__',
+                        help=('test to run'))
 
     args = vars(parser.parse_args())
     CMKTest.type = args['type']
@@ -77,7 +80,7 @@ if __name__ == '__main__':
         print(f'Unknown test type {args["type"]}')
         sys.exit()
 
-    print(f'Run with flags of: {CMKTest.pre_flag} {CMKTest.post_flag}')
+    print(f'Run with flags of: {CMKTest.pre_flag} {CMKTest.post_flag} {args["tests"]}')
 
     CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
 
@@ -87,7 +90,9 @@ if __name__ == '__main__':
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
-    all_tests = [o for _n, o in locals().items() if inspect.isclass(o) and issubclass(o, CMKTest)]
+    all_tests = [o for _n, o in locals().items()
+                 if inspect.isclass(o) and issubclass(o, CMKTest)
+                 and (args['tests'] == '__all__' or sum(o.__name__.lower().endswith(t) for t in args['tests'].split(",")) == 1)]
 
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
 

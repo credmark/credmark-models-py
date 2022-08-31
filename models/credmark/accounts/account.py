@@ -1,4 +1,5 @@
 import math
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -8,11 +9,22 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 NativePosition, NativeToken, Network,
                                 Portfolio, Position, Price, Token,
                                 TokenPosition, Tokens)
+from credmark.dto import DTO
 
 np.seterr(all='raise')
 
 
-def get_token_history(_context, _address):
+class TokenReturnOutput(DTO):
+    token_returns: List[Dict]
+    total_current_value: float
+    total_return: float
+
+    @classmethod
+    def default(cls):
+        return cls(token_returns=[], total_current_value=0, total_return=0)
+
+
+def get_token_history(_context, _address) -> List:
     with _context.ledger.TokenTransfer as q:
         transfer_cols = [q.BLOCK_NUMBER,
                          q.LOG_INDEX,
@@ -31,7 +43,9 @@ def get_token_history(_context, _address):
                 where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))).parentheses_(),
                 order_by=q.BLOCK_NUMBER,
                 offset=offset).to_dataframe())
-            df_ts.append(df_tt)
+
+            if df_tt.shape[0] > 0:
+                df_ts.append(df_tt)
             if df_tt.shape[0] < 5000:
                 break
             offset += 5000
@@ -39,7 +53,7 @@ def get_token_history(_context, _address):
     return df_ts
 
 
-def token_return(_context, _logger, _df):
+def token_return(_context, _logger, _df) -> TokenReturnOutput:
     all_tokens = []
 
     for tok_address, dfa in _df.groupby('token_address'):
@@ -102,9 +116,10 @@ def token_return(_context, _logger, _df):
     total_return = sum(x['return'] for x in all_tokens
                        if x['return'] is not None)
 
-    return {'token_returns': all_tokens,
-            'total_current_value': total_current_value,
-            'total_return': total_return}
+    return TokenReturnOutput(
+        token_returns=all_tokens,
+        total_current_value=total_current_value,
+        total_return=total_return)
 
 
 @Model.describe(slug='accounts.token-return',
@@ -116,9 +131,9 @@ def token_return(_context, _logger, _df):
                 subcategory='position',
                 tags=['token'],
                 input=Accounts,
-                output=dict)
+                output=TokenReturnOutput)
 class AccountsERC20TokenReturn(Model):
-    def run(self, input: Accounts) -> dict:
+    def run(self, input: Accounts) -> TokenReturnOutput:
         df_tss = []
         for account in input:
             input_address = account.address
@@ -134,7 +149,7 @@ class AccountsERC20TokenReturn(Model):
 
             return token_return(self.context, self.logger, df)
 
-        raise ModelRunError(f'No address found in {input=}.')
+        return TokenReturnOutput.default()
 
 
 @Model.describe(slug='account.token-return',
@@ -146,20 +161,24 @@ class AccountsERC20TokenReturn(Model):
                 subcategory='position',
                 tags=['token'],
                 input=Account,
-                output=dict)
+                output=TokenReturnOutput)
 class AccountERC20TokenReturn(Model):
-    def run(self, input: Account) -> dict:
+    def run(self, input: Account) -> TokenReturnOutput:
         df_ts = get_token_history(self.context, input.address)
-        df = (pd.concat(df_ts)
-                .assign(value=lambda x: x.value.apply(int))
-                .drop_duplicates()
-                .sort_values('block_number')
-                .reset_index(drop=True))
 
-        # If we filter for one token address
-        # df = df.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
+        if len(df_ts) > 0:
+            df = (pd.concat(df_ts)
+                    .assign(value=lambda x: x.value.apply(int))
+                    .drop_duplicates()
+                    .sort_values('block_number')
+                    .reset_index(drop=True))
 
-        return token_return(self.context, self.logger, df)
+            # If we filter for one token address, use below
+            # df = df.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
+
+            return token_return(self.context, self.logger, df)
+
+        return TokenReturnOutput.default()
 
 
 @Model.describe(slug='account.token-erc20',
