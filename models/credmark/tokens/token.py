@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
 
 from credmark.cmf.model import Model
@@ -6,8 +6,8 @@ from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
                                 Contracts, Maybe, Price, Token)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
-from traitlets import default
 from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
@@ -74,6 +74,9 @@ def fix_erc20_token(tok):
     if tok.proxy_for is not None:
         try:
             _ = tok.proxy_for.abi
+        except BlockNumberOutOfRangeError as err:
+            raise BlockNumberOutOfRangeError(
+                err.data.message + f' This is for Contract({tok.address})')
         except ModelDataError:
             tok.proxy_for._loaded = True  # pylint:disable=protected-access
             tok.proxy_for.set_abi(ERC_20_ABI)
@@ -102,7 +105,11 @@ class TokenUnderlying(Model):
             input = try_eip1967
         if input.abi is not None:
             if input.proxy_for is not None:
-                abi_functions = input.proxy_for.abi.functions
+                try:
+                    abi_functions = input.proxy_for.abi.functions
+                except BlockNumberOutOfRangeError as err:
+                    raise BlockNumberOutOfRangeError(
+                        err.data.message + f' This is the proxy for Contract({input.address})')
             else:
                 abi_functions = input.abi.functions
 

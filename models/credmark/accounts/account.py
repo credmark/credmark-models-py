@@ -12,8 +12,129 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
 np.seterr(all='raise')
 
 
-class AccountTokenReturnInput(Account):
-    token: Token
+def get_token_history(_context, _address):
+    with _context.ledger.TokenTransfer as q:
+        transfer_cols = [q.BLOCK_NUMBER,
+                         q.LOG_INDEX,
+                         q.TRANSACTION_HASH,
+                         q.TO_ADDRESS,
+                         q.FROM_ADDRESS,
+                         q.TOKEN_ADDRESS]
+
+        df_ts = []
+        offset = 0
+        while True:
+            df_tt = (q.select(
+                columns=transfer_cols,
+                aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
+                            f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value')],
+                where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))).parentheses_(),
+                order_by=q.BLOCK_NUMBER,
+                offset=offset).to_dataframe())
+            df_ts.append(df_tt)
+            if df_tt.shape[0] < 5000:
+                break
+            offset += 5000
+
+    return df_ts
+
+
+def token_return(_context, _logger, _df):
+    all_tokens = []
+
+    for tok_address, dfa in _df.groupby('token_address'):
+        tok = Token(tok_address)
+
+        try:
+            dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
+        except ModelDataError:
+            if tok.abi is not None and 'decimals' not in tok.abi.functions:
+                continue  # ERC-721`
+            raise
+
+        try:
+            tok_symbol = tok.symbol
+        except ModelRunError:
+            tok_symbol = ''
+
+        balance = 0
+        value = 0
+        for _n, r in dfa.iterrows():
+            balance += r.value
+            if value is not None:
+                try:
+                    then_price = _context.run_model(slug='price.quote',
+                                                    input=dict(base=tok),
+                                                    return_type=Price,
+                                                    block_number=r.block_number).price
+                    value += -r.value * then_price
+                    _logger.info((r.block_number, tok_symbol, then_price, r.value))
+                except ModelRunError as err:
+                    if 'No pool to aggregate for' not in err.data.message:
+                        raise
+                    then_price = None
+                    value = None
+
+        if value is not None:
+            if balance != 0:
+                current_price = _context.run_model(slug='price.quote',
+                                                   input=dict(base=tok),
+                                                   return_type=Price).price
+                current_value = balance * current_price
+            else:
+                current_value = 0.0
+
+            tok_return = value + current_value
+        else:
+            tok_return = None
+            current_value = None
+
+        all_tokens.append({
+            'token_address': tok_address,
+            'token_symbol': tok_symbol,
+            'current_amount': balance,
+            'current_value': current_value,
+            'return': tok_return,
+        })
+
+    total_current_value = sum(x['current_value'] for x in all_tokens
+                              if x['current_value'] is not None)
+    total_return = sum(x['return'] for x in all_tokens
+                       if x['return'] is not None)
+
+    return {'token_returns': all_tokens,
+            'total_current_value': total_current_value,
+            'total_return': total_return}
+
+
+@Model.describe(slug='accounts.token-return',
+                version='0.1',
+                display_name='Account Token Return',
+                description='Account ERC20 Token Return',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=Accounts,
+                output=dict)
+class AccountsERC20TokenReturn(Model):
+    def run(self, input: Accounts) -> dict:
+        df_tss = []
+        for account in input:
+            input_address = account.address
+            df_ts = get_token_history(self.context, input_address)
+            df_tss.extend(df_ts)
+
+        if len(df_tss) > 0:
+            df = (pd.concat(df_tss)
+                    .assign(value=lambda x: x.value.apply(int))
+                    .drop_duplicates()
+                    .sort_values('block_number')
+                    .reset_index(drop=True))
+
+            return token_return(self.context, self.logger, df)
+
+        raise ModelRunError(f'No address found in {input=}.')
 
 
 @Model.describe(slug='account.token-return',
@@ -28,100 +149,18 @@ class AccountTokenReturnInput(Account):
                 output=dict)
 class AccountERC20TokenReturn(Model):
     def run(self, input: Account) -> dict:
-        # pylint:disable=locally-disabled,line-too-long
-        input_address = input.address
+        df_ts = get_token_history(self.context, input.address)
+        df = (pd.concat(df_ts)
+                .assign(value=lambda x: x.value.apply(int))
+                .drop_duplicates()
+                .sort_values('block_number')
+                .reset_index(drop=True))
 
-        with self.context.ledger.TokenTransfer as q:
-            transfer_cols = [q.BLOCK_NUMBER,
-                             q.LOG_INDEX,
-                             q.TRANSACTION_HASH,
-                             q.TO_ADDRESS,
-                             q.FROM_ADDRESS,
-                             q.TOKEN_ADDRESS]
-
-            df_ts = []
-            offset = 0
-            while True:
-                df_tt = (q.select(
-                    columns=transfer_cols,
-                    aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(input.address)} '
-                                f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value')],
-                    where=(q.TO_ADDRESS.eq(input_address).or_(q.FROM_ADDRESS.eq(input_address))).parentheses_(),
-                    order_by=q.BLOCK_NUMBER,
-                    offset=offset).to_dataframe())
-                df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
-
-        df = pd.concat(df_ts).assign(value=lambda x: x.value.apply(int)).drop_duplicates().reset_index(drop=True)
+        # If we filter for one token address
         # df = df.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
 
-        all_tokens = []
+        return token_return(self.context, self.logger, df)
 
-        for tok_address, dfa in df.groupby('token_address'):
-            tok = Token(tok_address)
-
-            try:
-                dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
-            except ModelDataError:
-                if tok.abi is not None and 'decimals' not in tok.abi.functions:
-                    continue  # ERC-721`
-                raise
-
-            try:
-                tok_symbol = tok.symbol
-            except ModelRunError:
-                tok_symbol = ''
-
-            balance = 0
-            value = 0
-            for _n, r in dfa.iterrows():
-                balance += r.value
-                if value is not None:
-                    try:
-                        then_price = self.context.run_model(slug='price.quote',
-                                                            input=dict(base=tok),
-                                                            return_type=Price,
-                                                            block_number=r.block_number).price
-                        value += -r.value * then_price
-                        self.logger.info((r.block_number, tok_symbol, then_price, r.value))
-                    except ModelRunError as err:
-                        if 'No pool to aggregate for' not in err.data.message:
-                            raise
-                        then_price = None
-                        value = None
-
-            if value is not None:
-                if balance != 0:
-                    current_price = self.context.run_model(slug='price.quote',
-                                                           input=dict(base=tok),
-                                                           return_type=Price).price
-                    current_value = balance * current_price
-                else:
-                    current_value = 0.0
-
-                tok_return = value + current_value
-            else:
-                tok_return = None
-                current_value = None
-
-            all_tokens.append({
-                'token_address': tok_address,
-                'token_symbol': tok_symbol,
-                'current_amount': balance,
-                'current_value': current_value,
-                'return': tok_return,
-            })
-
-        total_current_value = sum(x['current_value'] for x in all_tokens
-                                  if x['current_value'] is not None)
-        total_return = sum(x['return'] for x in all_tokens
-                           if x['return'] is not None)
-
-        return {'token_returns': all_tokens,
-                'total_current_value': total_current_value,
-                'total_return': total_return}
 
 @Model.describe(slug='account.token-erc20',
                 version='1.2',
