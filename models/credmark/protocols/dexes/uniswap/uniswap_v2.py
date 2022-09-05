@@ -523,10 +523,11 @@ class DexPoolSwapVolumeHistorical(Model):
             df_all_swaps = (df_all_swaps
                             .groupby(['interval_n'], as_index=False)
                             .agg({'min_block_number': ['min'],
-                                 'max_block_number': ['max'],
+                                  'max_block_number': ['max'],
                                   'count_block_number': ['sum']} |
                                  {f'inp_amount{n}_in': ['sum'] for n in range(tokens_n)} |
-                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)}))
+                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)}))  # type: ignore
+
             df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
             df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
 

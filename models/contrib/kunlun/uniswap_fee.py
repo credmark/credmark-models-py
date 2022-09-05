@@ -91,16 +91,19 @@ class UniswapFee(Model):
         df_tx_total = df_tx.query('token_address in [@t0_addr, @t1_addr]')
 
         # Only keep those swap transactions
-        df_groupby_hash = (df_tx_total.groupby('transaction_hash', as_index=False)
-                           .token_address.count())
+        df_groupby_hash = (df_tx_total
+                           .groupby('transaction_hash', as_index=False)
+                           ["token_address"]
+                           .count())
         _df_tx_non_swap = (df_tx_total.merge(
             df_groupby_hash.loc[(df_groupby_hash.token_address != 2), :],
             on='transaction_hash',
             how='inner'))
 
         # Use the swap transactions hashes to filter all transactions
-        df_tx_swap = df_tx_total.merge(df_groupby_hash.loc[(
-            df_groupby_hash.token_address == 2), ['transaction_hash']], how='inner')
+        df_tx_swap = df_tx_total.merge(
+            df_groupby_hash.loc[(df_groupby_hash.token_address == 2), ['transaction_hash']],  # type: ignore
+            how='inner')
 
         self.logger.debug((f'{df_tx_swap.shape},'
                           f'Block({df_tx_swap.block_number.min()},'
