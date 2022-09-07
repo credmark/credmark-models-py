@@ -6,7 +6,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
-                                Contracts, Maybe, Price, Token)
+                                Contracts, Currency, FiatCurrency, Maybe,
+                                Price, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
@@ -235,6 +236,50 @@ class TokenLogoModel(Model):
 
         raise ModelDataError(message="Logo not available",
                              code=ModelDataError.Codes.NO_DATA)
+
+
+class TokenBalanceInput(Token):
+    account: Address = \
+        DTOField(
+            description=('Account address for which to fetch balance.'))
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
+
+
+class TokenBalanceOutput(DTO):
+    balance: int = DTOField(description="Balance of account")
+    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    value: float = DTOField(description="Balance in terms of quoted currency")
+
+
+@Model.describe(
+    slug="token.balance",
+    version="1.0",
+    display_name="Token Balance",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=TokenBalanceInput,
+    output=TokenBalanceOutput
+)
+class TokenBalanceModel(Model):
+    """
+    Return token's balance
+    """
+
+    def run(self, input: TokenBalanceInput) -> TokenBalanceOutput:
+        balance = input.functions.balanceOf(input.account).call()
+        token_price = Price(**self.context.models.price.quote({
+            'base': input,
+            'quote': input.quote
+        }))
+
+        return TokenBalanceOutput(
+            balance=balance,
+            balance_scaled=input.scaled(balance),
+            value=token_price.price * input.scaled(balance)
+        )
 
 
 class TokenHolderInput(Token):
