@@ -85,7 +85,8 @@ class TestToken(CMKTest):
         self.run_model('account.position-in-curve', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
         self.run_model('account.portfolio', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 
-        self.run_model('account.portfolio-aggregate', {"accounts": [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]})
+        self.run_model('account.portfolio-aggregate',
+                       {"accounts": [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]})
 
         self.run_model('account.portfolio-aggregate', {"accounts": [{"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, {
                        "address": "0xAE5B61a270e77F41b99965B171e20DFA8642E0Ea"}]})
@@ -98,6 +99,12 @@ class TestToken(CMKTest):
 
         self.run_model('account.portfolio', {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a"})
         self.run_model('account.portfolio', {"address": "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67"})
+
+        self.run_model('token.logo', {"symbol": "AAVE"})
+        self.run_model('token.balance', {"symbol": "AAVE",
+                                         "account": "0xAeCf596D2286940b8DA0AB14b07619F01E8213f2"})
+        self.run_model('token.balance', {"address": "0x0ab87046fBb341D058F17CBC4c1133F25a20a52f",
+                                         "account": "0xAeCf596D2286940b8DA0AB14b07619F01E8213f2"})
 
         # 1. address for the ren community funds
         # 0x5291fBB0ee9F51225f0928Ff6a83108c86327636

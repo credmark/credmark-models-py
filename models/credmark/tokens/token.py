@@ -1,11 +1,13 @@
 # pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
 
+import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
-                                Contracts, Maybe, Price, Token)
+                                Contracts, Currency, FiatCurrency, Maybe,
+                                NativeToken, Price, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
@@ -181,6 +183,107 @@ class TokenInfoModel(Model):
 
     def run(self, input: Token) -> Token:
         return input.info
+
+
+class TokenLogoOutput(DTO):
+    logo_url: str = DTOField(description="URL of token's logo")
+
+
+@Model.describe(
+    slug="token.logo",
+    version="1.0",
+    display_name="Token Logo",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=Token,
+    output=TokenLogoOutput
+)
+class TokenLogoModel(Model):
+    """
+    Return token's logo
+    """
+
+    def run(self, input: Token) -> TokenLogoOutput:
+        if self.context.chain_id != 1:
+            raise ModelDataError(message="Logos are only available for ethereum mainnet",
+                                 code=ModelDataError.Codes.NO_DATA)
+
+        # Handle native token
+        if input.address == NativeToken().address:
+            return TokenLogoOutput(
+                logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
+                "/blockchains/ethereum/info/logo.png"
+            )
+
+        try_urls = [
+            ("https://raw.githubusercontent.com/trustwallet/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/uniswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/sushiswap/logos/main"
+             f"/network/ethereum/{input.address.checksum}.jpg"),
+            ("https://raw.githubusercontent.com/sushiswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/curvefi/curve-assets/main"
+             f"/images/assets/{input.address}.png")
+        ]
+
+        for url in try_urls:
+            # Return the first URL that exists
+            if requests.head(url).status_code < 400:
+                return TokenLogoOutput(logo_url=url)
+
+        raise ModelDataError(
+            message=f"Logo not available for {input.symbol, input.address.checksum}",
+            code=ModelDataError.Codes.NO_DATA)
+
+
+class TokenBalanceInput(Token):
+    account: Address = \
+        DTOField(
+            description=('Account address for which to fetch balance.'))
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
+
+
+class TokenBalanceOutput(DTO):
+    balance: int = DTOField(description="Balance of account")
+    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    value: float = DTOField(description="Balance in terms of quoted currency")
+    price: Price = DTOField(description="Token price")
+
+
+@Model.describe(
+    slug="token.balance",
+    version="1.0",
+    display_name="Token Balance",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=TokenBalanceInput,
+    output=TokenBalanceOutput
+)
+class TokenBalanceModel(Model):
+    """
+    Return token's balance
+    """
+
+    def run(self, input: TokenBalanceInput) -> TokenBalanceOutput:
+        balance = input.balance_of(input.account.checksum)
+
+        token_price = Price(**self.context.models.price.quote({
+            'base': input,
+            'quote': input.quote
+        }))
+
+        return TokenBalanceOutput(
+            balance=balance,
+            balance_scaled=input.scaled(balance),
+            value=token_price.price * input.scaled(balance),
+            price=token_price
+        )
 
 
 class TokenHolderInput(Token):
