@@ -58,7 +58,7 @@ class CMKGetVestingContracts(Model):
 
 @Model.describe(
     slug="cmk.get-vesting-accounts",
-    version="1.1",
+    version="1.2",
     display_name='CMK Vesting Accounts',
     category='protocol',
     subcategory='cmk',
@@ -101,7 +101,7 @@ class CMKGetVestingAccounts(Model):
                         order_by=q.ACCOUNT,
                         limit=5000))
                     for evt in ledger_events:
-                        acc = evt['inp_account']
+                        acc = evt['evt_account']
                         if acc not in accounts:
                             accounts.add(acc)
                             accounts_info.append(Account(address=acc))
@@ -116,7 +116,7 @@ class CMKGetVestingAccounts(Model):
 
 @Model.describe(
     slug="cmk.get-vesting-info-by-account",
-    version="1.2",
+    version="1.3",
     display_name='CMK Vesting Info by Account',
     category='protocol',
     subcategory='cmk',
@@ -202,10 +202,10 @@ class CMKGetVestingByAccount(Model):
                         order_by=q.ACCOUNT,
                         limit=5000)
                         .to_dataframe()
-                        .query('inp_account == @_input_address'))
+                        .query('evt_account == @_input_address'))
 
                 def price_at_claim_time(row, self=self):
-                    timestamp = row['inp_timestamp']
+                    timestamp = row['evt_timestamp']
                     price = self.context.run_model(
                         slug="uniswap-v3.get-weighted-price",
                         input={"symbol": "CMK"},
@@ -216,7 +216,7 @@ class CMKGetVestingByAccount(Model):
                 vesting_claims = []
                 if not ledger_events.empty:
                     ledger_events.loc[:, 'amount_scaled'] = (
-                        ledger_events.inp_amount.apply(Token(symbol="CMK").scaled))
+                        ledger_events['evt_amount'].apply(Token(symbol="CMK").scaled))
                     ledger_events.loc[:, 'price_now'] = current_price
                     ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
                     ledger_events.loc[:, 'price_at_claim_time'] = (
@@ -226,9 +226,9 @@ class CMKGetVestingByAccount(Model):
 
                     for _, r in ledger_events.iterrows():
                         claim = {
-                            'account': r['inp_account'],
-                            'amount': r['inp_amount'],
-                            'timestamp': r['inp_timestamp'],
+                            'account': r['evt_account'],
+                            'amount': r['evt_amount'],
+                            'timestamp': r['evt_timestamp'],
                             'amount_scaled': r['amount_scaled'],
                             'value_at_claim_time': r['value_at_claim_time'],
                             'value_now': r['value_now'],

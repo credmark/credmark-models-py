@@ -1,6 +1,5 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from numpy import block
 from cmk_test import CMKTest
 
 
