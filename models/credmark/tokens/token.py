@@ -7,7 +7,7 @@ from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
                                 Contracts, Currency, FiatCurrency, Maybe,
-                                Price, Token)
+                                NativeToken, Price, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
@@ -210,13 +210,13 @@ class TokenLogoModel(Model):
                                  code=ModelDataError.Codes.NO_DATA)
 
         # Handle native token
-        if input.address == Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+        if input.address == NativeToken().address:
             return TokenLogoOutput(
                 logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
                 "/blockchains/ethereum/info/logo.png"
             )
 
-        urls = [
+        try_urls = [
             ("https://raw.githubusercontent.com/trustwallet/assets/master"
              f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
             ("https://raw.githubusercontent.com/uniswap/assets/master"
@@ -229,13 +229,14 @@ class TokenLogoModel(Model):
              f"/images/assets/{input.address}.png")
         ]
 
-        for url in urls:
+        for url in try_urls:
             # Return the first URL that exists
             if requests.head(url).status_code < 400:
                 return TokenLogoOutput(logo_url=url)
 
-        raise ModelDataError(message="Logo not available",
-                             code=ModelDataError.Codes.NO_DATA)
+        raise ModelDataError(
+            message=f"Logo not available for {input.symbol, input.address.checksum}",
+            code=ModelDataError.Codes.NO_DATA)
 
 
 class TokenBalanceInput(Token):
@@ -251,6 +252,7 @@ class TokenBalanceOutput(DTO):
     balance: int = DTOField(description="Balance of account")
     balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
+    price: Price = DTOField(description="Token price")
 
 
 @Model.describe(
@@ -269,7 +271,8 @@ class TokenBalanceModel(Model):
     """
 
     def run(self, input: TokenBalanceInput) -> TokenBalanceOutput:
-        balance = input.functions.balanceOf(input.account).call()
+        balance = input.balance_of(input.account.checksum)
+
         token_price = Price(**self.context.models.price.quote({
             'base': input,
             'quote': input.quote
@@ -278,7 +281,8 @@ class TokenBalanceModel(Model):
         return TokenBalanceOutput(
             balance=balance,
             balance_scaled=input.scaled(balance),
-            value=token_price.price * input.scaled(balance)
+            value=token_price.price * input.scaled(balance),
+            price=token_price
         )
 
 
