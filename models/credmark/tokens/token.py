@@ -1,6 +1,7 @@
 # pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
 
+import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
@@ -181,6 +182,59 @@ class TokenInfoModel(Model):
 
     def run(self, input: Token) -> Token:
         return input.info
+
+
+class TokenLogoOutput(DTO):
+    logo_url: str = DTOField(description="URL of token's logo")
+
+
+@Model.describe(
+    slug="token.logo",
+    version="1.0",
+    display_name="Token Logo",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=Token,
+    output=TokenLogoOutput
+)
+class TokenLogoModel(Model):
+    """
+    Return token's logo
+    """
+
+    def run(self, input: Token) -> TokenLogoOutput:
+        if self.context.chain_id != 1:
+            raise ModelDataError(message="Logos are only available for ethereum mainnet",
+                                 code=ModelDataError.Codes.NO_DATA)
+
+        # Handle native token
+        if input.address == Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+            return TokenLogoOutput(
+                logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
+                "/blockchains/ethereum/info/logo.png"
+            )
+
+        urls = [
+            ("https://raw.githubusercontent.com/trustwallet/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/uniswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/sushiswap/logos/main"
+             f"/network/ethereum/{input.address.checksum}.jpg"),
+            ("https://raw.githubusercontent.com/sushiswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/curvefi/curve-assets/main"
+             f"/images/assets/{input.address}.png")
+        ]
+
+        for url in urls:
+            # Return the first URL that exists
+            if requests.head(url).status_code < 400:
+                return TokenLogoOutput(logo_url=url)
+
+        raise ModelDataError(message="Logo not available",
+                             code=ModelDataError.Codes.NO_DATA)
 
 
 class TokenHolderInput(Token):
