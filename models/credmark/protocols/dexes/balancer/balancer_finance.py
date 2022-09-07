@@ -2,6 +2,7 @@ from decimal import Decimal, getcontext
 from typing import List, NamedTuple
 
 import numpy as np
+import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import (Address, Contract, Contracts, Network, Some,
                                 Token, Tokens)
@@ -61,7 +62,7 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
 
 
 @ Model.describe(slug='balancer-fi.get-all-pools',
-                 version='0.1',
+                 version='0.2',
                  display_name='Balancer Finance - Get all pools',
                  description='Get all pools',
                  category='protocol',
@@ -74,13 +75,26 @@ class GetBalancerAllPools(Model):
     def run(self, _) -> Contracts:
         vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
         with vault.ledger.events.PoolRegistered as q:
-            df = q.select(columns=[q.EVT_BLOCK_NUMBER, q.POOLADDRESS],
-                          order_by=q.EVT_BLOCK_NUMBER,
-                          limit=5000).to_dataframe()
+            df_ts = []
+            offset = 0
+
+            while True:
+                df_tt = q.select(columns=[q.BLOCK_NUMBER, q.POOLADDRESS],
+                                 order_by=q.BLOCK_NUMBER,
+                                 offset=offset).to_dataframe()
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+        df = pd.concat(df_ts)
 
         contracts = []
         for _n, r in df.iterrows():
-            pool_addr = r.inp_pooladdress
+            pool_addr = r.evt_pooladdress
             pool = Contract(address=pool_addr, abi=BALANCER_POOL_ABI)
             try:
                 _pool_id = pool.functions.getPoolId().call()

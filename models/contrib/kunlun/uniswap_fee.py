@@ -50,7 +50,7 @@ class UniswapFeeOutput(UniswapFeeInput):
 
 
 @Model.describe(slug='contrib.uniswap-fee',
-                version='1.0',
+                version='1.1',
                 display_name='Calculate fee from swaps in Uniswap V3 pool',
                 description="Ledger",
                 input=UniswapFeeInput,
@@ -72,39 +72,67 @@ class UniswapFee(Model):
         block_start = block_end - input.interval
 
         # Query the ledger for the token transfers
-        with self.context.ledger.TokenBalance as q:
-            df_tx = q.select(
-                columns=[q.BLOCK_NUMBER,
-                         q.TOKEN_ADDRESS,
-                         q.TRANSACTION_HASH,
-                         q.FROM_ADDRESS,
-                         q.TO_ADDRESS,
-                         q.TRANSACTION_VALUE],
-                where=(q.BLOCK_NUMBER.gt(block_start).and_(q.BLOCK_NUMBER.le(block_end))
-                       .and_(q.ADDRESS.eq(uni_pool_addr))),
-                order_by=q.BLOCK_NUMBER
-            ).to_dataframe()
+        with self.context.ledger.TokenTransfer as q:
+            df_ts = []
+            offset = 0
 
-        if df_tx.empty:
+            q_cols = [q.BLOCK_NUMBER,
+                      q.TOKEN_ADDRESS,
+                      q.TRANSACTION_HASH,
+                      q.FROM_ADDRESS,
+                      q.TO_ADDRESS]
+
+            while True:
+                df_tt = q.select(
+                    columns=q_cols,
+                    aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(uni_pool_addr)} '
+                                  f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'),
+                                 'transaction_value')],
+                    where=(q.BLOCK_NUMBER.gt(block_start).and_(q.BLOCK_NUMBER.le(block_end))
+                           .and_(q.FROM_ADDRESS.eq(uni_pool_addr)
+                                 .or_(q.TO_ADDRESS.eq(uni_pool_addr)).parentheses_())),
+                    order_by=q.BLOCK_NUMBER,
+                    offset=offset
+                ).to_dataframe()
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+            _df_empty = pd.DataFrame(data=[], columns=q_cols + ['transaction_value'])
+
+        df_tx = pd.DataFrame()
+        if len(df_ts) > 0:
+            df_tx = (pd.concat(df_ts)
+                       .assign(transaction_value=lambda x: x.transaction_value.astype(float)))
+
+        if len(df_ts) == 0 or df_tx.empty:
             return UniswapFeeOutput.default(input)
 
         df_tx_total = df_tx.query('token_address in [@t0_addr, @t1_addr]')
 
         # Only keep those swap transactions
-        df_groupby_hash = (df_tx_total.groupby('transaction_hash', as_index=False)
-                           .token_address.count())
+        df_groupby_hash = (df_tx_total
+                           .groupby('transaction_hash', as_index=False)
+                           ["token_address"]
+                           .count())
         _df_tx_non_swap = (df_tx_total.merge(
             df_groupby_hash.loc[(df_groupby_hash.token_address != 2), :],
             on='transaction_hash',
             how='inner'))
 
         # Use the swap transactions hashes to filter all transactions
-        df_tx_swap = df_tx_total.merge(df_groupby_hash.loc[(
-            df_groupby_hash.token_address == 2), ['transaction_hash']], how='inner')
+        df_tx_swap = df_tx_total.merge(
+            df_groupby_hash.loc[(df_groupby_hash.token_address == 2),
+                                ['transaction_hash']],  # type: ignore
+            how='inner')
 
         self.logger.debug((f'{df_tx_swap.shape},'
                           f'Block({df_tx_swap.block_number.min()},'
                            f'{df_tx_swap.block_number.max()})'))
+
         # Summarize the swap transaction from two rows to one row
         full_tx = []
         for dfg, df in df_tx_swap.groupby('transaction_hash', as_index=False):
