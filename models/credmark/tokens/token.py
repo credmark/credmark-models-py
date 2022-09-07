@@ -187,8 +187,19 @@ class TokenHolderInput(Token):
     top_n: int = DTOField(10, description='Top N holders')
 
 
+def token_holder(ledger):
+    # TODO: need double-entry table to work
+    with ledger.TokenTransfer as q:
+        df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
+                      group_by=[q.TO_ADDRESS],
+                      where=q.TOKEN_ADDRESS.eq(input.address),
+                      order_by=q.field('sum_value').dquote().desc(),
+                      limit=input.top_n).to_dataframe()
+    return df.to_dict()
+
+
 @Model.describe(slug='token.holders',
-                version='0.2',
+                version='0.3',
                 display_name='Token Holders',
                 description='The number of holders of a Token',
                 category='protocol',
@@ -197,17 +208,11 @@ class TokenHolderInput(Token):
                 output=dict)
 class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> dict:
-        with self.context.ledger.TokenBalance as q:
-            df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
-                          group_by=[q.ADDRESS],
-                          where=q.TOKEN_ADDRESS.eq(input.address),
-                          order_by=q.field('sum_value').dquote().desc(),
-                          limit=input.top_n).to_dataframe()
-        return df.to_dict()
+        return {}
 
 
 @Model.describe(slug='token.holders-all',
-                version='0.2',
+                version='0.3',
                 display_name='Token Holders All',
                 description='All holders of a Token',
                 category='protocol',
@@ -216,11 +221,11 @@ class TokenHolders(Model):
                 output=dict)
 class TokenNumberHolders(Model):
     def run(self, input: Token) -> dict:
-        with self.context.ledger.TokenBalance as q:
+        with self.context.ledger.TokenTransfer as q:
             df = q.select(aggregates=[],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
-                          having=q.TRANSACTION_VALUE.sum_().gt(0)
+                          having=q.VALUE.sum_().gt(0)
                           ).to_dataframe()
         return df.to_dict()
 

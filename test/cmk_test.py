@@ -51,6 +51,13 @@ class CMKTest(TestCase):
             self.post_flag +
             [f'-b {self.block_number if block_number is None else block_number}'])
 
+        cmd_line_local = ' '.join(
+            [cmd] +
+            ['run', model_slug, '-j'] +
+            ['-i', f"'{json.dumps(model_input)}'"] +
+            self.post_flag +
+            [f'-b {self.block_number if block_number is None else block_number}'])
+
         if self.start_n > CMKTest.test_n:
             logging.info(f'Skip ({CMKTest.test_n})')
             CMKTest.test_n += 1
@@ -76,7 +83,10 @@ class CMKTest(TestCase):
             if start is not None:
                 duration = datetime.now() - start
             logging.info(
-                f'{"Finished" if succeed else "Failed"} case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}) {duration.total_seconds():.2f}: {cmd_line}')
+                (f'{"Finished" if succeed else "Failed"} '
+                 f'case ({self.__class__.__name__}.{self._testMethodName}.{CMKTest.test_n}) {duration.total_seconds():.2f}s\n'
+                 f'I ran: {cmd_line}\n'
+                 f'U run: {cmd_line_local}'))
             if self.fail_first and not succeed:
                 sys.exit()
 

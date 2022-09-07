@@ -577,7 +577,7 @@ class DexPrimaryTokensUniV3(Model):
             weight[tok_addr] = -df.tick_liquidity_norm.sum()
             weight |= (df
                        .groupby('other_token_t')
-                       .price_x_liq
+                       ["price_x_liq"]
                        .sum()
                        .to_dict())
             prices[tok_addr] = df.price_x_liq.sum()

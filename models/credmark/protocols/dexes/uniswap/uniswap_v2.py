@@ -362,7 +362,7 @@ class UniswapV2PoolTVL(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -410,19 +410,19 @@ class DexPoolSwapVolumeHistorical(Model):
 
         if input.pool_info_model == 'uniswap-v2.pool-tvl':
             with pool.ledger.events.Swap as q:
-                event_swap_args = [c for c in q.colnames if c.lower().startswith('amount')]
+                event_swap_args = [c for c in q.colnames if c.lower().startswith('evt_amount')]
                 df_all_swaps = (q.select(
                     aggregates=(
                         [(f'sum((sign({q[field]})+1) / 2 * {q[field]})', f'sum_pos_{q[field]}')
                          for field in event_swap_args] +
                         [(f'sum((sign({q[field]})-1) / 2 * {q[field]})', f'sum_neg_{q[field]}')
                          for field in event_swap_args] +
-                        [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                        [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
                             'interval_n')] +
-                        [(q.EVT_BLOCK_NUMBER.func_(func), f'{func}_block_number')
+                        [(q.BLOCK_NUMBER.func_(func), f'{func}_block_number')
                          for func in ['min', 'max', 'count']]),
-                    where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
-                        q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                    where=q.BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                        q.BLOCK_NUMBER.le(self.context.block_number)),
                     group_by=['"interval_n"']
                 ).to_dataframe())
 
@@ -432,72 +432,74 @@ class DexPoolSwapVolumeHistorical(Model):
             df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
 
             event_swap_args_lower = sorted([c.lower() for c in event_swap_args])
-            if event_swap_args_lower == sorted(['amount0in', 'amount1in', 'amount0out', 'amount1out']):
+            if event_swap_args_lower == sorted(['evt_amount0in', 'evt_amount1in', 'evt_amount0out', 'evt_amount1out']):
+                # Pool uses In/Out to represent
                 df_all_swaps = (df_all_swaps.drop(
-                    columns=([f'sum_neg_inp_amount{n}in' for n in range(tokens_n)] +  # type: ignore
-                             [f'sum_neg_inp_amount{n}out' for n in range(tokens_n)]))  # type: ignore
+                    columns=([f'sum_neg_evt_amount{n}in' for n in range(tokens_n)] +  # type: ignore
+                             [f'sum_neg_evt_amount{n}out' for n in range(tokens_n)]))  # type: ignore
                     .rename(columns=(
-                        {f'sum_pos_inp_amount{n}in': f'inp_amount{n}_in' for n in range(tokens_n)} |
-                        {f'sum_pos_inp_amount{n}out': f'inp_amount{n}_out' for n in range(tokens_n)}))
+                        {f'sum_pos_evt_amount{n}in': f'evt_amount{n}_in' for n in range(tokens_n)} |
+                        {f'sum_pos_evt_amount{n}out': f'evt_amount{n}_out' for n in range(tokens_n)}))
                     .sort_values('min_block_number')
                     .reset_index(drop=True))
             else:
+                # Pool uses two records per Swap (+/-) sign.
                 df_all_swaps = (df_all_swaps.rename(columns=(
-                    {f'sum_pos_inp_amount{n}': f'inp_amount{n}_in' for n in range(tokens_n)} |
-                    {f'sum_neg_inp_amount{n}': f'inp_amount{n}_out' for n in range(tokens_n)}))
+                    {f'sum_pos_evt_amount{n}': f'evt_amount{n}_in' for n in range(tokens_n)} |
+                    {f'sum_neg_evt_amount{n}': f'evt_amount{n}_out' for n in range(tokens_n)}))
                     .sort_values('min_block_number')
                     .reset_index(drop=True))
 
             for n in range(tokens_n):
-                for col in [f'inp_amount{n}_in', f'inp_amount{n}_out']:
+                for col in [f'evt_amount{n}_in', f'evt_amount{n}_out']:
                     df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
         elif input.pool_info_model == 'curve-fi.pool-tvl':
             df_all_swap_1 = pd.DataFrame()
             if 'TokenExchange' in pool.abi.events:
                 try:
-                    event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchange.args]
+                    event_tokenexchange_args = ['EVT_' + s.upper() for s in pool.abi.events.TokenExchange.args]
                     assert sorted(event_tokenexchange_args) == sorted(
-                        ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
+                        ['EVT_BUYER', 'EVT_SOLD_ID', 'EVT_TOKENS_SOLD', 'EVT_BOUGHT_ID', 'EVT_TOKENS_BOUGHT'])
 
                     with pool.ledger.events.TokenExchange as q:
                         df_all_swap_1 = (q.select(
                             aggregates=(
                                 [(q[field].as_integer().sum_(), q[field])
-                                 for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                                [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                 for field in ['EVT_TOKENS_SOLD', 'EVT_TOKENS_BOUGHT']] +
+                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
                                   'interval_n')] +
-                                [(f'{func}({q.EVT_BLOCK_NUMBER})', f'{func}_block_number')
+                                [(f'{func}({q.BLOCK_NUMBER})', f'{func}_block_number')
                                  for func in ['min', 'max', 'count']]),
-                            where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
-                                q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                            where=q.BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                                q.BLOCK_NUMBER.le(self.context.block_number)),
                             group_by=['"interval_n"',
-                                      q.SOLD_ID,
-                                      q.BOUGHT_ID])
+                                      q.EVT_SOLD_ID,
+                                      q.EVT_BOUGHT_ID])
                             .to_dataframe())
                 except ModelDataError:
                     pass
 
             df_all_swap_2 = pd.DataFrame()
             if 'TokenExchangeUnderlying' in pool.abi.events:
-                event_tokenexchange_args = [s.upper() for s in pool.abi.events.TokenExchangeUnderlying.args]
+                event_tokenexchange_args = ['EVT_' + s.upper() for s in pool.abi.events.TokenExchangeUnderlying.args]
                 assert sorted(event_tokenexchange_args) == sorted(
-                    ['BUYER', 'SOLD_ID', 'TOKENS_SOLD', 'BOUGHT_ID', 'TOKENS_BOUGHT'])
+                    ['EVT_BUYER', 'EVT_SOLD_ID', 'EVT_TOKENS_SOLD', 'EVT_BOUGHT_ID', 'EVT_TOKENS_BOUGHT'])
                 try:
                     with pool.ledger.events.TokenExchangeUnderlying as q:
                         df_all_swap_2 = (q.select(
                             aggregates=(
                                 [(q[field].as_integer().sum_().str(), f'{q[field]}')
-                                    for field in ['TOKENS_SOLD', 'TOKENS_BOUGHT']] +
-                                [(f'floor(({self.context.block_number} - {q.EVT_BLOCK_NUMBER}) / {input.interval}, 0)',
+                                    for field in ['EVT_TOKENS_SOLD', 'EVT_TOKENS_BOUGHT']] +
+                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
                                     'interval_n')] +
-                                [(q.EVT_BLOCK_NUMBER.func_(func), f'{func}_block_number')
+                                [(q.BLOCK_NUMBER.func_(func), f'{func}_block_number')
                                     for func in ['min', 'max', 'count']]),
-                            where=q.EVT_BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
-                                q.EVT_BLOCK_NUMBER.le(self.context.block_number)),
+                            where=q.BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
+                                q.BLOCK_NUMBER.le(self.context.block_number)),
                             group_by=['"interval_n"',
-                                      q.SOLD_ID,
-                                      q.BOUGHT_ID])
+                                      q.EVT_SOLD_ID,
+                                      q.EVT_BOUGHT_ID])
                             .to_dataframe())
                 except ModelDataError:
                     pass
@@ -509,24 +511,25 @@ class DexPoolSwapVolumeHistorical(Model):
 
             df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
 
-            for col in ['inp_tokens_bought', 'inp_tokens_sold']:
+            for col in ['evt_tokens_bought', 'evt_tokens_sold']:
                 df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
             for n in range(tokens_n):
                 # In: Sold to the pool
                 # Out: Bought from the pool
-                df_all_swaps.loc[:, f'inp_amount{n}_in'] = df_all_swaps.loc[:, 'inp_tokens_sold']       # type: ignore
-                df_all_swaps.loc[:, f'inp_amount{n}_out'] = df_all_swaps.loc[:, 'inp_tokens_bought']    # type: ignore
-                df_all_swaps.loc[df_all_swaps.inp_sold_id != n, f'inp_amount{n}_in'] = 0                # type: ignore
-                df_all_swaps.loc[df_all_swaps.inp_bought_id != n, f'inp_amount{n}_out'] = 0             # type: ignore
+                df_all_swaps.loc[:, f'evt_amount{n}_in'] = df_all_swaps.loc[:, 'evt_tokens_sold']       # type: ignore
+                df_all_swaps.loc[:, f'evt_amount{n}_out'] = df_all_swaps.loc[:, 'evt_tokens_bought']    # type: ignore
+                df_all_swaps.loc[df_all_swaps.evt_sold_id != n, f'evt_amount{n}_in'] = 0                # type: ignore
+                df_all_swaps.loc[df_all_swaps.evt_bought_id != n, f'evt_amount{n}_out'] = 0             # type: ignore
 
             df_all_swaps = (df_all_swaps
                             .groupby(['interval_n'], as_index=False)
                             .agg({'min_block_number': ['min'],
-                                 'max_block_number': ['max'],
+                                  'max_block_number': ['max'],
                                   'count_block_number': ['sum']} |
-                                 {f'inp_amount{n}_in': ['sum'] for n in range(tokens_n)} |
-                                 {f'inp_amount{n}_out': ['sum'] for n in range(tokens_n)}))
+                                 {f'evt_amount{n}_in': ['sum'] for n in range(tokens_n)} |
+                                 {f'evt_amount{n}_out': ['sum'] for n in range(tokens_n)}))  # type: ignore
+
             df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
             df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
 
@@ -545,7 +548,7 @@ class DexPoolSwapVolumeHistorical(Model):
         #     for n_row, row in all_blocks[::-1].iterrows():
         #         all_blocks.loc[n_row, f'token{n}_price'] = self.context.run_model(
         #             'price.quote',
-        #             input=tokens[n], block_number=row.evt_block_number, return_type=Price).price
+        #             input=tokens[n], block_number=row.BLOCK_NUMBER, return_type=Price).price
 
         # df_all_swaps = df_all_swaps.merge(all_blocks, on=['evt_block_number'], how='left')
 
@@ -568,8 +571,8 @@ class DexPoolSwapVolumeHistorical(Model):
             pool_info_past = self.context.run_model(input.pool_info_model, input=input, block_number=block_number)
             for n in range(tokens_n):
                 token_price = pool_info_past['prices'][n]['price']  # type: ignore
-                token_out = df_swap_sel[f'inp_amount{n}_out'].sum()  # type: ignore
-                token_in = df_swap_sel[f'inp_amount{n}_in'].sum()  # type: ignore
+                token_out = df_swap_sel[f'evt_amount{n}_out'].sum()  # type: ignore
+                token_in = df_swap_sel[f'evt_amount{n}_in'].sum()  # type: ignore
 
                 pool_volume_history.series[cc].output[n].sellAmount = tokens[n].scaled(token_out)
                 pool_volume_history.series[cc].output[n].buyAmount = tokens[n].scaled(token_in)
