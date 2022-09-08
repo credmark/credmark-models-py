@@ -368,7 +368,8 @@ class TokenVolumeWindowInput(Token):
     window: str
 
 
-class TokenVolumeOutput(Token):
+class TokenVolumeOutput(DTO):
+    address: Address
     volume: int
     volume_scaled: float
     value_last: float
@@ -404,21 +405,32 @@ class TokenVolumeWindow(Model):
             return_type=TokenVolumeOutput)
 
 
-class TokenVolumeBlockInput(Token):
+class TokenVolumeBlockInput(DTO):
+    address: Address
     block_number: int = DTOField(
         description=('Positive for a block earlier than the current one '
                      'or negative or zero for an interval. '
                      'Both excludes the start block.'))
 
+    def __init__(self, **data):
+        if 'address' in data:
+            super().__init__(**data)
+        else:
+            address = Token(**data).address
+            super().__init__(address=address, block_number=data['block_number'])
 
-@Model.describe(slug='token.overall-volume-block',
-                version='1.0',
-                display_name='Token Volume',
-                description='The Current Credmark Supported trading volume algorithm',
-                category='protocol',
-                tags=['token'],
-                input=TokenVolumeBlockInput,
-                output=TokenVolumeOutput)
+    def to_token(self):
+        return Token(self.address)
+
+
+@ Model.describe(slug='token.overall-volume-block',
+                 version='1.0',
+                 display_name='Token Volume',
+                 description='The Current Credmark Supported trading volume algorithm',
+                 category='protocol',
+                 tags=['token'],
+                 input=TokenVolumeBlockInput,
+                 output=TokenVolumeOutput)
 class TokenVolumeBlock(Model):
     def run(self, input: TokenVolumeBlockInput) -> TokenVolumeOutput:
         token_address = input.address
@@ -432,14 +444,21 @@ class TokenVolumeBlock(Model):
             old_block = self.context.block_number + old_block
 
         to_block = self.context.block_number
-        with self.context.ledger.TokenTransfer as q:
-            df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
-                          where=(q.TOKEN_ADDRESS.eq(token_address)
-                                  .and_(q.BLOCK_NUMBER.gt(old_block))),
-                          ).to_dataframe()
+        if input.address == NativeToken().address:
+            input_token = NativeToken()
+            with self.context.ledger.Transaction as q:
+                df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
+                              where=q.BLOCK_NUMBER.gt(old_block)).to_dataframe()
+        else:
+            input_token = input.to_token()
+            with self.context.ledger.TokenTransfer as q:
+                df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
+                              where=(q.TOKEN_ADDRESS.eq(token_address)
+                                     .and_(q.BLOCK_NUMBER.gt(old_block))),
+                              ).to_dataframe()
 
         vol = df.sum_value.sum()
-        vol_scaled = input.scaled(vol)
+        vol_scaled = input_token.scaled(vol)
         price_last = self.context.models.price.quote(base=Token(input.address),
                                                      return_type=Price).price  # type: ignore
         value_last = vol_scaled * price_last
@@ -478,14 +497,14 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
     circulatingSupplyUsd: float = 0.0
 
 
-@Model.describe(slug='token.categorized-supply',
-                version='1.1',
-                display_name='Token Categorized Supply',
-                description='The categorized supply for a token',
-                category='protocol',
-                tags=['token'],
-                input=CategorizedSupplyRequest,
-                output=CategorizedSupplyResponse)
+@ Model.describe(slug='token.categorized-supply',
+                 version='1.1',
+                 display_name='Token Categorized Supply',
+                 description='The categorized supply for a token',
+                 category='protocol',
+                 tags=['token'],
+                 input=CategorizedSupplyRequest,
+                 output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
