@@ -444,8 +444,9 @@ class TokenVolumeBlock(Model):
             old_block = self.context.block_number + old_block
 
         to_block = self.context.block_number
-        if input.address == NativeToken().address:
-            input_token = NativeToken()
+        native_token = NativeToken()
+        if input.address == native_token.address:
+            input_token = native_token
             with self.context.ledger.Transaction as q:
                 df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
                               where=q.BLOCK_NUMBER.gt(old_block)).to_dataframe()
@@ -459,7 +460,7 @@ class TokenVolumeBlock(Model):
 
         vol = df.sum_value.sum()
         vol_scaled = input_token.scaled(vol)
-        price_last = self.context.models.price.quote(base=Token(input.address),
+        price_last = self.context.models.price.quote(base=input_token,
                                                      return_type=Price).price  # type: ignore
         value_last = vol_scaled * price_last
 
