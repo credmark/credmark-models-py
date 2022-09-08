@@ -14,6 +14,13 @@ class TestToken(CMKTest):
         self.run_model('token.overall-volume-window',
                        {'symbol': 'USDC', 'window': '24 hours'})
 
+        self.run_model('token.overall-volume-block', {"symbol": "ETH", "block_number": -100})
+        self.run_model('token.overall-volume-block', {"symbol": "AAVE", "block_number": -100})
+        self.run_model('token.overall-volume-block',
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "block_number": -100})
+        self.run_model('token.overall-volume-block',
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "block_number": -100})
+
     def test_holders(self):
         self.run_model(
             'token.holders',
