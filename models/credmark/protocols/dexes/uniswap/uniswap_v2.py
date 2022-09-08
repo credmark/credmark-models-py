@@ -361,6 +361,32 @@ class UniswapV2PoolTVL(Model):
         return tvl_info
 
 
+@Model.describe(slug='dex.pool-volume-block-range',
+                version='1.0',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Contract,
+                output=dict)
+class DexPoolSwapBlockRange(Model):
+    def run(self, input: Contract) -> dict:
+        try:
+            _ = input.abi
+        except ModelDataError:
+            input.set_abi(UNISWAP_V3_POOL_ABI)
+
+        with input.ledger.events.Swap as q:
+            df = q.select(aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
+                                      (q.BLOCK_NUMBER.min_(), 'min'),
+                                      (q.BLOCK_NUMBER.max_(), 'max')]).to_dataframe()
+
+            return {'count': df['count'][0],
+                    'min':   df['min'][0],
+                    'max':   df['max'][0]}
+
+
 @Model.describe(slug='dex.pool-volume-historical',
                 version='1.10',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
