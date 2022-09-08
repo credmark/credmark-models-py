@@ -324,7 +324,7 @@ class AaveV2GetTokenAsset(Model):
             # pylint:disable=locally-disabled,protected-access
             if stableDebtToken.proxy_for is not None:
                 if stableDebtToken.proxy_for._meta is not None:
-                    stableDebtToken.proxy_for._meta.abi = AAVE_STABLEDEBT_ABI
+                    stableDebtToken.proxy_for.set_abi(AAVE_STABLEDEBT_ABI)
             else:
                 raise
 
