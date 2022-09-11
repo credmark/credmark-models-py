@@ -115,7 +115,8 @@ class TestToken(CMKTest):
 
         # 1. address for the ren community funds
         # 0x5291fBB0ee9F51225f0928Ff6a83108c86327636
-        self.run_model('account.token-return', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
+        self.run_model('account.token-return',
+                       {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 
         self.run_model('account.token-return',
                        {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, block_number=15447136)

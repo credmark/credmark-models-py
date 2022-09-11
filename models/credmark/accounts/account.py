@@ -1,14 +1,16 @@
 import math
+from datetime import datetime
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Account, Accounts, Address, Contract,
+from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
+                                Contract, MapBlocksOutput, Maybe,
                                 NativePosition, NativeToken, Network,
-                                Portfolio, Position, PriceWithQuote, Token,
-                                TokenPosition, Tokens)
+                                Portfolio, Position, PriceWithQuote, Records,
+                                Token, TokenPosition, Tokens)
 from credmark.dto import DTO
 
 np.seterr(all='raise')
@@ -92,6 +94,9 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             token_return=None
         )
 
+    _block_times = [BlockNumber(blk).timestamp_datetime
+                    for blk in _df.block_number.unique().tolist()]
+
     for tok_address, dfa in _df.groupby('token_address'):
         tok = Token(tok_address)
 
@@ -107,23 +112,49 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
         except ModelRunError:
             tok_symbol = ''
 
+        min_block_number = dfa.block_number.min()
+        try:
+            then_pq = _context.run_model(slug='price.quote',
+                                         input=dict(base=tok),
+                                         return_type=PriceWithQuote,
+                                         block_number=min_block_number)
+            then_price = then_pq.price
+        except ModelRunError as err:
+            if 'No pool to aggregate for' not in err.data.message:
+                raise
+            then_price = None
+
+        value = None
+
+        dd = datetime.now()
+        block_numbers = []
+        past_prices = {}
+        if then_price is not None:
+            block_numbers = dfa.block_number.unique().tolist()
+
+            pp = _context.run_model('price.quote-maybe-blocks',
+                                    input=dict(base=tok, block_numbers=block_numbers),
+                                    return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
+
+            for r in pp.results:
+                if r.output is not None and r.output.just is not None:
+                    past_prices[r.blockNumber] = r.output.just.price
+                else:
+                    raise ValueError(f'Unable to obtain price for {tok} on block {r.output}')
+
+            value = 0
+
+        tt = datetime.now() - dd
+
+        if then_price is not None:
+            _logger.info((tok_symbol, then_price, tt.seconds,
+                          len(block_numbers), tt.seconds / len(block_numbers)))
+
         balance = 0
-        value = 0
         for _n, r in dfa.iterrows():
             balance += r.value
-            if value is not None:
-                try:
-                    then_price = _context.run_model(slug='price.quote',
-                                                    input=dict(base=tok),
-                                                    return_type=PriceWithQuote,
-                                                    block_number=r.block_number).price
-                    value += -r.value * then_price
-                    _logger.info((r.block_number, tok_symbol, then_price, r.value))
-                except ModelRunError as err:
-                    if 'No pool to aggregate for' not in err.data.message:
-                        raise
-                    then_price = None
-                    value = None
+            if then_price is not None:
+                value += -r.value * past_prices[r.block_number]
 
         if value is not None:
             if balance != 0:
@@ -226,7 +257,7 @@ class AccountsERC20TokenReturn(Model):
 
 
 @Model.describe(slug='account.token-erc20',
-                version='1.3',
+                version='1.5',
                 display_name='Account Token ERC20',
                 description='Account ERC20 transaction table',
                 developer="Credmark",
@@ -234,9 +265,9 @@ class AccountsERC20TokenReturn(Model):
                 subcategory='position',
                 tags=['token'],
                 input=Account,
-                output=dict)
+                output=Records)
 class AccountERC20Token(Model):
-    def run(self, input: Account) -> dict:
+    def run(self, input: Account) -> Records:
         # pylint:disable=locally-disabled,line-too-long
         with self.context.ledger.TokenTransfer as q:
             transfer_cols = [q.BLOCK_NUMBER,
@@ -265,13 +296,10 @@ class AccountERC20Token(Model):
                 offset += 5000
 
             if len(df_ts) == 0:
-                return pd.DataFrame(columns=transfer_cols, data=[]).to_dict()
+                return Records(records=[], fields=transfer_cols + ['value'])
             else:
-                return (
-                    pd.concat(df_ts)
-                      .sort_values(['block_number', 'log_index'])
-                      .reset_index(drop=True)
-                      .to_dict())
+                ret = Records.from_dataframe(pd.concat(df_ts))
+                return ret
 
 
 @Model.describe(slug="account.portfolio",
@@ -383,7 +411,7 @@ class CurveLPPosition(Position):
 
 @Model.describe(
     slug="account.position-in-curve",
-    version="1.1",
+    version="1.3",
     display_name="account position in Curve LP",
     description="All the positions in Curve LP",
     developer="Credmark",
@@ -400,8 +428,10 @@ class GetCurveLPPosition(Model):
     }
 
     def run(self, input: Account) -> Portfolio:
-        df_dict = self.context.run_model('account.token-erc20', input=input)
-        df = pd.DataFrame.from_dict(df_dict)
+        df = (self.context.run_model('account.token-erc20',
+                                     input=input,
+                                     return_type=Records)
+              .to_dataframe())
 
         _lp_tokens = self.CURVE_LP_TOKEN[self.context.network]
         lp_tx = df.query('token_address in @_lp_tokens')
@@ -412,18 +442,18 @@ class GetCurveLPPosition(Model):
             df_tx = df.query('transaction_hash == @_tx')
             if df_tx.shape[0] == 2:
                 tx_in = df_tx.query('token_address not in @_lp_tokens')
-                in_token = Token(address=tx_in.token_address[0])
-                in_token_amount = in_token.scaled(tx_in.sum_value[0])
-                if tx_in.from_address[0] == input.address:
+                in_token = Token(address=tx_in.token_address[tx_in.index[0]])
+                in_token_amount = in_token.scaled(tx_in.value[tx_in.index[0]])
+                if tx_in.from_address[tx_in.index[0]] == input.address:
                     in_token_amount = abs(in_token_amount)
                 else:
                     in_token_amount = -abs(in_token_amount)
 
                 tx_out = df_tx.query('token_address in @_lp_tokens')
-                lp_token = Token(address=tx_out.token_address[0])
-                lp_token_amount = tx_out.sum_value[0]
-                _lp_token_amount_scaled = lp_token.scaled(tx_out.sum_value[0])
-                if tx_in.from_address[0] == input.address:
+                lp_token = Token(address=tx_out.token_address[tx_out.index[0]])
+                lp_token_amount = tx_out.value[tx_out.index[0]]
+                _lp_token_amount_scaled = lp_token.scaled(lp_token_amount)
+                if tx_in.from_address[tx_in.index[0]] == input.address:
                     lp_token_amount = abs(lp_token_amount)
                 else:
                     lp_token_amount = -abs(lp_token_amount)

@@ -7,8 +7,8 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price, Some,
-                                Token, Tokens)
+                                Contracts, Portfolio, Position, Price,
+                                PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
@@ -36,7 +36,7 @@ class CurveFiPoolInfoToken(Contract):
 
 
 class CurveFiPoolInfo(CurveFiPoolInfoToken):
-    token_prices: List[Price]
+    token_prices: List[PriceWithQuote]
     virtualPrice: int
     A: int
     chi: float
@@ -266,7 +266,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.24",
+                version="1.25",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -282,20 +282,20 @@ class CurveFinancePoolInfo(Model):
 
         pool_contract = Contract(address=pool_info.address)
 
-        def _use_for():
+        def _use_for() -> List[PriceWithQuote]:
             token_prices = []
             for tok in pool_info.tokens:
                 token_price = self.context.run_model(
                     'price.quote',
-                    {'base': tok}, return_type=Price)
+                    {'base': tok}, return_type=PriceWithQuote)
                 token_prices.append(token_price)
             return token_prices
 
-        def _use_compose():
+        def _use_compose() -> List[PriceWithQuote]:
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'some': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Some[Price]).some
+                return_type=Some[PriceWithQuote]).some
             return token_prices
 
         token_prices = _use_for()
@@ -348,7 +348,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.3",
+                version="1.4",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',

@@ -1,8 +1,10 @@
+from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelRunError,
                                        create_instance_from_error_dict)
+from credmark.dto import DTOField
 from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price, PriceWithQuote,
-                                Some, Token)
+                                Some, Token, MapBlocksOutput)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
@@ -71,7 +73,7 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.9',
+                version='1.10',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -100,7 +102,7 @@ class PriceQuoteMultiple(Model):
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
-            return Some[Price](some=prices)
+            return Some[PriceWithQuote](some=prices)
 
         def _use_for():
             prices = [self.context.run_model(price_slug, input=m, return_type=PriceWithQuote)
@@ -110,8 +112,34 @@ class PriceQuoteMultiple(Model):
         return _use_for()
 
 
+class PriceBlocksInput(PriceInput):
+    block_numbers: List[int] = DTOField(description='List of blocks to run')
+
+
+@Model.describe(slug='price.quote-maybe-blocks',
+                version='0.1',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceBlocksInput,
+                output=MapBlocksOutput[Maybe[PriceWithQuote]],
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceQuoteMaybeBlock(Model):
+    def run(self, input: PriceBlocksInput) -> MapBlocksOutput[Maybe[PriceWithQuote]]:
+        pi = PriceInput(base=input.base, quote=input.quote)
+        pp = self.context.run_model('compose.map-blocks',
+                                    {"modelSlug": "price.quote-maybe",
+                                     "modelInput": pi,
+                                     "blockNumbers": input.block_numbers},
+                                    return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
+
+        return pp
+
+
 @Model.describe(slug='price.quote-maybe',
-                version='0.2',
+                version='0.3',
                 display_name='Token Price - Quoted - Maybe',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -124,10 +152,11 @@ class PriceQuoteMaybe(Model):
     Return token's price in Maybe
     """
 
-    def run(self, input: PriceInput) -> Maybe[Price]:
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('price.quote', input=input, return_type=Price)
-            return Maybe[Price](just=price)
+            price = self.context.run_model('price.quote', input=input, return_type=PriceWithQuote)
+
+            return Maybe[PriceWithQuote](just=price)
         except ModelRunError as _err:
             pass
         return Maybe.none()
@@ -193,11 +222,11 @@ class PriceQuote(Model):
 
         price_usd = self.context.run_model('price.dex-blended',
                                            input=self.wrapper(input.base),
-                                           return_type=Price)
+                                           return_type=PriceWithQuote)
 
-        return PriceWithQuote.usd(**price_usd.dict())
+        return price_usd
 
-    def run(self, input: PriceInput) -> Price:
+    def run(self, input: PriceInput) -> PriceWithQuote:
         input.base = self.replace_underlying(input.base)
         input.quote = self.replace_underlying(input.quote)
 

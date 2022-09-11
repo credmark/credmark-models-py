@@ -322,7 +322,7 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.3',
+                version='1.4',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -331,18 +331,20 @@ class UniswapGetPoolInfo(Model):
                 output=TVLInfo)
 class UniswapV2PoolTVL(Model):
     def run(self, input: Contract) -> TVLInfo:
-        pool_info = self.context.run_model('uniswap-v2.get-pool-info', input=input)
+        pool_info = self.context.run_model('uniswap-v2.get-pool-info',
+                                           input=input,
+                                           return_type=UniswapV2PoolInfo)
         positions = []
         prices = []
         tvl = 0.0
 
         prices = []
-        for token_info, tok_price, bal in zip(pool_info['tokens']['tokens'],
-                                              pool_info['tokens_price'],
-                                              pool_info['tokens_balance']):
-            prices.append(Price(**tok_price))
-            tvl += bal * tok_price['price']
-            positions.append(Position(asset=Token(**token_info), amount=bal))
+        for token_info, tok_price, bal in zip(pool_info.tokens,
+                                              pool_info.tokens_price,
+                                              pool_info.tokens_balance):
+            prices.append(tok_price)
+            tvl += bal * tok_price.price
+            positions.append(Position(asset=token_info, amount=bal))
 
         try:
             pool_name = input.functions.name().call()
@@ -353,7 +355,7 @@ class UniswapV2PoolTVL(Model):
             address=input.address,
             name=pool_name,
             portfolio=Portfolio(positions=positions),
-            tokens_symbol=pool_info['tokens_symbol'],
+            tokens_symbol=pool_info.tokens_symbol,
             prices=prices,
             tvl=tvl
         )

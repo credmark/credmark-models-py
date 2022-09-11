@@ -3,11 +3,12 @@ from typing import List
 
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
                                        create_instance_from_error_dict)
 from credmark.cmf.types import (Account, Accounts, Contract, Contracts, Price,
-                                Token)
+                                PriceWithQuote, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
@@ -116,7 +117,7 @@ class CMKGetVestingAccounts(Model):
 
 @Model.describe(
     slug="cmk.get-vesting-info-by-account",
-    version="1.3",
+    version="1.4",
     display_name='CMK Vesting Info by Account',
     category='protocol',
     subcategory='cmk',
@@ -184,10 +185,10 @@ class CMKGetVestingByAccount(Model):
                     if c['account'] == input.address:
                         c['amount'] = Token(symbol="CMK").scaled(c['amount'])
                         c['value_at_claim_time'] = c['amount'] * self.context.run_model(
-                            slug="uniswap-v3.get-weighted-price",
-                            input={"symbol": "CMK"},
+                            slug="price.quote",
+                            input={"base": "CMK"},
                             block_number=self.context.block_number.from_timestamp(c['timestamp']),
-                            return_type=Price).price
+                            return_type=PriceWithQuote).price
                         c['value_now'] = c['amount'] * current_price
                         vesting_claims.append(c)
                 return vesting_claims
@@ -207,10 +208,10 @@ class CMKGetVestingByAccount(Model):
                 def price_at_claim_time(row, self=self):
                     timestamp = row['evt_timestamp']
                     price = self.context.run_model(
-                        slug="uniswap-v3.get-weighted-price",
-                        input={"symbol": "CMK"},
+                        slug="price.quote",
+                        input={"base": "CMK"},
                         block_number=self.context.block_number.from_timestamp(timestamp),
-                        return_type=Price).price
+                        return_type=PriceWithQuote).price
                     return price
 
                 vesting_claims = []
