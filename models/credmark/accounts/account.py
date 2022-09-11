@@ -7,7 +7,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 NativePosition, NativeToken, Network,
-                                Portfolio, Position, Price, Token,
+                                Portfolio, Position, PriceWithQuote, Token,
                                 TokenPosition, Tokens)
 from credmark.dto import DTO
 
@@ -75,7 +75,7 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
     if not math.isclose(native_amount, 0):
         native_token_price = _context.run_model(slug='price.quote',
                                                 input=dict(base=native_token),
-                                                return_type=Price).price
+                                                return_type=PriceWithQuote).price
         native_token_return = TokenReturn(
             token_address=native_token.address,
             token_symbol=native_token.symbol,
@@ -115,7 +115,7 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
                 try:
                     then_price = _context.run_model(slug='price.quote',
                                                     input=dict(base=tok),
-                                                    return_type=Price,
+                                                    return_type=PriceWithQuote,
                                                     block_number=r.block_number).price
                     value += -r.value * then_price
                     _logger.info((r.block_number, tok_symbol, then_price, r.value))
@@ -129,7 +129,7 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             if balance != 0:
                 current_price = _context.run_model(slug='price.quote',
                                                    input=dict(base=tok),
-                                                   return_type=Price).price
+                                                   return_type=PriceWithQuote).price
                 current_value = balance * current_price
             else:
                 current_value = 0.0
@@ -164,7 +164,7 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
 
 
 @Model.describe(slug='account.token-return',
-                version='1.3',
+                version='1.4',
                 display_name='Account Token Return',
                 description='Account ERC20 Token Return',
                 developer="Credmark",
@@ -192,7 +192,7 @@ class AccountERC20TokenReturn(Model):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.2',
+                version='0.3',
                 display_name='Account Token Return',
                 description='Account ERC20 Token Return',
                 developer="Credmark",

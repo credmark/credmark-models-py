@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Contract, Price, Some, Token
+from credmark.cmf.types import Contract, PriceWithQuote, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from models.credmark.algorithms.value_at_risk.dto import (DexVaR,
                                                           UniswapPoolVaRInput,
@@ -16,7 +16,7 @@ np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.6",
+                version="1.7",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
@@ -73,7 +73,7 @@ class UniswapPoolVaR(Model):
                    "interval": interval,
                    "count": count,
                    "exclusive": False},
-            return_type=MapBlockTimeSeriesOutput[Some[Price]])
+            return_type=MapBlockTimeSeriesOutput[Some[PriceWithQuote]])
 
         token_historical_prices = [
             (token_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p.some[n].price)])
