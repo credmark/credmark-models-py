@@ -2,7 +2,7 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Maybe, Network, Price
+from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
@@ -36,7 +36,7 @@ class ENSDomainName(DTO):
 
 # TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
-                version="1.1",
+                version="1.2",
                 display_name="Chainlink - Price by ENS",
                 description="Use ENS domain name for a token pair",
                 category='protocol',
@@ -56,7 +56,7 @@ class ChainLinkPriceByENS(Model):
 
 
 @ Model.describe(slug='chainlink.price-by-feed',
-                 version="1.0",
+                 version="1.2",
                  display_name="Chainlink - Price by feed",
                  description="Input a Chainlink valid feed",
                  category='protocol',
@@ -87,42 +87,42 @@ class ChainLinkPriceByFeed(Model):
 
 
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.2",
-                display_name="Chainlink - Price by Registry",
-                description="Looking up Registry for two tokens' addresses",
-                category='protocol',
-                subcategory='chainlink',
-                input=PriceInput,
-                output=Maybe[Price])
-class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> Maybe[Price]:
-        try:
-            price = self.context.run_model('chainlink.price-by-registry',
-                                           input=input,
-                                           return_type=Price,
-                                           local=True)
-            return Maybe[Price](just=price)
-        except BlockNumberOutOfRangeError:
-            return Maybe.none()
-        except ModelRunError as _err:
-            try:
-                price = self.context.run_model('chainlink.price-by-registry',
-                                               input=input.inverse(),
-                                               return_type=Price,
-                                               local=True).inverse()
-                return Maybe[Price](just=price)
-            except ModelRunError as _err2:
-                return Maybe.none()
-
-
-@Model.describe(slug='chainlink.price-by-registry',
                 version="1.3",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
                 input=PriceInput,
-                output=Price)
+                output=Maybe[PriceWithQuote])
+class ChainLinkFeedFromRegistryMaybe(Model):
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+        try:
+            pq = self.context.run_model('chainlink.price-by-registry',
+                                        input=input,
+                                        return_type=PriceWithQuote,
+                                        local=True)
+            return Maybe[PriceWithQuote](just=pq)
+        except BlockNumberOutOfRangeError:
+            return Maybe.none()
+        except ModelRunError as _err:
+            try:
+                pq = self.context.run_model('chainlink.price-by-registry',
+                                            input=input.inverse(),
+                                            return_type=PriceWithQuote,
+                                            local=True)
+                return Maybe[PriceWithQuote](just=pq.inverse(input.quote.address))
+            except ModelRunError as _err2:
+                return Maybe.none()
+
+
+@Model.describe(slug='chainlink.price-by-registry',
+                version="1.5",
+                display_name="Chainlink - Price by Registry",
+                description="Looking up Registry for two tokens' addresses",
+                category='protocol',
+                subcategory='chainlink',
+                input=PriceInput,
+                output=PriceWithQuote)
 class ChainLinkPriceByRegistry(Model):
     def run(self, input: PriceInput) -> Price:
         base_address = input.base.address
@@ -147,9 +147,10 @@ class ChainLinkPriceByRegistry(Model):
 
             time_diff = self.context.block_number.timestamp - _updatedAt
             round_diff = _answeredInRound - _roundId
-            return Price(price=answer / (10 ** decimals),
-                         src=(f'{self.slug}|{description}|{feed}|v{version}|'
-                              f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
+            return PriceWithQuote(price=answer / (10 ** decimals),
+                                  src=(f'{self.slug}|{description}|{feed}|v{version}|'
+                                       f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'),
+                                  quoteAddress=quote_address)
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
                 self.logger.debug(f'No feed found for {base_address}/{quote_address}')

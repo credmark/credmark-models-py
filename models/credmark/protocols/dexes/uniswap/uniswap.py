@@ -1,23 +1,23 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, Price, Token, Network
+from credmark.cmf.types import Address, Contract, PriceWithQuote, Token, Network
 from credmark.dto import EmptyInput
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
-                version='1.1',
+                version='1.3',
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
                 category='protocol',
                 subcategory='uniswap',
                 input=Token,
-                output=Price)
+                output=PriceWithQuote)
 class UniswapRouterPricePair(Model):
     UNISWAP_V3_QUOTER_ADDRESS = {
         Network.Mainnet: '0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6'
     }
 
-    def run(self, input: Token) -> Price:
+    def run(self, input: Token) -> PriceWithQuote:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.
@@ -39,7 +39,7 @@ class UniswapRouterPricePair(Model):
             tokenAmount,
             sqrtPriceLimitX96).call()
 
-        return Price(price=dai.scaled(quote), src=self.slug)
+        return PriceWithQuote(price=dai.scaled(quote), src=self.slug, quoteAddress=dai.address)
 
 
 @Model.describe(slug='uniswap.router',

@@ -11,10 +11,6 @@ class TestCurve(CMKTest):
 
         self.run_model('curve-fi.all-pools-info', {})  # __all__
 
-        self.run_model('token.price', {"address": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
-        self.run_model('token.price', {"address": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
-        self.run_model('token.price', {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
-
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
                        {"address": "0xF178C0b5Bb7e7aBF4e12A4838C7b7c5bA2C623c0"}, block_number=14831356)

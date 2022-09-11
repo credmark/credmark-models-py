@@ -150,6 +150,10 @@ class TestPrice(CMKTest):
     def test_price_general(self):
         self.title('Price - General')
 
+        self.run_model('price.quote', {"base": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
+        self.run_model('price.quote', {"base": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
+        self.run_model('price.quote', {"base": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
+
         self.run_model('price.dex-blended', {"symbol": "CMK"})  # price.pool-aggregator
 
         # aDAI v1: 0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d

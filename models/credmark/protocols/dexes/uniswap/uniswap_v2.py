@@ -6,7 +6,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
                                 Maybe, Network, Portfolio, Position, Price,
-                                Some, Token, Tokens)
+                                PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -268,12 +268,12 @@ class UniswapV2PoolInfo(DTO):
     tokens_symbol: List[str]
     tokens_decimals: List[int]
     tokens_balance: List[float]
-    tokens_price: List[Price]
+    tokens_price: List[PriceWithQuote]
     ratio: float
 
 
 @Model.describe(slug="uniswap-v2.get-pool-info",
-                version="1.7",
+                version="1.8",
                 display_name="Uniswap/Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
                 category='protocol',
@@ -300,7 +300,7 @@ class UniswapGetPoolInfo(Model):
         prices = self.context.run_model(
             'price.quote-multiple',
             input={'some': [{'base': token0}, {'base': token1}]},
-            return_type=Some[Price]).some
+            return_type=Some[PriceWithQuote]).some
 
         value0 = prices[0].price * token0_balance
         value1 = prices[1].price * token1_balance

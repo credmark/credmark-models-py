@@ -3,7 +3,7 @@ from typing import Optional
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
-                                Portfolio, Position, Price, Some, Token, Network)
+                                Portfolio, Position, PriceWithQuote, Some, Token, Network)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
@@ -137,19 +137,21 @@ class AaveV2GetPriceOracle(Model):
 
 
 @Model.describe(slug="aave-v2.get-oracle-price",
-                version="1.1",
+                version="1.3",
                 display_name="Aave V2 - Query price oracle for main market - in ETH",
                 description="Price of Token / ETH",
                 category='protocol',
                 subcategory='aave-v2',
                 input=Token,
-                output=Price)
+                output=PriceWithQuote)
 class AaveV2GetOraclePrice(Model):
-    def run(self, input: Token) -> Price:
+    def run(self, input: Token) -> PriceWithQuote:
         oracle = Contract(**self.context.models(local=True).aave_v2.get_price_oracle())
         price = oracle.functions.getAssetPrice(input.address).call()
         source = oracle.functions.getSourceOfAsset(input.address).call()
-        return Price(price=NativeToken().scaled(price), src=f'{self.slug}|{source}')
+        native_token = NativeToken()
+        return PriceWithQuote.eth(price=native_token.scaled(price),
+                                  src=f'{self.slug}|{source}')
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
@@ -323,8 +325,7 @@ class AaveV2GetTokenAsset(Model):
         except ABIFunctionNotFound:
             # pylint:disable=locally-disabled,protected-access
             if stableDebtToken.proxy_for is not None:
-                if stableDebtToken.proxy_for._meta is not None:
-                    stableDebtToken.proxy_for.set_abi(AAVE_STABLEDEBT_ABI)
+                stableDebtToken.proxy_for.set_abi(AAVE_STABLEDEBT_ABI)
             else:
                 raise
 
