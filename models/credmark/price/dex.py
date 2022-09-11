@@ -5,7 +5,7 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Maybe, Network, Price, Some, Token
+from credmark.cmf.types import Address, Maybe, Network, Price, PriceWithQuote, Some, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, DexPoolAggregationInput,
@@ -39,7 +39,7 @@ class DexPrimaryTokens(Model):
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.6',
+                version='1.8',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 category='dex',
@@ -110,7 +110,7 @@ class DexWeightedPrice(Model):
 
 
 @ Model.describe(slug='uniswap-v3.get-weighted-price',
-                 version='1.4',
+                 version='1.7',
                  display_name='Uniswap v3 - get price weighted by liquidity',
                  description='The Uniswap v3 pools that support a token contract',
                  category='protocol',
@@ -125,7 +125,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='uniswap-v2.get-weighted-price',
-                 version='1.4',
+                 version='1.7',
                  display_name='Uniswap v2 - get price weighted by liquidity',
                  description='The Uniswap v2 pools that support a token contract',
                  category='protocol',
@@ -140,7 +140,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @ Model.describe(slug='sushiswap.get-weighted-price',
-                 version='1.5',
+                 version='1.7',
                  display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                  description='The Sushi v2 pools that support a token contract',
                  category='protocol',
@@ -223,7 +223,7 @@ class PriceInfoFromDex(Model):
 
 
 @ Model.describe(slug='price.dex-blended',
-                 version='1.13',
+                 version='1.15',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',
@@ -231,14 +231,14 @@ class PriceInfoFromDex(Model):
                  subcategory='dex',
                  tags=['dex', 'price'],
                  input=DexPriceTokenInput,
-                 output=Price,
+                 output=PriceWithQuote,
                  errors=PRICE_DATA_ERROR_DESC)
 class PriceFromDexModel(Model):
     """
     Return token's price
     """
 
-    def run(self, input: DexPriceTokenInput) -> Price:
+    def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo],
@@ -248,7 +248,9 @@ class PriceFromDexModel(Model):
             **input.dict(),
             some=all_pool_infos)
 
-        return PoolPriceAggregator(self.context).run(pool_aggregator_input)
+        price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
+
+        return PriceWithQuote.usd(**price.dict())
         # return self.context.run_model('price.pool-aggregator',
         #                              input=pool_aggregator_input,
         #                              return_type=Price,
@@ -264,15 +266,17 @@ class PriceFromDexModel(Model):
                  subcategory='dex',
                  tags=['dex', 'price'],
                  input=Token,
-                 output=Maybe[Price])
+                 output=Maybe[PriceWithQuote])
 class PriceFromDexModelMaybe(Model):
     """
     Return token's price
     """
 
-    def run(self, input: Token) -> Maybe[Price]:
+    def run(self, input: Token) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('price.dex-blended', input=input, return_type=Price)
+            price = self.context.run_model('price.dex-blended',
+                                           input=input,
+                                           return_type=PriceWithQuote)
             return Maybe(just=price)
         except ModelRunError as err:
             if 'No pool to aggregate' in err.data.message:
@@ -281,7 +285,7 @@ class PriceFromDexModelMaybe(Model):
 
 
 @ Model.describe(slug='price.dex-blended-tokens',
-                 version='0.0',
+                 version='0.1',
                  display_name='Token price - Credmark',
                  description='The Current Credmark Supported Price Algorithms',
                  developer='Credmark',

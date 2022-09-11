@@ -7,7 +7,7 @@ from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
                                 Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Price, Token)
+                                NativeToken, Price, PriceWithQuote, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
@@ -106,7 +106,7 @@ class TokenUnderlying(Model):
         if try_eip1967 is not None:
             input = try_eip1967
         if input.abi is not None:
-            if input.proxy_for is not None:
+            if input.proxy_for is not None and input.proxy_for.abi is not None:
                 try:
                     abi_functions = input.proxy_for.abi.functions
                 except BlockNumberOutOfRangeError as err:
@@ -257,7 +257,7 @@ class TokenBalanceOutput(DTO):
 
 @Model.describe(
     slug="token.balance",
-    version="1.0",
+    version="1.1",
     display_name="Token Balance",
     developer="Credmark",
     category='protocol',
@@ -273,7 +273,7 @@ class TokenBalanceModel(Model):
     def run(self, input: TokenBalanceInput) -> TokenBalanceOutput:
         balance = input.balance_of(input.account.checksum)
 
-        token_price = Price(**self.context.models.price.quote({
+        token_price = PriceWithQuote(**self.context.models.price.quote({
             'base': input,
             'quote': input.quote
         }))
@@ -424,7 +424,7 @@ class TokenVolumeBlockInput(DTO):
 
 
 @ Model.describe(slug='token.overall-volume-block',
-                 version='1.0',
+                 version='1.1',
                  display_name='Token Volume',
                  description='The Current Credmark Supported trading volume algorithm',
                  category='protocol',
@@ -461,8 +461,8 @@ class TokenVolumeBlock(Model):
         vol = df.sum_value.sum()
         vol_scaled = input_token.scaled(vol)
         price_last = self.context.models.price.quote(base=input_token,
-                                                     return_type=Price).price  # type: ignore
-        value_last = vol_scaled * price_last
+                                                     return_type=PriceWithQuote)
+        value_last = vol_scaled * price_last.price  # type: ignore
 
         output = TokenVolumeOutput(
             address=input.address,
@@ -499,7 +499,7 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
 
 
 @ Model.describe(slug='token.categorized-supply',
-                 version='1.1',
+                 version='1.2',
                  display_name='Token Categorized Supply',
                  description='The categorized supply for a token',
                  category='protocol',
@@ -510,7 +510,7 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = Price(**self.context.models.price.quote({'base': input.token}))
+        token_price = PriceWithQuote(**self.context.models.price.quote({'base': input.token}))
         if token_price is None:
             raise ModelRunError(f"No Price for {response.token}")
         for c in response.categories:

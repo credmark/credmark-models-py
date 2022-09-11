@@ -1,7 +1,7 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Network, Price, Some, Token
+from credmark.cmf.types import Address, Contract, Network, PriceWithQuote, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
@@ -94,7 +94,7 @@ def get_comptroller(model):
                  output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
-    def run(self, _: EmptyInput) -> Contract:
+    def run(self, _input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
         if comptroller._meta.proxy_implementation is not None:
             cc = comptroller._meta.proxy_implementation
@@ -446,7 +446,7 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @ Model.describe(slug="compound-v2.pool-value",
-                 version="1.2",
+                 version="1.3",
                  display_name="Compound V2 - value of a market",
                  description="Compound V2 - value of a market",
                  category='protocol',
@@ -460,7 +460,7 @@ class CompoundV2GetPoolValue(Model):
                                            return_type=CompoundV2PoolInfo)
         tp = self.context.run_model(slug='price.quote',
                                     input={'base': pool_info.token},
-                                    return_type=Price)
+                                    return_type=PriceWithQuote)
 
         if tp.price is None or tp.src is None:
             raise ModelRunError(f'Can not get price for token {input.symbol=}/{input.address=}')
