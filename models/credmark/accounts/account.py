@@ -121,7 +121,8 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             then_price = then_pq.price
         except ModelRunError as err:
             if 'No pool to aggregate for' not in err.data.message:
-                raise ModelRunError(f'Error in getting price for {tok} on block number {min_block_number}') from err
+                raise ModelRunError(f'Error in getting price for {tok} on '
+                                    f'block number {min_block_number}') from err
             then_price = None
 
         value = None
