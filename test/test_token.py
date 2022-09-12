@@ -115,10 +115,14 @@ class TestToken(CMKTest):
 
         # 1. address for the ren community funds
         # 0x5291fBB0ee9F51225f0928Ff6a83108c86327636
-        self.run_model('account.token-return', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
+        self.run_model('account.token-return',
+                       {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 
         self.run_model('account.token-return',
                        {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, block_number=15447136)
+
+        # Long-loading account
+        # self.run_model('account.token-return', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
 
         # 2. UMA treasury
         # 0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a
@@ -132,3 +136,16 @@ class TestToken(CMKTest):
                        {"accounts": ["0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a",
                                      "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67"]},
                        block_number=15447136)
+
+        # empty address
+        self.run_model('accounts.token-return', {"accounts": []})
+
+        # invalid address
+        self.run_model('accounts.token-return', {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c8"]})
+
+        # a few address
+        self.run_model('accounts.token-return',
+                       {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
+
+        self.run_model('account.token-return', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c8"})
+        self.run_model('account.token-return', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})

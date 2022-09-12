@@ -2,8 +2,9 @@ import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, Currency, Portfolio, Price,
-                                PriceList, Some, Token, TokenPosition, Maybe)
+from credmark.cmf.types import (Account, Accounts, Currency, Maybe, Portfolio,
+                                PriceList, PriceWithQuote, Some, Token,
+                                TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
 from models.credmark.accounts.account import CurveLPPosition
@@ -22,7 +23,7 @@ class AccountValueInput(Accounts):
 
 @Model.describe(
     slug="account.value",
-    version="0.0",
+    version="0.1",
     display_name="Value for an account",
     description="Value for an account",
     developer="Credmark",
@@ -39,13 +40,13 @@ class AccountValue(Model):
         total_value = 0
 
         def zero_price():
-            return Price(price=0.0, src='Cannot find price')
+            return PriceWithQuote.usd(price=0.0, src='Cannot find price')
 
         for pos in portfolio:
             price = self.context.run_model(
                 'price.quote-maybe',
                 input={'base': pos.asset, 'quote': input.quote},
-                return_type=Maybe[Price]).get_just(zero_price())
+                return_type=Maybe[PriceWithQuote]).get_just(zero_price())
 
             pos_value = pos.amount * price.price
             values.append({
@@ -85,7 +86,7 @@ class AccountVaR(Model):
 
 
 @ Model.describe(slug='finance.var-portfolio-historical',
-                 version='1.6',
+                 version='1.7',
                  display_name='Value at Risk - for a portfolio',
                  description='Calculate VaR based on input portfolio',
                  input=PortfolioVaRInput,
@@ -117,7 +118,7 @@ class VaRPortfolio(Model):
                        "interval": interval,
                        "count": count,
                        "exclusive": False},
-                return_type=MapBlockTimeSeriesOutput[Some[Price]])
+                return_type=MapBlockTimeSeriesOutput[Some[PriceWithQuote]])
 
             price_lists = []
             for tok_n, asset_addr in enumerate(assets_to_quote_list):
@@ -142,7 +143,7 @@ class VaRPortfolio(Model):
                            "interval": interval,
                            "count": count,
                            "exclusive": False},
-                    return_type=MapBlockTimeSeriesOutput[Price])
+                    return_type=MapBlockTimeSeriesOutput[PriceWithQuote])
 
                 ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
                                                   ('src', lambda p:p.src), ])

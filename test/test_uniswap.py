@@ -56,3 +56,7 @@ class TestUniswap(CMKTest):
                         "min_tick": current_tick-1000,
                         "max_tick": current_tick+1000},
                        block_number=12377278)
+
+        # pool Swap events
+        self.run_model('dex.pool-volume-block-range', {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"})
+        self.run_model('dex.pool-volume-block-range', {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})

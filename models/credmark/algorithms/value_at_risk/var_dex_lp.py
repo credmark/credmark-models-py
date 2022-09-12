@@ -193,23 +193,24 @@ class UniswapPoolVaR(Model):
         var_il = {}
         conf = input.confidence
         var_result = calc_var(total_pnl_vector, conf)
+
         var = DexVaR(
             var=var_result.var,
-            scenarios=historical_days[var_result.unsorted_index].to_list(),
+            scenarios=historical_days.loc[var_result.unsorted_index].to_list(),
             ppl=total_pnl_vector[var_result.unsorted_index].tolist(),
             weights=var_result.weights)
 
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = DexVaR(
             var=var_result_without_il.var,
-            scenarios=historical_days[var_result_without_il.unsorted_index].to_list(),
+            scenarios=historical_days.loc[var_result_without_il.unsorted_index].to_list(),
             ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(),
             weights=var_result_without_il.weights)
 
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = DexVaR(
             var=var_result_il.var,
-            scenarios=historical_days[var_result_il.unsorted_index].to_list(),
+            scenarios=historical_days.loc[var_result_il.unsorted_index].to_list(),
             ppl=total_pnl_il_vector[var_result_il.unsorted_index].tolist(),
             weights=var_result_il.weights)
 
