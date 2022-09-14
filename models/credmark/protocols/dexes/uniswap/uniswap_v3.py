@@ -151,9 +151,10 @@ class UniswapV3AllPools(Model):
                     break
                 offset += 5000
 
-                breakpoint()
+        all_df = pd.concat(df_ts)
+        all_addresses = set(all_df.evt_pool.tolist())
 
-        return Contracts(contracts=[])
+        return Contracts(contracts=[Contract(addr) for addr in all_addresses])
 
 
 Tick = namedtuple("Tick",
