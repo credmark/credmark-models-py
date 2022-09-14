@@ -120,6 +120,43 @@ class UniswapV3GetPools(Model):
             return Contracts(contracts=[])
 
 
+@Model.describe(slug='uniswap-v3.get-all-pools',
+                version='1.5',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                output=Contracts)
+class UniswapV3AllPools(Model):
+    UNISWAP_V3_FACTORY_ADDRESS = {
+        Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    }
+
+    def run(self, input: EmptyInput) -> Contracts:
+        deployer = Contract(self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network])
+
+        with deployer.ledger.events.PoolCreated as q:
+            df_ts = []
+            offset = 0
+
+            while True:
+                df_tt = q.select(columns=q.columns,
+                                 order_by=q.BLOCK_NUMBER,
+                                 limit=5000,
+                                 offset=offset).to_dataframe()
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+        all_df = pd.concat(df_ts)
+        all_addresses = set(all_df.evt_pool.tolist())
+
+        return Contracts(contracts=[Contract(addr) for addr in all_addresses])
+
+
 Tick = namedtuple("Tick",
                   ("liquidityGross liquidityNet feeGrowthOutside0X128 feeGrowthOutside1X128 "
                    "tickCumulativeOutside secondsPerLiquidityOutsideX128 secondsOutside "
