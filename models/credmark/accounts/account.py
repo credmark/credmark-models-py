@@ -113,20 +113,16 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             tok_symbol = ''
 
         min_block_number = dfa.block_number.min()
-        try:
-            then_pq = _context.run_model(slug='price.quote',
-                                         input=dict(base=tok),
-                                         return_type=PriceWithQuote,
-                                         block_number=min_block_number)
-            then_price = then_pq.price
-        except ModelRunError as err:
-            if 'No pool to aggregate for' not in err.data.message:
-                raise ModelRunError(f'Error in getting price for {tok} on '
-                                    f'block number {min_block_number}') from err
+        then_pq = _context.run_model(slug='price.quote-maybe',
+                                        input=dict(base=tok),
+                                        return_type=Maybe[PriceWithQuote],
+                                        block_number=min_block_number)
+        if then_pq.is_just():
+            then_price = then_pq.just.price
+        else:
             then_price = None
 
         value = None
-
         dd = datetime.now()
         block_numbers = []
         past_prices = {}
@@ -145,11 +141,12 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
 
             value = 0
 
-        tt = datetime.now() - dd
-
-        if then_price is not None:
+            tt = datetime.now() - dd
             _logger.info((tok_symbol, then_price, tt.seconds,
-                          len(block_numbers), tt.seconds / len(block_numbers)))
+                          len(block_numbers), tt.seconds / len(block_numbers),
+                          min_block_number))
+        else:
+            _logger.info((tok_symbol, then_price, len(block_numbers), 'Skip price'))
 
         balance = 0
         for _n, r in dfa.iterrows():
