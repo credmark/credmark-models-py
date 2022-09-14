@@ -12,6 +12,8 @@ from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
                                 Portfolio, Position, PriceWithQuote, Records,
                                 Token, TokenPosition, Tokens)
 from credmark.dto import DTO
+from web3.exceptions import ContractLogicError
+
 
 np.seterr(all='raise')
 
@@ -97,6 +99,10 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
     _block_times = [BlockNumber(blk).timestamp_datetime
                     for blk in _df.block_number.unique().tolist()]
 
+    _logger.info(f'{_df.shape[0]} rows, {_df["token_address"].unique().shape[0]} tokens')
+
+    _token_min_block = _df.groupby('token_address')["block_number"].min()
+
     for tok_address, dfa in _df.groupby('token_address'):
         tok = Token(tok_address)
 
@@ -104,8 +110,10 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
         except ModelDataError:
             if tok.abi is not None and 'decimals' not in tok.abi.functions:
-                continue  # ERC-721`
+                continue  # skip for ERC-721`
             raise
+        except ContractLogicError:
+            continue
 
         try:
             tok_symbol = tok.symbol
@@ -114,21 +122,21 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
 
         min_block_number = dfa.block_number.min()
         then_pq = _context.run_model(slug='price.quote-maybe',
-                                        input=dict(base=tok),
-                                        return_type=Maybe[PriceWithQuote],
-                                        block_number=min_block_number)
+                                     input=dict(base=tok),
+                                     return_type=Maybe[PriceWithQuote],
+                                     block_number=min_block_number)
         if then_pq.is_just():
             then_price = then_pq.just.price
         else:
             then_price = None
 
         value = None
-        dd = datetime.now()
         block_numbers = []
         past_prices = {}
         if then_price is not None:
             block_numbers = dfa.block_number.unique().tolist()
 
+            dd = datetime.now()
             pp = _context.run_model('price.quote-maybe-blocks',
                                     input=dict(base=tok, block_numbers=block_numbers),
                                     return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
