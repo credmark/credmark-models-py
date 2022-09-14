@@ -128,6 +128,16 @@ class PriceBlocksInput(PriceInput):
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMaybeBlock(Model):
     def run(self, input: PriceBlocksInput) -> MapBlocksOutput[Maybe[PriceWithQuote]]:
+        max_input_block_numbers = max(input.block_numbers)
+        if self.context.block_number > max_input_block_numbers:
+            return self.context.run_model(self.slug,
+                                          input,
+                                          return_type=MapBlocksOutput[Maybe[PriceWithQuote]],
+                                          block_number=max_input_block_numbers)
+        elif self.context.block_number < max_input_block_numbers:
+            raise ModelRunError(f'Request block number ({max_input_block_numbers}) is '
+                                f'larger than current block number {self.context.block_number}')
+
         pi = PriceInput(base=input.base, quote=input.quote)
         pp = self.context.run_model('compose.map-blocks',
                                     {"modelSlug": "price.quote-maybe",
