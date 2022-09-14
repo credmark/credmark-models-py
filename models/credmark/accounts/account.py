@@ -1,5 +1,6 @@
 import math
 from datetime import datetime
+from pydoc import describe
 from typing import List, Optional
 
 import numpy as np
@@ -11,7 +12,7 @@ from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
                                 NativePosition, NativeToken, Network,
                                 Portfolio, Position, PriceWithQuote, Records,
                                 Token, TokenPosition, Tokens)
-from credmark.dto import DTO
+from credmark.dto import DTO, DTOField
 from web3.exceptions import ContractLogicError
 
 
@@ -59,6 +60,7 @@ class TokenReturn(DTO):
     current_amount: float
     current_value: Optional[float]
     token_return: Optional[float]
+    transactions: Optional[int] = DTOField(description = "Number of transactions")
 
 
 class TokenReturnOutput(DTO):
@@ -85,7 +87,8 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             token_symbol=native_token.symbol,
             current_amount=native_amount,
             current_value=native_amount*native_token_price,
-            token_return=None
+            token_return=None,
+            transactions=None
         )
     else:
         native_token_return = TokenReturn(
@@ -93,7 +96,8 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
             token_symbol=native_token.symbol,
             current_amount=0,
             current_value=0,
-            token_return=None
+            token_return=None,
+            transactions=None
         )
 
     _block_times = [BlockNumber(blk).timestamp_datetime
@@ -182,7 +186,8 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
                 token_symbol=tok.symbol,
                 current_amount=balance,
                 current_value=current_value,
-                token_return=tok_return))
+                token_return=tok_return,
+                transactions=dfa.shape[0]))
 
     total_current_value = sum(x.current_value for x in all_tokens
                               if x.current_value is not None)
@@ -201,7 +206,7 @@ def token_return(_context, _logger, _df, native_amount) -> TokenReturnOutput:
 
 
 @Model.describe(slug='account.token-return',
-                version='1.4',
+                version='1.5',
                 display_name='Account Token Return',
                 description='Account ERC20 Token Return',
                 developer="Credmark",
@@ -229,7 +234,7 @@ class AccountERC20TokenReturn(Model):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.3',
+                version='0.4',
                 display_name='Account Token Return',
                 description='Account ERC20 Token Return',
                 developer="Credmark",
