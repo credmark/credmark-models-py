@@ -98,6 +98,7 @@ class TokenReturnOutput(DTO):
         return cls(token_returns=[], total_current_value=0, total_return=0)
 
 
+# pylint:disable=too-many-branches
 def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenReturnOutput:
     if _token_list == 'cmf':
         token_list = (_context.run_model('token.list',
