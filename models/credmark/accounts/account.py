@@ -166,7 +166,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
 
         if (token_list is None or
             tok.address.checksum in token_list or
-                tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
+            tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
             then_pq = _context.run_model(slug='price.quote-maybe',
                                          input=dict(base=tok),
                                          return_type=Maybe[PriceWithQuote],
