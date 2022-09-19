@@ -19,7 +19,7 @@ class GetBlockTimestamp(Model):
 
 
 class LatestBlock(DTO):
-    block_number: int
+    blockNumber: int
     timestamp: int
 
 
@@ -34,4 +34,4 @@ class GetLatestBlock(Model):
         block_number = self.context.web3.eth.get_block_number()
         block = self.context.web3.eth.get_block(block_number)
         block_timestamp = block.timestamp  # type: ignore
-        return LatestBlock(block_number=block_number, timestamp=block_timestamp)
+        return LatestBlock(blockNumber=block_number, timestamp=block_timestamp)
