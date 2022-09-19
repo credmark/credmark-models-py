@@ -22,7 +22,7 @@ After installation, please follow the instructions on how to
 - [run](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-output-and-run-the-model), 
 - [submit new models](https://docs.credmark.com/cmf-model-guide/how-to-submit-a-model/model-submission-process) 
 
-Please also have a look at our [modeling guidelines](https://developer-docs.credmark.com/en/latest/how_to.html#model-guidelines).
+Please also have a look at our [modeling guidelines](https://docs.credmark.com/cmf-model-guide/model-guidelines/the-good-model-checklist).
 
 # Credmark API
 The Credmark Framework provides access to remote models and access to on-chain data via the different Credmark APIs. Currently there are three APIs for token, portfolio and DeFi data.
