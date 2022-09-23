@@ -39,7 +39,37 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      
+
+      - name: Build image to Amazon ECR and deploy lambda
+        id: build-deploy-lambda
+        env:
+          DOCKER_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_REPOSITORY: ${{ github.event.repository.name }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          # Build the lambda import and create/update lambda
+          # Name of the repo is the name of the lambda
+
+          ./build-files/scripts/deploy-lambda.sh $DOCKER_REPOSITORY
+
+      - name: Reload Runner Service
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          ./build-files/scripts/restart-runner-service.sh
+
+      - name: Log out of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Copy http build files
+        run: |
+          # Delete Dockerfile for the previous build
+          # TODO: Delete the next line once AWS ECR docker repository workflow steps are deleted
+          rm -rf ./Dockerfile
+
+          ./build-files/scripts/copy-http-build-files.sh .
+
       - name: Build and Push to Github container registry
         id: build-tag-push-image-new-registry
         env:
@@ -69,24 +99,3 @@ jobs:
           # Logout
           docker logout $DOCKER_REGISTRY
 
-      - name: Build image to Amazon ECR and deploy lambda
-        id: build-deploy-lambda
-        env:
-          DOCKER_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          DOCKER_REPOSITORY: ${{ github.event.repository.name }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          # Build the lambda import and create/update lambda
-          # Name of the repo is the name of the lambda
-
-          ./build-files/scripts/deploy-lambda.sh $DOCKER_REPOSITORY
-
-      - name: Reload Runner Service
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          ./build-files/scripts/restart-runner-service.sh
-
-      - name: Log out of Amazon ECR
-        if: always()
-        run: docker logout ${{ steps.login-ecr.outputs.registry }}
