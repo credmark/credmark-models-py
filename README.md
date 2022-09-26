@@ -19,7 +19,8 @@ You can as well configure the Credmark Model Framework to run within a Jupyter N
 # How to...
 After installation, please follow the instructions on how to 
 - [create](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-model-skeleton), 
-- [run](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-output-and-run-the-model), 
+- [run](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-output-and-run-the-model),
+- [test](https://docs.credmark.com/cmf-model-guide/testing/unit-tests), 
 - [submit new models](https://docs.credmark.com/cmf-model-guide/how-to-submit-a-model/model-submission-process) 
 
 Please also have a look at our [modeling guidelines](https://docs.credmark.com/cmf-model-guide/model-guidelines/the-good-model-checklist).
