@@ -89,6 +89,8 @@ class TestToken(CMKTest):
         self.run_model('account.token-erc20', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
         self.run_model('account.token-erc20', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
 
+        self.run_model('account.token-erc20', {'address': '0x9c5083dd4838e120dbeac44c052179692aa5dac5'})
+
         self.run_model('account.position-in-curve', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
         self.run_model('account.portfolio', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 
