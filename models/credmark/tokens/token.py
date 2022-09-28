@@ -1,6 +1,5 @@
 # pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
-from unicodedata import decimal
 
 import requests
 from credmark.cmf.model import Model
@@ -8,12 +7,10 @@ from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
                                 Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Price, PriceWithQuote, Records,
+                                NativeToken, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
-from credmark.cmf.types.data.fungible_token_data import \
-    FUNGIBLE_TOKEN_DATA_BY_SYMBOL
-from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
@@ -387,26 +384,10 @@ class TokenVolumeOutput(DTO):
                    from_block=from_block, to_block=to_block)
 
 
-@Model.describe(slug='token.list',
-                version='0.1',
-                display_name='List of non-scam tokens',
-                description='The current Credmark supported list to value account',
-                category='token',
-                tags=['token'],
-                output=Records)
-class TokenList(Model):
-    def run(self, _: EmptyInput) -> Records:
-        existing_tokens = [
-            (v['address'], v['symbol'], v['name'], v['decimals'])
-            for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[str(self.context.chain_id)].values()]
-        rec = Records(records=existing_tokens, fields=['address', 'symbol', 'name', 'decimals'])
-        return rec
-
-
 @Model.describe(slug='token.overall-volume-window',
                 version='1.0',
                 display_name='Token Volume',
-                description='The Current Credmark Supported trading volume algorithm',
+                description='The current Credmark supported trading volume algorithm',
                 category='protocol',
                 tags=['token'],
                 input=TokenVolumeWindowInput,
