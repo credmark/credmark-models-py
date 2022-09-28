@@ -60,7 +60,7 @@ def get_native_transfer(_context, _address) -> List:
 
         native_token_addr = NativeToken().address
         while True:
-            df_tt = (q.select(
+            rs_tt = (q.select(
                 columns=[q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS],
                 aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
                             f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value'),
@@ -68,7 +68,9 @@ def get_native_transfer(_context, _address) -> List:
                 where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))
                        ).parentheses_().and_(q.field('value').dquote().ne(0)),
                 order_by=q.BLOCK_NUMBER.comma_(q.TRANSACTION_INDEX),
-                offset=offset).to_dataframe())
+                offset=offset))
+
+            df_tt = rs_tt.to_dataframe()
 
             if df_tt.shape[0] > 0:
                 df_ts.append(df_tt)
@@ -166,7 +168,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
 
         if (token_list is None or
             tok.address.checksum in token_list or
-            tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
+                tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
             then_pq = _context.run_model(slug='price.quote-maybe',
                                          input=dict(base=tok),
                                          return_type=Maybe[PriceWithQuote],
