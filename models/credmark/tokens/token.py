@@ -1,19 +1,15 @@
 # pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
-from unicodedata import decimal
 
 import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract,
-                                Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Price, PriceWithQuote, Records,
+from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurrency, Maybe,
+                                NativeToken, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
-from credmark.cmf.types.data.fungible_token_data import \
-    FUNGIBLE_TOKEN_DATA_BY_SYMBOL
-from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
@@ -353,147 +349,6 @@ class TokenSwapPools(Model):
         response.contracts.extend(Contracts(**self.context.models.sushiswap.get_pools(input)))
         return response
 
-
-@Model.describe(slug='token.swap-pool-volume',
-                version='1.0',
-                display_name='Token Volume',
-                description='The current volume for a swap pool',
-                category='protocol',
-                tags=['token'],
-                input=Contract,
-                output=dict)
-class TokenSwapPoolVolume(Model):
-    def run(self, input: Token) -> dict:
-        # TODO: Get All Credmark Supported swap Pools for a token
-        return {"result": 0}
-
-
-class TokenVolumeWindowInput(Token):
-    window: str
-
-
-class TokenVolumeOutput(DTO):
-    address: Address
-    volume: int
-    volume_scaled: float
-    value_last: float
-
-    from_block: int
-    to_block: int
-
-    @classmethod
-    def default(cls, _address, from_block, to_block):
-        return cls(address=_address, volume=0, volume_scaled=0, value_last=0,
-                   from_block=from_block, to_block=to_block)
-
-
-@Model.describe(slug='token.list',
-                version='0.1',
-                display_name='List of non-scam tokens',
-                description='The current Credmark supported list to value account',
-                category='token',
-                tags=['token'],
-                output=Records)
-class TokenList(Model):
-    def run(self, _: EmptyInput) -> Records:
-        existing_tokens = [
-            (v['address'], v['symbol'], v['name'], v['decimals'])
-            for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[str(self.context.chain_id)].values()]
-        rec = Records(records=existing_tokens, fields=['address', 'symbol', 'name', 'decimals'])
-        return rec
-
-
-@Model.describe(slug='token.overall-volume-window',
-                version='1.0',
-                display_name='Token Volume',
-                description='The Current Credmark Supported trading volume algorithm',
-                category='protocol',
-                tags=['token'],
-                input=TokenVolumeWindowInput,
-                output=TokenVolumeOutput)
-class TokenVolumeWindow(Model):
-    def run(self, input: TokenVolumeWindowInput) -> TokenVolumeOutput:
-        window_in_seconds = self.context.historical.to_seconds(input.window)
-        old_block_timestamp = self.context.block_number.timestamp - window_in_seconds
-        old_block = BlockNumber.from_timestamp(old_block_timestamp)
-
-        return self.context.run_model(
-            'token.overall-volume-block',
-            input=TokenVolumeBlockInput(
-                address=input.address,
-                block_number=old_block),
-            return_type=TokenVolumeOutput)
-
-
-class TokenVolumeBlockInput(DTO):
-    address: Address
-    block_number: int = DTOField(
-        description=('Positive for a block earlier than the current one '
-                     'or negative or zero for an interval. '
-                     'Both excludes the start block.'))
-
-    def __init__(self, **data):
-        if 'address' in data:
-            super().__init__(**data)
-        else:
-            address = Token(**data).address
-            super().__init__(address=address, block_number=data['block_number'])
-
-    def to_token(self):
-        return Token(self.address)
-
-
-@ Model.describe(slug='token.overall-volume-block',
-                 version='1.1',
-                 display_name='Token Volume',
-                 description='The Current Credmark Supported trading volume algorithm',
-                 category='protocol',
-                 tags=['token'],
-                 input=TokenVolumeBlockInput,
-                 output=TokenVolumeOutput)
-class TokenVolumeBlock(Model):
-    def run(self, input: TokenVolumeBlockInput) -> TokenVolumeOutput:
-        token_address = input.address
-        old_block = input.block_number
-
-        if old_block >= 0:
-            if old_block > self.context.block_number:
-                raise ModelRunError(f'input {input.block_number=} shall be earlier '
-                                    f'than the current block {self.context.block_number}')
-        else:
-            old_block = self.context.block_number + old_block
-
-        to_block = self.context.block_number
-        native_token = NativeToken()
-        if input.address == native_token.address:
-            input_token = native_token
-            with self.context.ledger.Transaction as q:
-                df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
-                              where=q.BLOCK_NUMBER.gt(old_block)).to_dataframe()
-        else:
-            input_token = input.to_token()
-            with self.context.ledger.TokenTransfer as q:
-                df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
-                              where=(q.TOKEN_ADDRESS.eq(token_address)
-                                     .and_(q.BLOCK_NUMBER.gt(old_block))),
-                              ).to_dataframe()
-
-        vol = df.sum_value.sum()
-        vol_scaled = input_token.scaled(vol)
-        price_last = self.context.models.price.quote(base=input_token,
-                                                     return_type=PriceWithQuote)
-        value_last = vol_scaled * price_last.price  # type: ignore
-
-        output = TokenVolumeOutput(
-            address=input.address,
-            volume=vol,
-            volume_scaled=vol_scaled,
-            value_last=value_last,
-            from_block=old_block+1,
-            to_block=to_block
-        )
-
-        return output
 
 
 class CategorizedSupplyRequest(IterableListGenericDTO):

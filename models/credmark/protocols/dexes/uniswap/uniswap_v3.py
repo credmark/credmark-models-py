@@ -132,7 +132,7 @@ class UniswapV3AllPools(Model):
         Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     }
 
-    def run(self, input: EmptyInput) -> Contracts:
+    def run(self, _: EmptyInput) -> Contracts:
         deployer = Contract(self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network])
 
         with deployer.ledger.events.PoolCreated as q:
