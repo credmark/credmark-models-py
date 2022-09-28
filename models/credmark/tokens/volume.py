@@ -190,7 +190,6 @@ class TokenVolumeSegmentBlock(Model):
                 'Start block shall be larger than zero: '
                 f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
 
-        to_block = self.context.block_number
         native_token = NativeToken()
         if input.address == native_token.address:
             input_token = native_token
