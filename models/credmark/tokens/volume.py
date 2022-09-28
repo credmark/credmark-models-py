@@ -186,16 +186,18 @@ class TokenVolumeSegmentBlock(Model):
 
         block_start = self.context.block_number - block_seg * input.n
         if block_start < 0:
-            raise ModelRunError('Start block shall be larger than zero: '
-                                f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
+            raise ModelRunError(
+                'Start block shall be larger than zero: '
+                f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
 
         to_block = self.context.block_number
         native_token = NativeToken()
         if input.address == native_token.address:
             input_token = native_token
             with self.context.ledger.Transaction as q:
+                f1 = q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()
                 df = q.select(aggregates=[
-                    (f"floor({q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()} / {block_seg})",
+                    (f"floor({f1} / {block_seg})",
                      'block_label'),
                     (q.BLOCK_NUMBER.min_(), 'block_number_min'),
                     (q.BLOCK_NUMBER.max_(), 'block_number_max'),
@@ -206,8 +208,9 @@ class TokenVolumeSegmentBlock(Model):
         else:
             input_token = input.to_token()
             with self.context.ledger.TokenTransfer as q:
+                f1 = q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()
                 df = q.select(aggregates=[
-                    (f"floor({q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()} / {block_seg})",
+                    (f"floor({f1} / {block_seg})",
                      'block_label'),
                     (q.BLOCK_NUMBER.min_(), 'block_number_min'),
                     (q.BLOCK_NUMBER.max_(), 'block_number_max'),
