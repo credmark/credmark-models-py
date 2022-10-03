@@ -11,6 +11,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, EmptyInput
+from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
@@ -25,26 +26,11 @@ from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
 class UniswapV2PoolMeta:
     @staticmethod
     def get_uniswap_pools(context, input_address: Address, factory_addr: Address) -> Contracts:
-        primary_tokens = context.run_model('dex.primary-tokens',
-                                           input=EmptyInput(),
-                                           return_type=Some[Address],
-                                           local=True).some
-
-        weth_address = Token('WETH').address
-
-        if input_address not in primary_tokens and input_address != weth_address:
-            primary_tokens.append(weth_address)
-
         factory = Contract(address=factory_addr)
+        token_pairs = get_primary_token_tuples(context, input_address)
         contracts = []
         try:
-            for token_address in primary_tokens:
-                if token_address == input_address:
-                    continue
-                if input_address.to_int() < token_address.to_int():
-                    token_pair = input_address.checksum, token_address.checksum
-                else:
-                    token_pair = token_address.checksum, input_address.checksum
+            for token_pair in token_pairs:
                 pair_address = factory.functions.getPair(*token_pair).call()
                 if not Address(pair_address).is_null():
                     cc = Contract(address=pair_address)
@@ -61,6 +47,38 @@ class UniswapV2PoolMeta:
             # Or use this condition: if self.context.block_number < 10000835 # Uniswap V2
             # Or use this condition: if self.context.block_number < 10794229 # SushiSwap
             return Contracts(contracts=[])
+
+    @staticmethod
+    def get_uniswap_pools_ledger(context, input_address: Address, _gw: Contract) -> Contracts:
+        token_pairs = get_primary_token_tuples(context, input_address)
+
+        with _gw.ledger.events.PairCreated as q:
+            tp = token_pairs[0]
+            eq_conds = q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1])).parentheses_()
+            for tp in token_pairs[1:]:
+                new_eq = q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1])).parentheses_()
+                eq_conds = eq_conds.or_(new_eq)
+
+            df_ts = []
+            offset = 0
+            while True:
+                df_tt = q.select(columns=[q.EVT_PAIR, q.BLOCK_NUMBER],
+                                 where=eq_conds,
+                                 order_by=q.BLOCK_NUMBER,
+                                 limit=5000,
+                                 offset=offset).to_dataframe()
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+            all_df = pd.concat(df_ts)
+
+        evt_pair = all_df['evt_pair']
+
+        return Contracts(contracts=[Contract(c) for c in evt_pair])
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
@@ -81,6 +99,26 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network]
         return self.get_uniswap_pools(self.context, input.address, Address(addr))
+
+
+@Model.describe(slug='uniswap-v2.get-pools-ledger',
+                version='0.1',
+                display_name='Uniswap v2 Token Pools',
+                description='The Uniswap v2 pools that support a token contract - use ledger',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Token,
+                output=Contracts)
+class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
+    # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
+    UNISWAP_V2_FACTORY_ADDRESS = {
+        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
+        for k in
+        [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
+
+    def run(self, input: Token) -> Contracts:
+        gw = Contract(self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network])
+        return self.get_uniswap_pools_ledger(self.context, input.address, gw)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',

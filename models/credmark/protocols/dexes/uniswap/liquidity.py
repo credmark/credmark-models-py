@@ -237,14 +237,14 @@ def get_amount_in_ticks(logger,
     return df_pool
 
 
-@ Model.describe(slug='uniswap-v3.get-amount-in-ticks',
-                 version='0.0',
-                 display_name='Uniswap v3 - Liquidity',
-                 description='Liquidity at every range - restored from Mint/Burn events',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 input=V3PoolLiquidityByTicksInput,
-                 output=dict)
+@Model.describe(slug='uniswap-v3.get-amount-in-ticks',
+                version='0.0',
+                display_name='Uniswap v3 - Liquidity',
+                description='Liquidity at every range - restored from Mint/Burn events',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=V3PoolLiquidityByTicksInput,
+                output=dict)
 class UniswapV3AmountInTicks(Model):
     def run(self, input: V3PoolLiquidityByTicksInput) -> dict:
         liquidity_by_ticks = self.context.run_model(

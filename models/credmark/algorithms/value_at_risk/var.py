@@ -60,7 +60,7 @@ class AccountValue(Model):
                 'total_value': total_value}
 
 
-@ Model.describe(
+@Model.describe(
     slug="account.var",
     version="0.2",
     display_name="VaR for an account",
@@ -85,12 +85,12 @@ class AccountVaR(Model):
                                       return_type=VaRHistoricalOutput)
 
 
-@ Model.describe(slug='finance.var-portfolio-historical',
-                 version='1.7',
-                 display_name='Value at Risk - for a portfolio',
-                 description='Calculate VaR based on input portfolio',
-                 input=PortfolioVaRInput,
-                 output=VaRHistoricalOutput)
+@Model.describe(slug='finance.var-portfolio-historical',
+                version='1.7',
+                display_name='Value at Risk - for a portfolio',
+                description='Calculate VaR based on input portfolio',
+                input=PortfolioVaRInput,
+                output=VaRHistoricalOutput)
 class VaRPortfolio(Model):
     def run(self, input: PortfolioVaRInput) -> VaRHistoricalOutput:
         portfolio = input.portfolio
@@ -171,13 +171,13 @@ class VaRPortfolio(Model):
                                       return_type=VaRHistoricalOutput)
 
 
-@ Model.describe(slug='finance.var-engine-historical',
-                 version='1.6',
-                 display_name='Value at Risk',
-                 description='Value at Risk',
-                 category='financial',
-                 input=VaRHistoricalInput,
-                 output=VaRHistoricalOutput)
+@Model.describe(slug='finance.var-engine-historical',
+                version='1.6',
+                display_name='Value at Risk',
+                description='Value at Risk',
+                category='financial',
+                input=VaRHistoricalInput,
+                output=VaRHistoricalOutput)
 class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices

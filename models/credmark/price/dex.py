@@ -1,15 +1,18 @@
 # pylint: disable=locally-disabled
 import sys
 from abc import abstractmethod
-from typing import List
+from typing import List, Tuple
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Maybe, Network, Price, PriceWithQuote, Some, Token
+from credmark.cmf.types import (Address, Maybe, Network, Price, PriceWithQuote,
+                                Some, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import EmptyInput
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, DexPoolAggregationInput,
-                               DexPriceTokenInput, DexPriceTokensInput, PoolPriceInfo)
+                               DexPriceTokenInput, DexPriceTokensInput,
+                               PoolPriceInfo)
 from web3.exceptions import BadFunctionCallOutput
 
 
@@ -36,6 +39,30 @@ class DexPrimaryTokens(Model):
             except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
                 pass
         return Some(some=valid_tokens)
+
+
+def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Address, Address]]:
+    primary_tokens = context.run_model('dex.primary-tokens',
+                                       input=EmptyInput(),
+                                       return_type=Some[Address],
+                                       local=True).some
+
+    weth_address = Token('WETH').address
+
+    if input_address not in primary_tokens and input_address != weth_address:
+        primary_tokens.append(weth_address)
+
+    token_pairs = []
+
+    for token_address in primary_tokens:
+        if token_address == input_address:
+            continue
+        if input_address.to_int() < token_address.to_int():
+            token_pairs.append((input_address.checksum, token_address.checksum))
+        else:
+            token_pairs.append((token_address.checksum, input_address.checksum))
+
+    return token_pairs
 
 
 @Model.describe(slug='price.pool-aggregator',
@@ -109,61 +136,61 @@ class DexWeightedPrice(Model):
         return PoolPriceAggregator(self.context).run(pool_aggregator_input)
 
 
-@ Model.describe(slug='uniswap-v3.get-weighted-price',
-                 version='1.7',
-                 display_name='Uniswap v3 - get price weighted by liquidity',
-                 description='The Uniswap v3 pools that support a token contract',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 tags=['price'],
-                 input=DexPriceTokenInput,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='uniswap-v3.get-weighted-price',
+                version='1.7',
+                display_name='Uniswap v3 - get price weighted by liquidity',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class UniswapV3WeightedPrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('uniswap-v3.get-pool-info-token-price', input)
 
 
-@ Model.describe(slug='uniswap-v2.get-weighted-price',
-                 version='1.7',
-                 display_name='Uniswap v2 - get price weighted by liquidity',
-                 description='The Uniswap v2 pools that support a token contract',
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 tags=['price'],
-                 input=DexPriceTokenInput,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='uniswap-v2.get-weighted-price',
+                version='1.7',
+                display_name='Uniswap v2 - get price weighted by liquidity',
+                description='The Uniswap v2 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v2',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class UniswapV2WeightedPrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('uniswap-v2.get-pool-info-token-price', input)
 
 
-@ Model.describe(slug='sushiswap.get-weighted-price',
-                 version='1.7',
-                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
-                 description='The Sushi v2 pools that support a token contract',
-                 category='protocol',
-                 subcategory='sushi-v2',
-                 tags=['price'],
-                 input=DexPriceTokenInput,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='sushiswap.get-weighted-price',
+                version='1.7',
+                display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
+                description='The Sushi v2 pools that support a token contract',
+                category='protocol',
+                subcategory='sushi-v2',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class SushiV2GetAveragePrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('sushiswap.get-pool-info-token-price', input)
 
 
-@ Model.describe(slug='price.dex-pool',
-                 version='0.4',
-                 display_name='',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=DexPriceTokenInput,
-                 output=Some[PoolPriceInfo])
+@Model.describe(slug='price.dex-pool',
+                version='0.4',
+                display_name='',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=DexPriceTokenInput,
+                output=Some[PoolPriceInfo])
 class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
                                              'sushiswap.get-pool-info-token-price',
@@ -222,17 +249,17 @@ class PriceInfoFromDex(Model):
         return Some[PoolPriceInfo](some=_use_for(local=True))
 
 
-@ Model.describe(slug='price.dex-blended',
-                 version='1.15',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=DexPriceTokenInput,
-                 output=PriceWithQuote,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.dex-blended',
+                version='1.15',
+                display_name='Token price - Credmark',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=DexPriceTokenInput,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceFromDexModel(Model):
     """
     Return token's price
@@ -257,16 +284,16 @@ class PriceFromDexModel(Model):
         #                              local=True)
 
 
-@ Model.describe(slug='price.dex-blended-maybe',
-                 version='0.3',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=Token,
-                 output=Maybe[PriceWithQuote])
+@Model.describe(slug='price.dex-blended-maybe',
+                version='0.3',
+                display_name='Token price - Credmark',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=Token,
+                output=Maybe[PriceWithQuote])
 class PriceFromDexModelMaybe(Model):
     """
     Return token's price
@@ -284,17 +311,17 @@ class PriceFromDexModelMaybe(Model):
             raise
 
 
-@ Model.describe(slug='price.dex-blended-tokens',
-                 version='0.1',
-                 display_name='Token price - Credmark',
-                 description='The Current Credmark Supported Price Algorithms',
-                 developer='Credmark',
-                 category='price',
-                 subcategory='dex',
-                 tags=['dex', 'price'],
-                 input=DexPriceTokensInput,
-                 output=Price,
-                 errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.dex-blended-tokens',
+                version='0.1',
+                display_name='Token price - Credmark',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=DexPriceTokensInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceFromDexModelTokens(Model):
     """
     Return token's price

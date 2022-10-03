@@ -61,14 +61,14 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
     return tokenBalance
 
 
-@ Model.describe(slug='balancer-fi.get-all-pools',
-                 version='0.2',
-                 display_name='Balancer Finance - Get all pools',
-                 description='Get all pools',
-                 category='protocol',
-                 subcategory='balancer',
-                 input=EmptyInput,
-                 output=Contracts)
+@Model.describe(slug='balancer-fi.get-all-pools',
+                version='0.2',
+                display_name='Balancer Finance - Get all pools',
+                description='Get all pools',
+                category='protocol',
+                subcategory='balancer',
+                input=EmptyInput,
+                output=Contracts)
 class GetBalancerAllPools(Model):
     VAULT_ADDR = {Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
 
@@ -107,14 +107,14 @@ class GetBalancerAllPools(Model):
         return Contracts(contracts=contracts)
 
 
-@ Model.describe(slug='balancer-fi.get-all-pools-price-info',
-                 version='0.1',
-                 display_name='Balancer Finance - Get all pools',
-                 description='Get all pools',
-                 category='protocol',
-                 subcategory='balancer',
-                 input=EmptyInput,
-                 output=Some[BalancerPoolPriceInfo])
+@Model.describe(slug='balancer-fi.get-all-pools-price-info',
+                version='0.1',
+                display_name='Balancer Finance - Get all pools',
+                description='Get all pools',
+                category='protocol',
+                subcategory='balancer',
+                input=EmptyInput,
+                output=Some[BalancerPoolPriceInfo])
 class GetBalancerAllPoolInfo(Model):
     def run(self, _) -> Some[BalancerPoolPriceInfo]:
         pools = self.context.run_model('balancer-fi.get-all-pools',
@@ -130,14 +130,14 @@ class GetBalancerAllPoolInfo(Model):
         return Some(some=pool_infos)
 
 
-@ Model.describe(slug='balancer-fi.get-pool-price-info',
-                 version='0.0',
-                 display_name='Balancer Finance - Get pool price info',
-                 description='Get price information for a Balancer pool',
-                 category='protocol',
-                 subcategory='balancer',
-                 input=Contract,
-                 output=BalancerPoolPriceInfo)
+@Model.describe(slug='balancer-fi.get-pool-price-info',
+                version='0.0',
+                display_name='Balancer Finance - Get pool price info',
+                description='Get price information for a Balancer pool',
+                category='protocol',
+                subcategory='balancer',
+                input=Contract,
+                output=BalancerPoolPriceInfo)
 class GetBalancerPoolPriceInfo(Model):
     VAULT_ADDR = {Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
 

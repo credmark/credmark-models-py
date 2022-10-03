@@ -13,6 +13,7 @@ from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
@@ -79,8 +80,9 @@ class UniswapV3GetPools(Model):
         Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     }
 
+    POOL_FEES = [100, 500, 3000, 10000]
+
     def run(self, input: Token) -> Contracts:
-        fees = [100, 500, 3000, 10000]
         try:
             primary_tokens = self.context.run_model('dex.primary-tokens',
                                                     input=EmptyInput(),
@@ -90,20 +92,16 @@ class UniswapV3GetPools(Model):
             # For stablecoins, exclude use WETH pools.
             # In those pools, the price for stablecoins in those pools will always be 1.
             weth_address = Token('WETH').address
+
             if input.address not in primary_tokens and input.address != weth_address:
                 primary_tokens.append(weth_address)
 
             addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network]
             uniswap_factory = Contract(address=addr)
             pools = []
-            for fee in fees:
-                for primary_token in primary_tokens:
-                    if input.address == primary_token:
-                        continue
-                    if input.address.to_int() < primary_token.to_int():
-                        token_pair = input.address.checksum, primary_token.checksum
-                    else:
-                        token_pair = primary_token.checksum, input.address.checksum
+            token_pairs = get_primary_token_tuples(self.context, input.address)
+            for token_pair in token_pairs:
+                for fee in self.POOL_FEES:
                     pool = uniswap_factory.functions.getPool(*token_pair, fee).call()
                     if not Address(pool).is_null():
                         cc = Contract(address=pool, abi=UNISWAP_V3_POOL_ABI)
@@ -118,6 +116,58 @@ class UniswapV3GetPools(Model):
             return Contracts(contracts=pools)
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
             return Contracts(contracts=[])
+
+
+@Model.describe(slug='uniswap-v3.get-pools-ledger',
+                version='1.5',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=Token,
+                output=Contracts)
+class UniswapV3GetPoolsLedger(Model):
+    UNISWAP_V3_FACTORY_ADDRESS = {
+        Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    }
+
+    POOL_FEES = [100, 500, 3000, 10000]
+
+    def run(self, input: Token) -> Contracts:
+        gw = Contract(self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network])
+        input_address = input.address
+        token_pairs = get_primary_token_tuples(self.context, input_address)
+        token_pairs_fee = [(*tp, self.POOL_FEES) for tp in token_pairs]
+
+        with gw.ledger.events.PoolCreated as q:
+            tp = token_pairs_fee[0]
+            eq_conds = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
+                         .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+            for tp in token_pairs_fee[1:]:
+                new_eq = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
+                           .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+                eq_conds = eq_conds.or_(new_eq)
+
+            df_ts = []
+            offset = 0
+            while True:
+                df_tt = q.select(columns=[q.EVT_POOL, q.BLOCK_NUMBER],
+                                 where=eq_conds,
+                                 order_by=q.BLOCK_NUMBER,
+                                 limit=5000,
+                                 offset=offset).to_dataframe()
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+            all_df = pd.concat(df_ts)
+
+        evt_pool = all_df['evt_pool']
+
+        return Contracts(contracts=[Contract(c) for c in evt_pool])
 
 
 @Model.describe(slug='uniswap-v3.get-all-pools',

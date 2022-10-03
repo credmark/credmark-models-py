@@ -46,14 +46,14 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
     gauges_type: List[int]
 
 
-@ Model.describe(slug='curve-fi.get-provider',
-                 version='1.2',
-                 display_name='Curve Finance - Get Provider',
-                 description='Get provider contract',
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug='curve-fi.get-provider',
+                version='1.2',
+                display_name='Curve Finance - Get Provider',
+                description='Get provider contract',
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetProvider(Model):
     CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
 
@@ -63,14 +63,14 @@ class CurveFinanceGetProvider(Model):
         return provider
 
 
-@ Model.describe(slug='curve-fi.get-registry',
-                 version='1.2',
-                 display_name='Curve Finance - Get Registry',
-                 description='Query provider to get the registry',
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug='curve-fi.get-registry',
+                version='1.2',
+                display_name='Curve Finance - Get Registry',
+                description='Query provider to get the registry',
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetRegistry(Model):
     def run(self, _) -> Contract:
         provider = Contract(**self.context.models.curve_fi.get_provider())
@@ -80,14 +80,14 @@ class CurveFinanceGetRegistry(Model):
         return cc
 
 
-@ Model.describe(slug="curve-fi.get-gauge-controller",
-                 version='1.2',
-                 display_name="Curve Finance - Get Gauge Controller",
-                 description="Query the registry for the guage controller",
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug="curve-fi.get-gauge-controller",
+                version='1.2',
+                display_name="Curve Finance - Get Gauge Controller",
+                description="Query the registry for the guage controller",
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetGauge(Model):
     def run(self, _):
         registry = Contract(**self.context.models.curve_fi.get_registry())
@@ -97,13 +97,13 @@ class CurveFinanceGetGauge(Model):
         return cc
 
 
-@ Model.describe(slug="curve-fi.all-pools",
-                 version="1.2",
-                 display_name="Curve Finance - Get all pools",
-                 description="Query the registry for all pools",
-                 category='protocol',
-                 subcategory='curve',
-                 output=Contracts)
+@Model.describe(slug="curve-fi.all-pools",
+                version="1.2",
+                display_name="Curve Finance - Get all pools",
+                description="Query the registry for all pools",
+                category='protocol',
+                subcategory='curve',
+                output=Contracts)
 class CurveFinanceAllPools(Model):
     def run(self, _) -> Contracts:
         registry = self.context.run_model('curve-fi.get-registry',
@@ -477,12 +477,12 @@ class CurveFinanceAllGauges(Model):
                                       lp_tokens=Accounts(accounts=lp_tokens))
 
 
-@ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.4',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=Accounts)
+@Model.describe(slug='curve-fi.all-gauge-claim-addresses',
+                version='1.4',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
     def run(self, input: Contract) -> Accounts:
         with self.context.ledger.Transaction as txn:
@@ -499,12 +499,12 @@ class CurveFinanceAllGaugeAddresses(Model):
                     in addrs]))])
 
 
-@ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                 version='1.2',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
+                version='1.2',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
     def run(self, input: Contract) -> dict:
         yields = []
@@ -527,12 +527,12 @@ class CurveFinanceGaugeRewardsCRV(Model):
         return {"yields": yields}
 
 
-@ Model.describe(slug='curve-fi.gauge-yield',
-                 version='1.2',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='curve-fi.gauge-yield',
+                version='1.2',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=dict)
 class CurveFinanceAverageGaugeYield(Model):
     CRV_PRICE = 3.0
 
@@ -596,13 +596,13 @@ class CurveFinanceAverageGaugeYield(Model):
         return {"crv_yield": avg_yield}
 
 
-@ Model.describe(slug='curve-fi.all-yield',
-                 version='1.4',
-                 description="Yield from all Gauges",
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=dict)
+@Model.describe(slug='curve-fi.all-yield',
+                version='1.4',
+                description="Yield from all Gauges",
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=dict)
 class CurveFinanceAllYield(Model):
     def run(self, _) -> dict:
         gauge_contracts = self.context.run_model('curve-fi.all-gauges',

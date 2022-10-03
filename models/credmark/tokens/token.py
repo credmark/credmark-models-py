@@ -350,7 +350,6 @@ class TokenSwapPools(Model):
         return response
 
 
-
 class CategorizedSupplyRequest(IterableListGenericDTO):
     class CategorizedSupplyCategory(DTO):
         accounts: Accounts
@@ -373,14 +372,14 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
     circulatingSupplyUsd: float = 0.0
 
 
-@ Model.describe(slug='token.categorized-supply',
-                 version='1.2',
-                 display_name='Token Categorized Supply',
-                 description='The categorized supply for a token',
-                 category='protocol',
-                 tags=['token'],
-                 input=CategorizedSupplyRequest,
-                 output=CategorizedSupplyResponse)
+@Model.describe(slug='token.categorized-supply',
+                version='1.2',
+                display_name='Token Categorized Supply',
+                description='The categorized supply for a token',
+                category='protocol',
+                tags=['token'],
+                input=CategorizedSupplyRequest,
+                output=CategorizedSupplyResponse)
 class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
