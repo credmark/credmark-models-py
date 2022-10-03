@@ -185,14 +185,14 @@ class AaveV2GetLiability(Model):
         return Portfolio(positions=positions)
 
 
-@ Model.describe(slug="aave-v2.token-liability",
-                 version="1.1",
-                 display_name="Aave V2 token liability",
-                 description="Aave V2 token liability at a given block number",
-                 category='protocol',
-                 subcategory='aave-v2',
-                 input=Token,
-                 output=Position)
+@Model.describe(slug="aave-v2.token-liability",
+                version="1.1",
+                display_name="Aave V2 token liability",
+                description="Aave V2 token liability at a given block number",
+                category='protocol',
+                subcategory='aave-v2',
+                input=Token,
+                output=Position)
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
@@ -217,13 +217,13 @@ class AaveV2GetTokenLiability(Model):
         return Position(asset=aToken, amount=float(aToken.total_supply))
 
 
-@ Model.describe(slug="aave-v2.lending-pool-assets",
-                 version="1.4",
-                 display_name="Aave V2 Lending Pool Assets",
-                 description="Aave V2 assets for the main lending pool",
-                 category='protocol',
-                 subcategory='aave-v2',
-                 output=Some[AaveDebtInfo])
+@Model.describe(slug="aave-v2.lending-pool-assets",
+                version="1.4",
+                display_name="Aave V2 Lending Pool Assets",
+                description="Aave V2 assets for the main lending pool",
+                category='protocol',
+                subcategory='aave-v2',
+                output=Some[AaveDebtInfo])
 class AaveV2GetAssets(Model):
     def run(self, input: EmptyInput) -> Some[AaveDebtInfo]:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
@@ -264,14 +264,14 @@ class AaveV2GetAssets(Model):
         return Some[AaveDebtInfo](some=aave_debts_infos)
 
 
-@ Model.describe(slug="aave-v2.token-asset",
-                 version="1.2",
-                 display_name="Aave V2 token liquidity",
-                 description="Aave V2 token liquidity at a given block number",
-                 category='protocol',
-                 subcategory='aave-v2',
-                 input=Token,
-                 output=AaveDebtInfo)
+@Model.describe(slug="aave-v2.token-asset",
+                version="1.2",
+                display_name="Aave V2 token liquidity",
+                description="Aave V2 token liquidity at a given block number",
+                category='protocol',
+                subcategory='aave-v2',
+                input=Token,
+                output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def run(self, input: Token) -> AaveDebtInfo:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',

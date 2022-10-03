@@ -84,14 +84,14 @@ def get_comptroller(model):
     return comptroller
 
 
-@ Model.describe(slug="compound-v2.get-comptroller",
-                 version="1.2",
-                 display_name="Compound V2 - comptroller",
-                 description="Get comptroller contract",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug="compound-v2.get-comptroller",
+                version="1.2",
+                display_name="Compound V2 - comptroller",
+                description="Get comptroller contract",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
     def run(self, _input: EmptyInput) -> Contract:
@@ -170,14 +170,14 @@ class CompoundV2AllPoolsInfo(Model):
         return ret
 
 
-@ Model.describe(slug="compound-v2.all-pools-value",
-                 version="0.2",
-                 display_name="Compound V2 - get all pools value",
-                 description="Compound V2 - convert pool's info to value",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=Some[CompoundV2PoolValue])
+@Model.describe(slug="compound-v2.all-pools-value",
+                version="0.2",
+                display_name="Compound V2 - get all pools value",
+                description="Compound V2 - convert pool's info to value",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
     def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:
         pools = self.context.run_model(slug='compound-v2.get-pools')
@@ -445,14 +445,14 @@ class CompoundV2GetPoolInfo(Model):
         return pool_info
 
 
-@ Model.describe(slug="compound-v2.pool-value",
-                 version="1.3",
-                 display_name="Compound V2 - value of a market",
-                 description="Compound V2 - value of a market",
-                 category='protocol',
-                 subcategory='compound',
-                 input=Token,
-                 output=CompoundV2PoolValue)
+@Model.describe(slug="compound-v2.pool-value",
+                version="1.3",
+                display_name="Compound V2 - value of a market",
+                description="Compound V2 - value of a market",
+                category='protocol',
+                subcategory='compound',
+                input=Token,
+                output=CompoundV2PoolValue)
 class CompoundV2GetPoolValue(Model):
     def run(self, input: Token) -> CompoundV2PoolValue:
         pool_info = self.context.run_model(slug='compound-v2.pool-info',

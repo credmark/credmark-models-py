@@ -45,8 +45,33 @@ class SushiswapV2Factory(Model):
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         try:
-            contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
-            return self.get_uniswap_pools(self.context, input.address, contract.address)
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools(self.context, input.address, gw.address)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
+
+
+@Model.describe(slug='sushiswap.get-pools-ledger',
+                version='0.1',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
+    def run(self, input: Token) -> Contracts:
+        try:
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools_ledger(self.context, input.address, gw)
         except BlockNumberOutOfRangeError:
             pass
 

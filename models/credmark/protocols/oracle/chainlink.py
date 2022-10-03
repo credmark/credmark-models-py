@@ -55,14 +55,14 @@ class ChainLinkPriceByENS(Model):
                                       local=True)
 
 
-@ Model.describe(slug='chainlink.price-by-feed',
-                 version="1.2",
-                 display_name="Chainlink - Price by feed",
-                 description="Input a Chainlink valid feed",
-                 category='protocol',
-                 subcategory='chainlink',
-                 input=Contract,
-                 output=Price)
+@Model.describe(slug='chainlink.price-by-feed',
+                version="1.2",
+                display_name="Chainlink - Price by feed",
+                description="Input a Chainlink valid feed",
+                category='protocol',
+                subcategory='chainlink',
+                input=Contract,
+                output=Price)
 class ChainLinkPriceByFeed(Model):
     def run(self, input: Contract) -> Price:
         feed_contract = input
