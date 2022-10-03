@@ -64,9 +64,10 @@ class HistoricalRunModel(Model):
                             detail=None,
                             permanent=False)))
 
-            results.series.append(BlockSeriesRow(blockNumber=result.blockNumber,
-                                                 blockTimestamp=result.blockNumber.timestamp,
-                                                 sampleTimestamp=result.blockNumber.timestamp,
-                                                 output=result.output))
+            out_row = BlockSeriesRow(blockNumber=result.blockNumber,
+                                     blockTimestamp=result.blockNumber.timestamp,
+                                     sampleTimestamp=result.blockNumber.timestamp,
+                                     output=result.output)
+            results.series.append(out_row)  # type: ignore
 
         return {'result': results}

@@ -137,7 +137,7 @@ class UniswapFee(Model):
         full_tx = []
         for dfg, df in df_tx_swap.groupby('transaction_hash', as_index=False):
             assert df.shape[0] == 2
-            if df.transaction_value.product() < 0:
+            if df.transaction_value.product() < 0:  # type: ignore
                 t0_amount = t0.scaled(df.loc[df.token_address == t0_addr,
                                              'transaction_value'].to_list()[0])  # type: ignore
                 t1_amount = t1.scaled(df.loc[df.token_address == t1_addr,

@@ -122,7 +122,7 @@ def plot_liquidity(context,
                                  columns=['tick', 'liquidity'])
                     .astype({'liquidity': 'float64'}))
 
-    df_pool_mode.plot('tick', 'liquidity')
+    df_pool_mode.plot('tick', 'liquidity')  # type: ignore
 
     plt.scatter(current_tick, current_liquidity, color='red')
     plt.show()
