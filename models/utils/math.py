@@ -33,7 +33,6 @@ def divDown(a: Decimal, b: Decimal) -> Decimal:
 
 
 def complement(a: Decimal) -> Decimal:
-
     return Decimal(1 - a) if a < 1 else Decimal(0)
 
 
