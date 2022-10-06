@@ -26,6 +26,8 @@ class TestUniswap(CMKTest):
 
         self.title('Uniswap V3')
         # uniswap-v3.get-pool-info, uniswap-v3.get-pool-info-token-price
+
+        self.run_model('uniswap-v3.get-weighted-price-maybe', {"symbol": "WETH"})
         self.run_model('uniswap-v3.get-weighted-price', {"symbol": "WETH"})
         self.run_model('uniswap-v3.get-weighted-price', {"symbol": "USDT"})
         self.run_model('uniswap-v3.get-weighted-price', {"symbol": "USDC"})
@@ -56,6 +58,10 @@ class TestUniswap(CMKTest):
                         "min_tick": current_tick-1000,
                         "max_tick": current_tick+1000},
                        block_number=12377278)
+
+        self.run_model('uniswap-v2.get-pool-price-info',
+                       {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                        "price_slug": "uniswap-v2.get-weighted-price"})
 
         # pool Swap events
         self.run_model('dex.pool-volume-block-range', {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"})

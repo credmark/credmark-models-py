@@ -151,6 +151,29 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
         return self.aggregate_pool('uniswap-v3.get-pool-info-token-price', input)
 
 
+@Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
+                version='1.7',
+                display_name='Uniswap v3 - get price weighted by liquidity',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Maybe[Price],
+                errors=PRICE_DATA_ERROR_DESC)
+class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Maybe[Price]:
+        try:
+            price = self.context.run_model('uniswap-v3.get-weighted-price',
+                                           input=input,
+                                           return_type=Price)
+            return Maybe(just=price)
+        except ModelRunError as err:
+            if 'No pool to aggregate' in err.data.message:
+                return Maybe.none()
+            raise
+
+
 @Model.describe(slug='uniswap-v2.get-weighted-price',
                 version='1.7',
                 display_name='Uniswap v2 - get price weighted by liquidity',
@@ -285,14 +308,14 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-blended-maybe',
-                version='0.3',
+                version='0.4',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='price',
                 subcategory='dex',
                 tags=['dex', 'price'],
-                input=Token,
+                input=DexPriceTokenInput,
                 output=Maybe[PriceWithQuote])
 class PriceFromDexModelMaybe(Model):
     """
