@@ -1,7 +1,7 @@
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
-                                Some, Token)
+                                Some, Token, Tokens)
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
@@ -64,11 +64,6 @@ class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
     endTimestamp: int = DTOField(0, hidden=True)
 
 
-class DexPoolPriceInput(DTO):
-    token: Token
-    pool: Contract
-
-
 class PoolPriceInfo(DTO):
     """
     @src: source
@@ -85,24 +80,40 @@ class PoolPriceInfo(DTO):
     @pool_address: pool's address
     """
     src: str
-    price: float
-    liquidity: float
-    tick_liquidity: float
-    weth_multiplier: float
-    inverse: bool
+    price0: float
+    price1: float
+    one_tick_liquidity0: float
+    one_tick_liquidity1: float
+    full_tick_liquidity0: float
+    full_tick_liquidity1: float
     token0_address: Address
     token1_address: Address
     token0_symbol: str
     token1_symbol: str
-    token0_decimals: int
-    token1_decimals: int
     pool_address: Address
+    ref_price: float
+    tick_spacing: int
 
 
-class PoolPriceAggregatorInput(Some[PoolPriceInfo]):
-    token: Token
-    weight_power: float = DTOField(1.0, ge=1.0)
-    price_src: str
+class PriceWeight(DTO):
+    weight_power: float = DTOField(4.0, ge=0.0)
+    debug: bool = DTOField(False, description='Turn on debug log')
+
+
+class DexPriceTokenInput(Token, PriceWeight):
+    ...
+
+
+class DexPriceTokensInput(Tokens, PriceWeight):
+    ...
+
+
+class DexPricePoolInput(Contract, PriceWeight):
+    price_slug: str
+
+
+class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
+    ...
 
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(

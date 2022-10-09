@@ -5,12 +5,12 @@ from typing import List
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price, Some,
-                                Token, Tokens)
+                                Contracts, Portfolio, Position, Price,
+                                PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import EmptyInput
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
@@ -36,7 +36,7 @@ class CurveFiPoolInfoToken(Contract):
 
 
 class CurveFiPoolInfo(CurveFiPoolInfoToken):
-    token_prices: List[Price]
+    token_prices: List[PriceWithQuote]
     virtualPrice: int
     A: int
     chi: float
@@ -46,14 +46,14 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
     gauges_type: List[int]
 
 
-@ Model.describe(slug='curve-fi.get-provider',
-                 version='1.2',
-                 display_name='Curve Finance - Get Provider',
-                 description='Get provider contract',
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug='curve-fi.get-provider',
+                version='1.2',
+                display_name='Curve Finance - Get Provider',
+                description='Get provider contract',
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetProvider(Model):
     CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
 
@@ -63,14 +63,14 @@ class CurveFinanceGetProvider(Model):
         return provider
 
 
-@ Model.describe(slug='curve-fi.get-registry',
-                 version='1.2',
-                 display_name='Curve Finance - Get Registry',
-                 description='Query provider to get the registry',
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug='curve-fi.get-registry',
+                version='1.2',
+                display_name='Curve Finance - Get Registry',
+                description='Query provider to get the registry',
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetRegistry(Model):
     def run(self, _) -> Contract:
         provider = Contract(**self.context.models.curve_fi.get_provider())
@@ -80,14 +80,14 @@ class CurveFinanceGetRegistry(Model):
         return cc
 
 
-@ Model.describe(slug="curve-fi.get-gauge-controller",
-                 version='1.2',
-                 display_name="Curve Finance - Get Gauge Controller",
-                 description="Query the registry for the guage controller",
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug="curve-fi.get-gauge-controller",
+                version='1.2',
+                display_name="Curve Finance - Get Gauge Controller",
+                description="Query the registry for the guage controller",
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=Contract)
 class CurveFinanceGetGauge(Model):
     def run(self, _):
         registry = Contract(**self.context.models.curve_fi.get_registry())
@@ -97,13 +97,13 @@ class CurveFinanceGetGauge(Model):
         return cc
 
 
-@ Model.describe(slug="curve-fi.all-pools",
-                 version="1.2",
-                 display_name="Curve Finance - Get all pools",
-                 description="Query the registry for all pools",
-                 category='protocol',
-                 subcategory='curve',
-                 output=Contracts)
+@Model.describe(slug="curve-fi.all-pools",
+                version="1.2",
+                display_name="Curve Finance - Get all pools",
+                description="Query the registry for all pools",
+                category='protocol',
+                subcategory='curve',
+                output=Contracts)
 class CurveFinanceAllPools(Model):
     def run(self, _) -> Contracts:
         registry = self.context.run_model('curve-fi.get-registry',
@@ -135,7 +135,7 @@ class CurveFinancePoolInfoTokens(Model):
 
         for addr in addrs:
             tok_addr = Address(addr)
-            if tok_addr != Address.null():
+            if not tok_addr.is_null():
                 tok = Token(address=tok_addr.checksum)
                 tok = fix_erc20_token(tok)
                 symbols_list.append(tok.symbol)
@@ -178,7 +178,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
-                if pool_addr != Address.null():
+                if not Address(pool_addr).is_null():
                     return self.context.run_model(self.slug,
                                                   input=Contract(address=Address(pool_addr)),
                                                   return_type=CurveFiPoolInfoToken)
@@ -205,7 +205,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.balance_of_scaled(input.address) for t in tokens]
+        balances_token = [t.balance_of_scaled(input.address.checksum) for t in tokens]
 
         admin_fees = [bal_token-bal for bal, bal_token in zip(balances, balances_token)]
 
@@ -234,7 +234,7 @@ class CurveFinancePoolInfoTokens(Model):
                 except ContractLogicError:
                     pass
 
-        if lp_token_addr != Address.null():
+        if not lp_token_addr.is_null():
             lp_token = Token(address=lp_token_addr.checksum)
             lp_token_name = lp_token.name
         else:
@@ -266,7 +266,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.24",
+                version="1.25",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -282,23 +282,24 @@ class CurveFinancePoolInfo(Model):
 
         pool_contract = Contract(address=pool_info.address)
 
-        def _use_for():
+        def _use_for() -> List[PriceWithQuote]:
             token_prices = []
             for tok in pool_info.tokens:
                 token_price = self.context.run_model(
                     'price.quote',
-                    {'base': tok}, return_type=Price)
+                    {'base': tok}, return_type=PriceWithQuote)
                 token_prices.append(token_price)
             return token_prices
 
-        def _use_compose():
+        def _use_compose() -> List[PriceWithQuote]:
             token_prices = self.context.run_model(
                 'price.quote-multiple',
                 input={'some': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Some[Price]).some
+                return_type=Some[PriceWithQuote]).some
             return token_prices
 
         token_prices = _use_for()
+
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
@@ -321,7 +322,7 @@ class CurveFinancePoolInfo(Model):
         chi = pool_A * ratio
 
         gauges, gauges_type = registry.functions.get_gauges(input.address.checksum).call()
-        gauges = [Account(address=g) for g in gauges if g != Address.null()]
+        gauges = [Account(address=g) for g in gauges if not Address(g).is_null()]
         gauges_type = gauges_type[:len(gauges)]
 
         if len(gauges) == 0:
@@ -347,7 +348,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.3",
+                version="1.4",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',
@@ -456,10 +457,10 @@ class CurveFinanceAllGauges(Model):
         lp_tokens = []
         i = 0
         while True:
-            address = gauge_controller.functions.gauges(i).call()
-            if address == Address.null():
+            addr = gauge_controller.functions.gauges(i).call()
+            if Address(addr).is_null():
                 break
-            gauge_contract = Contract(address=address)
+            gauge_contract = Contract(address=addr)
             gauges.append(gauge_contract)
             i += 1
             try:
@@ -476,12 +477,12 @@ class CurveFinanceAllGauges(Model):
                                       lp_tokens=Accounts(accounts=lp_tokens))
 
 
-@ Model.describe(slug='curve-fi.all-gauge-claim-addresses',
-                 version='1.4',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=Accounts)
+@Model.describe(slug='curve-fi.all-gauge-claim-addresses',
+                version='1.4',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
     def run(self, input: Contract) -> Accounts:
         with self.context.ledger.Transaction as txn:
@@ -498,12 +499,12 @@ class CurveFinanceAllGaugeAddresses(Model):
                     in addrs]))])
 
 
-@ Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                 version='1.2',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
+                version='1.2',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
     def run(self, input: Contract) -> dict:
         yields = []
@@ -526,12 +527,12 @@ class CurveFinanceGaugeRewardsCRV(Model):
         return {"yields": yields}
 
 
-@ Model.describe(slug='curve-fi.gauge-yield',
-                 version='1.2',
-                 category='protocol',
-                 subcategory='curve',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='curve-fi.gauge-yield',
+                version='1.2',
+                category='protocol',
+                subcategory='curve',
+                input=Contract,
+                output=dict)
 class CurveFinanceAverageGaugeYield(Model):
     CRV_PRICE = 3.0
 
@@ -546,7 +547,7 @@ class CurveFinanceAverageGaugeYield(Model):
                                           input=EmptyInput(),
                                           return_type=Contract)
         pool_addr = registry.functions.get_pool_from_lp_token(lp_token_addr).call()
-        if pool_addr != Address.null():
+        if not Address(pool_addr).is_null():
             pool_info = self.context.run_model('curve-fi.pool-info', Contract(address=pool_addr))
             pool_virtual_price = pool_info['virtualPrice']
         else:
@@ -595,13 +596,13 @@ class CurveFinanceAverageGaugeYield(Model):
         return {"crv_yield": avg_yield}
 
 
-@ Model.describe(slug='curve-fi.all-yield',
-                 version='1.4',
-                 description="Yield from all Gauges",
-                 category='protocol',
-                 subcategory='curve',
-                 input=EmptyInput,
-                 output=dict)
+@Model.describe(slug='curve-fi.all-yield',
+                version='1.4',
+                description="Yield from all Gauges",
+                category='protocol',
+                subcategory='curve',
+                input=EmptyInput,
+                output=dict)
 class CurveFinanceAllYield(Model):
     def run(self, _) -> dict:
         gauge_contracts = self.context.run_model('curve-fi.all-gauges',

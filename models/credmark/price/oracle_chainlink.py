@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import Address, Currency, Maybe, Network, Price
+from credmark.cmf.types import Address, Currency, Maybe, Network, Price, PriceWithQuote
 from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
@@ -10,34 +10,35 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
 
 
 @Model.describe(slug='price.oracle-chainlink-maybe',
-                version='1.1',
+                version='1.3',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle - return None if not found',
                 category='protocol',
                 subcategory='chainlink',
                 tags=['price'],
                 input=PriceInput,
-                output=Maybe[Price])
+                output=Maybe[PriceWithQuote])
 class PriceOracleChainlinkMaybe(Model):
-    def run(self, input: PriceInput) -> Maybe[Price]:
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model('price.oracle-chainlink',
                                            input=input,
-                                           return_type=Price)
-            return Maybe[Price](just=price)
+                                           return_type=PriceWithQuote,
+                                           local=True)
+            return Maybe[PriceWithQuote](just=price)
         except ModelRunError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.7',
+                version='1.9',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 category='protocol',
                 subcategory='chainlink',
                 tags=['price'],
                 input=PriceInput,
-                output=Price,
+                output=PriceWithQuote,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceOracleChainlink(Model):
     # The native token on other chain, give a direct address of feed.
@@ -107,7 +108,7 @@ class PriceOracleChainlink(Model):
         new_input.quote = self.check_wrap(new_input.quote)
         return new_input
 
-    def run(self, input: PriceInput) -> Price:  # pylint: disable=too-many-return-statements)
+    def run(self, input: PriceInput) -> PriceWithQuote:  # pylint: disable=too-many-return-statements)
         new_input = self.replace_input(input)
         base = new_input.base
         quote = new_input.quote
@@ -116,10 +117,12 @@ class PriceOracleChainlink(Model):
             raise ModelInputError(f'{input} does not carry valid address')
 
         if base == quote:
-            return Price(price=1, src=f'{self.slug}|Equal')
+            return PriceWithQuote(price=1, src=f'{self.slug}|Equal', quoteAddress=quote.address)
 
         price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                             input=new_input, return_type=Maybe[Price])
+                                             input=new_input,
+                                             return_type=Maybe[PriceWithQuote],
+                                             local=True)
         if price_maybe.just is not None:
             return price_maybe.just
 
@@ -130,14 +133,16 @@ class PriceOracleChainlink(Model):
 
             p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
-                                        return_type=Price)
+                                        return_type=Price,
+                                        local=True)
+            pq0 = PriceWithQuote(**p0.dict(), quoteAddress=quote.address)
             if override_quote.address == quote.address:
-                return p0
+                return pq0
             else:
-                p1 = self.context.run_model(self.slug,
-                                            input={'base': override_quote, 'quote': quote},
-                                            return_type=Price)
-                return p0.cross(p1)
+                pq1 = self.context.run_model(self.slug,
+                                             input={'base': override_quote, 'quote': quote},
+                                             return_type=PriceWithQuote)
+                return pq0.cross(pq1)
 
         try_override_quote = self.OVERRIDE_FEED[self.context.network].get(quote.address, None)
         if try_override_quote is not None:
@@ -146,14 +151,17 @@ class PriceOracleChainlink(Model):
 
             p0 = self.context.run_model('chainlink.price-by-ens',
                                         input=override_feed,
-                                        return_type=Price).inverse()
+                                        return_type=Price,
+                                        local=True)
+            pq0 = PriceWithQuote(**p0.dict(), quoteAddress=quote.address).inverse(quote.address)
             if override_quote.address == base.address:
-                return p0
+                return pq0
             else:
-                p1 = self.context.run_model(self.slug,
-                                            input={'base': override_quote, 'quote': base},
-                                            return_type=Price).inverse()
-            return p0.cross(p1)
+                pq1 = self.context.run_model(self.slug,
+                                             input={'base': override_quote, 'quote': base},
+                                             return_type=PriceWithQuote)
+                pq1 = pq1.inverse(override_quote.address)
+            return pq0.cross(pq1)
 
         p1 = None
         r1 = None
@@ -161,11 +169,12 @@ class PriceOracleChainlink(Model):
             if rt_addr not in (quote.address, base.address):
                 price_input = PriceInput(base=base, quote=Currency(address=rt_addr))
 
-                p1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                  input=price_input,
-                                                  return_type=Maybe[Price])
-                if p1_maybe.just is not None:
-                    p1 = p1_maybe.just
+                pq1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                   input=price_input,
+                                                   return_type=Maybe[PriceWithQuote],
+                                                   local=True)
+                if pq1_maybe.just is not None:
+                    p1 = pq1_maybe.just
                     r1 = rt_addr
                     break
 
@@ -176,11 +185,12 @@ class PriceOracleChainlink(Model):
                 if rt_addr not in (quote.address, base.address):
                     price_input = PriceInput(base=Currency(address=rt_addr), quote=quote)
 
-                    p2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                                      input=price_input,
-                                                      return_type=Maybe[Price])
-                    if p2_maybe.just is not None:
-                        p2 = p2_maybe.just
+                    pq2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                       input=price_input,
+                                                       return_type=Maybe[PriceWithQuote],
+                                                       local=True)
+                    if pq2_maybe.just is not None:
+                        p2 = pq2_maybe.just
                         r2 = rt_addr
                         break
 
@@ -192,7 +202,7 @@ class PriceOracleChainlink(Model):
                         self.slug,
                         input={'base': {"address": r1},
                                'quote': {"address": r2}},
-                        return_type=Price)
+                        return_type=PriceWithQuote)
                     return p1.cross(bridge_price).cross(p2)
 
         if new_input == input:

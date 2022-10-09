@@ -11,10 +11,6 @@ class TestCurve(CMKTest):
 
         self.run_model('curve-fi.all-pools-info', {})  # __all__
 
-        self.run_model('token.price', {"address": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
-        self.run_model('token.price', {"address": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
-        self.run_model('token.price', {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
-
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
                        {"address": "0xF178C0b5Bb7e7aBF4e12A4838C7b7c5bA2C623c0"}, block_number=14831356)
@@ -47,6 +43,12 @@ class TestCurve(CMKTest):
         # Curve.fi : 0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6
         self.run_model('curve-fi.pool-info', {"address": "0x8474DdbE98F5aA3179B3B3F5942D724aFcdec9f6"})
 
+        # Curve.fi :
+        self.run_model('curve-fi.pool-info', {"address": "0x42d7025938bEc20B69cBae5A77421082407f053A"})
+
+        # Curve.fi :
+        self.run_model('curve-fi.pool-info', {"address": "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1"})
+
         # Curve.fi renBTC/wBTC: 0x93054188d876f558f4a66b2ef1d97d16edf0895b
         self.run_model('curve-fi.pool-info', {"address": "0x93054188d876f558f4a66b2ef1d97d16edf0895b"})
 
@@ -77,7 +79,7 @@ class TestCurve(CMKTest):
         # Curve.fi cyDAI/cyUSDC/cyUSDT 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
         self.run_model('curve-fi.pool-info', {"address": "0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"})
 
-    def test_gauge(self):
+    def not_test_gauge(self):
         self.title('Curve - Gauge')
 
         # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1
@@ -94,7 +96,31 @@ class TestCurve(CMKTest):
         # TODO
         # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
 
+    def test_pool_info(self):
+        block_number = 15311050
+        curve_pools = ['0x961226b64ad373275130234145b96d100dc0b655',
+                       '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511',
+                       '0x43b4FdFD4Ff969587185cDB6f0BD875c5Fc83f8c',
+                       '0xd658A338613198204DCa1143Ac3F01A722b5d94A',
+                       '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
+                       '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
+                       '0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B',
+                       '0xCEAF7747579696A2F0bb206a14210e3c9e6fB269',
+                       '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46',
+                       '0x5a6A4D54456819380173272A5E8E9B9904BdF41B',
+                       '0x93054188d876f558f4a66B2EF1d97d16eDf0895B',
+                       '0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF',
+                       '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8',
+                       '0x828b154032950C8ff7CF8085D841723Db2696056',
+                       '0x4e0915C88bC70750D68C481540F081fEFaF22273',
+                       '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD', ]
+
+        for pool_addr in curve_pools:
+            self.run_model('curve-fi.pool-info', {"address": pool_addr}, block_number=block_number)
+            self.run_model('curve-fi.pool-tvl', {"address": pool_addr}, block_number=block_number)
+
     def test_lp_token(self):
+        block_number = 14830357
         self.title('Curve - Pool Info from LP')
         lp_token_addresses = ['0xD905e2eaeBe188fc92179b6350807D8bd91Db0D8',
                               '0xC25a3A3b969415c80451098fa907EC722572917F',
@@ -112,8 +138,8 @@ class TestCurve(CMKTest):
                               '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490']
 
         for lp_addr in lp_token_addresses:
-            self.run_model('curve-fi.pool-info', {"address": lp_addr})
-            self.run_model('curve-fi.pool-tvl', {"address": lp_addr})
+            self.run_model('curve-fi.pool-info', {"address": lp_addr}, block_number=block_number)
+            self.run_model('curve-fi.pool-tvl', {"address": lp_addr}, block_number=block_number)
 
     def test_convex(self):
         self.title('Curve - Convex')

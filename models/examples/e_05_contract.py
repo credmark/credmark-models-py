@@ -12,7 +12,7 @@ from .dtos import ExampleModelOutput
 
 @Model.describe(
     slug='example.contract',
-    version='1.3',
+    version='1.4',
     display_name='Example - Contract',
     description='This model gives examples of the functionality available on the Contract class',
     developer='Credmark',
@@ -113,20 +113,20 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                 input="""
 with contract.ledger.functions.addVestingSchedule as q:
     q.select(columns=[
-                q.TXN_BLOCK_NUMBER,
-                q.ACCOUNT,
-                q.ALLOCATION
+                q.BLOCK_NUMBER,
+                q.FN_ACCOUNT,
+                q.FN_ALLOCATION
              ],
-             order_by=q.TXN_BLOCK_NUMBER.asc(),
+             order_by=q.BLOCK_NUMBER.asc(),
              limit=5)
 """,
                 output=q.select(
                     columns=[
-                        q.TXN_BLOCK_NUMBER,
-                        q.ACCOUNT,
-                        q.ALLOCATION
+                        q.BLOCK_NUMBER,
+                        q.FN_ACCOUNT,
+                        q.FN_ALLOCATION
                     ],
-                    order_by=q.TXN_BLOCK_NUMBER,
+                    order_by=q.BLOCK_NUMBER,
                     limit=5))
 
         output.log("You can query ledger data for contract events")
@@ -137,20 +137,20 @@ Get help of the event-specific columns with ``q.colnames``
 
 with contract.ledger.events.VestingScheduleAdded as q:
     q.select(columns=[
-                q.EVT_BLOCK_NUMBER,
-                q.ACCOUNT,
-                q.ALLOCATION
+                q.BLOCK_NUMBER,
+                q.FN_ACCOUNT,
+                q.FN_ALLOCATION
             ],
-            order_by=f'{q.EVT_BLOCK_NUMBER}',
+            order_by=f'{q.BLOCK_NUMBER}',
             limit=5))
 """,
                 output=q.select(
                     columns=[
-                        q.EVT_BLOCK_NUMBER,
-                        q.ACCOUNT,
-                        q.ALLOCATION
+                        q.BLOCK_NUMBER,
+                        q.EVT_ACCOUNT,
+                        q.EVT_ALLOCATION
                     ],
-                    order_by=q.EVT_BLOCK_NUMBER.asc(),
+                    order_by=q.BLOCK_NUMBER.asc(),
                     limit=5))
 
         return output

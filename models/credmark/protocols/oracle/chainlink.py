@@ -2,7 +2,7 @@ import sys
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Contract, Maybe, Network, Price
+from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
@@ -36,7 +36,7 @@ class ENSDomainName(DTO):
 
 # TODO: implement shortest path
 @Model.describe(slug='chainlink.price-by-ens',
-                version="1.0",
+                version="1.2",
                 display_name="Chainlink - Price by ENS",
                 description="Use ENS domain name for a token pair",
                 category='protocol',
@@ -51,17 +51,18 @@ class ChainLinkPriceByENS(Model):
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
         return self.context.run_model('chainlink.price-by-feed',
                                       input={'address': feed_address},
-                                      return_type=Price)
+                                      return_type=Price,
+                                      local=True)
 
 
-@ Model.describe(slug='chainlink.price-by-feed',
-                 version="1.0",
-                 display_name="Chainlink - Price by feed",
-                 description="Input a Chainlink valid feed",
-                 category='protocol',
-                 subcategory='chainlink',
-                 input=Contract,
-                 output=Price)
+@Model.describe(slug='chainlink.price-by-feed',
+                version="1.2",
+                display_name="Chainlink - Price by feed",
+                description="Input a Chainlink valid feed",
+                category='protocol',
+                subcategory='chainlink',
+                input=Contract,
+                output=Price)
 class ChainLinkPriceByFeed(Model):
     def run(self, input: Contract) -> Price:
         feed_contract = input
@@ -86,40 +87,42 @@ class ChainLinkPriceByFeed(Model):
 
 
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.1",
+                version="1.3",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
                 input=PriceInput,
-                output=Maybe[Price])
+                output=Maybe[PriceWithQuote])
 class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> Maybe[Price]:
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('chainlink.price-by-registry',
-                                           input=input,
-                                           return_type=Price)
-            return Maybe[Price](just=price)
+            pq = self.context.run_model('chainlink.price-by-registry',
+                                        input=input,
+                                        return_type=PriceWithQuote,
+                                        local=True)
+            return Maybe[PriceWithQuote](just=pq)
         except BlockNumberOutOfRangeError:
-            return Maybe[Price](just=None)
+            return Maybe.none()
         except ModelRunError as _err:
             try:
-                price = self.context.run_model('chainlink.price-by-registry',
-                                               input=input.inverse(),
-                                               return_type=Price).inverse()
-                return Maybe[Price](just=price)
+                pq = self.context.run_model('chainlink.price-by-registry',
+                                            input=input.inverse(),
+                                            return_type=PriceWithQuote,
+                                            local=True)
+                return Maybe[PriceWithQuote](just=pq.inverse(input.quote.address))
             except ModelRunError as _err2:
-                return Maybe[Price](just=None)
+                return Maybe.none()
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.2",
+                version="1.5",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
                 input=PriceInput,
-                output=Price)
+                output=PriceWithQuote)
 class ChainLinkPriceByRegistry(Model):
     def run(self, input: PriceInput) -> Price:
         base_address = input.base.address
@@ -127,7 +130,8 @@ class ChainLinkPriceByRegistry(Model):
 
         registry = self.context.run_model('chainlink.get-feed-registry',
                                           input=EmptyInput(),
-                                          return_type=Contract)
+                                          return_type=Contract,
+                                          local=True)
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(base_address, quote_address).call()
@@ -143,12 +147,13 @@ class ChainLinkPriceByRegistry(Model):
 
             time_diff = self.context.block_number.timestamp - _updatedAt
             round_diff = _answeredInRound - _roundId
-            return Price(price=answer / (10 ** decimals),
-                         src=(f'{self.slug}|{description}|{feed}|v{version}|'
-                              f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
+            return PriceWithQuote(price=answer / (10 ** decimals),
+                                  src=(f'{self.slug}|{description}|{feed}|v{version}|'
+                                       f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'),
+                                  quoteAddress=quote_address)
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                self.logger.info(f'No feed found for {base_address}/{quote_address}')
+                self.logger.debug(f'No feed found for {base_address}/{quote_address}')
                 raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
             raise err
         finally:

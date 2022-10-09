@@ -8,10 +8,11 @@ class TestSushiSwap(CMKTest):
         self.title('SushiSwap')
 
         # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
-        self.run_model('sushiswap.get-weighted-price', {"symbol": "USDC"})
-        self.run_model('sushiswap.get-weighted-price', {"symbol": "AAVE"})
-        self.run_model('sushiswap.get-weighted-price', {"symbol": "DAI"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "WETH"})
+        self.run_model('sushiswap.get-weighted-price', {"symbol": "USDC"})
+        self.run_model('sushiswap.get-weighted-price', {"symbol": "USDT"})
+        self.run_model('sushiswap.get-weighted-price', {"symbol": "DAI"})
+        self.run_model('sushiswap.get-weighted-price', {"symbol": "AAVE"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "MKR"})
         self.run_model('sushiswap.all-pools', {})
         self.run_model('sushiswap.get-pool', {"token0": {"symbol": "DAI"}, "token1": {"symbol": "WETH"}})

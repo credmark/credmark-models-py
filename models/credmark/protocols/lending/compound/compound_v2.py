@@ -1,7 +1,7 @@
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Network, Price, Some, Token
+from credmark.cmf.types import Address, Contract, Network, PriceWithQuote, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 
@@ -84,17 +84,17 @@ def get_comptroller(model):
     return comptroller
 
 
-@ Model.describe(slug="compound-v2.get-comptroller",
-                 version="1.2",
-                 display_name="Compound V2 - comptroller",
-                 description="Get comptroller contract",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=Contract)
+@Model.describe(slug="compound-v2.get-comptroller",
+                version="1.2",
+                display_name="Compound V2 - comptroller",
+                description="Get comptroller contract",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
-    def run(self, _: EmptyInput) -> Contract:
+    def run(self, _input: EmptyInput) -> Contract:
         comptroller = get_comptroller(self)
         if comptroller._meta.proxy_implementation is not None:
             cc = comptroller._meta.proxy_implementation
@@ -158,20 +158,26 @@ class CompoundV2AllPoolsInfo(Model):
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
             return pool_infos
 
-        pool_infos = _use_compose()
+        def _use_for():
+            pool_infos = [self.context.run_model(model_slug, minput, return_type=CompoundV2PoolInfo)
+                          for minput in model_inputs]
+            return pool_infos
+
+        # pool_infos = _use_compose()
+        pool_infos = _use_for()
 
         ret = Some[CompoundV2PoolInfo](some=pool_infos)
         return ret
 
 
-@ Model.describe(slug="compound-v2.all-pools-value",
-                 version="0.2",
-                 display_name="Compound V2 - get all pools value",
-                 description="Compound V2 - convert pool's info to value",
-                 category='protocol',
-                 subcategory='compound',
-                 input=EmptyInput,
-                 output=Some[CompoundV2PoolValue])
+@Model.describe(slug="compound-v2.all-pools-value",
+                version="0.2",
+                display_name="Compound V2 - get all pools value",
+                description="Compound V2 - convert pool's info to value",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
     def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:
         pools = self.context.run_model(slug='compound-v2.get-pools')
@@ -439,14 +445,14 @@ class CompoundV2GetPoolInfo(Model):
         return pool_info
 
 
-@ Model.describe(slug="compound-v2.pool-value",
-                 version="1.2",
-                 display_name="Compound V2 - value of a market",
-                 description="Compound V2 - value of a market",
-                 category='protocol',
-                 subcategory='compound',
-                 input=Token,
-                 output=CompoundV2PoolValue)
+@Model.describe(slug="compound-v2.pool-value",
+                version="1.3",
+                display_name="Compound V2 - value of a market",
+                description="Compound V2 - value of a market",
+                category='protocol',
+                subcategory='compound',
+                input=Token,
+                output=CompoundV2PoolValue)
 class CompoundV2GetPoolValue(Model):
     def run(self, input: Token) -> CompoundV2PoolValue:
         pool_info = self.context.run_model(slug='compound-v2.pool-info',
@@ -454,7 +460,7 @@ class CompoundV2GetPoolValue(Model):
                                            return_type=CompoundV2PoolInfo)
         tp = self.context.run_model(slug='price.quote',
                                     input={'base': pool_info.token},
-                                    return_type=Price)
+                                    return_type=PriceWithQuote)
 
         if tp.price is None or tp.src is None:
             raise ModelRunError(f'Can not get price for token {input.symbol=}/{input.address=}')

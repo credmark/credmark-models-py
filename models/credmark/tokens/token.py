@@ -1,13 +1,19 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled, unused-import, no-member
 from typing import List
 
+import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import (Accounts, Address, Contract, Contracts,
-                                Maybe, Price, Token)
+from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurrency, Maybe,
+                                NativeToken, Price, PriceWithQuote,
+                                Token)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO
 from models.tmp_abi_lookup import ERC_20_ABI
+from web3 import Web3
+
+SLOT_EIP1967 = hex(int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
 
 
 def get_eip1967_proxy(context, logger, address, verbose):
@@ -15,8 +21,6 @@ def get_eip1967_proxy(context, logger, address, verbose):
     """
     eip-1967 compliant, https://eips.ethereum.org/EIPS/eip-1967
     """
-    default_proxy_address = ''.join(['0'] * 40)
-
     token = Token(address=address)
 
     # trigger loading
@@ -32,11 +36,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
-    proxy_address = context.web3.eth.get_storage_at(
-        token.address,
-        '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc').hex()
-    if proxy_address[-40:] != default_proxy_address:
-        proxy_address = '0x' + proxy_address[-40:]
+    proxy_address = Address(context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
+    if not proxy_address.is_null():
         token_implemenation = Token(address=proxy_address)
         # TODO: Work around before we can load proxy in the past based on block number.
         if (token._meta.is_transparent_proxy and
@@ -75,6 +76,9 @@ def fix_erc20_token(tok):
     if tok.proxy_for is not None:
         try:
             _ = tok.proxy_for.abi
+        except BlockNumberOutOfRangeError as err:
+            raise BlockNumberOutOfRangeError(
+                err.data.message + f' This is for Contract({tok.address})')
         except ModelDataError:
             tok.proxy_for._loaded = True  # pylint:disable=protected-access
             tok.proxy_for.set_abi(ERC_20_ABI)
@@ -83,7 +87,7 @@ def fix_erc20_token(tok):
 
 
 @Model.describe(slug='token.underlying-maybe',
-                version='1.0',
+                version='1.1',
                 display_name='Token Price - Underlying',
                 description='For token backed by underlying - get the address',
                 developer='Credmark',
@@ -96,13 +100,18 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> Maybe[Address]:  # pylint: disable=too-many-return-statements)
+    def run(self, input: Token) -> Maybe[Address]:
+        # pylint: disable=too-many-return-statements)
         try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
         if try_eip1967 is not None:
             input = try_eip1967
         if input.abi is not None:
-            if input.proxy_for is not None:
-                abi_functions = input.proxy_for.abi.functions
+            if input.proxy_for is not None and input.proxy_for.abi is not None:
+                try:
+                    abi_functions = input.proxy_for.abi.functions
+                except BlockNumberOutOfRangeError as err:
+                    raise BlockNumberOutOfRangeError(
+                        err.data.message + f' This is the proxy for Contract({input.address})')
             else:
                 abi_functions = input.abi.functions
 
@@ -176,12 +185,124 @@ class TokenInfoModel(Model):
         return input.info
 
 
+class TokenLogoOutput(DTO):
+    logo_url: str = DTOField(description="URL of token's logo")
+
+
+@Model.describe(
+    slug="token.logo",
+    version="1.0",
+    display_name="Token Logo",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=Token,
+    output=TokenLogoOutput
+)
+class TokenLogoModel(Model):
+    """
+    Return token's logo
+    """
+
+    def run(self, input: Token) -> TokenLogoOutput:
+        if self.context.chain_id != 1:
+            raise ModelDataError(message="Logos are only available for ethereum mainnet",
+                                 code=ModelDataError.Codes.NO_DATA)
+
+        # Handle native token
+        if input.address == NativeToken().address:
+            return TokenLogoOutput(
+                logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
+                "/blockchains/ethereum/info/logo.png"
+            )
+
+        try_urls = [
+            ("https://raw.githubusercontent.com/trustwallet/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/uniswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/sushiswap/logos/main"
+             f"/network/ethereum/{input.address.checksum}.jpg"),
+            ("https://raw.githubusercontent.com/sushiswap/assets/master"
+             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
+            ("https://raw.githubusercontent.com/curvefi/curve-assets/main"
+             f"/images/assets/{input.address}.png")
+        ]
+
+        for url in try_urls:
+            # Return the first URL that exists
+            if requests.head(url, timeout=60).status_code < 400:
+                return TokenLogoOutput(logo_url=url)
+
+        raise ModelDataError(
+            message=f"Logo not available for {input.symbol, input.address.checksum}",
+            code=ModelDataError.Codes.NO_DATA)
+
+
+class TokenBalanceInput(Token):
+    account: Address = \
+        DTOField(
+            description=('Account address for which to fetch balance.'))
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
+
+
+class TokenBalanceOutput(DTO):
+    balance: int = DTOField(description="Balance of account")
+    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    value: float = DTOField(description="Balance in terms of quoted currency")
+    price: Price = DTOField(description="Token price")
+
+
+@Model.describe(
+    slug="token.balance",
+    version="1.1",
+    display_name="Token Balance",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=TokenBalanceInput,
+    output=TokenBalanceOutput
+)
+class TokenBalanceModel(Model):
+    """
+    Return token's balance
+    """
+
+    def run(self, input: TokenBalanceInput) -> TokenBalanceOutput:
+        balance = input.balance_of(input.account.checksum)
+
+        token_price = PriceWithQuote(**self.context.models.price.quote({
+            'base': input,
+            'quote': input.quote
+        }))
+
+        return TokenBalanceOutput(
+            balance=balance,
+            balance_scaled=input.scaled(balance),
+            value=token_price.price * input.scaled(balance),
+            price=token_price
+        )
+
+
 class TokenHolderInput(Token):
     top_n: int = DTOField(10, description='Top N holders')
 
 
+def token_holder(ledger):
+    # TODO: need double-entry table to work
+    with ledger.TokenTransfer as q:
+        df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
+                      group_by=[q.TO_ADDRESS],
+                      where=q.TOKEN_ADDRESS.eq(input.address),
+                      order_by=q.field('sum_value').dquote().desc(),
+                      limit=input.top_n).to_dataframe()
+    return df.to_dict()
+
+
 @Model.describe(slug='token.holders',
-                version='0.2',
+                version='0.3',
                 display_name='Token Holders',
                 description='The number of holders of a Token',
                 category='protocol',
@@ -190,12 +311,25 @@ class TokenHolderInput(Token):
                 output=dict)
 class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> dict:
-        with self.context.ledger.TokenBalance as q:
-            df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
+        return {}
+
+
+@Model.describe(slug='token.holders-all',
+                version='0.3',
+                display_name='Token Holders All',
+                description='All holders of a Token',
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=dict)
+class TokenNumberHolders(Model):
+    def run(self, input: Token) -> dict:
+        with self.context.ledger.TokenTransfer as q:
+            df = q.select(aggregates=[],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
-                          order_by=q.field('sum_value').dquote().desc(),
-                          limit=input.top_n).to_dataframe()
+                          having=q.VALUE.sum_().gt(0)
+                          ).to_dataframe()
         return df.to_dict()
 
 
@@ -214,34 +348,6 @@ class TokenSwapPools(Model):
         response.contracts.extend(Contracts(**self.context.models.uniswap_v2.get_pools(input)))
         response.contracts.extend(Contracts(**self.context.models.sushiswap.get_pools(input)))
         return response
-
-
-@Model.describe(slug='token.swap-pool-volume',
-                version='1.0',
-                display_name='Token Volume',
-                description='The current volume for a swap pool',
-                category='protocol',
-                tags=['token'],
-                input=Contract,
-                output=dict)
-class TokenSwapPoolVolume(Model):
-    def run(self, input: Token) -> dict:
-        # TODO: Get All Credmark Supported swap Pools for a token
-        return {"result": 0}
-
-
-@Model.describe(slug='token.overall-volume',
-                version='1.0',
-                display_name='Token Volume',
-                description='The Current Credmark Supported trading volume algorithm',
-                category='protocol',
-                tags=['token'],
-                input=Token,
-                output=dict)
-class TokenVolume(Model):
-    def run(self, input) -> dict:
-        # TODO: Get Overall Volume
-        return {"result": 0}
 
 
 class CategorizedSupplyRequest(IterableListGenericDTO):
@@ -267,7 +373,7 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
 
 
 @Model.describe(slug='token.categorized-supply',
-                version='1.1',
+                version='1.2',
                 display_name='Token Categorized Supply',
                 description='The categorized supply for a token',
                 category='protocol',
@@ -278,7 +384,7 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = Price(**self.context.models.price.quote({'base': input.token}))
+        token_price = PriceWithQuote(**self.context.models.price.quote({'base': input.token}))
         if token_price is None:
             raise ModelRunError(f"No Price for {response.token}")
         for c in response.categories:
@@ -292,10 +398,10 @@ class TokenCirculatingSupply(Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled - sum([c.amountScaled for c in response.categories])
+            amountScaled=total_supply_scaled - sum(c.amountScaled for c in response.categories)
         ))
         response.circulatingSupplyScaled = sum(
-            [c.amountScaled for c in response.categories if c.circulating])
+            c.amountScaled for c in response.categories if c.circulating)
         if isinstance(token_price.price, float):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price

@@ -61,7 +61,7 @@ ledger_transactions_mocks = ModelMockConfig(
     })
 
 
-@ Model.describe(
+@Model.describe(
     slug='example.ledger-transactions',
     version="1.3",
     developer="Credmark",
@@ -101,7 +101,7 @@ with self.context.ledger.Transaction as txn:
         return output
 
 
-@ Model.describe(
+@Model.describe(
     slug='example.ledger-aggregates',
     version="1.3",
     developer="Credmark",
@@ -142,7 +142,7 @@ with self.context.ledger.Transaction as txn:
         return output
 
 
-@ Model.describe(
+@Model.describe(
     slug='example.ledger-receipts',
     version="1.3",
     developer="Credmark",
@@ -187,7 +187,7 @@ with self.context.ledger.Receipt as rec:
         return output
 
 
-@ Model.describe(
+@Model.describe(
     slug='example.ledger-token-transfers',
     version="1.3",
     developer="Credmark",
@@ -235,7 +235,7 @@ with self.context.ledger.TokenTransfer as ttf:
         return output
 
 
-@ Model.describe(
+@Model.describe(
     slug='example.ledger-tokens',
     version="1.3",
     developer="Credmark",

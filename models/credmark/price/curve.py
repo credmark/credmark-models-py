@@ -1,7 +1,7 @@
 import numpy as np
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Maybe, Network, Price, Token
+from credmark.cmf.types import Address, Contract, Maybe, Network, Price, PriceWithQuote, Token
 from models.credmark.protocols.dexes.curve.curve_finance import \
     CurveFiPoolInfoToken
 
@@ -31,13 +31,13 @@ class CurveFinanceMaybePrice(Model):
                                                return_type=Price)
                 return Maybe[Price](just=price)
             except ModelRunError:
-                return Maybe[Price](just=None)
+                pass
 
-        return Maybe[Price](just=None)
+        return Maybe.none()
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.5",
+                version="1.6",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 category='protocol',
@@ -122,7 +122,7 @@ class CurveFinancePrice(Model):
 
             price_underlying = self.context.run_model('price.quote',
                                                       input={'base': underlying_token},
-                                                      return_type=Price)
+                                                      return_type=PriceWithQuote)
 
             price_underlying.price *= exchange_rate
             if price_underlying.src is not None:
@@ -155,7 +155,7 @@ class CurveFinancePrice(Model):
                                               ).call())
                     price_other = self.context.run_model('price.quote',
                                                          input={'base': other_token},
-                                                         return_type=Price).price
+                                                         return_type=PriceWithQuote).price
                     price_to_others.append(ratio_to_other * price_other)
                     ratio_to_others.append(ratio_to_other)
                     price_others.append(price_other)
@@ -187,7 +187,7 @@ class CurveFinancePrice(Model):
                 if tok.address not in self.supported_coins(self.context.chain_id):
                     price_tok = self.context.run_model('price.quote',
                                                        input={'base': tok},
-                                                       return_type=Price).price
+                                                       return_type=PriceWithQuote).price
                     price_tokens.append(price_tok)
 
             virtual_price = pool.functions.get_virtual_price().call()

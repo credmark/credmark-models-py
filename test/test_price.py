@@ -147,8 +147,12 @@ class TestPrice(CMKTest):
         self.title('Price - Historical')
         self.run_model('price.quote', {'base': 'AAVE'}, block_number=11266884)
 
-    def test_general(self):
+    def test_price_general(self):
         self.title('Price - General')
+
+        self.run_model('price.quote', {"base": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
+        self.run_model('price.quote', {"base": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
+        self.run_model('price.quote', {"base": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
         self.run_model('price.dex-blended', {"symbol": "CMK"})  # price.pool-aggregator
 
@@ -262,7 +266,7 @@ class TestPrice(CMKTest):
                                "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}, block_number=block_number)  # __all__
 
 
-def run_test_chainlink(self, tok):
+def run_test_price_mix(self, tok):
     block_number = 15000108
     self.run_model('price.quote', {"base": {"address": tok},
                                    "quote": {"symbol": "USD"}}, block_number=block_number)
@@ -289,5 +293,5 @@ def run_test_chainlink(self, tok):
 
 
 for n, token in enumerate(TestPrice.CHAINLINK_TOKENS):
-    setattr(TestPrice, f'test_chainlink_{n+1}',
-            lambda self, token=token: run_test_chainlink(self, tok=token))
+    setattr(TestPrice, f'test_price_mix_{n+1}',
+            lambda self, token=token: run_test_price_mix(self, tok=token))

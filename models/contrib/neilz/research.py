@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, BlockNumber, Maybe, Price, Token, MapBlocksOutput
+from credmark.cmf.types import Address, BlockNumber, Maybe, PriceWithQuote, Token, MapBlocksOutput
 from credmark.dto import EmptyInput
 
 
@@ -46,7 +46,7 @@ class RedactedVotiumCashflow(Model):
 
 @Model.describe(
     slug='contrib.neilz-redacted-convex-cashflow',
-    version='1.3',
+    version='1.4',
     display_name='Redacted Cartel Convex Cashflow',
     description='Redacted Cartel Convex Cashflow',
     category='protocol',
@@ -84,10 +84,12 @@ class RedactedConvexCashflow(Model):
                                         {"modelSlug": "price.quote-maybe",
                                          "modelInput": {'base': k},
                                          "blockNumbers": list(v.keys())},
-                                        return_type=MapBlocksOutput[Maybe[Price]])
+                                        return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
             for r in pp.results:
                 if r.output is not None:
-                    v[r.blockNumber] = r.output.get_just(Price(price=0.0, src='NA')).price
+                    v[r.blockNumber] = (r.output
+                                        .get_just(PriceWithQuote.usd(price=0.0, src='NA'))
+                                        .price)
                 else:
                     v[r.blockNumber] = 0
 
