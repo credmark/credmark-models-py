@@ -9,7 +9,7 @@ class TestExample(CMKTest):
         self.run_model('contrib.neilz', {})
 
         self.run_model('contrib.neilz-new-addresses', {"start_block": -100, "unique": True})
-        self.run_model('contrib.neilz-new-addresses', {"start_block": 15709259}, block_number=15709159)
+        self.run_model('contrib.neilz-new-addresses', {"start_block": 15709159}, block_number=15709259)
 
         self.title('Example')
         self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
