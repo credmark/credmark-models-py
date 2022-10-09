@@ -1,11 +1,10 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Accounts, Account, Address, Portfolio
+from credmark.cmf.types import Accounts, Portfolio
 
 # Next Steps:
 
 # Set the slug, display_name, and description for your model below.
 # Add code to the run() method.
-
 
 
 @Model.describe(slug='contrib.exploited-value',
@@ -39,8 +38,11 @@ class ExploitedValue(Model):
         # of this function. Then change this function to return an
         # instance of the DTO class.
 
-        portfolio_now = Portfolio(**self.context.models.account.portfolio_aggregate(input=input, return_type=Portfolio))
-        portfolio_two_blocks_ago =  Portfolio(**self.context.models.account.portfolio_aggregate(input=input, return_type=Portfolio, block_number=self.context.block_number - 2))
+        portfolio_now = self.context.models.account.portfolio_aggregate(input=input,
+                                  return_type=Portfolio)
 
+        portfolio_two_blocks_ago = self.context.models.account.portfolio_aggregate(
+            input=input, return_type=Portfolio,
+            block_number=self.context.block_number - 2)
 
-        return {"exploited_value":portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()}
+        return {"exploited_value": portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()}  # type: ignore

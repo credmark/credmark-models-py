@@ -1,11 +1,14 @@
 
+import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types.ledger import TransactionTable
-from credmark.dto import DTO
+from credmark.cmf.model.errors import ModelRunError
+from credmark.dto import DTO, DTOField
 
 
 class BlockNumberInput(DTO):
-    start_block:int
+    start_block: int
+    unique: bool = DTOField(False, describe='filter for unique address')
+
 
 @Model.describe(
     slug='contrib.neilz-new-addresses',
@@ -17,8 +20,40 @@ class BlockNumberInput(DTO):
     output=dict
 )
 class MyModel(Model):
-    def run(self, input: BlockNumberInput):
-        addresses = self.context.ledger.get_transactions(columns=[TransactionTable.Columns.FROM_ADDRESS],
-        where=f'{TransactionTable.Columns.NONCE}=0 and {TransactionTable.Columns.BLOCK_NUMBER} > {input.start_block}')
-        
-        return {"accounts": addresses, "count":len(addresses.dict()['data'])} 
+    def run(self, input: BlockNumberInput) -> dict:
+        if input.start_block > 0:
+            if input.start_block > self.context.block_number:
+                raise ModelRunError(
+                    f'input\'s start_block {input.start_block} '
+                    f'is larger than current block_number ({self.context.block_number})')
+            else:
+                actual_start_block = input.start_block
+        else:
+            actual_start_block = self.context.block_number + input.start_block
+
+        with self.context.ledger.Transaction as q:
+            df_ts = []
+            offset = 0
+
+            while True:
+                df_tt = (q.select(
+                    columns=[q.FROM_ADDRESS],
+                    where=q.NONCE.eq(0).and_(q.BLOCK_NUMBER.gt(actual_start_block)),
+                    order_by=q.BLOCK_NUMBER,
+                    offset=offset)
+                    .to_dataframe())
+
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+        if len(df_ts) == 0:
+            return {"accounts": [], "count": 0}
+
+        if input.unique:
+            addresses = pd.concat(df_ts)['from_address'].unique().tolist()  # type: ignore
+        else:
+            addresses = pd.concat(df_ts)['from_address'].to_list()
+        return {"accounts": addresses, "count": len(addresses)}

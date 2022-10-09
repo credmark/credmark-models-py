@@ -8,6 +8,9 @@ class TestExample(CMKTest):
         self.title('Neil\'s example')
         self.run_model('contrib.neilz', {})
 
+        self.run_model('contrib.neilz-new-addresses', {"start_block": -100, "unique": True})
+        self.run_model('contrib.neilz-new-addresses', {"start_block": 15709259}, block_number=15709159)
+
         self.title('Example')
         self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
         self.run_model('example.model', {})
