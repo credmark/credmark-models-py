@@ -35,7 +35,6 @@ class CurveFinanceHistoricalReserve(Model):
                 model_input=input),
             return_type=BlockSeries[CurveFiPoolInfo])
 
-        breakpoint()
         if res.errors is not None:
             raise ModelRunError(str(res.errors[0].dict()))
 

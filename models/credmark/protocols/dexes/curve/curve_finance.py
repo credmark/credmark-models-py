@@ -12,7 +12,6 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from credmark.cmf.types.series import BlockSeries
-
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
