@@ -26,8 +26,8 @@ class MyModel(Model):
                 raise ModelRunError(
                     f'input\'s start_block {input.start_block} '
                     f'is larger than current block_number ({self.context.block_number})')
-            else:
-                actual_start_block = input.start_block
+
+            actual_start_block = input.start_block
         else:
             actual_start_block = self.context.block_number + input.start_block
 

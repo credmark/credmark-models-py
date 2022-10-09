@@ -39,10 +39,13 @@ class ExploitedValue(Model):
         # instance of the DTO class.
 
         portfolio_now = self.context.models.account.portfolio_aggregate(input=input,
-                                  return_type=Portfolio)
+                                                                        return_type=Portfolio)
 
         portfolio_two_blocks_ago = self.context.models.account.portfolio_aggregate(
             input=input, return_type=Portfolio,
             block_number=self.context.block_number - 2)
 
-        return {"exploited_value": portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()}  # type: ignore
+        # pylint:disable=line-too-long
+        value_diff = portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()  # type: ignore
+
+        return {"exploited_value": value_diff}
