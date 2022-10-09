@@ -1,11 +1,13 @@
 from datetime import datetime
-from credmark.cmf.model import Model
-from credmark.dto import DTO
-from credmark.cmf.types import Token, Price
-from credmark.cmf.types.series import BlockSeries
 
 import numpy as np
 import pandas as pd
+from credmark.cmf.model import Model
+from credmark.cmf.types import Price, Token, Address
+from credmark.cmf.types.series import BlockSeries
+from credmark.dto import DTO
+
+np.seterr(all='raise')
 
 
 class SharpRatioInput(DTO):
@@ -14,13 +16,26 @@ class SharpRatioInput(DTO):
     risk_free_rate: float
 
 
+class SharpRatioOutput(DTO):
+    token_address: Address
+    sharpe_ratio: float
+    avg_return: float
+    risk_free_rate: float
+    ret_stdev: float
+    return_rolling_interval: int
+    blockTime: str
+    block_number: int
+    blockTimestamp: int
+
+
 @Model.describe(slug="finance.sharpe-ratio-token",
-                version="1.2",
+                version="1.3",
                 display_name="Sharpe ratio for a token's historical price performance",
                 description=("Sharpe ratio is return (averaged returns, annualized) "
                              "versus risk (std. dev. of return)"),
+                category='financial',
                 input=SharpRatioInput,
-                output=dict)
+                output=SharpRatioOutput)
 class SharpeRatioToken(Model):
     """
     Calculate Sharpe ratio for a single token's past historical price performance.
@@ -40,7 +55,7 @@ class SharpeRatioToken(Model):
 
     """
 
-    def run(self, input: SharpRatioInput) -> dict:
+    def run(self, input: SharpRatioInput) -> SharpRatioOutput:
         risk_free_rate = input.risk_free_rate
 
         df_pl = (pd.DataFrame(input.prices.dict()['series'])
@@ -60,8 +75,8 @@ class SharpeRatioToken(Model):
 
         annualized_return = daily_return * np.sqrt(365)
         avg_rolling_ret = (pd.Series(annualized_return)
-                      .rolling(return_rolling_interval)
-                      .mean()[return_rolling_interval-1:])
+                           .rolling(return_rolling_interval)
+                           .mean()[return_rolling_interval-1:])
 
         st_dev = (avg_rolling_ret.rolling(return_rolling_interval)
                   .std()
@@ -72,14 +87,18 @@ class SharpeRatioToken(Model):
 
         sharpe_ratio = avg_ret_minus_risk_free / st_dev
 
-        ret_dict = {'token_address': input.token.address,
-                    'sharpe_ratio': sharpe_ratio,
-                    'avg_return': avg_ret,
-                    'risk_free_rate': risk_free_rate,
-                    'ret_stdev': st_dev,
-                    'return_rolling_interval': return_rolling_interval,
-                    'blockTime': str(df_pl.blockTime[0]),
-                    'block_number': int(df_pl.blockNumber[0]),
-                    'blockTimestamp': int(df_pl.blockTimestamp[0]),
-                    }
-        return ret_dict
+        output = SharpRatioOutput(
+            token_address=input.token.address,
+            sharpe_ratio=sharpe_ratio,
+            avg_return=avg_ret,
+            risk_free_rate=risk_free_rate,
+            ret_stdev=st_dev,
+            return_rolling_interval=return_rolling_interval,
+            blockTime=str(df_pl.blockTime[0]),
+            block_number=int(df_pl.blockNumber[0]),
+            blockTimestamp=int(df_pl.blockTimestamp[0]),
+        )
+        return output
+
+# account_sharpe_type, [actual: base on past PnL, last: using last positions]
+# extension: extend to fill the length.

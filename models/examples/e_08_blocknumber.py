@@ -5,7 +5,8 @@ from credmark.cmf.model.errors import ModelInputError, ModelRunError
 from credmark.cmf.types.block_number import (BlockNumber,
                                              BlockNumberOutOfRangeError)
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
+
+from .dtos import ExampleBlockTimeInput, ExampleModelOutput
 
 
 @Model.describe(
@@ -15,6 +16,8 @@ from models.dtos.example import ExampleBlockTimeInput, ExampleModelOutput
     description='This model gives examples of '
     'the functionality available on the BlockNumber class',
     developer='Credmark',
+    category='example',
+    tags=['block-number'],
     input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleBlockNumber(Model):

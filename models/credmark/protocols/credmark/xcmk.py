@@ -1,24 +1,22 @@
 from typing import Union
+
+from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract
 from credmark.dto import DTO
-
 
 # TODO: Need to get ABI's programmatically, I want to be able to do something like:
 # self.context.contract(protocol:Union[str, None], product:Union[str,None],
 #                       address:Union[str, None], abi:Union[str,None])
 
-from models.tmp_abi_lookup import (
-    CMK_ADDRESS,
-    STAKED_CREDMARK_ADDRESS,
-)
-
 
 @Model.describe(slug='xcmk.total-supply',
                 version='1.0',
                 display_name='xCMK Total Supply',
-                description='the Total supply of the xCMK contract'
-                )
+                description='the Total supply of the xCMK contract',
+                category='protocol',
+                subcategory='xcmk')
 class xCmkCmkStaked(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
@@ -30,7 +28,9 @@ class xCmkCmkStaked(Model):  # pylint: disable=invalid-name
 @Model.describe(slug='xcmk.cmk-staked',
                 version='1.0',
                 display_name='The amount of CMK that\'s been staked',
-                description='The amount of cmk staked in the staking contract')
+                description='The amount of cmk staked in the staking contract',
+                category='protocol',
+                subcategory='xcmk')
 class xCmkTotalSupply(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
@@ -45,26 +45,27 @@ class xCmkDeploymentTimeOutput(DTO):  # pylint: disable=invalid-name
 
 
 @Model.describe(slug='xcmk.deployment-time',
-                version='1.0',
+                version='1.1',
                 display_name='xCMK deployment time',
                 description='xCMK deployment time',
                 developer='Credmark',
+                category='protocol',
+                subcategory='xcmk',
                 output=xCmkDeploymentTimeOutput)
 class xCmkDeploymentTime(Model):  # pylint: disable=invalid-name
     """
     xCmkDeploymentTime
     """
 
-    def run(self, input) -> xCmkDeploymentTimeOutput:
-        txn_cols = self.context.ledger.Transaction.Columns
-
+    def run(self, _) -> xCmkDeploymentTimeOutput:
         # get minimum block with to=staked_credmark
-        result = self.context.ledger.get_transactions(
-            [txn_cols.BLOCK_TIMESTAMP],
-            where=f"{txn_cols.TO_ADDRESS} = '{Address(STAKED_CREDMARK_ADDRESS)}'",
-            order_by=f'{txn_cols.BLOCK_TIMESTAMP} ASC',
-            limit='1')
+        with self.context.ledger.Transaction as txn:
+            result = txn.select(
+                columns=[txn.BLOCK_TIMESTAMP],
+                where=txn.TO_ADDRESS.eq(Address(STAKED_CREDMARK_ADDRESS)),
+                order_by=txn.BLOCK_TIMESTAMP.asc(),
+                limit=1)
 
-        rows = result.data
-        timestamp = rows[0].get(txn_cols.BLOCK_TIMESTAMP) if len(rows) else None
+            rows = result.data
+            timestamp = rows[0].get(txn.BLOCK_TIMESTAMP) if len(rows) else None
         return xCmkDeploymentTimeOutput(timestamp=timestamp)

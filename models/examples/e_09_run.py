@@ -1,6 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleModelOutput
+from .dtos import ExampleModelOutput
 
 
 class RunExampleOutput(ExampleModelOutput):
@@ -14,6 +14,7 @@ class RunExampleOutput(ExampleModelOutput):
     display_name='Example - Model Run',
     description='This model demonstrates how to run a "model" within a model',
     developer='Credmark',
+    category='example',
     input=EmptyInput,
     output=RunExampleOutput)
 class ExampleModelRun(Model):

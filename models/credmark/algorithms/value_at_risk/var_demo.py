@@ -1,24 +1,22 @@
 from credmark.cmf.model import Model
+from credmark.cmf.types import Portfolio, Position, PriceList, Token
+from credmark.dto import DTO
+from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
+                                                          VaRHistoricalInput,
+                                                          VaRHistoricalOutput)
 
-from credmark.cmf.types import (
-    Portfolio,
-    Token,
-    Position,
-    PriceList,
-)
 
-from models.credmark.algorithms.value_at_risk.dto import (
-    HistoricalPriceInput,
-    VaRHistoricalInput,
-    ContractVaRInput,
-)
+class ExampleHistoricalPriceInput(DTO):
+    token: Token
+    window: str  # e.g. '30 day'
 
 
 @Model.describe(slug='finance.example-historical-price',
                 version='1.1',
                 display_name='Value at Risk - Get Price Historical',
                 description='Feed a mock historical price list',
-                input=HistoricalPriceInput,
+                category='example',
+                input=ExampleHistoricalPriceInput,
                 output=PriceList)
 class VaRPriceHistorical(Model):
     """
@@ -26,7 +24,7 @@ class VaRPriceHistorical(Model):
     The priceList is assumed to be sorted in descending order in time.
     """
 
-    def run(self, input: HistoricalPriceInput) -> PriceList:
+    def run(self, input: ExampleHistoricalPriceInput) -> PriceList:
         token = input.token
         _w_k, w_i = self.context.historical.parse_timerangestr(input.window)
 
@@ -38,11 +36,14 @@ class VaRPriceHistorical(Model):
 
 
 @Model.describe(slug='finance.example-var-contract',
-                version='1.1',
+                version='1.3',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
+                category='example',
+                subcategory='financial',
+                tags=['var'],
                 input=ContractVaRInput,
-                output=dict)
+                output=VaRHistoricalOutput)
 class DemoContractVaR(Model):
     """
     For below Demo VaR of 100 Aave + 100 USDC + 1 USDC
@@ -54,12 +55,12 @@ class DemoContractVaR(Model):
 
     # Demo command
     credmark-dev run finance.example-var-contract --input \
-    '{"window": "30 days", "interval": 3, "confidences": [0.01,0.05]}' \
+    '{"window": "30 days", "interval": 3, "confidence": 0.01}' \
     -l finance.example-var-contract,finance.example-historical-price,finance.var-engine-historical \
     -b 14234904 --format_json
     """
 
-    def run(self, input: ContractVaRInput) -> dict:
+    def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
         portfolio = Portfolio(
             positions=[
                 Position(asset=Token(symbol='AAVE'), amount=100),
@@ -71,8 +72,8 @@ class DemoContractVaR(Model):
         pl_assets = set()
         for position in portfolio:
             if position.asset.address not in pl_assets:
-                historical_price_input = HistoricalPriceInput(token=position.asset,
-                                                              window=input.window)
+                historical_price_input = ExampleHistoricalPriceInput(token=position.asset,
+                                                                     window=input.window)
                 pl = self.context.run_model(slug='finance.example-historical-price',
                                             input=historical_price_input,
                                             return_type=PriceList)
@@ -83,9 +84,9 @@ class DemoContractVaR(Model):
             portfolio=portfolio,
             priceLists=pls,
             interval=input.interval,
-            confidences=input.confidences,
+            confidence=input.confidence
         )
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
-                                      return_type=dict)
+                                      return_type=VaRHistoricalOutput)

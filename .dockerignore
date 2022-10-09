@@ -1,0 +1,5 @@
+# ignore
+.git
+.github
+.cache
+.vscode

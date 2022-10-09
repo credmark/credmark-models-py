@@ -131,6 +131,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# PyCharmm
 .idea/
 
 # model manifest
