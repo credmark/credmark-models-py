@@ -1,4 +1,4 @@
-# pylint:disable=unused-import
+# pylint:disable=unused-import, invalid-name
 
 import sys
 from decimal import Decimal, getcontext
@@ -29,10 +29,10 @@ class BalancerPoolPriceInfo(DTO):
     weights: List[int]
     ratios: List[Ratio]
 
-    # 0x32296969Ef14EB0c6d29669C550D4a0449130230
+# Lido: Balancer wstETH-ETH Pool
+# 0x32296969Ef14EB0c6d29669C550D4a0449130230
 
 
-# pylint:disable=invalid-name
 def getTokenBalanceGivenInvariantAndAllOtherBalances(
         amplificationParameter: Decimal,
         balances: List[Decimal],
