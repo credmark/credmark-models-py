@@ -1,4 +1,5 @@
 from credmark.cmf.model import Model
+from credmark.dto import EmptyInput
 
 
 @Model.describe(
@@ -8,10 +9,11 @@ from credmark.cmf.model import Model
         contribute a model to the Credmark framework",
     version='1.0',
     developer='neilz.eth',
+    category='example',
     output=dict
 )
 class MyModel(Model):
-    def run(self, input):
+    def run(self, _: EmptyInput):
         return {
             "credmarkFounder": "Neil",
             "message": "You are a modeler. Thank you modeler."

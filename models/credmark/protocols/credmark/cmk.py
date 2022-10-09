@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token
+from credmark.cmf.types import Address, Token
 
 lockedAddresses = [
     "0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9",
@@ -19,12 +19,14 @@ lockedAddresses = [
                 version='1.0',
                 display_name='CMK Total Supply',
                 description='This is the Total Supply of CMK',
-                developer='Credmark')
+                developer='Credmark',
+                category='protocol',
+                subcategory='cmk')
 class TotalSupplyCMK(Model):
 
     def run(self, input) -> dict:
         cmk_token = Token(symbol='CMK')
-        total_supply = cmk_token.functions.totalSupply().call()
+        total_supply = cmk_token.total_supply
         return {'total_supply': total_supply}
 
 
@@ -32,7 +34,9 @@ class TotalSupplyCMK(Model):
                 version='1.0',
                 display_name='CMK Circulating Supply',
                 description='This is the Circulating Supply of CMK.',
-                developer='Credmark')
+                developer='Credmark',
+                category='protocol',
+                subcategory='cmk')
 class CirculatingCMK(Model):
 
     def run(self, input) -> dict:
@@ -41,8 +45,6 @@ class CirculatingCMK(Model):
         cmk_token = Token(symbol='CMK')
 
         for addr in lockedAddresses:
-            supply = supply - \
-                cmk_token.functions.balanceOf(
-                    addr).call()
+            supply = supply - cmk_token.balance_of(Address(addr).checksum)
 
         return {'result': supply}

@@ -1,64 +1,92 @@
 from credmark.cmf.model import Model
-
-from credmark.cmf.types import (
-    Address,
-    Contract,
-    Token,
-    Contracts,
-)
-
-from credmark.dto import (
-    DTO,
-    EmptyInput,
-)
-
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import (
-    UniswapV2PoolMeta,
-    UniswapPoolPriceInfoMeta,
-)
-from models.dtos.price import PoolPriceInfos
-
-from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
+                                Some, Token)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import DTO, EmptyInput
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
+    UniswapV2PoolMeta
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
+                               PoolPriceInfo)
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
                 version="1.0",
                 display_name="Sushiswap - get factory",
                 description="Returns the address of Suishiswap factory contract",
+                category='protocol',
+                subcategory='sushi',
                 input=EmptyInput,
                 output=Contract)
 class SushiswapV2Factory(Model):
     SUSHISWAP_V2_FACTORY_ADDRESS = {
-        1: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
+        Network.Mainnet: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
     } | {
-        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4' for k in [3, 4, 5, 42]
+        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'
+        for k in [Network.Rinkeby, Network.Görli, Network.Kovan]
     }
 
     def run(self, _) -> Contract:
-        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.chain_id]
-        contract = Contract(address=addr)
-        return contract
+        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.network]
+        cc = Contract(address=addr)
+        _ = cc.abi
+        return cc
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.1',
-                display_name='Uniswap v2 Token Pools',
-                description='The Uniswap v2 pools that support a token contract',
+                version='1.5',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
                 input=Token,
                 output=Contracts)
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
-        return self.get_uniswap_pools(input, contract.address)
+        try:
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools(self.context, input.address, gw.address)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
+
+
+@Model.describe(slug='sushiswap.get-pools-ledger',
+                version='0.1',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
+    def run(self, input: Token) -> Contracts:
+        try:
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools_ledger(self.context, input.address, gw)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
 
 
 @Model.describe(slug="sushiswap.all-pools",
                 version="1.1",
                 display_name="Sushiswap all pairs",
-                description="Returns the addresses of all pairs on Suhsiswap protocol")
+                description="Returns the addresses of all pairs on Suhsiswap protocol",
+                category='protocol',
+                subcategory='sushi')
 class SushiswapAllPairs(Model):
-    def run(self, input) -> dict:
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+    def run(self, _: EmptyInput) -> dict:
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []
 
@@ -87,11 +115,13 @@ class SushiSwapPool(DTO):
                 display_name="Sushiswap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of "
                              "both tokens on Suhsiswap protocol"),
+                category='protocol',
+                subcategory='sushi',
                 input=SushiSwapPool)
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(**self.context.models.sushiswap.get_v2_factory())
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -103,62 +133,63 @@ class SushiswapGetPair(Model):
             return {}
 
 
-@Model.describe(slug="sushiswap.get-pool-info",
-                version="1.1",
-                display_name="Sushiswap get details for a pool",
-                description="Returns the token details of the pool",
-                input=Contract,
-                output=dict)
-class SushiswapGetPairDetails(Model):
-    def run(self, input: Contract) -> dict:
-        contract = input
-        contract._meta.abi = UNISWAP_V2_POOL_ABI  # pylint:disable=protected-access
-        token0 = Token(address=contract.functions.token0().call())
-        token1 = Token(address=contract.functions.token1().call())
-        getReserves = contract.functions.getReserves().call()
-
-        token0_balance = token0.scaled(token0.functions.balanceOf(input.address).call())
-        token1_balance = token1.scaled(token1.functions.balanceOf(input.address).call())
-
-        _token0_name = token0.name
-        _token0_symbol = token0.symbol
-        _token0_decimals = token0.decimals
-
-        _token1_name = token1.name
-        _token1_symbol = token1.symbol
-        _token1_decimals = token1.decimals
-
-        token0_reserve = token0.scaled(getReserves[0])
-        token1_reserve = token1.scaled(getReserves[1])
-
-        output = {'pairAddress': input.address,
-                  'token0': token0,
-                  'token0_name': _token0_name,
-                  'token0_symbol': _token0_symbol,
-                  'token0_reserve': token0_reserve,
-                  'token0_balance': token0_balance,
-                  'token1': token1,
-                  'token1_name': _token1_name,
-                  'token1_symbol': _token1_symbol,
-                  'token1_reserve': token1_reserve,
-                  'token1_balance': token1_balance}
-
-        return output
-
-
-@Model.describe(slug='sushiswap.get-pool-price-info',
-                version='1.0',
+@Model.describe(slug='sushiswap.get-pool-info-token-price',
+                version='1.10',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
-                input=Token,
-                output=PoolPriceInfos)
-class SushiswapGetAveragePrice(Model, UniswapPoolPriceInfoMeta):
-    def run(self, input: Token) -> PoolPriceInfos:
-        pools_address = self.context.run_model('sushiswap.get-pools',
-                                               input,
-                                               return_type=Contracts)
+                category='protocol',
+                subcategory='sushi',
+                input=DexPriceTokenInput,
+                output=Some[PoolPriceInfo])
+class SushiswapGetTokenPriceInfo(Model):
+    def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
+        pools = self.context.run_model('sushiswap.get-pools',
+                                       input,
+                                       return_type=Contracts,
+                                       local=True)
 
-        return self.get_pool_price_infos(self,
-                                         input,
-                                         pools_address,
-                                         pricer_slug='sushiswap.get-weighted-price')
+        model_slug = 'uniswap-v2.get-pool-price-info'
+        model_inputs = [
+            DexPricePoolInput(
+                address=pool.address,
+                price_slug='sushiswap.get-weighted-price',
+                weight_power=input.weight_power,
+                debug=input.debug)
+            for pool in pools]
+
+        def _use_compose():
+            pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
+
+            infos = []
+            for pool_n, p in enumerate(pool_infos):
+                if p.output is not None:
+                    if p.output.is_just():
+                        infos.append(p.output.just)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise ModelRunError(
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
+                         p.error.message))
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return infos
+
+        def _use_for(local):
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo],
+                                            local=local)
+                if pi.is_just():
+                    infos.append(pi.just)
+            return infos
+
+        infos = _use_for(local=True)
+
+        return Some[PoolPriceInfo](some=infos)

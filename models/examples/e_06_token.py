@@ -1,8 +1,8 @@
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelTypeError
 from credmark.cmf.types import NativeToken, Token
-from models.dtos.example import ExampleModelOutput, ExampleTokenInput
+from .dtos import ExampleModelOutput, ExampleTokenInput
 
 
 @Model.describe(
@@ -11,6 +11,8 @@ from models.dtos.example import ExampleModelOutput, ExampleTokenInput
     developer='credmark',
     display_name="Example - Token",
     description="This model demonstrates the functionality of the Token class",
+    category='example',
+    tags=['token'],
     input=ExampleTokenInput,
     output=ExampleModelOutput)
 class ExampleToken(Model):
@@ -57,7 +59,7 @@ class ExampleToken(Model):
             raise ModelRunError(
                 message="Token cannot be initialized with an invalid address, "
                 "an exception was NOT caught, and the example has FAILED")
-        except ValueError as _e:
+        except ModelTypeError as _e:
             output.log_error(_e)
             output.log_error(
                 "Attempting to initialize a Token with invalid address "

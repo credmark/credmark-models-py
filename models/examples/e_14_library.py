@@ -10,7 +10,7 @@ import xlsxwriter
 from bs4 import BeautifulSoup
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
-from models.dtos.example import ExampleLibrariesOutput
+from .dtos import ExampleLibrariesOutput
 
 
 @Model.describe(
@@ -20,6 +20,7 @@ from models.dtos.example import ExampleLibrariesOutput
     description='A list of the math/data science libraries that are '
     'included in the Credmark Framework.',
     developer='Credmark',
+    category='example',
     input=EmptyInput,
     output=ExampleLibrariesOutput)
 class ExampleLibraries(Model):

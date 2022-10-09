@@ -1,7 +1,67 @@
+from credmark.cmf.model import ModelDataErrorDesc
+from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
+                                Some, Token, Tokens)
+from credmark.cmf.types.compose import MapBlockTimeSeriesInput
+from credmark.dto import DTO, DTOField
 
-from typing import List
-from credmark.cmf.types import Address, Token
-from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+
+class PriceInput(DTO):
+    """
+    In FX, the pair is quoted as base/quote for 1 base = x quote
+    e.g. 1883.07 ETH / USD means 1883.07 USD for 1 ETH.
+
+    *Base* token to get the value in the quote token
+    *Quote* token to determine the value of the base token.
+
+    If quote is not provided, default to the native token of the chain, i.e. ETH for Ethereum.
+
+    Fiat is expressed in the currency code in ISO 4217.
+
+    Base and quote can be either Token (symbol or address)
+    or code (BTC, ETH, and all fiat, like USD, EUR, CNY, etc.)
+
+    For fiat, with USD being the most active traded currency.
+    It's direct quoting with (x USD/DOM) for x DOM = 1 USD, e.g. USD/JPY;
+    and indirect quoting with (x DOM/USD) for x USD = 1 DOM, e.g. GBP/USD.
+
+    For DeFi, we call it a direct quoting when the native token is the base.
+    e.g. ETH / USD
+    """
+
+    base: Currency = \
+        DTOField(description='Base token address to get the value for')
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
+
+    def inverse(self):
+        return PriceInput(base=self.quote, quote=self.base)
+
+    def quote_usd(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='USD'))
+
+    def quote_eth(self):
+        return PriceInput(base=self.base, quote=Currency(symbol='ETH`'))
+
+    class Config:
+        schema_extra = {
+            'examples': [{'base': {'symbol': 'USD'}},
+                         {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
+                          'quote': {'symbol': 'USD'}}]
+        }
+
+
+class PriceHistoricalInput(PriceInput, MapBlockTimeSeriesInput):
+    modelSlug: str = DTOField('price.quote', hidden=True)
+    modelInput: dict = DTOField({}, hidden=True)
+    endTimestamp: int = DTOField(0, hidden=True)
+
+
+class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
+    modelSlug: str = DTOField('price.quote', hidden=True)
+    modelInput: dict = DTOField({}, hidden=True)
+    endTimestamp: int = DTOField(0, hidden=True)
 
 
 class PoolPriceInfo(DTO):
@@ -20,25 +80,42 @@ class PoolPriceInfo(DTO):
     @pool_address: pool's address
     """
     src: str
-    price: float
-    liquidity: float
-    weth_multiplier: float
-    inverse: bool
+    price0: float
+    price1: float
+    one_tick_liquidity0: float
+    one_tick_liquidity1: float
+    full_tick_liquidity0: float
+    full_tick_liquidity1: float
     token0_address: Address
     token1_address: Address
     token0_symbol: str
     token1_symbol: str
-    token0_decimals: int
-    token1_decimals: int
     pool_address: Address
+    ref_price: float
+    tick_spacing: int
 
 
-class PoolPriceInfos(IterableListGenericDTO[PoolPriceInfo]):
-    pool_price_infos: List[PoolPriceInfo] = []
-    _iterator: str = PrivateAttr('pool_price_infos')
+class PriceWeight(DTO):
+    weight_power: float = DTOField(4.0, ge=0.0)
+    debug: bool = DTOField(False, description='Turn on debug log')
 
 
-class PoolPriceAggregatorInput(PoolPriceInfos):
-    token: Token
-    weight_power: float = DTOField(1.0, ge=1.0)
-    price_src: str
+class DexPriceTokenInput(Token, PriceWeight):
+    ...
+
+
+class DexPriceTokensInput(Tokens, PriceWeight):
+    ...
+
+
+class DexPricePoolInput(Contract, PriceWeight):
+    price_slug: str
+
+
+class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
+    ...
+
+
+PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
+    code=ModelDataError.Codes.NO_DATA,
+    code_desc='No pool to aggregate for token price')
