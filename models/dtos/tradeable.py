@@ -1,3 +1,4 @@
+import pandas as pd
 from abc import abstractmethod
 from datetime import datetime
 from typing import Any, Generator, Optional
@@ -41,7 +42,7 @@ class Tradeable:
 
     @ abstractmethod
     def value(self,
-              as_of: datetime,
+              block_number: datetime,
               tag: str,
               mkt: Market,
               mkt_adj=lambda x: x) -> float:
@@ -49,7 +50,7 @@ class Tradeable:
 
     @ abstractmethod
     def value_scenarios(self,
-                        as_of: datetime,
+                        block_number: datetime,
                         tag: str,
                         tag_scenario: str,
                         mkt: Market,
@@ -58,7 +59,8 @@ class Tradeable:
 
 
 class TokenTradeable(Tradeable):
-    def __init__(self, tid, traces, token, amount, init_price, block_number: BlockNumber, end_block_number: Optional[BlockNumber]):
+    def __init__(self, tid, traces, token, amount, init_price,
+                 block_number: BlockNumber, end_block_number: Optional[BlockNumber]):
         super().__init__(tid, traces)
         self._token = token
         self._amount = amount
@@ -67,7 +69,7 @@ class TokenTradeable(Tradeable):
         self._end = end_block_number
         self._key = f'Token.{self._token.address}'
 
-    @ property
+    @property
     def key(self):
         return self._key
 
@@ -92,15 +94,19 @@ class TokenTradeable(Tradeable):
         return pnl
 
     def value_scenarios(self,
-                        as_of: datetime,
+                        block_number: BlockNumber,
                         tag: str,
                         tag_scenario: str,
                         mkt: Market,
                         mkt_scenarios: Market) -> pd.Series:
-        base_pnl = self.value(as_of, tag, mkt)
+        """
+        Value scenario
+        """
+
+        base_pnl = self.value(block_number, tag, mkt)
         scen_pnl = []
         scenarios = mkt_scenarios[(tag_scenario, self.key)]['extracted']
         for scen in scenarios:
-            new_pnl = self.value(as_of, tag, mkt, lambda x, scen=scen: x * scen)
+            new_pnl = self.value(block_number, tag, mkt, lambda x, scen=scen: x * scen)
             scen_pnl.append(new_pnl)
         return pd.Series(scen_pnl) - base_pnl
