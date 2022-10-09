@@ -231,7 +231,7 @@ class TokenLogoModel(Model):
 
         for url in try_urls:
             # Return the first URL that exists
-            if requests.head(url).status_code < 400:
+            if requests.head(url, timeout=60).status_code < 400:
                 return TokenLogoOutput(logo_url=url)
 
         raise ModelDataError(
