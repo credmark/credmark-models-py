@@ -10,7 +10,8 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price,
                                 PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import EmptyInput
+from credmark.dto import DTO, EmptyInput
+from credmark.cmf.types.series import BlockSeries
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
@@ -524,11 +525,21 @@ class CurveFinanceGaugeRewardsCRV(Model):
                 "working_balances": working_balances,
                 "address": addr.address
             })
+
         return {"yields": yields}
 
 
+# gauageAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
+# _gauge = Contract(address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+
+
+class CurveGaugeInput(DTO):
+    gaugeAddress: Address
+    userAddresses: List[Account]
+
+
 @Model.describe(slug='curve-fi.gauge-yield',
-                version='1.2',
+                version='1.3',
                 category='protocol',
                 subcategory='curve',
                 input=Contract,
@@ -554,11 +565,15 @@ class CurveFinanceAverageGaugeYield(Model):
             lp_token = Contract(address=lp_token_addr)
             pool_virtual_price = lp_token.functions.get_virtual_price().call()
 
-        res = self.context.historical.run_model_historical(
-            'curve-fi.get-gauge-stake-and-claimable-rewards',
-            window='60 days',
-            interval='7 days',
-            model_input=input)
+        res = self.context.run_model(
+            'historical.run-model',
+            dict(
+                model_slug='curve-fi.get-gauge-stake-and-claimable-rewards',
+                window='60 days',
+                interval='7 days',
+                model_input=input
+            ),
+            return_type=BlockSeries[dict])
 
         yields = []
         for idx in range(0, len(res.series) - 1):

@@ -17,7 +17,7 @@ def try_or(func, default=0, expected_exc=(Exception,)):
         return default
 
 
-## Vaults' addresses on ethereum chain
+# Vaults' addresses on ethereum chain
 BENTOBOX_ADDRESS_ETH = Address("0xF5BCE5077908a1b7370B9ae04AdC565EBd643966").checksum
 DEGENBOX_ADDRESS_ETH = Address("0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce").checksum
 
@@ -155,13 +155,17 @@ class AbracadabraGetTVLHistorical(Model):
         ts_as_of_end_dt = self.context.block_number.from_timestamp(
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
 
-        output = self.context.historical.run_model_historical(
-            model_slug='contrib.abracadabra-tvl',
-            model_input={},
-            model_return_type=AbracadabraOutput,
-            window=window,
-            interval=interval,
-            end_timestamp=ts_as_of_end_dt)
+        output = self.context.run_model(
+            'historical.run-model',
+            dict(
+                model_slug='contrib.abracadabra-tvl',
+                model_input={},
+                model_return_type=AbracadabraOutput,
+                window=window,
+                interval=interval,
+                end_timestamp=ts_as_of_end_dt
+            ),
+            return_type=BlockSeries[AbracadabraOutput])
 
         return output
 

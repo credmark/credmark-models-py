@@ -1,3 +1,6 @@
+# pylint:disable=unused-import, invalid-name
+
+import sys
 from decimal import Decimal, getcontext
 from typing import List, NamedTuple
 
@@ -26,10 +29,10 @@ class BalancerPoolPriceInfo(DTO):
     weights: List[int]
     ratios: List[Ratio]
 
-    # 0x32296969Ef14EB0c6d29669C550D4a0449130230
+# Lido: Balancer wstETH-ETH Pool
+# 0x32296969Ef14EB0c6d29669C550D4a0449130230
 
 
-# pylint:disable=invalid-name
 def getTokenBalanceGivenInvariantAndAllOtherBalances(
         amplificationParameter: Decimal,
         balances: List[Decimal],
@@ -98,10 +101,10 @@ class GetBalancerAllPools(Model):
             pool = Contract(address=pool_addr, abi=BALANCER_POOL_ABI)
             try:
                 _pool_id = pool.functions.getPoolId().call()
-                # print(_n, pool_addr, pool._meta.contract_name)  # pylint:disable=protected-access
+                # print(_n, pool_addr, pool._meta.contract_name, file=sys.stderr)  # pylint:disable=protected-access
                 contracts.append(pool)
             except ABIFunctionNotFound:
-                # print(pool_addr)
+                # print(pool_addr, file=sys.stderr)
                 pass
 
         return Contracts(contracts=contracts)

@@ -11,6 +11,9 @@ class TestExample(CMKTest):
         self.run_model('contrib.neilz-new-addresses', {"start_block": -100, "unique": True})
         self.run_model('contrib.neilz-new-addresses', {"start_block": 15709159}, block_number=15709259)
 
+        self.run_model('contrib.curve-fi-pool-historical-reserve',
+                      {"address":"0xD51a44d3FaE010294C616388b506AcdA1bfAAE46"})
+
         self.title('Example')
         self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
         self.run_model('example.model', {})
