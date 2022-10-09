@@ -1,0 +1,18 @@
+imports:
+  modules:
+    - name: numpy
+      as: np
+    - name: pandas
+      as: pd
+    - name: matplotlib.pyplot
+      as: plt
+  globals:
+    - models.credmark.protocols.lending.aave.aave_v2.AaveDebtInfo
+    - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolInfo
+    - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolValue
+    - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfo
+    - models.dtos.volume.TokenTradingVolume
+    - models.dtos.price.PoolPriceInfo
+    - models.dtos.price.DexPoolAggregationInput
+    - models.dtos.price.DexPriceTokenInput
+    - models.dtos.price.DexPricePoolInput

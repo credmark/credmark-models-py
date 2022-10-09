@@ -131,6 +131,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# PyCharmm
 .idea/
 
 # model manifest
@@ -140,8 +141,10 @@ workspace.code-workspace
 # test
 /test/*.ps1
 /dask-worker-space
+/test/run_all_examples.sh
 /test/run_all_examples_test.sh
 /test/local_test.sh
 
 # vim
 .swp
+tmp/

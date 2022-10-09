@@ -1,38 +1,93 @@
-import credmark.model
-from credmark.types import (
-    Address,
-    Contract,
-    Token,
-    Contracts,
-    Price
-)
-from credmark.dto import (
-    DTO
-)
-
-from models.tmp_abi_lookup import (
-    SUSHISWAP_FACTORY_ADDRESS,
-    SUSHISWAP_FACTORY_ABI,
-    SUSHISWAP_PAIRS_ABI,
-    ERC_20_TOKEN_CONTRACT_ABI,
-    UNISWAP_V2_SWAP_ABI
-)
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
+                                Some, Token)
+from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import DTO, EmptyInput
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
+    UniswapV2PoolMeta
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
+                               PoolPriceInfo)
 
 
-@credmark.model.describe(slug="sushiswap.all-pools",
-                         version="1.0",
-                         display_name="Sushiswap all pairs",
-                         description="Returns the addresses of all pairs on Suhsiswap protocol")
-class SushiswapAllPairs(credmark.model.Model):
-    def run(self, input) -> dict:
+@Model.describe(slug="sushiswap.get-v2-factory",
+                version="1.0",
+                display_name="Sushiswap - get factory",
+                description="Returns the address of Suishiswap factory contract",
+                category='protocol',
+                subcategory='sushi',
+                input=EmptyInput,
+                output=Contract)
+class SushiswapV2Factory(Model):
+    SUSHISWAP_V2_FACTORY_ADDRESS = {
+        Network.Mainnet: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
+    } | {
+        k: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'
+        for k in [Network.Rinkeby, Network.Görli, Network.Kovan]
+    }
 
-        contract = Contract(
-            address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
-            abi=SUSHISWAP_FACTORY_ABI
-        )
+    def run(self, _) -> Contract:
+        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.network]
+        cc = Contract(address=addr)
+        _ = cc.abi
+        return cc
 
+
+@Model.describe(slug='sushiswap.get-pools',
+                version='1.5',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
+    def run(self, input: Token) -> Contracts:
+        try:
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools(self.context, input.address, gw.address)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
+
+
+@Model.describe(slug='sushiswap.get-pools-ledger',
+                version='0.1',
+                display_name='Sushiswap v2 Pools',
+                description='The Sushiswap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
+                input=Token,
+                output=Contracts)
+class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
+    def run(self, input: Token) -> Contracts:
+        try:
+            gw = self.context.run_model('sushiswap.get-v2-factory',
+                                        input=EmptyInput(),
+                                        return_type=Contract,
+                                        local=True)
+            return self.get_uniswap_pools_ledger(self.context, input.address, gw)
+        except BlockNumberOutOfRangeError:
+            pass
+
+        return Contracts(contracts=[])
+
+
+@Model.describe(slug="sushiswap.all-pools",
+                version="1.1",
+                display_name="Sushiswap all pairs",
+                description="Returns the addresses of all pairs on Suhsiswap protocol",
+                category='protocol',
+                subcategory='sushi')
+class SushiswapAllPairs(Model):
+    def run(self, _: EmptyInput) -> dict:
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
-
         sushiswap_pairs_addresses = []
 
         error_count = 0
@@ -40,11 +95,14 @@ class SushiswapAllPairs(credmark.model.Model):
             try:
                 pair_address = contract.functions.allPairs(i).call()
                 sushiswap_pairs_addresses.append(Address(pair_address).checksum)
-
             except Exception as _err:
                 error_count += 1
 
-        return {"result": sushiswap_pairs_addresses}
+        self.logger.warning(f'There are {error_count} errors in total {allPairsLength} pools.')
+
+        return {"result": sushiswap_pairs_addresses,
+                'all_pairs_lenght': allPairsLength,
+                'error_count': error_count}
 
 
 class SushiSwapPool(DTO):
@@ -52,19 +110,18 @@ class SushiSwapPool(DTO):
     token1: Token
 
 
-@credmark.model.describe(slug="sushiswap.get-pool",
-                         version="1.0",
-                         display_name="Sushiswap get pool for a pair of tokens",
-                         description=("Returns the addresses of the pool of "
-                                      "both tokens on Suhsiswap protocol"),
-                         input=SushiSwapPool)
-class SushiswapGetPair(credmark.model.Model):
+@Model.describe(slug="sushiswap.get-pool",
+                version="1.0",
+                display_name="Sushiswap get pool for a pair of tokens",
+                description=("Returns the addresses of the pool of "
+                             "both tokens on Suhsiswap protocol"),
+                category='protocol',
+                subcategory='sushi',
+                input=SushiSwapPool)
+class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(
-            address=Address(SUSHISWAP_FACTORY_ADDRESS).checksum,
-            abi=SUSHISWAP_FACTORY_ABI
-        )
+        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -76,124 +133,63 @@ class SushiswapGetPair(credmark.model.Model):
             return {}
 
 
-@credmark.model.describe(slug="sushiswap.get-pool-info",
-                         version="1.0",
-                         display_name="Sushiswap get details for a pool",
-                         description="Returns the token details of the pool",
-                         input=Contract)
-class SushiswapGetPairDetails(credmark.model.Model):
-    def try_or(self, func, default=None, expected_exc=(Exception,)):
-        try:
-            return func()
-        except expected_exc:
-            return default
-
-    def run(self, input: Contract):
-        output = {}
-        self.logger.info(f'{input=}')
-        contract = Contract(
-            address=input.address.checksum,
-            abi=SUSHISWAP_PAIRS_ABI
-        )
-        token0 = contract.functions.token0().call()
-        token1 = contract.functions.token1().call()
-        getReserves = contract.functions.getReserves().call()
-
-        token0_instance = Contract(
-            address=token0, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token0_name = self.try_or(lambda: token0_instance.functions.name().call())
-        _token0_symbol = self.try_or(lambda: token0_instance.functions.symbol().call())
-        _token0_decimals = token0_instance.functions.decimals().call()
-
-        token1_instance = Contract(
-            address=token1, abi=ERC_20_TOKEN_CONTRACT_ABI)
-        _token1_name = self.try_or(lambda: token1_instance.functions.name().call())
-        _token1_symbol = self.try_or(lambda: token1_instance.functions.symbol().call())
-        _token1_decimals = token1_instance.functions.decimals().call()
-
-        token0_reserve = getReserves[0]/pow(10, _token0_decimals)
-        token1_reserve = getReserves[1]/pow(10, _token1_decimals)
-
-        output = {'pairAddress': input.address,
-                  'token0': token0,
-                  'token0_name': _token0_name,
-                  'token0_symbol': _token0_symbol,
-                  'token0_reserve': token0_reserve,
-                  'token1': token1,
-                  'token1_name': _token1_name,
-                  'token1_symbol': _token1_symbol,
-                  'token1_reserve': token1_reserve}
-
-        return output
-
-
-@credmark.model.describe(slug='sushiswap.get-pools',
-                         version='1.0',
-                         display_name='Uniswap v2 Token Pools',
-                         description='The Uniswap v2 pools that support a token contract',
-                         input=Token,
-                         output=Contracts)
-class SushiswapGetPoolsForToken(credmark.model.Model):
-
-    def run(self, input: Token) -> Contracts:
-
-        factory = Contract(address=SUSHISWAP_FACTORY_ADDRESS)
-        tokens = [Token(symbol="USDC"),
-                  Token(symbol="WETH"),
-                  Token(symbol="DAI"),
-                  Token(symbol="USDT")]
-        contracts = []
-        for token in tokens:
-            pair_address = factory.functions.getPair(input.address, token.address).call()
-            if not pair_address == Address.null():
-                contracts.append(Contract(address=pair_address, abi=UNISWAP_V2_SWAP_ABI))
-        return Contracts(contracts=contracts)
-
-
-@credmark.model.describe(slug='sushiswap.get-average-price',
-                         version='1.0',
-                         display_name='Sushiswap Token Price',
-                         description='The Sushiswap price, averaged by liquidity',
-                         input=Token,
-                         output=Price)
-class SushiswapGetAveragePrice(credmark.model.Model):
-    def run(self, input: Token) -> Price:
+@Model.describe(slug='sushiswap.get-pool-info-token-price',
+                version='1.10',
+                display_name='Sushiswap Token Pools Price ',
+                description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='sushi',
+                input=DexPriceTokenInput,
+                output=Some[PoolPriceInfo])
+class SushiswapGetTokenPriceInfo(Model):
+    def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
-                                       return_type=Contracts)
+                                       return_type=Contracts,
+                                       local=True)
 
-        prices = []
-        reserves = []
-        weth_price = None
-        for pool in pools:
-            reserves = pool.functions.getReserves().call()
+        model_slug = 'uniswap-v2.get-pool-price-info'
+        model_inputs = [
+            DexPricePoolInput(
+                address=pool.address,
+                price_slug='sushiswap.get-weighted-price',
+                weight_power=input.weight_power,
+                debug=input.debug)
+            for pool in pools]
 
-            if input.address == pool.functions.token0().call():
-                token1 = Token(address=pool.functions.token1().call())
-                reserve = reserves[0]
-                price = (reserves[1] / (10 ** token1.decimals)) / \
-                    (reserves[0] / (10**input.decimals))
-                if token1.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                            token1,
-                                                            return_type=Price).price
-                    price = price * weth_price
-            else:
-                token0 = Token(address=pool.functions.token0().call())
-                reserve = reserves[1]
-                price = (reserves[0] / (10 ** token0.decimals)) / \
-                    (reserves[1] / (10**input.decimals))
-                if token0.symbol == 'WETH':
-                    if weth_price is None:
-                        weth_price = self.context.run_model('sushiswap.get-average-price',
-                                                            token0,
-                                                            return_type=Price).price
-                    price = price * weth_price
+        def _use_compose():
+            pool_infos = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, Maybe[PoolPriceInfo]])
 
-            prices.append((price, reserve))
+            infos = []
+            for pool_n, p in enumerate(pool_infos):
+                if p.output is not None:
+                    if p.output.is_just():
+                        infos.append(p.output.just)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise ModelRunError(
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
+                         p.error.message))
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+            return infos
 
-        if len(prices) == 0:
-            return Price(price=None)
+        def _use_for(local):
+            infos = []
+            for minput in model_inputs:
+                pi = self.context.run_model(model_slug,
+                                            minput,
+                                            return_type=Maybe[PoolPriceInfo],
+                                            local=local)
+                if pi.is_just():
+                    infos.append(pi.just)
+            return infos
 
-        return Price(price=sum([p * r for (p, r) in prices]) / sum([r for (p, r) in prices]))
+        infos = _use_for(local=True)
+
+        return Some[PoolPriceInfo](some=infos)
