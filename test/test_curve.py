@@ -79,7 +79,7 @@ class TestCurve(CMKTest):
         # Curve.fi cyDAI/cyUSDC/cyUSDT 0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF
         self.run_model('curve-fi.pool-info', {"address": "0x2dded6Da1BF5DBdF597C45fcFaa3194e53EcfeAF"})
 
-    def not_test_gauge(self):
+    def test_gauge(self):
         self.title('Curve - Gauge')
 
         # Curve.fi oBTC/sbtcCRV Gauge Deposit: 0x11137B10C210b579405c21A07489e28F3c040AB1

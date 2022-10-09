@@ -539,7 +539,7 @@ class CurveGaugeInput(DTO):
 
 
 @Model.describe(slug='curve-fi.gauge-yield',
-                version='1.2',
+                version='1.3',
                 category='protocol',
                 subcategory='curve',
                 input=Contract,
