@@ -4,6 +4,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 Contracts, Portfolio, Position, Price,
                                 PriceWithQuote, Some, Token, Tokens)
+from credmark.cmf.types.series import BlockSeries
 
 
 @Model.describe(slug='curve-fi.lp-dist',
@@ -72,7 +73,8 @@ class CurveFinanceHistoricalLPDist(Model):
                 window='60 days',
                 interval='7 days',
                 model_input={'address': input.address}
-            ))
+            ),
+            return_type=BlockSeries[dict])
 
         info_i_want = []
         for r in res:

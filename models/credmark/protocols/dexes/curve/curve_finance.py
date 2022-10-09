@@ -11,6 +11,8 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
                                 PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from credmark.cmf.types.series import BlockSeries
+
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
@@ -565,24 +567,25 @@ class CurveFinanceAverageGaugeYield(Model):
             pool_virtual_price = lp_token.functions.get_virtual_price().call()
 
         res = self.context.run_model(
-            'run_model_historical',
+            'historical.run-model',
             dict(
                 model_slug='curve-fi.get-gauge-stake-and-claimable-rewards',
                 window='60 days',
                 interval='7 days',
                 model_input=input
-            ))
+            ),
+            return_type=BlockSeries[dict])
 
         yields = []
-        for idx in range(0, len(res['series']) - 1):
-            for y1 in res['series'][idx].output['yields']:
+        for idx in range(0, len(res.series) - 1):
+            for y1 in res.series[idx].output['yields']:
                 if y1['working_balances'] == 0:
                     continue
                 if y1['balanceOf'] == 0:
                     continue
                 if y1['claimable_tokens'] == 0:
                     continue
-                for y2 in res['series'][idx + 1].output['yields']:
+                for y2 in res.series[idx + 1].output['yields']:
                     if y1['address'] == y2['address']:
                         if y2['working_balances'] == 0:
                             continue

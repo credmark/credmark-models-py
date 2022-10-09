@@ -137,9 +137,9 @@ class AbracadabraHistoricalInput(DTO):
                 subcategory='abracadabra',
                 tags=['tvl'],
                 input=AbracadabraHistoricalInput,
-                output=dict)
+                output=BlockSeries[AbracadabraOutput])
 class AbracadabraGetTVLHistorical(Model):
-    def run(self, input: AbracadabraHistoricalInput) -> dict:
+    def run(self, input: AbracadabraHistoricalInput) -> BlockSeries[AbracadabraOutput]:
         d_start, d_end = input.date_range
         if d_start > d_end:
             d_start, d_end = d_end, d_start
@@ -164,7 +164,8 @@ class AbracadabraGetTVLHistorical(Model):
                 window=window,
                 interval=interval,
                 end_timestamp=ts_as_of_end_dt
-            ))
+            ),
+            return_type=BlockSeries[AbracadabraOutput])
 
         return output
 

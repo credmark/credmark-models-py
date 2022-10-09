@@ -7,19 +7,19 @@ from models.dtos.historical import HistoricalRunModelInput
 
 
 @Model.describe(slug="historical.run-model",
-                version="1.3",
+                version="1.4",
                 display_name="Run Any model for historical",
                 description="Input of window and interval in plain words - 30 days / 1 day",
                 category='utility',
                 subcategory='composer',
                 input=HistoricalRunModelInput,
-                output=dict)
+                output=BlockSeries)
 class HistoricalRunModel(Model):
-    def to_seconds(self, time_str):
+    def to_seconds(self, time_str) -> int:
         historical = self.context.historical
         return historical.range_timestamp(*historical.parse_timerangestr(time_str))
 
-    def run(self, input: HistoricalRunModelInput) -> dict:
+    def run(self, input: HistoricalRunModelInput) -> BlockSeries:
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
@@ -70,4 +70,4 @@ class HistoricalRunModel(Model):
                                      output=result.output)
             results.series.append(out_row)  # type: ignore
 
-        return {'result': results}
+        return results

@@ -1,5 +1,9 @@
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import BlockNumber, Contract
+from credmark.cmf.types.series import BlockSeries
+
+from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfo
 
 
 @Model.describe(slug="contrib.curve-fi-pool-historical-reserve",
@@ -28,15 +32,20 @@ class CurveFinanceHistoricalReserve(Model):
                 model_slug='curve-fi.pool-info',
                 window='5 days',
                 interval='1 days',
-                model_input=input))
+                model_input=input),
+            return_type=BlockSeries[CurveFiPoolInfo])
+
+        breakpoint()
+        if res.errors is not None:
+            raise ModelRunError(str(res.errors[0].dict()))
 
         balances = []
-        for r in res:
+        for r in res.series:
             balances.append({
-                "name": r.output['name'],
-                "balances": r.output['balances'],
-                "address": r.output['address'],
-                "virtualPrice": r.output['virtualPrice'],
+                "name": r.output.name,
+                "balances": r.output.balances,
+                "address": r.output.address,
+                "virtualPrice": r.output.virtualPrice,
                 "blocknumber": r.blockNumber,
                 "block_time": str(BlockNumber(r.blockNumber).timestamp_datetime)
             })
