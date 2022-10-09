@@ -1,4 +1,4 @@
-# pylint:disable=unused-imports
+# pylint:disable=unused-import
 
 import sys
 from decimal import Decimal, getcontext
