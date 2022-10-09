@@ -1,3 +1,5 @@
+# pylint:disable=too-many-arguments
+
 import pandas as pd
 from abc import abstractmethod
 from datetime import datetime
