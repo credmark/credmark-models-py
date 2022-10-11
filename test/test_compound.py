@@ -32,3 +32,5 @@ class TestCompound(CMKTest):
 
     def test_2(self):
         self.run_model('compound-v2.all-pools-info', {}, block_number=12770589)
+
+        self.run_model('compound-v2.all-pools-portfolio', {}, block_number=12770589)
