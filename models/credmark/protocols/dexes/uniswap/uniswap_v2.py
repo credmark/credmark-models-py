@@ -360,7 +360,7 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -518,7 +518,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
             for n in range(tokens_n):
                 for col in [f'evt_amount{n}_in', f'evt_amount{n}_out']:
-                    df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
+                    df_all_swaps[col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
         elif input.pool_info_model == 'curve-fi.pool-tvl':
             df_all_swap_1 = pd.DataFrame()
@@ -578,13 +578,13 @@ class DexPoolSwapVolumeHistorical(Model):
             df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
 
             for col in ['evt_tokens_bought', 'evt_tokens_sold']:
-                df_all_swaps.loc[:, col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
+                df_all_swaps[col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
 
             for n in range(tokens_n):
                 # In: Sold to the pool
                 # Out: Bought from the pool
-                df_all_swaps.loc[:, f'evt_amount{n}_in'] = df_all_swaps.loc[:, 'evt_tokens_sold']       # type: ignore
-                df_all_swaps.loc[:, f'evt_amount{n}_out'] = df_all_swaps.loc[:, 'evt_tokens_bought']    # type: ignore
+                df_all_swaps[f'evt_amount{n}_in'] = df_all_swaps.loc[:, 'evt_tokens_sold']       # type: ignore
+                df_all_swaps[f'evt_amount{n}_out'] = df_all_swaps.loc[:, 'evt_tokens_bought']    # type: ignore
                 df_all_swaps.loc[df_all_swaps.evt_sold_id != n, f'evt_amount{n}_in'] = 0                # type: ignore
                 df_all_swaps.loc[df_all_swaps.evt_bought_id != n, f'evt_amount{n}_out'] = 0             # type: ignore
 
@@ -602,10 +602,10 @@ class DexPoolSwapVolumeHistorical(Model):
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
 
-        df_all_swaps.loc[:, 'interval_n'] = input.count - df_all_swaps.loc[:, 'interval_n'] - 1
-        df_all_swaps.loc[:, 'start_block_number'] = (
+        df_all_swaps['interval_n'] = input.count - df_all_swaps.loc[:, 'interval_n'] - 1
+        df_all_swaps['start_block_number'] = (
             int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
-        df_all_swaps.loc[:, 'end_block_number'] = (
+        df_all_swaps['end_block_number'] = (
             int(self.context.block_number) - (df_all_swaps.interval_n) * input.interval)
 
         # TODO: get price for each block when composer model is ready

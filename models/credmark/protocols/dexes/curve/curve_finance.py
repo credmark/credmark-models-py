@@ -349,7 +349,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.4",
+                version="1.5",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',
