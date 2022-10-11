@@ -313,7 +313,7 @@ class AaveV2GetLiabilityInPortfolios(Model):
 
 
 @Model.describe(slug="aave-v2.token-asset",
-                version="1.2",
+                version="1.3",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 category='protocol',
