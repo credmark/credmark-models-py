@@ -1,9 +1,13 @@
+# pylint:disable=line-too-long
+
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Network, PriceWithQuote, Some, Token
+from credmark.cmf.types import (Address, Contract, Network, Portfolio,
+                                PriceWithQuote, Some, Token, Position)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from models.dtos.tvl import LendingPoolPortfolios
 
 np.seterr(all='raise')
 
@@ -13,19 +17,19 @@ np.seterr(all='raise')
 
 
 class CompoundV2PoolInfo(DTO):
-    tokenSymbol: str
-    cTokenSymbol: str
     token: Token
     cToken: Token
+    tokenSymbol: str
+    cTokenSymbol: str
     tokenDecimal: int
     cTokenDecimal: int
     cash: float
     totalBorrows: float
     totalReserves: float
-    totalSupply: float
+    totalLiability: float
     exchangeRate: float
     invExchangeRate: float
-    totalLiability: float
+    totalcTokenSupply: float
     borrowRate: float
     supplyRate: float
     borrowAPY: float
@@ -41,11 +45,11 @@ class CompoundV2PoolInfo(DTO):
 
 
 class CompoundV2PoolValue(DTO):
-    tp: float
-    tpSrc: str
+    token: Token
+    cToken: Token
+    tokenSymbol: str
     cTokenSymbol: str
-    cTokenAddress: Address
-    tp: float
+    token_price: PriceWithQuote
     qty_cash: float
     qty_borrow: float
     qty_liability: float
@@ -105,7 +109,7 @@ class CompoundV2Comptroller(Model):
 
 
 @Model.describe(slug="compound-v2.get-pools",
-                version="1.2",
+                version="1.3",
                 display_name="Compound V2 - get cTokens/markets",
                 description="Query the comptroller for all cTokens/markets",
                 category='protocol',
@@ -171,7 +175,7 @@ class CompoundV2AllPoolsInfo(Model):
 
 
 @Model.describe(slug="compound-v2.all-pools-value",
-                version="0.2",
+                version="0.5",
                 display_name="Compound V2 - get all pools value",
                 description="Compound V2 - convert pool's info to value",
                 category='protocol',
@@ -180,9 +184,11 @@ class CompoundV2AllPoolsInfo(Model):
                 output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
     def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:
-        pools = self.context.run_model(slug='compound-v2.get-pools')
+        pools = self.context.run_model(slug='compound-v2.get-pools',
+                                       input=EmptyInput(),
+                                       return_type=Some[Address])
         model_slug = 'compound-v2.pool-value'
-        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['cTokens']]
+        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools.some]
 
         def _use_compose():
             all_pool_infos = self.context.run_model(
@@ -221,7 +227,7 @@ class CompoundV2AllPoolsValue(Model):
 
 
 @Model.describe(slug="compound-v2.pool-info",
-                version="1.4",
+                version="1.5",
                 display_name="Compound V2 - pool/market information",
                 description="Compound V2 - pool/market information",
                 category='protocol',
@@ -391,23 +397,27 @@ class CompoundV2GetPoolInfo(Model):
         _ = irModel.functions.isInterestRateModel().call()
         # self.logger.info(f'{irModel.address=}, {irModel.functions.isInterestRateModel().call()=}')
 
-        getCash = token.scaled(cToken.functions.getCash().call())
+        # Cash is market liquidity ~ Liability + Reserve - Borrow, use it for TVL
+        # totalLiability is converted from cToken's suppply to the actual redeemable amount
+
+        cash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
         totalReserves = token.scaled(cToken.functions.totalReserves().call())
-        totalSupply = cToken.scaled(cToken.functions.totalSupply().call())
+        totalcTokenSupply = cToken.scaled(cToken.functions.totalSupply().call())
 
         exchangeRate = token.scaled(cToken.functions.exchangeRateCurrent().call())
         invExchangeRate = 1 / exchangeRate * pow(10, 10)
-        totalLiability = totalSupply / invExchangeRate
+        totalLiability = totalcTokenSupply / invExchangeRate
 
         reserveFactor = cToken.functions.reserveFactorMantissa().call() / self.ETH_MANTISSA
         borrowRate = cToken.functions.borrowRatePerBlock().call() / self.ETH_MANTISSA
         supplyRate = cToken.functions.supplyRatePerBlock().call() / self.ETH_MANTISSA
 
-        if np.isclose(getCash + totalBorrows - totalReserves, 0):
+        if np.isclose(cash + totalBorrows - totalReserves, 0):
             utilizationRate = 0
         else:
-            utilizationRate = totalBorrows / (getCash + totalBorrows - totalReserves)
+            utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)
+
         supplyAPY = ((supplyRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
         borrowAPY = ((borrowRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
         # By definition, this is how supplyRate is derived.
@@ -421,11 +431,11 @@ class CompoundV2GetPoolInfo(Model):
             cTokenDecimal=cToken.decimals,
             token=token,
             cToken=cToken,
-            cash=getCash,
+            cash=cash,
             totalReserves=totalReserves,
             totalBorrows=totalBorrows,
-            totalSupply=totalSupply,
             totalLiability=totalLiability,
+            totalcTokenSupply=totalcTokenSupply,
             exchangeRate=exchangeRate,
             invExchangeRate=invExchangeRate,
             borrowRate=borrowRate,
@@ -446,7 +456,7 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @Model.describe(slug="compound-v2.pool-value",
-                version="1.3",
+                version="1.7",
                 display_name="Compound V2 - value of a market",
                 description="Compound V2 - value of a market",
                 category='protocol',
@@ -458,6 +468,8 @@ class CompoundV2GetPoolValue(Model):
         pool_info = self.context.run_model(slug='compound-v2.pool-info',
                                            input=input,
                                            return_type=CompoundV2PoolInfo)
+
+        # TODO: Investigate whether Compound's interest is counted into cToken amount.
         tp = self.context.run_model(slug='price.quote',
                                     input={'base': pool_info.token},
                                     return_type=PriceWithQuote)
@@ -471,20 +483,76 @@ class CompoundV2GetPoolValue(Model):
         # Net = Asset - Liability
 
         return CompoundV2PoolValue(
-            tp=tp.price,
-            tpSrc=tp.src,
+            token=pool_info.token,
+            cToken=pool_info.cToken,
+            tokenSymbol=pool_info.tokenSymbol,
             cTokenSymbol=pool_info.cTokenSymbol,
-            cTokenAddress=pool_info.token.address,
+            token_price=tp,
             qty_cash=pool_info.cash,
             qty_borrow=pool_info.totalBorrows,
             qty_liability=pool_info.totalLiability,
             qty_reserve=pool_info.totalReserves,
-            qty_net=(pool_info.cash + pool_info.totalBorrows - pool_info.totalLiability),
+            qty_net=(pool_info.totalLiability + pool_info.totalReserves - pool_info.totalBorrows),
             cash=tp.price * pool_info.cash,
             borrow=tp.price * pool_info.totalBorrows,
             liability=tp.price * pool_info.totalLiability,
             reserve=tp.price * pool_info.totalReserves,
-            net=tp.price * (pool_info.cash + pool_info.totalBorrows - pool_info.totalLiability),
+            net=tp.price * (pool_info.totalLiability + pool_info.totalReserves - pool_info.totalBorrows),
             block_number=pool_info.block_number,
             block_datetime=pool_info.block_datetime,
         )
+
+
+@Model.describe(slug="compound-v2.all-pools-portfolio",
+                version="0.4",
+                display_name="Compound V2 - Porfolio of assets",
+                description="Compound V2 - Porfolio of assets",
+                category='protocol',
+                subcategory='compound',
+                output=LendingPoolPortfolios)
+class CompoundV2GetPoolPortfolio(Model):
+    def run(self, __input: EmptyInput) -> LendingPoolPortfolios:
+        debt_pools = self.context.run_model(
+            "compound-v2.all-pools-value",
+            input=EmptyInput(),
+            return_type=Some[CompoundV2PoolValue])
+
+        n_debts = len(debt_pools.some)
+
+        positions_net = []
+        positions_supply = []
+        positions_debt = []
+        prices = {}
+        supply_value = 0
+        debt_value = 0
+        net_value = 0
+        tvl_value = 0
+        for n_debt, dbt in enumerate(debt_pools):
+            self.logger.debug(f'{n_debt+1}/{n_debts} {dbt.cToken.address=} '
+                              f'{dbt.qty_net=} '
+                              f'from {dbt.qty_cash=}+{dbt.qty_borrow=}-{dbt.qty_liability=}')
+
+            # supply = liability
+            # debt = borrow
+            positions_net.append(Position(amount=dbt.qty_net, asset=dbt.token))
+            positions_supply.append(Position(amount=dbt.qty_liability, asset=dbt.token))
+            positions_debt.append(Position(amount=dbt.qty_borrow, asset=dbt.token))
+            prices[dbt.token.address] = dbt.token_price
+
+            supply_value += dbt.qty_liability * dbt.token_price.price
+            debt_value += dbt.qty_borrow * dbt.token_price.price
+            net_value += dbt.qty_net * dbt.token_price.price
+            tvl_value += dbt.qty_cash * dbt.token_price.price
+
+        # Compound uses the exchange rate to convert the issued cTokens to the underlying.
+        # There is difference (likely due to rounding) between net (reserve + liability - borrow) and tvl (cash from cToken)
+
+        return LendingPoolPortfolios(
+            supply=Portfolio(positions=positions_supply),
+            debt=Portfolio(positions=positions_debt),
+            net=Portfolio(positions=positions_net),
+            prices=prices,
+            supply_value=supply_value,
+            debt_value=debt_value,
+            net_value=net_value,
+            tvl=tvl_value)

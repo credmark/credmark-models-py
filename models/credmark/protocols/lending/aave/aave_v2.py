@@ -3,16 +3,19 @@ from typing import Optional
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
-                                Portfolio, Position, PriceWithQuote, Some, Token, Network)
+                                Network, Portfolio, Position, PriceWithQuote,
+                                Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
+from models.dtos.tvl import LendingPoolPortfolios
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
 from web3.exceptions import ABIFunctionNotFound
 
 
 class AaveDebtInfo(DTO):
     token: Token
+    token_price: PriceWithQuote
     tokenName: str
     aToken: Token
     stableDebtToken: Token
@@ -225,7 +228,7 @@ class AaveV2GetTokenLiability(Model):
                 subcategory='aave-v2',
                 output=Some[AaveDebtInfo])
 class AaveV2GetAssets(Model):
-    def run(self, input: EmptyInput) -> Some[AaveDebtInfo]:
+    def run(self, __input: EmptyInput) -> Some[AaveDebtInfo]:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract,
@@ -262,6 +265,51 @@ class AaveV2GetAssets(Model):
                 raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
         return Some[AaveDebtInfo](some=aave_debts_infos)
+
+
+@Model.describe(slug="aave-v2.lending-pool-assets-portfolio",
+                version="0.1",
+                display_name="Aave V2 Lending Pool overall liabilities",
+                description="Aave V2 liabilities for the main lending pool",
+                category='protocol',
+                subcategory='aave-v2',
+                output=LendingPoolPortfolios)
+class AaveV2GetLiabilityInPortfolios(Model):
+    def run(self, __input: EmptyInput) -> LendingPoolPortfolios:
+        debt_pools = self.context.run_model('aave-v2.lending-pool-assets',
+                                            input=EmptyInput(),
+                                            return_type=Some[AaveDebtInfo])
+
+        n_debts = len(debt_pools.some)
+        positions_net = []
+        positions_supply = []
+        positions_debt = []
+        prices = {}
+        supply_value = 0
+        debt_value = 0
+        net_value = 0
+        for n_debt, dbt in enumerate(debt_pools):
+            self.logger.debug(f'{n_debt+1}/{n_debts} {dbt.aToken.address=} '
+                              f'{dbt.totalLiquidity_qty=} '
+                              f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
+
+            positions_net.append(Position(amount=dbt.totalLiquidity_qty, asset=dbt.token))
+            positions_supply.append(Position(amount=dbt.totalSupply_qty, asset=dbt.token))
+            positions_debt.append(Position(amount=dbt.totalDebt_qty, asset=dbt.token))
+            prices[dbt.token.address] = dbt.token_price
+            supply_value += dbt.totalSupply_qty * dbt.token_price.price
+            debt_value += dbt.totalDebt_qty * dbt.token_price.price
+            net_value += dbt.totalLiquidity_qty * dbt.token_price.price
+
+        return LendingPoolPortfolios(
+            supply=Portfolio(positions=positions_supply),
+            debt=Portfolio(positions=positions_debt),
+            net=Portfolio(positions=positions_net),
+            prices=prices,
+            supply_value=supply_value,
+            debt_value=debt_value,
+            net_value=net_value,
+            tvl=net_value)
 
 
 @Model.describe(slug="aave-v2.token-asset",
@@ -340,12 +388,15 @@ class AaveV2GetTokenAsset(Model):
         totalStableDebt = stableDebtToken.scaled(stableDebtToken.total_supply)
         totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
         totalInterest = totalStableDebt - totalStablePrincipleDebt
+
+        pq = self.context.models.price.quote(base=input, return_type=PriceWithQuote)
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
             totalLiquidity = totalSupply - totalDebt
 
             return AaveDebtInfo(
                 token=input,
+                token_price=pq,  # type: ignore
                 tokenName=input.name,
                 aToken=aToken,
                 stableDebtToken=stableDebtToken,

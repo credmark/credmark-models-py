@@ -9,7 +9,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import \
 
 
 @Model.describe(slug="finance.var-compound",
-                version="1.2",
+                version="1.4",
                 display_name="Compound V2 VaR",
                 description="Calcualte the VaR of Compound contract of its net asset",
                 category='protocol',
@@ -23,22 +23,23 @@ class CompoundGetVAR(Model):
     The exposure of Compound is the number of tokens borrowed (totalLiability)
     less than it lends out (cToken.totalBorrows).
 
-    - totalLiability = cToken.totalSupply / invExchangeRate, negated to a negative sign
-    - totalBorrows, positive sign as an asset to Compound.
-    - totalLiabiltiy - totalBorrows ~= (cash - totalReserves)
+    - cash =  Liability + Reserve - Borrow
+    - exposure = totalBorrows - totalLiability = - cash
 
     Reference:
     https://docs.credmark.com/risk-insights/research/aave-and-compound-historical-var
     """
 
     def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
-        poolsinfo = self.context.run_model('compound-v2.all-pools-info',
-                                           input=EmptyInput(),
-                                           return_type=Some[CompoundV2PoolInfo])
+        pools_info = self.context.run_model('compound-v2.all-pools-info',
+                                            input=EmptyInput(),
+                                            return_type=Some[CompoundV2PoolInfo])
         positions = []
-        for poolinfo in poolsinfo:
-            amount = (poolinfo.totalBorrows - poolinfo.totalLiability)
-            positions.append(Position(amount=amount, asset=poolinfo.token))
+        for pool_info in pools_info:
+            # borrow: debt
+            # liability: supply
+            amount = - pool_info.cash
+            positions.append(Position(amount=amount, asset=pool_info.token))
 
         portfolio = Portfolio(positions=positions)
 
