@@ -1,3 +1,5 @@
+# pylint:disable=line-too-long
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
@@ -24,6 +26,7 @@ class AaveV2GetVAR(Model):
 
     - totalSupply of aToken is Aave's liability / loaner's asset, hence a negative sign
     - totalDebt is Aava's asset / borrower's liability, hence a positive sign
+    - exposure = dbt.totalDebt_qty - dbt.totalSupply_qty = -dbt.totalLiquidity = (totalSupply - totalDebt)
 
     Reference:
     https://docs.credmark.com/risk-insights/research/aave-and-compound-historical-var
