@@ -415,13 +415,15 @@ class UniswapV3GetPoolInfo(Model):
 
         scale_multiplier = (10 ** (token0.decimals - token1.decimals))
         tick_price0 = 1.0001 ** current_tick * scale_multiplier
+        if np.isclose(0, tick_price0):
+            tick_price1 = 0
+        else:
+            tick_price1 = 1/tick_price0
 
         _tick_price_bottom0 = 1.0001 ** tick_bottom * scale_multiplier
         _tick_price_top0 = 1.0001 ** tick_top * scale_multiplier
 
         ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
-
-        tick_price1 = 1/tick_price0
         if np.isclose(0, ratio_price0):
             ratio_price1 = 0
         else:
@@ -485,10 +487,10 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                                       return_type=UniswapV3PoolInfo,
                                       local=True)
 
-        tick_price0 = info.tick_price0
+        ratio_price0 = info.ratio_price0
         one_tick_liquidity0 = info.one_tick_liquidity0
 
-        tick_price1 = 1/tick_price0
+        ratio_price1 = info.ratio_price1
         one_tick_liquidity1 = info.one_tick_liquidity1
 
         ref_price = 1.0
@@ -534,8 +536,8 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                     raise ModelRunError('Can not retriev price for WETH')
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
-                                        price0=tick_price0,
-                                        price1=tick_price1,
+                                        price0=ratio_price0,
+                                        price1=ratio_price1,
                                         one_tick_liquidity0=one_tick_liquidity0,
                                         one_tick_liquidity1=one_tick_liquidity1,
                                         full_tick_liquidity0=info.full_tick_liquidity0,
