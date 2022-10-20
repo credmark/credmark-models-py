@@ -227,6 +227,21 @@ def in_range(liquidity, sb, sa, sp):
     return amount0, amount1
 
 
+UNISWAP_TICK = 1.0001
+
+def tick_to_price(tick):
+    return pow(UNISWAP_TICK, tick)
+
+
+def price_to_tick(price):
+    return log(price) / log(UNISWAP_TICK)
+
+
+# v3/TickMath.sol
+UNISWAP_V3_MIN_TICK = -887272
+UNISWAP_V3_MAX_TICK = 887272
+
+
 @Model.describe(slug='uniswap-v3.get-pool-info',
                 version='1.10',
                 display_name='Uniswap v3 Token Pools Info',
@@ -236,22 +251,12 @@ def in_range(liquidity, sb, sa, sp):
                 input=Contract,
                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
-    UNISWAP_BASE = 1.0001
-    # v3/TickMath.sol
-    MIN_TICK = -887272
-    MAX_TICK = 887272
 
     # tick spacing
     # 1
     # 10
     # 60
     # 200
-
-    def tick_to_price(self, tick):
-        return pow(self.UNISWAP_BASE, tick)
-
-    def price_to_tick(self, price):
-        return log(price) / log(self.UNISWAP_BASE)
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         #pylint:disable=locally-disabled, too-many-locals
@@ -314,7 +319,7 @@ class UniswapV3GetPoolInfo(Model):
         # Compute the current price
         # p_current = 1.0001 ** tick
         # tick = log(p_current) / log(1.0001)
-        p_current = self.tick_to_price(current_tick)
+        p_current = tick_to_price(current_tick)
 
         # lets say currentTick is 5 , then Liquiditys are like this:
         #             2  -> Liquidity = Liquidity at tick3  - LiquidityNet at tick2
@@ -325,8 +330,8 @@ class UniswapV3GetPoolInfo(Model):
         #             7  -> Liquidity = Liquidity at tick6  + LiquidityNet at tick7
 
         # Compute square roots of prices corresponding to the bottom and top ticks
-        sa = self.tick_to_price(tick_bottom / 2)
-        sb = self.tick_to_price(tick_top / 2)
+        sa = tick_to_price(tick_bottom / 2)
+        sb = tick_to_price(tick_top / 2)
         sp = p_current ** 0.5
 
         # Liquidity in 1 tick
@@ -341,8 +346,8 @@ class UniswapV3GetPoolInfo(Model):
         upper_tick_info = Tick(*pool.functions.ticks(tick_top).call())
         upper_liquidityNet = upper_tick_info.liquidityNet
 
-        saa = self.tick_to_price((tick_bottom-tick_spacing) / 2)
-        sbb = self.tick_to_price((tick_top+tick_spacing) / 2)
+        saa = tick_to_price((tick_bottom-tick_spacing) / 2)
+        sbb = tick_to_price((tick_top+tick_spacing) / 2)
 
         lower_tick_amount0, lower_tick_amount1 = out_of_range(
             liquidity-lower_liquidityNet, sa, saa)
@@ -376,8 +381,8 @@ class UniswapV3GetPoolInfo(Model):
             compare_ratio = ratio_left/ratio_right
             assert 0.99 < compare_ratio < 1.01
 
-        sa_p = self.tick_to_price((current_tick - 1) / 2)
-        sb_p = self.tick_to_price((current_tick + 1) / 2)
+        sa_p = tick_to_price((current_tick - 1) / 2)
+        sb_p = tick_to_price((current_tick + 1) / 2)
 
         # Liquidity in 1 tick
         if current_tick == tick_bottom:
