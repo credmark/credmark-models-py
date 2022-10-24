@@ -9,10 +9,9 @@ class ConvexPoolInput(DTO):
 
 @Model.describe(
     slug="contrib.curve-convex-yield",
-    display_name="ratio of CRV in circulation vs vesting contract",
+    display_name="APR for Convex pool",
     description=(
-        "ratio of CRV tokens locked up in vesting contract "
-        "and vote escrow against total supply"
+        "base, crv, cvx apr for convex pool"
     ),
     input=ConvexPoolInput,
     version="1.0",
@@ -103,31 +102,7 @@ class ConvexPoolApr(Model):
             crv_apr = crv_per_year * crv_price
             cvx_apr = cvx_per_year * cvx_price
 
-        # TODO: support extra rewards logic for all versions
-        # extra_rewards_length = rewardContract.functions.extraRewardsLength().call()
-        # extraRewardsApr = 0
-        # for i in range(extra_rewards_length):
-        #     extraRewards = rewardContract.functions.extraRewards(i).call()
-        #     extraRewardsContract = Contract(address=extraRewards)
-        #     extraRewardsFinishPeriod = extraRewardsContract.functions.periodFinish().call()
-        #     if block_number < extraRewardsFinishPeriod:
-        #         extraRewardsRate = extraRewardsContract.functions.rewardRate().call() / 1e18
-        #         extraRewardsPerUnderlying = 0
-        #         if virtualSupply > 0:
-        #             extraRewardsPerUnderlying = extraRewardsRate / virtualSupply
-        #         extraRewardsPerYear = extraRewardsPerUnderlying * 31536000
-
-        #         rewardToken = extraRewardsContract.functions.rewardToken().call()
-        #         rewardTokenPrice = self.context.run_model(
-        #             "price.oracle-chainlink",
-        #             {
-        #                 "base": {"address": rewardToken},
-        #                 "quote": {"symbol": "USD"},
-        #             },
-        #         )["price"] / vPrice
-        #         extraRewardsApr += extraRewardsPerYear * rewardTokenPrice
-        #     i += 1
-        return {
+       return {
             "base_apr": base_apr,
             "crv_apr": crv_apr,
             "cvx_apr": cvx_apr,
