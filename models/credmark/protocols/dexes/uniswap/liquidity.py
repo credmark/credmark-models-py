@@ -130,21 +130,21 @@ def plot_liquidity(context,
     return df_pool_mode, pool
 
 
-UNISWAP_BASE = 1.0001
+UNISWAP_TICK = 1.0001
 
 
 def tick_to_price(tick):
     """
     tick to price
     """
-    return pow(UNISWAP_BASE, tick)
+    return pow(UNISWAP_TICK, tick)
 
 
 def price_to_tick(price):
     """
     price to tick
     """
-    return log(price) / log(UNISWAP_BASE)
+    return log(price) / log(UNISWAP_TICK)
 
 
 # pylint:disable=too-many-arguments

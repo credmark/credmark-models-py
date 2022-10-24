@@ -54,3 +54,8 @@ class Var(Model):
             'total': sb_sum,
             'lcr': sb_sum / input.cashflow_shock
         }
+
+# AAVE / Compound LCR
+# Liquidity buffer = asset in DAI/USDC/USDT/WETH
+# Total net cash outflow for 30 days under stress. Difference in TVL in 30 days' time.
+# TVL + \sum {inflow - outflow} = new TVL
