@@ -24,8 +24,8 @@ class TokenPriceModel(Model):
                                                 return_type=Some[PoolPriceInfo])
 
         # DexPoolAggregationInput is a DTO that embodies
-        # -   Token
-        # -   Pricing setup, and
+        # -   token
+        # -   pricing setup, and
         # -   pool information
 
         pool_aggregator_input = DexPoolAggregationInput(
