@@ -9,7 +9,7 @@ from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurr
                                 NativeToken, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
-from credmark.dto import DTO, DTOField, IterableListGenericDTO
+from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
@@ -287,31 +287,69 @@ class TokenBalanceModel(Model):
 
 
 class TokenHolderInput(Token):
-    top_n: int = DTOField(10, description='Top N holders')
+    limit: int = DTOField(100, gt=0, description="Limit the number of holders that are returned")
+    offset: int = \
+        DTOField(0, ge=0,
+                 description="Omit a specified number of holders from beginning of result set")
+    quote: Currency = \
+        DTOField(FiatCurrency(symbol='USD'),
+                 description='Quote token address to count the value')
 
 
-def token_holder(ledger):
-    # TODO: need double-entry table to work
-    with ledger.TokenTransfer as q:
-        df = q.select(aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_value')],
-                      group_by=[q.TO_ADDRESS],
-                      where=q.TOKEN_ADDRESS.eq(input.address),
-                      order_by=q.field('sum_value').dquote().desc(),
-                      limit=input.top_n).to_dataframe()
-    return df.to_dict()
+class TokenHolder(DTO):
+    address: Address = DTOField(description="Address of holder")
+    balance: int = DTOField(description="Balance of account")
+    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    value: float = DTOField(description="Balance in terms of quoted currency")
+
+
+class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
+    price: Price = DTOField(description="Token price")
+    holders: List[TokenHolder] = DTOField(default=[], description='List of holders')
+    total_holders: int = DTOField(description='Total number of holders')
+
+    _iterator: str = PrivateAttr('positions')
 
 
 @Model.describe(slug='token.holders',
-                version='0.3',
+                version='1.0',
                 display_name='Token Holders',
-                description='The number of holders of a Token',
+                description='Holders of a Token',
                 category='protocol',
                 tags=['token'],
                 input=TokenHolderInput,
-                output=dict)
+                output=TokenHoldersOutput)
 class TokenHolders(Model):
-    def run(self, input: TokenHolderInput) -> dict:
-        return {}
+    def run(self, input: TokenHolderInput) -> TokenHoldersOutput:
+        with self.context.ledger.TokenBalance as q:
+            df = q.select(
+                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                            ('COUNT(*) OVER()', 'total_holders')],
+                where=q.TOKEN_ADDRESS.eq(input.address),
+                group_by=[q.ADDRESS],
+                order_by=q.field('balance').dquote().desc(),
+                having=q.field('balance').dquote().gt(0),
+                limit=input.limit,
+                offset=input.offset
+            ).to_dataframe()
+
+            token_price = PriceWithQuote(**self.context.models.price.quote({
+                'base': input,
+                'quote': input.quote
+            }))
+
+            total_holders = df['total_holders'].values[0]
+            if total_holders is None:
+                total_holders = 0
+
+            return TokenHoldersOutput(price=token_price,
+                                      holders=[TokenHolder(
+                                          address=Address(row['address']),
+                                          balance=row['balance'],
+                                          balance_scaled=input.scaled(row['balance']),
+                                          value=token_price.price * input.scaled(row['balance']))
+                                          for _, row in df.iterrows()],
+                                      total_holders=total_holders)
 
 
 @Model.describe(slug='token.holders-all',
