@@ -1,3 +1,5 @@
+# pylint:disable=unused-import, invalid-name
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Token, Network, Contract, Address
 from credmark.dto import DTO, DTOField
@@ -6,6 +8,7 @@ from credmark.dto import DTO, DTOField
 class ConvexPoolInput(DTO):
     lp_token: Address
     reward: Address
+
 
 @Model.describe(
     slug="contrib.curve-convex-yield",
@@ -34,36 +37,37 @@ class ConvexPoolApr(Model):
     SECONDS_IN_YEAR = 31536000
 
     def get_cvx_mint_amount(self, crvPerYear):
-        cvx_contract = Contract(address=self.CVX_ADDRESS[self.context.network])
-        cvx_supply = cvx_contract.functions.totalSupply().call() / 1e18
+        cvx_contract = Token(address=self.CVX_ADDRESS[self.context.network])
+        cvx_supply = cvx_contract.total_supply_scaled
         current_cliff = cvx_supply / self.CVX_CLIFF_SIZE
         if current_cliff < self.CVX_CLIFF_COUNT:
             remaining = self.CVX_CLIFF_COUNT - current_cliff
             cvx_earned = crvPerYear * remaining / self.CVX_CLIFF_COUNT
             amount_till_max = self.CVX_MAX_SUPPLY - cvx_supply
-            if cvx_earned > amount_till_max:
-                cvx_earned = amount_till_max
+            cvx_earned = min(cvx_earned, amount_till_max)
             return cvx_earned
         return 0
 
-    def get_lptoken_price(self, address, block_number):
-        price = self.context.run_model(
+    def get_lptoken_price(self, pool_addr, block_number):
+        curve_pool_info = self.context.run_model(
             "curve-fi.pool-info",
             {
-                "address": address,
+                "address": pool_addr,
             },
             block_number=block_number
         )
-        return price["virtualPrice"] / 1e18
+        lp_token = Token(curve_pool_info['lp_token_addr'])
+        return lp_token.scaled(curve_pool_info["virtualPrice"])
 
-    def get_base_apr(self, pool, currentVirtualPrice):
-        previous_vprice = self.get_lptoken_price(pool, self.context.block_number-self.BLOCKS_IN_DAY)
+    def get_base_apr(self, lp_token_addr, currentVirtualPrice):
+        previous_vprice = self.get_lptoken_price(lp_token_addr,
+                                                 self.context.block_number-self.BLOCKS_IN_DAY)
         if previous_vprice == 0:
             return 0
-        else:
-            return (currentVirtualPrice - previous_vprice) / previous_vprice
 
-    def run(self, input: ConvexPoolInput):
+        return (currentVirtualPrice - previous_vprice) / previous_vprice
+
+    def run(self, input: ConvexPoolInput) -> dict:
         v_price = self.get_lptoken_price(input.lp_token, self.context.block_number)
         reward_contract = Contract(address=input.reward)
         finish_period = reward_contract.functions.periodFinish().call()
@@ -102,7 +106,7 @@ class ConvexPoolApr(Model):
             crv_apr = crv_per_year * crv_price
             cvx_apr = cvx_per_year * cvx_price
 
-       return {
+        return {
             "base_apr": base_apr,
             "crv_apr": crv_apr,
             "cvx_apr": cvx_apr,
