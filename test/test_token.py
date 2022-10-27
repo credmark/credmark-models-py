@@ -49,6 +49,33 @@ class TestToken(CMKTest):
         self.run_model('token.volume-segment-window',
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "window": "2 hours", "n": 3})
 
+    def test_netflow(self):
+        self.run_model('token.netflow-block',
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model('token.netflow-window',
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model('token.netflow-segment-block',
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+        self.run_model('token.netflow-segment-window',
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+
+        self.run_model('token.netflow-block',
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model('token.netflow-window',
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model('token.netflow-segment-block',
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+        self.run_model('token.netflow-segment-window',
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+
     def test_holders(self):
         self.run_model(
             'token.holders',
@@ -177,12 +204,14 @@ class TestToken(CMKTest):
         self.run_model('accounts.token-return',
                        {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c8"],
                         "token_list": "cmf"
-        })
+                        })
 
         # a few address
         self.run_model('accounts.token-return',
                        {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"],
                         "token_list": "cmf"})
 
-        self.run_model('account.token-return', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c8", "token_list": "cmf"})
-        self.run_model('account.token-return', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9", "token_list": "cmf"})
+        self.run_model('account.token-return',
+                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c8", "token_list": "cmf"})
+        self.run_model('account.token-return',
+                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9", "token_list": "cmf"})
