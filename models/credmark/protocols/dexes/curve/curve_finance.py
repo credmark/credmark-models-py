@@ -23,6 +23,9 @@ np.seterr(all='raise')
 GAUGE_ABI_LP_TOKEN = '[{"stateMutability":"view","type":"function","name":"lp_token","inputs":[],"outputs":[{"name":"","type":"address"}],"gas":3168}]'  # pylint:disable=line-too-long
 
 
+# MetaRegistry
+# 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC
+
 class CurveFiPoolInfoToken(Contract):
     tokens: Tokens
     tokens_symbol: List[str]
