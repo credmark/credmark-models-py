@@ -8,8 +8,8 @@ import numpy.linalg as nplin
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Account, Address, Contract, Contracts, Network, Price,
-                                Some, Token, Position)
+from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
+                                Some, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
@@ -118,59 +118,6 @@ class UniswapV3GetPools(Model):
             return Contracts(contracts=[])
 
 
-# 0x33DE43DAd6955655EC0543F32069aC331E633C9c
-#
-
-class LPOutput(DTO):
-    lp: Position
-    token0: Position
-    token1: Position
-
-
-@Model.describe(slug='uniswap-v3.lp',
-                version='0.1',
-                display_name='Uniswap v2 LP Token',
-                description='Redemption',
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=Account,
-                output=LPOutput)
-class UniswapV3LP(Model):
-    NFTManager = {Network.Mainnet: '0xc36442b4a4522e871399cd717abdd847ab11fe88'}
-
-    def run(self, input: Account) -> LPOutput:
-        lp = input
-        nft_manager = Contract(self.NFTManager)
-
-        with self.context.ledger.TokenTransfer as q:
-            df = q.select(columns=q.columns,
-                          where=q.TO_ADDRESS.eq(lp.address).or_(
-                              q.FROM_ADDRESS.eq(lp.address).parentheses_().and_(
-                                  q.TOKEN_ADDRESS.eq(nft_manager.address)))).to_dataframe()
-
-        for _, row in df.iterrows():
-            from_address = row['from_address']
-            to_address = row['to_address']
-            token_address = row['token_address']
-            token_id = row['value']
-
-            # pool = input.pool
-            # (, , , , , tick_lower, tick_upper, liquidity, , , fee_a, fee_b) = nft_manager.functions.positions(tokenId)
-
-            # tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
-
-            # (amountA, amountB) = LiquidityAmounts.getAmountsForLiquidity(
-            # TickMath.getSqrtRatioAtTick(tick),
-            # TickMath.getSqrtRatioAtTick(tick_lower),
-            # TickMath.getSqrtRatioAtTick(tick_upper),
-            # liquidity
-
-        lp = Position(amount=0, asset=Token('AAVE'))
-        position0 = Position(amount=0, asset=Token('AAVE'))
-        position1 = Position(amount=0, asset=Token('AAVE'))
-        return LPOutput(lp=lp, token0=position0, token1=position1)
-
-
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
                 version='1.5',
                 display_name='Uniswap v3 Token Pools',
@@ -195,10 +142,10 @@ class UniswapV3GetPoolsLedger(Model):
         with gw.ledger.events.PoolCreated as q:
             tp = token_pairs_fee[0]
             eq_conds = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
-                        .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+                         .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
             for tp in token_pairs_fee[1:]:
                 new_eq = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
-                          .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+                           .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
                 eq_conds = eq_conds.or_(new_eq)
 
             df_ts = []
@@ -282,7 +229,6 @@ def in_range(liquidity, sb, sa, sp):
 
 UNISWAP_TICK = 1.0001
 
-
 def tick_to_price(tick):
     return pow(UNISWAP_TICK, tick)
 
@@ -313,7 +259,7 @@ class UniswapV3GetPoolInfo(Model):
     # 200
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
-        # pylint:disable=locally-disabled, too-many-locals
+        #pylint:disable=locally-disabled, too-many-locals
         primary_tokens = self.context.run_model('dex.primary-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
