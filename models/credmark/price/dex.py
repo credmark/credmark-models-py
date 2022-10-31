@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import List, Tuple
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Maybe, Network, Price, PriceWithQuote,
                                 Some, Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
@@ -66,7 +66,7 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.8',
+                version='1.9',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 category='dex',
@@ -105,14 +105,17 @@ class PoolPriceAggregator(Model):
                      f'Non-zero:{len(non_zero_pools)}|'
                      f'Zero:{len(zero_pools)}')
 
+        if len(zero_pools) == len(all_pool_infos):
+            # REPLACED with below
+            # return Price(price=df.price_t.min(), src=price_src)
+            raise ModelDataError(f'There is no liquidity in {len(zero_pools)} pools '
+                                 f'for {input.address}.')
+
         if len(input.some) == 1:
             return Price(price=df.price_t[0], src=price_src)
 
         if input.debug:
             print(df, file=sys.stderr)
-
-        if len(zero_pools) == len(all_pool_infos):
-            return Price(price=df.price_t.min(), src=price_src)
 
         product_of_price_liquidity = (df.price_t * df.tick_liquidity_t ** input.weight_power).sum()
         sum_of_liquidity = (df.tick_liquidity_t ** input.weight_power).sum()
@@ -273,7 +276,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.15',
+                version='1.16',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -300,11 +303,13 @@ class PriceFromDexModel(Model):
 
         price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
 
-        return PriceWithQuote.usd(**price.dict())
-        # return self.context.run_model('price.pool-aggregator',
+        # Above code replaces code below as a saving to a model call
+        # price = self.context.run_model('price.pool-aggregator',
         #                              input=pool_aggregator_input,
         #                              return_type=Price,
         #                              local=True)
+
+        return PriceWithQuote.usd(**price.dict())
 
 
 @Model.describe(slug='price.dex-blended-maybe',
