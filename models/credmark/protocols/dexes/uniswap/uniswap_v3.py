@@ -14,6 +14,7 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.price.dex import get_primary_token_tuples
+from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
@@ -227,20 +228,12 @@ def in_range(liquidity, sb, sa, sp):
     return amount0, amount1
 
 
-UNISWAP_TICK = 1.0001
-
-
 def tick_to_price(tick):
     return pow(UNISWAP_TICK, tick)
 
 
 def price_to_tick(price):
     return log(price) / log(UNISWAP_TICK)
-
-
-# v3/TickMath.sol
-UNISWAP_V3_MIN_TICK = -887272
-UNISWAP_V3_MAX_TICK = 887272
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
@@ -420,14 +413,14 @@ class UniswapV3GetPoolInfo(Model):
         virtual_y = token1.scaled(liquidity * sp)
 
         scale_multiplier = (10 ** (token0.decimals - token1.decimals))
-        tick_price0 = 1.0001 ** current_tick * scale_multiplier
+        tick_price0 = UNISWAP_TICK ** current_tick * scale_multiplier
         if np.isclose(0, tick_price0):
             tick_price1 = 0
         else:
             tick_price1 = 1/tick_price0
 
-        _tick_price_bottom0 = 1.0001 ** tick_bottom * scale_multiplier
-        _tick_price_top0 = 1.0001 ** tick_top * scale_multiplier
+        _tick_price_bottom0 = UNISWAP_TICK ** tick_bottom * scale_multiplier
+        _tick_price_top0 = UNISWAP_TICK ** tick_top * scale_multiplier
 
         ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
         try:
