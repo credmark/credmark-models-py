@@ -1,18 +1,20 @@
 from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, NativeToken,
+from credmark.cmf.types import (Account, Address, BlockNumber, NativeToken,
                                 PriceWithQuote, Token)
 from credmark.dto import DTO, DTOField
 
 
-class TokenNetflowBlockInput(DTO):
-    address: Address = DTOField(..., description="Token address")
+class TokenNetflowBlockInput(Account):
     netflow_address: Address = DTOField(..., description="Netflow address")
     block_number: int = DTOField(
         description=('Positive for a block earlier than the current one '
                      'or negative or zero for an interval. '
                      'Both excludes the start block.'))
+
+    def to_token(self) -> Token:
+        return Token(self.address)
 
 
 class Block(DTO):
@@ -45,7 +47,7 @@ class TokenNetflowOutput(TokenNetflowBlockRange):
 
 
 @Model.describe(slug='token.netflow-block',
-                version='1.0',
+                version='1.2',
                 display_name='Token netflow',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -77,7 +79,7 @@ class TokenNetflowBlock(Model):
                           .or_(q.FROM_ADDRESS.eq(input.netflow_address)).parentheses_())
                 ).to_dataframe()
         else:
-            input_token = Token(address=input.address)
+            input_token = input.to_token()
             with self.context.ledger.TokenTransfer as q:
                 df = q.select(
                     aggregates=[((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
@@ -109,13 +111,16 @@ class TokenNetflowBlock(Model):
         return output
 
 
-class TokenNetflowWindowInput(Token):
+class TokenNetflowWindowInput(Account):
     netflow_address: Address = DTOField(..., description="Netflow address")
     window: str = DTOField(..., description='a string defining a time window, ex. "30 day"')
 
+    def to_token(self) -> Token:
+        return Token(self.address)
+
 
 @Model.describe(slug='token.netflow-window',
-                version='1.0',
+                version='1.2',
                 display_name='Token netflow',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',
@@ -147,7 +152,7 @@ class TokenNetflowSegmentOutput(DTO):
 
 
 @Model.describe(slug='token.netflow-segment-block',
-                version='1.0',
+                version='1.2',
                 display_name='Token netflow by segment by block',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -188,7 +193,7 @@ class TokenVolumeSegmentBlock(Model):
                     group_by=[q.field('block_label').dquote()],
                     order_by=q.field('block_label').dquote()).to_dataframe()
         else:
-            input_token = Token(address=input.address)
+            input_token = input.to_token()
             with self.context.ledger.TokenTransfer as q:
                 f1 = q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()
                 df = q.select(aggregates=[
@@ -205,8 +210,8 @@ class TokenVolumeSegmentBlock(Model):
         netflows = []
         for _, r in df.iterrows():
             vol = r['sum_value']
-            block_label = r['block_label']
-            from_block = block_start + block_label * block_seg
+            block_offset = int(r['block_label']) * int(block_seg)
+            from_block = block_start + block_offset
             to_block = from_block + block_seg
             vol_scaled = input_token.scaled(vol)
             price_last = (self.context.run_model('price.quote',
@@ -235,7 +240,7 @@ class TokenNetflowSegmentWindowInput(TokenNetflowWindowInput):
 
 
 @Model.describe(slug='token.netflow-segment-window',
-                version='1.0',
+                version='1.2',
                 display_name='Token netflow by segment in window',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',

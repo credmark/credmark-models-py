@@ -171,7 +171,7 @@ class UniswapV2LP(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -210,11 +210,16 @@ class UniswapPoolPriceInfo(Model):
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        tick_price0 = scaled_reserve1 / scaled_reserve0
+        try:
+            tick_price0 = scaled_reserve1 / scaled_reserve0
+            tick_price1 = 1 / tick_price0
+        except (FloatingPointError, ZeroDivisionError):
+            tick_price0 = 0
+            tick_price1 = 0
+
         full_tick_liquidity0 = scaled_reserve0
         one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
 
-        tick_price1 = 1 / tick_price0
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
 
