@@ -131,7 +131,6 @@ class LPOutput(DTO):
     token0: Position
     token1: Position
 
-
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.1',
                 display_name='Uniswap v2 LP Token',

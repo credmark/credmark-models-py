@@ -68,3 +68,7 @@ class TestUniswap(CMKTest):
         self.run_model('dex.pool-volume-block-range', {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})
 
         self.run_model('uniswap-v3.get-all-pools', {})
+
+    def test_lp(self):
+        self.run_model('uniswap-v2.lp', {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                                         "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"})
