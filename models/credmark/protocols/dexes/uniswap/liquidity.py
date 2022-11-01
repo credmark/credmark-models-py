@@ -9,6 +9,9 @@ from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO, DTOField
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
+# v3/TickMath.sol
+UNISWAP_TICK = 1.0001
+
 UNISWAP_V3_MIN_TICK = -887272
 UNISWAP_V3_MAX_TICK = 887272
 
@@ -128,9 +131,6 @@ def plot_liquidity(context,
     plt.show()
 
     return df_pool_mode, pool
-
-
-UNISWAP_TICK = 1.0001
 
 
 def tick_to_price(tick):
@@ -288,7 +288,7 @@ def plot_liquidity_amount(context,
     scale_multiplier = (10 ** (token0.decimals - token1.decimals))
 
     def tick_to_price_with_scaling(tick, scale_multiplier=scale_multiplier):
-        return 1.0001 ** tick * scale_multiplier
+        return UNISWAP_TICK ** tick * scale_multiplier
 
     slot0 = pool.functions.slot0().call()
     current_tick = slot0[1]

@@ -8,6 +8,7 @@ from models.credmark.algorithms.value_at_risk.dto import (DexVaR,
                                                           UniswapPoolVaRInput,
                                                           UniswapPoolVaROutput)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
+from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
 from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
     UniswapV3PoolInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -62,7 +63,7 @@ class UniswapPoolVaR(Model):
                                              return_type=UniswapV3PoolInfo)
             scale_multiplier = (10 ** (v3_info.token0.decimals - v3_info.token1.decimals))
             # p_0 = tick_price = token0 / token1
-            p_0 = 1.0001 ** v3_info.current_tick * scale_multiplier
+            p_0 = UNISWAP_TICK ** v3_info.current_tick * scale_multiplier
 
         t_unit, count = self.context.historical.parse_timerangestr(input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
