@@ -121,8 +121,58 @@ class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
         return self.get_uniswap_pools_ledger(self.context, input.address, gw)
 
 
+class LPInput(DTO):
+    pool: Token
+    lp: Address
+
+
+class LPOutput(DTO):
+    lp: Position
+    token0: Position
+    token1: Position
+
+
+@Model.describe(slug='uniswap-v2.lp',
+                version='0.1',
+                display_name='Uniswap v2 LP Token',
+                description='Redemption',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=LPInput,
+                output=LPOutput)
+class UniswapV2LP(Model):
+    def run(self, input: LPInput) -> LPOutput:
+        pool = input.pool
+        lp = input.lp
+
+        try:
+            _ = pool.abi
+        except ModelDataError:
+            pool.set_abi(UNISWAP_V2_POOL_ABI)
+
+        reserves = pool.functions.getReserves().call()
+        total_supply = pool.functions.totalSupply().call()
+
+        token0 = Token(address=Address(pool.functions.token0().call()))
+        token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
+        scaled_reserve0 = token0.scaled(reserves[0])
+        scaled_reserve1 = token1.scaled(reserves[1])
+
+        lp_balance = pool.functions.balanceOf(lp).call()
+        lp_token0 = scaled_reserve0 * lp_balance / total_supply
+        lp_token1 = scaled_reserve1 * lp_balance / total_supply
+
+        lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
+        position0 = Position(amount=lp_token0, asset=token0)
+        position1 = Position(amount=lp_token1, asset=token1)
+
+        return LPOutput(lp=lp_position, token0=position0, token1=position1)
+
+
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -161,11 +211,16 @@ class UniswapPoolPriceInfo(Model):
 
         # https://uniswap.org/blog/uniswap-v3-dominance
         # Appendix B: methodology
-        tick_price0 = scaled_reserve1 / scaled_reserve0
+        try:
+            tick_price0 = scaled_reserve1 / scaled_reserve0
+            tick_price1 = 1 / tick_price0
+        except (FloatingPointError, ZeroDivisionError):
+            tick_price0 = 0
+            tick_price1 = 0
+
         full_tick_liquidity0 = scaled_reserve0
         one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
 
-        tick_price1 = 1 / tick_price0
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
 

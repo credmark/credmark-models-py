@@ -1,13 +1,12 @@
 from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, NativeToken,
+from credmark.cmf.types import (Account, Address, BlockNumber, NativeToken,
                                 PriceWithQuote, Token)
 from credmark.dto import DTO, DTOField
 
 
-class TokenNetflowBlockInput(DTO):
-    address: Address = DTOField(..., description="Token address")
+class TokenNetflowBlockInput(Account):
     netflow_address: Address = DTOField(..., description="Netflow address")
     block_number: int = DTOField(
         description=('Positive for a block earlier than the current one '
@@ -112,8 +111,7 @@ class TokenNetflowBlock(Model):
         return output
 
 
-class TokenNetflowWindowInput(DTO):
-    address: Address = DTOField(..., description="Token address")
+class TokenNetflowWindowInput(Account):
     netflow_address: Address = DTOField(..., description="Netflow address")
     window: str = DTOField(..., description='a string defining a time window, ex. "30 day"')
 

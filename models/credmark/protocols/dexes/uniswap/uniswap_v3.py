@@ -229,6 +229,7 @@ def in_range(liquidity, sb, sa, sp):
 
 UNISWAP_TICK = 1.0001
 
+
 def tick_to_price(tick):
     return pow(UNISWAP_TICK, tick)
 
@@ -243,7 +244,7 @@ UNISWAP_V3_MAX_TICK = 887272
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.10',
+                version='1.11',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -429,10 +430,11 @@ class UniswapV3GetPoolInfo(Model):
         _tick_price_top0 = 1.0001 ** tick_top * scale_multiplier
 
         ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
-        if np.isclose(0, ratio_price0):
-            ratio_price1 = 0
-        else:
+        try:
             ratio_price1 = 1/ratio_price0
+        except (FloatingPointError, ZeroDivisionError):
+            ratio_price0 = 0
+            ratio_price1 = 0
 
         return UniswapV3PoolInfo(
             address=input.address,
