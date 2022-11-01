@@ -47,7 +47,7 @@ class TokenNetflowOutput(TokenNetflowBlockRange):
 
 
 @Model.describe(slug='token.netflow-block',
-                version='1.1',
+                version='1.2',
                 display_name='Token netflow',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -120,7 +120,7 @@ class TokenNetflowWindowInput(Account):
 
 
 @Model.describe(slug='token.netflow-window',
-                version='1.1',
+                version='1.2',
                 display_name='Token netflow',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',
@@ -152,7 +152,7 @@ class TokenNetflowSegmentOutput(DTO):
 
 
 @Model.describe(slug='token.netflow-segment-block',
-                version='1.1',
+                version='1.2',
                 display_name='Token netflow by segment by block',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -240,7 +240,7 @@ class TokenNetflowSegmentWindowInput(TokenNetflowWindowInput):
 
 
 @Model.describe(slug='token.netflow-segment-window',
-                version='1.1',
+                version='1.2',
                 display_name='Token netflow by segment in window',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',
