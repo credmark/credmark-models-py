@@ -66,7 +66,7 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.9',
+                version='1.10',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 category='dex',
@@ -84,13 +84,11 @@ class PoolPriceAggregator(Model):
 
         non_zero_pools = [
             ii.pool_address for ii in all_pool_infos
-            if (ii.token0_address == input.address and ii.one_tick_liquidity0 > 0) or
-            (ii.token1_address == input.address and ii.one_tick_liquidity1 > 0)]
+            if (ii.one_tick_liquidity0 > 1e-8 and ii.one_tick_liquidity1 > 1e-8)]
 
         zero_pools = [
             ii.pool_address for ii in all_pool_infos
-            if (ii.token0_address == input.address and ii.one_tick_liquidity0 == 0) or
-            (ii.token1_address == input.address and ii.one_tick_liquidity1 == 0)]
+            if (ii.one_tick_liquidity0 < 1e-8 or ii.one_tick_liquidity1 < 1e-8)]
 
         df = (Some(some=input.some)
               .to_dataframe()
@@ -140,7 +138,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -155,7 +153,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -178,7 +176,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -193,7 +191,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.7',
+                version='1.8',
                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 category='protocol',
@@ -276,7 +274,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.16',
+                version='1.17',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -340,7 +338,7 @@ class PriceFromDexModelMaybe(Model):
 
 
 @Model.describe(slug='price.dex-blended-tokens',
-                version='0.1',
+                version='0.2',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
