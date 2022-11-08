@@ -85,6 +85,17 @@ def fix_erc20_token(tok):
 
     return tok
 
+def recursive_proxy(token):
+    # if 'tokenURI' in token.abi.functions
+    proxy_for = token.proxy_for
+    while True:
+        if proxy_for is None:
+            break
+
+        token = proxy_for
+        proxy_for = token.proxy_for
+
+
 
 @Model.describe(slug='token.underlying-maybe',
                 version='1.1',

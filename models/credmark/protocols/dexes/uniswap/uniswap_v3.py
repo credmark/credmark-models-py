@@ -1,5 +1,6 @@
 # pylint: disable=locally-disabled, unused-import
 
+from typing import List
 from collections import namedtuple
 from math import log
 
@@ -9,10 +10,10 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, Contracts, Network, Price,
-                                Some, Token)
+                                Some, Token, Position)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
 from models.credmark.tokens.token import fix_erc20_token
@@ -206,6 +207,95 @@ class UniswapV3AllPools(Model):
         all_addresses = set(all_df.evt_pool.tolist())
 
         return Contracts(contracts=[Contract(addr) for addr in all_addresses])
+
+
+class V3LPInput(DTO):
+    lp: Address = DTOField(description='Account')
+
+
+class V3PoolPosition(DTO):
+    lp: Address = DTOField(description='Account')
+    nft: int
+    pool: Address
+    token0: Position
+    token1: Position
+
+
+# 0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF MEV
+# 0x297E12154bde98e96d475fC3A554797F7A6139d0 individual
+# 15923975
+class V3LPOutput(DTO):
+    lp: Address
+    positions: List[V3PoolPosition]
+
+
+@Model.describe(slug='uniswap-v3.lp',
+                version='0.1',
+                display_name='Uniswap v3 LP',
+                description='Position and Fee',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=V3LPInput,
+                output=V3LPOutput)
+class UniswapV2LP(Model):
+    V3_NFT = '0xc36442b4a4522e871399cd717abdd847ab11fe88'
+
+    def run(self, input: V3LPInput) -> V3LPOutput:
+        nft_manager = Contract(self.V3_NFT)
+
+        lp = input.lp
+        nft_total = int(nft_manager.functions.balanceOf(lp.checksum).call())
+        for nft_n in range(nft_total):
+            nft_id = nft_manager.functions.tokenOfOwnerByIndex(lp.checksum, nft_n).call()
+            breakpoint()
+
+# 355427
+
+
+@Model.describe(slug='uniswap-v3.lp-id',
+                version='0.1',
+                display_name='Uniswap v3 LP with ID',
+                description='Position and Fee',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=V3IDInput,
+                output=V3LPOutput)
+class UniswapV2LPID(Model):
+    V3_NFT = {
+        Network.Mainnet: '0xc36442b4a4522e871399cd717abdd847ab11fe88'
+    }
+    UNISWAP_V3_FACTORY_ADDRESS = {
+        Network.Mainnet: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    }
+
+    def run(self, input: V3IDInput) -> V3LPOutput:
+        nft_manager = Contract(self.V3_NFT)
+
+        nft_id = input.id
+
+        V3_position = namedtuple(
+            "v3_position",
+            ("nonce operator token0 token1 fee tickLower tickUpper liquidity "
+                "feeGrowthInside0LastX128 feeGrowthInside1LastX128 tokensOwed0 tokensOwed1"))
+
+        position = V3_position(*nft_manager.functions.positions(nft_id).call())
+
+        token0_addr = Address(position.token0)
+        token1_addr = Address(position.token1)
+
+        addr = self.UNISWAP_V3_FACTORY_ADDRESS[self.context.network]
+        uniswap_factory = Contract(address=addr)
+        if token0_addr.to_int() < token1_addr.to_int():
+            pool_addr = uniswap_factory.functions.getPool(
+                token0_addr.checksum, token1_addr.checksum, position.fee).call()
+        else:
+            pool_addr = uniswap_factory.functions.getPool(
+                token1_addr.checksum, token0_addr.checksum, position.fee).call()
+
+        pool_contract = Contract(pool_addr)
+        # current tick
+
+        return LPOutput(lp=lp_position, token0=position0, token1=position1)
 
 
 Tick = namedtuple("Tick",

@@ -10,7 +10,7 @@ from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
@@ -123,7 +123,7 @@ class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
 
 class LPInput(DTO):
     pool: Token
-    lp: Address
+    lp: Address = DTOField(description='Account')
 
 
 class LPOutput(DTO):
@@ -131,10 +131,11 @@ class LPOutput(DTO):
     token0: Position
     token1: Position
 
+
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.1',
-                display_name='Uniswap v2 LP Token',
-                description='Redemption',
+                display_name='Uniswap v2 LP',
+                description='Position and Fee',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
