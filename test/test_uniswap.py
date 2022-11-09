@@ -71,4 +71,14 @@ class TestUniswap(CMKTest):
 
     def test_lp(self):
         self.run_model('uniswap-v2.lp', {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
-                                         "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"})
+                       "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"})
+
+        # credmark-dev run token.holders -i '{"address":"0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"}' -j
+        # 0x2344f131b07e6afd943b0901c55898573f0d1561
+
+        self.run_model('uniswap-v2.lp', {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"})
+
+        self.run_model('uniswap-v3.lp', {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
+        self.run_model('uniswap-v3.lp', {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
+        self.run_model('uniswap-v3.id', {"id": 355427}, block_number=15931588)
+        self.run_model('uniswap-v3.id', {"id": 355415}, block_number=15931588)

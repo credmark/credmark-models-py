@@ -1,3 +1,5 @@
+# pylint:disable=invalid-name
+
 from math import floor, log
 from typing import Dict, Optional
 
@@ -14,6 +16,32 @@ UNISWAP_TICK = 1.0001
 
 UNISWAP_V3_MIN_TICK = -887272
 UNISWAP_V3_MAX_TICK = 887272
+
+
+def out_of_range(liquidity, sb, sa):
+    amount0 = int(liquidity * (sb - sa) / (sb * sa))
+    amount1 = int(liquidity * (sb - sa))
+    return amount0, amount1
+
+
+def in_range(liquidity, sb, sa, sp):
+    amount0 = int(liquidity * (sb - sp) / (sb * sp))
+    amount1 = int(liquidity * (sp - sa))
+    return amount0, amount1
+
+
+def tick_to_price(tick):
+    """
+    tick to price
+    """
+    return pow(UNISWAP_TICK, tick)
+
+
+def price_to_tick(price):
+    """
+    price to tick
+    """
+    return log(price) / log(UNISWAP_TICK)
 
 
 class V3PoolLiquidityByTicksInput(Contract):
@@ -131,20 +159,6 @@ def plot_liquidity(context,
     plt.show()
 
     return df_pool_mode, pool
-
-
-def tick_to_price(tick):
-    """
-    tick to price
-    """
-    return pow(UNISWAP_TICK, tick)
-
-
-def price_to_tick(price):
-    """
-    price to tick
-    """
-    return log(price) / log(UNISWAP_TICK)
 
 
 # pylint:disable=too-many-arguments

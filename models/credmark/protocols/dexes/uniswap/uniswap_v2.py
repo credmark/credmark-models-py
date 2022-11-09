@@ -5,13 +5,14 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
-                                Maybe, Network, Portfolio, Position, Price,
+                                Maybe, Portfolio, Position, Price,
                                 PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
+from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
 from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
@@ -76,7 +77,7 @@ class UniswapV2PoolMeta:
 
             all_df = pd.concat(df_ts)
 
-        evt_pair = all_df['evt_pair']
+        evt_pair = all_df['evt_pair']  # type: ignore
 
         return Contracts(contracts=[Contract(c) for c in evt_pair])
 
@@ -90,14 +91,8 @@ class UniswapV2PoolMeta:
                 input=Token,
                 output=Contracts)
 class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
-    # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
-    UNISWAP_V2_FACTORY_ADDRESS = {
-        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
-        for k in
-        [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
-
     def run(self, input: Token) -> Contracts:
-        addr = self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network]
+        addr = V2_FACTORY_ADDRESS[self.context.network]
         return self.get_uniswap_pools(self.context, input.address, Address(addr))
 
 
@@ -110,14 +105,8 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
                 input=Token,
                 output=Contracts)
 class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
-    # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
-    UNISWAP_V2_FACTORY_ADDRESS = {
-        k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
-        for k in
-        [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
-
     def run(self, input: Token) -> Contracts:
-        gw = Contract(self.UNISWAP_V2_FACTORY_ADDRESS[self.context.network])
+        gw = Contract(V2_FACTORY_ADDRESS[self.context.network])
         return self.get_uniswap_pools_ledger(self.context, input.address, gw)
 
 
@@ -171,14 +160,66 @@ class UniswapV2LP(Model):
         return LPOutput(lp=lp_position, token0=position0, token1=position1)
 
 
-@Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.12',
-                display_name='Uniswap v2 Token Pool Price Info',
-                description='Gather price and liquidity information from pool',
+@Model.describe(slug='uniswap-v2.lp-fee',
+                version='0.1',
+                display_name='Uniswap v2 LP',
+                description='Position and Fee',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=DexPricePoolInput,
-                output=Maybe[PoolPriceInfo])
+                input=LPInput,
+                output=LPOutput)
+class UniswapV2LPFee(Model):
+    def run(self, input: LPInput) -> LPOutput:
+        pool = input.pool
+        lp = input.lp
+
+        try:
+            _ = pool.abi
+        except ModelDataError:
+            pool.set_abi(UNISWAP_V2_POOL_ABI)
+
+        with self.context.ledger.TokenBalance as q:
+            _df = q.select(
+                columns=[q.BLOCK_NUMBER,
+                         q.LOG_INDEX,
+                         q.FROM_ADDRESS,
+                         q.TO_ADDRESS,
+                         q.TRANSACTION_VALUE],
+                order_by=q.BLOCK_NUMBER,
+                where=(q.ADDRESS.eq(lp)
+                       .and_(q.TOKEN_ADDRESS.eq(pool.address))
+                       .and_(q.TRANSACTION_VALUE.func_('TO_NUMERIC').gt(0)))
+            ).to_dataframe().drop_duplicates()
+
+        reserves = pool.functions.getReserves().call()
+        total_supply = pool.functions.totalSupply().call()
+
+        token0 = Token(address=Address(pool.functions.token0().call()))
+        token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
+        scaled_reserve0 = token0.scaled(reserves[0])
+        scaled_reserve1 = token1.scaled(reserves[1])
+
+        lp_balance = pool.functions.balanceOf(lp).call()
+        lp_token0 = scaled_reserve0 * lp_balance / total_supply
+        lp_token1 = scaled_reserve1 * lp_balance / total_supply
+
+        lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
+        position0 = Position(amount=lp_token0, asset=token0)
+        position1 = Position(amount=lp_token1, asset=token1)
+
+        return LPOutput(lp=lp_position, token0=position0, token1=position1)
+
+
+@ Model.describe(slug='uniswap-v2.get-pool-price-info',
+                 version='1.12',
+                 display_name='Uniswap v2 Token Pool Price Info',
+                 description='Gather price and liquidity information from pool',
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=DexPricePoolInput,
+                 output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
@@ -292,14 +333,14 @@ class UniswapPoolPriceInfo(Model):
         return Maybe[PoolPriceInfo](just=pool_price_info)
 
 
-@Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.12',
-                display_name='Uniswap v2 Token Pools',
-                description='Gather price and liquidity information from pools for a Token',
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=DexPriceTokenInput,
-                output=Some[PoolPriceInfo])
+@ Model.describe(slug='uniswap-v2.get-pool-info-token-price',
+                 version='1.12',
+                 display_name='Uniswap v2 Token Pools',
+                 description='Gather price and liquidity information from pools for a Token',
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=DexPriceTokenInput,
+                 output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v2.get-pools',
@@ -365,14 +406,14 @@ class UniswapV2PoolInfo(DTO):
     ratio: float
 
 
-@Model.describe(slug="uniswap-v2.get-pool-info",
-                version="1.8",
-                display_name="Uniswap/Sushiswap get details for a pool",
-                description="Returns the token details of the pool",
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=Contract,
-                output=UniswapV2PoolInfo)
+@ Model.describe(slug="uniswap-v2.get-pool-info",
+                 version="1.8",
+                 display_name="Uniswap/Sushiswap get details for a pool",
+                 description="Returns the token details of the pool",
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=Contract,
+                 output=UniswapV2PoolInfo)
 class UniswapGetPoolInfo(Model):
     def run(self, input: Contract) -> UniswapV2PoolInfo:
         contract = input
@@ -414,14 +455,14 @@ class UniswapGetPoolInfo(Model):
         return pool_info
 
 
-@Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.5',
-                display_name='Uniswap/Sushiswap Token Pool TVL',
-                description='Gather price and liquidity information from pools',
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=Contract,
-                output=TVLInfo)
+@ Model.describe(slug='uniswap-v2.pool-tvl',
+                 version='1.5',
+                 display_name='Uniswap/Sushiswap Token Pool TVL',
+                 description='Gather price and liquidity information from pools',
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=Contract,
+                 output=TVLInfo)
 class UniswapV2PoolTVL(Model):
     def run(self, input: Contract) -> TVLInfo:
         pool_info = self.context.run_model('uniswap-v2.get-pool-info',
@@ -456,15 +497,15 @@ class UniswapV2PoolTVL(Model):
         return tvl_info
 
 
-@Model.describe(slug='dex.pool-volume-block-range',
-                version='1.0',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
-                description=('The volume of each token swapped in a pool '
-                             'during the block interval from the current - Historical'),
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=Contract,
-                output=dict)
+@ Model.describe(slug='dex.pool-volume-block-range',
+                 version='1.0',
+                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                 description=('The volume of each token swapped in a pool '
+                              'during the block interval from the current - Historical'),
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=Contract,
+                 output=dict)
 class DexPoolSwapBlockRange(Model):
     def run(self, input: Contract) -> dict:
         try:
@@ -482,18 +523,18 @@ class DexPoolSwapBlockRange(Model):
                     'max':   df['max'][0]}
 
 
-@Model.describe(slug='dex.pool-volume-historical',
-                version='1.10',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
-                description=('The volume of each token swapped in a pool '
-                             'during the block interval from the current - Historical'),
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=VolumeInputHistorical,
-                output=BlockSeries[Some[TokenTradingVolume]])
+@ Model.describe(slug='dex.pool-volume-historical',
+                 version='1.10',
+                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                 description=('The volume of each token swapped in a pool '
+                              'during the block interval from the current - Historical'),
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=VolumeInputHistorical,
+                 output=BlockSeries[Some[TokenTradingVolume]])
 class DexPoolSwapVolumeHistorical(Model):
     def run(self, input: VolumeInputHistorical) -> BlockSeries[Some[TokenTradingVolume]]:
-        # pylint:disable=locally-disabled,protected-access,line-too-long
+        # pylint:disable=locally-disabled,protected-access,line-too-long,unsubscriptable-object
         pool = Contract(address=input.address)
 
         try:
@@ -646,7 +687,7 @@ class DexPoolSwapVolumeHistorical(Model):
             df_all_swaps = (df_all_swaps
                             .groupby(['interval_n'], as_index=False)
                             .agg({'min_block_number': ['min'],
-                                  'max_block_number': ['max'],
+                                 'max_block_number': ['max'],
                                   'count_block_number': ['sum']} |
                                  {f'evt_amount{n}_in': ['sum'] for n in range(tokens_n)} |
                                  {f'evt_amount{n}_out': ['sum'] for n in range(tokens_n)}))  # type: ignore
@@ -703,15 +744,15 @@ class DexPoolSwapVolumeHistorical(Model):
         return pool_volume_history
 
 
-@Model.describe(slug='dex.pool-volume',
-                version='1.11',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
-                description=('The volume of each token swapped in a pool '
-                             'during the block interval from the current'),
-                category='protocol',
-                subcategory='uniswap-v2',
-                input=VolumeInput,
-                output=Some[TokenTradingVolume])
+@ Model.describe(slug='dex.pool-volume',
+                 version='1.11',
+                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
+                 description=('The volume of each token swapped in a pool '
+                              'during the block interval from the current'),
+                 category='protocol',
+                 subcategory='uniswap-v2',
+                 input=VolumeInput,
+                 output=Some[TokenTradingVolume])
 class DexPoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
