@@ -360,14 +360,14 @@ class UniswapV2LPID(Model):
 # pylint:disable=invalid-name
 
 
-@ Model.describe(slug='uniswap-v3.get-pool-info',
-                 version='1.11',
-                 display_name='Uniswap v3 Token Pools Info',
-                 description='The Uniswap v3 pools that support a token contract',
-                 category='protocol',
-                 subcategory='uniswap-v3',
-                 input=Contract,
-                 output=UniswapV3PoolInfo)
+@Model.describe(slug='uniswap-v3.get-pool-info',
+                version='1.11',
+                display_name='Uniswap v3 Token Pools Info',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=Contract,
+                output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
 
     # tick spacing

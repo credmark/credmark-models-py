@@ -212,14 +212,14 @@ class UniswapV2LPFee(Model):
         return LPOutput(lp=lp_position, token0=position0, token1=position1)
 
 
-@ Model.describe(slug='uniswap-v2.get-pool-price-info',
-                 version='1.12',
-                 display_name='Uniswap v2 Token Pool Price Info',
-                 description='Gather price and liquidity information from pool',
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=DexPricePoolInput,
-                 output=Maybe[PoolPriceInfo])
+@Model.describe(slug='uniswap-v2.get-pool-price-info',
+                version='1.12',
+                display_name='Uniswap v2 Token Pool Price Info',
+                description='Gather price and liquidity information from pool',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=DexPricePoolInput,
+                output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
@@ -333,14 +333,14 @@ class UniswapPoolPriceInfo(Model):
         return Maybe[PoolPriceInfo](just=pool_price_info)
 
 
-@ Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                 version='1.12',
-                 display_name='Uniswap v2 Token Pools',
-                 description='Gather price and liquidity information from pools for a Token',
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=DexPriceTokenInput,
-                 output=Some[PoolPriceInfo])
+@Model.describe(slug='uniswap-v2.get-pool-info-token-price',
+                version='1.12',
+                display_name='Uniswap v2 Token Pools',
+                description='Gather price and liquidity information from pools for a Token',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=DexPriceTokenInput,
+                output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(Model):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('uniswap-v2.get-pools',
@@ -406,14 +406,14 @@ class UniswapV2PoolInfo(DTO):
     ratio: float
 
 
-@ Model.describe(slug="uniswap-v2.get-pool-info",
-                 version="1.8",
-                 display_name="Uniswap/Sushiswap get details for a pool",
-                 description="Returns the token details of the pool",
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=Contract,
-                 output=UniswapV2PoolInfo)
+@Model.describe(slug="uniswap-v2.get-pool-info",
+                version="1.8",
+                display_name="Uniswap/Sushiswap get details for a pool",
+                description="Returns the token details of the pool",
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Contract,
+                output=UniswapV2PoolInfo)
 class UniswapGetPoolInfo(Model):
     def run(self, input: Contract) -> UniswapV2PoolInfo:
         contract = input
@@ -455,14 +455,14 @@ class UniswapGetPoolInfo(Model):
         return pool_info
 
 
-@ Model.describe(slug='uniswap-v2.pool-tvl',
-                 version='1.5',
-                 display_name='Uniswap/Sushiswap Token Pool TVL',
-                 description='Gather price and liquidity information from pools',
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=Contract,
-                 output=TVLInfo)
+@Model.describe(slug='uniswap-v2.pool-tvl',
+                version='1.5',
+                display_name='Uniswap/Sushiswap Token Pool TVL',
+                description='Gather price and liquidity information from pools',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Contract,
+                output=TVLInfo)
 class UniswapV2PoolTVL(Model):
     def run(self, input: Contract) -> TVLInfo:
         pool_info = self.context.run_model('uniswap-v2.get-pool-info',
@@ -497,15 +497,15 @@ class UniswapV2PoolTVL(Model):
         return tvl_info
 
 
-@ Model.describe(slug='dex.pool-volume-block-range',
-                 version='1.0',
-                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
-                 description=('The volume of each token swapped in a pool '
-                              'during the block interval from the current - Historical'),
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='dex.pool-volume-block-range',
+                version='1.0',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Contract,
+                output=dict)
 class DexPoolSwapBlockRange(Model):
     def run(self, input: Contract) -> dict:
         try:
@@ -523,15 +523,15 @@ class DexPoolSwapBlockRange(Model):
                     'max':   df['max'][0]}
 
 
-@ Model.describe(slug='dex.pool-volume-historical',
-                 version='1.10',
-                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
-                 description=('The volume of each token swapped in a pool '
-                              'during the block interval from the current - Historical'),
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=VolumeInputHistorical,
-                 output=BlockSeries[Some[TokenTradingVolume]])
+@Model.describe(slug='dex.pool-volume-historical',
+                version='1.10',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=VolumeInputHistorical,
+                output=BlockSeries[Some[TokenTradingVolume]])
 class DexPoolSwapVolumeHistorical(Model):
     def run(self, input: VolumeInputHistorical) -> BlockSeries[Some[TokenTradingVolume]]:
         # pylint:disable=locally-disabled,protected-access,line-too-long,unsubscriptable-object
@@ -744,15 +744,15 @@ class DexPoolSwapVolumeHistorical(Model):
         return pool_volume_history
 
 
-@ Model.describe(slug='dex.pool-volume',
-                 version='1.11',
-                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
-                 description=('The volume of each token swapped in a pool '
-                              'during the block interval from the current'),
-                 category='protocol',
-                 subcategory='uniswap-v2',
-                 input=VolumeInput,
-                 output=Some[TokenTradingVolume])
+@Model.describe(slug='dex.pool-volume',
+                version='1.11',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current'),
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=VolumeInput,
+                output=Some[TokenTradingVolume])
 class DexPoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
