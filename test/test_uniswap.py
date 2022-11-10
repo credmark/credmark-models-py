@@ -88,7 +88,7 @@ class TestUniswap(CMKTest):
         # 20      15936945 - 1  0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329  0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329                  0   42487.140465   36.303070      0.000000    0.000000   42434.611431   36.258187      52.529034    0.044883
 
         self.run_model('uniswap-v2.lp', {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
-                                         "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"})
+                       "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"})
 
         self.run_model('uniswap-v3.lp', {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
         self.run_model('uniswap-v3.lp', {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
