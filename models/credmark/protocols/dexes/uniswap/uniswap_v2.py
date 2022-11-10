@@ -206,7 +206,8 @@ class UniswapV2LP(Model):
 
 
 # pylint: disable=invalid-name
-def calculate_v2_fee(context, pool, lp, block_number, transaction_value, lp_prev_token0, lp_prev_token1):
+def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
+                     lp_prev_token0, lp_prev_token1):
     # current LP position
     lp_pos = context.run_model(
         'uniswap-v2.lp',
@@ -245,6 +246,7 @@ def try_zero(flt):
     return flt
 
 
+#pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
                 version='0.1',
                 display_name='Uniswap v2 LP',
@@ -401,7 +403,8 @@ class UniswapV2LPFee(Model):
         position0_fee = Position(amount=v2_fee['token0_fee'], asset=token0)
         position1_fee = Position(amount=v2_fee['token1_fee'], asset=token1)
 
-        return LPFeeOutput(lp=lp_position, token0=position0, token1=position1, token0_fee=position0_fee, token1_fee=position1_fee)
+        return LPFeeOutput(lp=lp_position, token0=position0, token1=position1,
+                           token0_fee=position0_fee, token1_fee=position1_fee)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',

@@ -1,6 +1,7 @@
 from typing import List
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError, create_instance_from_error_dict)
+from credmark.cmf.model.errors import (
+    ModelDataError, ModelRunError, create_instance_from_error_dict)
 from credmark.dto import DTOField
 from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price, PriceWithQuote,
                                 Some, Token, MapBlocksOutput)
@@ -99,7 +100,8 @@ class PriceQuoteMultipleMaybe(Model):
                     self.logger.error(p.error)
                     raise create_instance_from_error_dict(p.error.dict())
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
 
             return Some[Maybe[PriceWithQuote]](some=prices)
 
