@@ -148,8 +148,8 @@ class LPQuantityInput(DTO):
 
 @Model.describe(slug='uniswap-v2.lp-pos',
                 version='0.1',
-                display_name='Uniswap v2 LP',
-                description='Position and Fee',
+                display_name='Uniswap v2 LP Position (inclusive of fee) for liquidity',
+                description='Returns position (inclusive of fee) for the amount of liquidity',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPQuantityInput,
@@ -187,8 +187,8 @@ class UniswapV2LPQuantity(Model):
 
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.1',
-                display_name='Uniswap v2 LP',
-                description='Position and Fee (inclusive)',
+                display_name='Uniswap v2 LP Position (inclusive of fee) for account',
+                description='Returns position (inclusive of fee) for account',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
@@ -249,8 +249,8 @@ def try_zero(flt):
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
                 version='0.1',
-                display_name='Uniswap v2 LP',
-                description='Position and Fee',
+                display_name='Uniswap v2 LP Position and Fee history for account',
+                description='Returns LP Position and Fee history for account',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
@@ -330,8 +330,8 @@ class UniswapV2LPFeeHistory(Model):
 
 @Model.describe(slug='uniswap-v2.lp-fee',
                 version='0.1',
-                display_name='Uniswap v2 LP',
-                description='Position and Fee',
+                display_name='Uniswap v2 LP Position (split for fee) for account',
+                description='Returns position (split for fee) for account',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,

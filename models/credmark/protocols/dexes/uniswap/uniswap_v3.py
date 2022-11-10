@@ -220,8 +220,8 @@ class V3LPOutput(DTO):
 
 @Model.describe(slug='uniswap-v3.lp',
                 version='0.1',
-                display_name='Uniswap v3 LP',
-                description='Position and Fee',
+                display_name='Uniswap v3 LP Position and Fee for account',
+                description='Returns position and Fee for account',
                 category='protocol',
                 subcategory='uniswap-v3',
                 input=V3LPInput,
@@ -249,8 +249,8 @@ class V3IDInput(DTO):
 
 @Model.describe(slug='uniswap-v3.id',
                 version='0.1',
-                display_name='Uniswap v3 LP with ID',
-                description='Position and Fee',
+                display_name='Uniswap v3 LP Position and Fee for NFT ID',
+                description='Returns position and Fee for NFT ID',
                 category='protocol',
                 subcategory='uniswap-v3',
                 input=V3IDInput,
@@ -358,8 +358,6 @@ class UniswapV2LPID(Model):
                             in_range=in_range_str)
 
 # pylint:disable=invalid-name
-
-
 @Model.describe(slug='uniswap-v3.get-pool-info',
                 version='1.11',
                 display_name='Uniswap v3 Token Pools Info',
