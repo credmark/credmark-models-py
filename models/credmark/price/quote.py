@@ -1,7 +1,6 @@
 from typing import List
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelRunError,
-                                       create_instance_from_error_dict)
+from credmark.cmf.model.errors import (ModelDataError, ModelRunError, create_instance_from_error_dict)
 from credmark.dto import DTOField
 from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price, PriceWithQuote,
                                 Some, Token, MapBlocksOutput)
@@ -149,7 +148,7 @@ class PriceQuoteMaybeBlock(Model):
 
 
 @Model.describe(slug='price.quote-maybe',
-                version='0.3',
+                version='0.4',
                 display_name='Token Price - Quoted - Maybe',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -165,9 +164,8 @@ class PriceQuoteMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model('price.quote', input=input, return_type=PriceWithQuote)
-
             return Maybe[PriceWithQuote](just=price)
-        except ModelRunError as _err:
+        except (ModelRunError, ModelDataError) as _err:
             pass
         return Maybe.none()
 

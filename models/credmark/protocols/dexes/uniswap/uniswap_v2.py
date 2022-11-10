@@ -121,6 +121,70 @@ class LPOutput(DTO):
     token1: Position
 
 
+class LPFeeOutput(DTO):
+    lp: Position
+    token0: Position
+    token1: Position
+    token0_fee: Position
+    token1_fee: Position
+
+    @classmethod
+    # pylint: disable=invalid-name
+    def zero(cls, lp, token0, token1):
+        lp_pos = Position(amount=0, asset=lp)
+        token0_pos = Position(amount=0, asset=token0)
+        token1_pos = Position(amount=0, asset=token1)
+        return cls(lp=lp_pos,
+                   token0=token0_pos,
+                   token1=token1_pos,
+                   token0_fee=token0_pos,
+                   token1_fee=token1_pos)
+
+
+class LPQuantityInput(DTO):
+    pool: Token
+    lp_balance: float
+
+
+@Model.describe(slug='uniswap-v2.lp-pos',
+                version='0.1',
+                display_name='Uniswap v2 LP',
+                description='Position and Fee',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=LPQuantityInput,
+                output=LPOutput)
+class UniswapV2LPQuantity(Model):
+    def run(self, input: LPQuantityInput) -> LPOutput:
+        pool = input.pool
+        lp_balance = input.lp_balance
+
+        try:
+            _ = pool.abi
+        except ModelDataError:
+            pool.set_abi(UNISWAP_V2_POOL_ABI)
+
+        reserves = pool.functions.getReserves().call()
+        total_supply = pool.functions.totalSupply().call()
+
+        token0 = Token(address=Address(pool.functions.token0().call()))
+        token1 = Token(address=Address(pool.functions.token1().call()))
+        token0 = fix_erc20_token(token0)
+        token1 = fix_erc20_token(token1)
+        scaled_reserve0 = token0.scaled(reserves[0])
+        scaled_reserve1 = token1.scaled(reserves[1])
+
+        lp_token0 = scaled_reserve0 * lp_balance / total_supply
+        lp_token1 = scaled_reserve1 * lp_balance / total_supply
+
+        lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
+        position0 = Position(amount=lp_token0, asset=token0)
+        position1 = Position(amount=lp_token1, asset=token1)
+
+        out = LPOutput(lp=lp_position, token0=position0, token1=position1)
+        return out
+
+
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.1',
                 display_name='Uniswap v2 LP',
@@ -133,31 +197,133 @@ class UniswapV2LP(Model):
     def run(self, input: LPInput) -> LPOutput:
         pool = input.pool
         lp = input.lp
+        lp_balance = pool.functions.balanceOf(lp).call()
+
+        return self.context.run_model(
+            'uniswap-v2.lp-pos',
+            input=LPQuantityInput(pool=input.pool, lp_balance=lp_balance),
+            return_type=LPOutput)
+
+
+# pylint: disable=invalid-name
+def calculate_v2_fee(context, pool, lp, block_number, transaction_value, lp_prev_token0, lp_prev_token1):
+    # current LP position
+    lp_pos = context.run_model(
+        'uniswap-v2.lp',
+        input=LPInput(pool=pool, lp=lp),
+        return_type=LPOutput,
+        block_number=block_number)
+
+    lp_in_out = context.run_model(
+        'uniswap-v2.lp-pos',
+        input=LPQuantityInput(pool=pool, lp_balance=1e18),
+        return_type=LPOutput,
+        block_number=block_number)
+    ratio = lp_in_out.token1.amount / lp_in_out.token0.amount
+
+    lp_in_out.token0.amount = lp_in_out.token0.amount * transaction_value / 1e18
+    lp_in_out.token1.amount = lp_in_out.token1.amount * transaction_value / 1e18
+
+    lp_il0 = (lp_prev_token0 * lp_prev_token1 / ratio) ** 0.5
+    lp_il1 = lp_il0 * ratio
+
+    return dict(
+        token0_lp=lp_pos.token0.amount,
+        token1_lp=lp_pos.token1.amount,
+        token0=try_zero(lp_in_out.token0.amount),
+        token1=try_zero(lp_in_out.token1.amount),
+        lp_il0=lp_il0,
+        lp_il1=lp_il1,
+        token0_fee=try_zero(lp_pos.token0.amount - lp_il0 - lp_in_out.token0.amount),
+        token1_fee=try_zero(lp_pos.token1.amount - lp_il1 - lp_in_out.token1.amount),
+    )
+
+
+def try_zero(flt):
+    if np.isclose(flt, 0):
+        return 0
+    return flt
+
+
+@Model.describe(slug='uniswap-v2.lp-fee-history',
+                version='0.1',
+                display_name='Uniswap v2 LP',
+                description='Position and Fee',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=LPInput,
+                output=dict)
+class UniswapV2LPFeeHistory(Model):
+    def run(self, input: LPInput) -> dict:
+        pool = input.pool
+        lp = input.lp
 
         try:
             _ = pool.abi
         except ModelDataError:
             pool.set_abi(UNISWAP_V2_POOL_ABI)
 
-        reserves = pool.functions.getReserves().call()
-        total_supply = pool.functions.totalSupply().call()
-
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
         token0 = fix_erc20_token(token0)
         token1 = fix_erc20_token(token1)
-        scaled_reserve0 = token0.scaled(reserves[0])
-        scaled_reserve1 = token1.scaled(reserves[1])
 
-        lp_balance = pool.functions.balanceOf(lp).call()
-        lp_token0 = scaled_reserve0 * lp_balance / total_supply
-        lp_token1 = scaled_reserve1 * lp_balance / total_supply
+        with self.context.ledger.TokenBalance as q:
+            df_ts = []
+            offset = 0
 
-        lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
-        position0 = Position(amount=lp_token0, asset=token0)
-        position1 = Position(amount=lp_token1, asset=token1)
+            q_cols = [q.BLOCK_NUMBER,
+                      q.LOG_INDEX,
+                      q.FROM_ADDRESS,
+                      q.TO_ADDRESS,
+                      q.TRANSACTION_VALUE]
+            while True:
+                df_tt = q.select(
+                    columns=q_cols,
+                    order_by=q.BLOCK_NUMBER,
+                    where=(q.ADDRESS.eq(lp)
+                           .and_(q.TOKEN_ADDRESS.eq(pool.address))
+                           )
+                ).to_dataframe()
 
-        return LPOutput(lp=lp_position, token0=position0, token1=position1)
+                if df_tt.shape[0] > 0:
+                    df_ts.append(df_tt)
+                if df_tt.shape[0] < 5000:
+                    break
+                offset += 5000
+
+        _df = pd.DataFrame()
+        if len(df_ts) > 0:
+            _df = pd.concat(df_ts).drop_duplicates()
+
+        new_data = [(int(self.context.block_number), -1, input.lp, input.lp, 0)]
+
+        if _df.empty or (_df["block_number"].tail(1) != int(self.context.block_number)).all():
+            _df = pd.concat([_df, pd.DataFrame(new_data, columns=q_cols)]).reset_index(drop=True)
+
+        lp_prev_token0 = 0
+        lp_prev_token1 = 0
+
+        for row_n, row_data in _df.iterrows():
+            # Uniswap V2 has compounding effect for the fee
+            # fee = current lp position - IL'ed position from previous lp position - current addition/removal
+            block_number = row_data['block_number']
+            transaction_value = row_data['transaction_value']
+
+            v2_fee = calculate_v2_fee(
+                self.context, pool, lp, block_number, transaction_value,
+                lp_prev_token0, lp_prev_token1)
+
+            lp_prev_token0 = v2_fee['token0_lp']
+            lp_prev_token1 = v2_fee['token1_lp']
+
+            for it in ['token0_lp', 'token1_lp',
+                       'token0', 'token1',
+                       'lp_il0', 'lp_il1',
+                       'token0_fee', 'token1_fee']:
+                _df.loc[row_n, it] = try_zero(v2_fee[it])
+
+        return _df.to_dict()
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
@@ -167,9 +333,9 @@ class UniswapV2LP(Model):
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
-                output=LPOutput)
+                output=LPFeeOutput)
 class UniswapV2LPFee(Model):
-    def run(self, input: LPInput) -> LPOutput:
+    def run(self, input: LPInput) -> LPFeeOutput:
         pool = input.pool
         lp = input.lp
 
@@ -178,38 +344,64 @@ class UniswapV2LPFee(Model):
         except ModelDataError:
             pool.set_abi(UNISWAP_V2_POOL_ABI)
 
-        with self.context.ledger.TokenBalance as q:
-            _df = q.select(
-                columns=[q.BLOCK_NUMBER,
-                         q.LOG_INDEX,
-                         q.FROM_ADDRESS,
-                         q.TO_ADDRESS,
-                         q.TRANSACTION_VALUE],
-                order_by=q.BLOCK_NUMBER,
-                where=(q.ADDRESS.eq(lp)
-                       .and_(q.TOKEN_ADDRESS.eq(pool.address))
-                       .and_(q.TRANSACTION_VALUE.func_('TO_NUMERIC').gt(0)))
-            ).to_dataframe().drop_duplicates()
-
-        reserves = pool.functions.getReserves().call()
-        total_supply = pool.functions.totalSupply().call()
-
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
         token0 = fix_erc20_token(token0)
         token1 = fix_erc20_token(token1)
-        scaled_reserve0 = token0.scaled(reserves[0])
-        scaled_reserve1 = token1.scaled(reserves[1])
+
+        # Obtain the last 2 when the current block has mint/burn
+        with self.context.ledger.TokenBalance as q:
+            _df = q.select(
+                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_transaction_value')],
+                order_by=q.BLOCK_NUMBER.desc(),
+                where=(q.ADDRESS.eq(lp)
+                        .and_(q.TOKEN_ADDRESS.eq(pool.address))
+                       ),
+                group_by=[q.BLOCK_NUMBER],
+                limit=2
+            ).to_dataframe()
+
+        if _df.empty:
+            return LPFeeOutput.zero(lp, token0, token1)
+
+        prev_block_number = _df['block_number'].to_list()[0]
+        prev_transaction_value = _df['sum_transaction_value'].to_list()[0]
+
+        if prev_block_number == self.context.block_number:
+            prev2_block_number = _df['block_number'].to_list()[1]
+            lp_pos = self.context.run_model(
+                'uniswap-v2.lp',
+                input=LPInput(pool=input.pool, lp=input.lp),
+                return_type=LPOutput,
+                block_number=prev2_block_number)
+
+            lp_prev_token0, lp_prev_token1 = lp_pos.token0.amount, lp_pos.token1.amount
+
+            v2_fee = calculate_v2_fee(
+                self.context, pool, lp, prev_block_number, prev_transaction_value,
+                lp_prev_token0, lp_prev_token1)
+        else:
+            lp_pos = self.context.run_model(
+                'uniswap-v2.lp',
+                input=LPInput(pool=input.pool, lp=input.lp),
+                return_type=LPOutput,
+                block_number=prev_block_number)
+
+            lp_prev_token0, lp_prev_token1 = lp_pos.token0.amount, lp_pos.token1.amount
+
+            v2_fee = calculate_v2_fee(
+                self.context, pool, lp, self.context.block_number, 0,
+                lp_prev_token0, lp_prev_token1)
 
         lp_balance = pool.functions.balanceOf(lp).call()
-        lp_token0 = scaled_reserve0 * lp_balance / total_supply
-        lp_token1 = scaled_reserve1 * lp_balance / total_supply
 
         lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
-        position0 = Position(amount=lp_token0, asset=token0)
-        position1 = Position(amount=lp_token1, asset=token1)
+        position0 = Position(amount=v2_fee['token0_lp'] - v2_fee['token0_fee'], asset=token0)
+        position1 = Position(amount=v2_fee['token1_lp'] - v2_fee['token1_fee'], asset=token1)
+        position0_fee = Position(amount=v2_fee['token0_fee'], asset=token0)
+        position1_fee = Position(amount=v2_fee['token1_fee'], asset=token1)
 
-        return LPOutput(lp=lp_position, token0=position0, token1=position1)
+        return LPFeeOutput(lp=lp_position, token0=position0, token1=position1, token0_fee=position0_fee, token1_fee=position1_fee)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',

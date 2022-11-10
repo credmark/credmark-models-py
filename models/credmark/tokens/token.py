@@ -323,7 +323,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 
 @Model.describe(slug='token.holders',
-                version='1.1',
+                version='1.2',
                 display_name='Token Holders',
                 description='Holders of a Token',
                 category='protocol',
@@ -347,10 +347,8 @@ class TokenHolders(Model):
             token_price_maybe = Maybe[PriceWithQuote](**self.context.models.price.quote_maybe({
                 'base': input,
                 'quote': input.quote}))
-            if token_price_maybe.is_just():
-                token_price = token_price_maybe.just.price
-            else:
-                token_price = PriceWithQuote(price=0, src='', quoteAddress=input.quote.address)
+            token_price = token_price_maybe.get_just(
+                PriceWithQuote(price=0, src='', quoteAddress=input.quote.address))
 
             total_holders = df['total_holders'].values[0]
             if total_holders is None:

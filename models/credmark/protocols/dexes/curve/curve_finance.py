@@ -1,5 +1,6 @@
 # pylint: disable=locally-disabled, unused-import
 
+
 from typing import List
 
 import numpy as np
@@ -7,7 +8,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price,
+                                Contracts, Portfolio, Position, Maybe,
                                 PriceWithQuote, Some, Token, Tokens)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
@@ -196,6 +197,8 @@ class CurveFinancePoolInfoTokens(Model):
             for i in range(8):
                 try:
                     tok_addr = Address(input.functions.coins(i).call())
+                    if tok_addr.is_null():
+                        break
                     token = Token(address=tok_addr)
                     tokens.append(token)
                     tokens_symbol.append(token.symbol)
@@ -270,7 +273,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.25",
+                version="1.26",
                 display_name="Curve Finance Pool Liqudity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -290,9 +293,10 @@ class CurveFinancePoolInfo(Model):
             token_prices = []
             for tok in pool_info.tokens:
                 token_price = self.context.run_model(
-                    'price.quote',
-                    {'base': tok}, return_type=PriceWithQuote)
-                token_prices.append(token_price)
+                    'price.quote-maybe',
+                    {'base': tok},
+                    return_type=Maybe[PriceWithQuote])
+                token_prices.append(token_price.get_just(PriceWithQuote.usd(price=0)))
             return token_prices
 
         def _use_compose() -> List[PriceWithQuote]:
@@ -302,7 +306,7 @@ class CurveFinancePoolInfo(Model):
                 return_type=Some[PriceWithQuote]).some
             return token_prices
 
-        token_prices = _use_for()
+        token_prices = _use_compose()
 
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
@@ -386,7 +390,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="2.0",
+                version="2.1",
                 display_name="Curve Finance Pool Liqudity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
@@ -401,9 +405,10 @@ class CurveFinanceTotalTokenLiqudity(Model):
         def _use_for():
             pool_infos = []
             for pool in pool_contracts:
-                pool_info = self.context.run_model('curve-fi.pool-info',
-                                                   pool,
-                                                   return_type=CurveFiPoolInfo)
+                pool_info = self.context.run_model(
+                    'curve-fi.pool-info',
+                    pool,
+                    return_type=CurveFiPoolInfo)
                 pool_infos.append(pool_info)
             return pool_infos
 
@@ -435,6 +440,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
             return pool_infos
 
         pool_infos = _use_compose()
+
         all_pools_info = Some[CurveFiPoolInfo](some=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['some'])
