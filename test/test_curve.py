@@ -56,7 +56,7 @@ class TestCurve(CMKTest):
         # curve-fi.pool-info-tokens
         self.run_model('curve-fi.pool-info', {"address": "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"})
 
-        # Curve.fi DAI/USDC/USDT 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
+        # Curve.fi 3pool DAI/USDC/USDT 0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7
         self.run_model('curve-fi.pool-info', {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"})
         # ${curve_pool_info_tvl}
         self.run_model('curve-fi.pool-tvl', {"address": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"})

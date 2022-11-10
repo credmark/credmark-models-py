@@ -1,3 +1,5 @@
+# pylint:disable=line-too-long
+
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -105,8 +107,9 @@ class UniswapFee(Model):
 
         df_tx = pd.DataFrame()
         if len(df_ts) > 0:
-            df_tx = (pd.concat(df_ts)
-                       .assign(transaction_value=lambda x: x.transaction_value.astype(float)))
+            df_tx = (
+                pd.concat(df_ts)
+                .assign(transaction_value=lambda x: x.transaction_value.astype(float)))
 
         if len(df_ts) == 0 or df_tx.empty:
             return UniswapFeeOutput.default(input)
@@ -179,7 +182,7 @@ class UniswapFee(Model):
 
         df_new_cols = df_tx_swap_one_line.apply(
             lambda r, self=self, t0=t0, t1=t1, fee=fee:
-            calculate_fee(r, self.context.models, t0, t1, fee), axis=1, result_type='expand')
+            calculate_fee(r, self.context.models, t0, t1, fee), axis=1, result_type='expand')  # type: ignore
 
         df_new_cols.columns = pd.Index(['in_value', 'out_value', 'fee'])
 

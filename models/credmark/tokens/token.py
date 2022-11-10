@@ -86,6 +86,17 @@ def fix_erc20_token(tok):
     return tok
 
 
+def recursive_proxy(token):
+    # if 'tokenURI' in token.abi.functions
+    proxy_for = token.proxy_for
+    while True:
+        if proxy_for is None:
+            break
+
+        token = proxy_for
+        proxy_for = token.proxy_for
+
+
 @Model.describe(slug='token.underlying-maybe',
                 version='1.1',
                 display_name='Token Price - Underlying',
@@ -304,7 +315,7 @@ class TokenHolder(DTO):
 
 
 class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
-    price: Price = DTOField(description="Token price")
+    price: PriceWithQuote = DTOField(description="Token price")
     holders: List[TokenHolder] = DTOField(default=[], description='List of holders')
     total_holders: int = DTOField(description='Total number of holders')
 
@@ -312,7 +323,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 
 @Model.describe(slug='token.holders',
-                version='1.0',
+                version='1.2',
                 display_name='Token Holders',
                 description='Holders of a Token',
                 category='protocol',
@@ -333,10 +344,11 @@ class TokenHolders(Model):
                 offset=input.offset
             ).to_dataframe()
 
-            token_price = PriceWithQuote(**self.context.models.price.quote({
+            token_price_maybe = Maybe[PriceWithQuote](**self.context.models.price.quote_maybe({
                 'base': input,
-                'quote': input.quote
-            }))
+                'quote': input.quote}))
+            token_price = token_price_maybe.get_just(
+                PriceWithQuote(price=0, src='', quoteAddress=input.quote.address))
 
             total_holders = df['total_holders'].values[0]
             if total_holders is None:

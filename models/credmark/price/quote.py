@@ -1,7 +1,7 @@
 from typing import List
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelRunError,
-                                       create_instance_from_error_dict)
+from credmark.cmf.model.errors import (
+    ModelDataError, ModelRunError, create_instance_from_error_dict)
 from credmark.dto import DTOField
 from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price, PriceWithQuote,
                                 Some, Token, MapBlocksOutput)
@@ -70,6 +70,47 @@ class PriceQuoteHistorical(Model):
                 raise create_instance_from_error_dict(result.error.dict())
 
         return price_historical_result
+
+
+@Model.describe(slug='price.quote-multiple-maybe',
+                version='0.1',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=Some[PriceInput],
+                output=Some[PriceWithQuote],
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceQuoteMultipleMaybe(Model):
+    def run(self, input: Some[PriceInput]) -> Some[Maybe[PriceWithQuote]]:
+        price_slug = 'price.quote-maybe'
+
+        def _use_compose():
+            token_prices_run = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': price_slug, 'modelInputs': input.some},
+                return_type=MapInputsOutput[PriceInput, Maybe[PriceWithQuote]])
+
+            prices = []
+            for p in token_prices_run:
+                if p.output is not None:
+                    prices.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise create_instance_from_error_dict(p.error.dict())
+                else:
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
+
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        def _use_for():
+            prices = [self.context.run_model(price_slug, input=m, return_type=Maybe[PriceWithQuote])
+                      for m in input]
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        return _use_for()
 
 
 @Model.describe(slug='price.quote-multiple',
@@ -149,7 +190,7 @@ class PriceQuoteMaybeBlock(Model):
 
 
 @Model.describe(slug='price.quote-maybe',
-                version='0.3',
+                version='0.4',
                 display_name='Token Price - Quoted - Maybe',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -165,9 +206,8 @@ class PriceQuoteMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model('price.quote', input=input, return_type=PriceWithQuote)
-
             return Maybe[PriceWithQuote](just=price)
-        except ModelRunError as _err:
+        except (ModelRunError, ModelDataError) as _err:
             pass
         return Maybe.none()
 
