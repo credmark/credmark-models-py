@@ -296,17 +296,17 @@ class CurveFinancePoolInfo(Model):
                     'price.quote-maybe',
                     {'base': tok},
                     return_type=Maybe[PriceWithQuote])
-                token_prices.append(token_price.get_just(PriceWithQuote.usd(price=0)))
+                token_prices.append(token_price.get_just(PriceWithQuote.usd()))
             return token_prices
 
         def _use_compose() -> List[PriceWithQuote]:
             token_prices = self.context.run_model(
-                'price.quote-multiple',
+                'price.quote-multiple-maybe',
                 input={'some': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Some[PriceWithQuote]).some
-            return token_prices
+                return_type=Some[Maybe[PriceWithQuote]]).some
+            return [p.get_just(PriceWithQuote.usd()) for p in token_prices]
 
-        token_prices = _use_compose()
+        token_prices = _use_for()
 
         np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
@@ -435,7 +435,7 @@ class CurveFinanceTotalTokenLiqudity(Model):
                          f'Error with models({self.context.block_number}).' +
                          f'{model_slug.replace("-","_")}({pool_contracts.contracts[pool_n]})'))
                     self.logger.error(err)
-                raise ModelRunError(errors[0][1].message)
+                raise ModelRunError(errors[0][1].message + f' For {pool_infos[errors[0][0]]=}')
 
             return pool_infos
 

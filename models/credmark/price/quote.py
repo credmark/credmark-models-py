@@ -71,6 +71,46 @@ class PriceQuoteHistorical(Model):
         return price_historical_result
 
 
+@Model.describe(slug='price.quote-multiple-maybe',
+                version='0.1',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=Some[PriceInput],
+                output=Some[PriceWithQuote],
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceQuoteMultipleMaybe(Model):
+    def run(self, input: Some[PriceInput]) -> Some[Maybe[PriceWithQuote]]:
+        price_slug = 'price.quote-maybe'
+
+        def _use_compose():
+            token_prices_run = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': price_slug, 'modelInputs': input.some},
+                return_type=MapInputsOutput[PriceInput, Maybe[PriceWithQuote]])
+
+            prices = []
+            for p in token_prices_run:
+                if p.output is not None:
+                    prices.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise create_instance_from_error_dict(p.error.dict())
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        def _use_for():
+            prices = [self.context.run_model(price_slug, input=m, return_type=Maybe[PriceWithQuote])
+                      for m in input]
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        return _use_for()
+
+
 @Model.describe(slug='price.quote-multiple',
                 version='1.10',
                 display_name='Token Price - Quoted',
