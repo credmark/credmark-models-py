@@ -188,7 +188,7 @@ class UniswapV2LPQuantity(Model):
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.1',
                 display_name='Uniswap v2 LP',
-                description='Position and Fee',
+                description='Position and Fee (inclusive)',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
