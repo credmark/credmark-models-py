@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 from typing import List
 
 import numpy as np
@@ -718,8 +719,14 @@ class DexPoolSwapBlockRange(Model):
                     'max':   df['max'][0]}
 
 
+def new_trading_volume(_tokens: List[Token]):
+    return Some[TokenTradingVolume](
+        some=[TokenTradingVolume.default(token=tok) for tok in _tokens]
+    )
+
+
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.10',
+                version='1.11',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -728,6 +735,96 @@ class DexPoolSwapBlockRange(Model):
                 input=VolumeInputHistorical,
                 output=BlockSeries[Some[TokenTradingVolume]])
 class DexPoolSwapVolumeHistorical(Model):
+    def run(self, input: VolumeInputHistorical) -> BlockSeries[Some[TokenTradingVolume]]:
+        if input.pool_info_model == 'curve-fi.pool-tvl':
+            return self.context.run_model(
+                'dex.pool-volume-historical-ledger',
+                input,
+                return_type=BlockSeries[Some[TokenTradingVolume]],
+                block_number=self.context.block_number)
+
+        count = input.count
+        interval = input.interval
+
+        last_result = self.context.run_model(
+            'pool.dex',
+            input={"address": input.address, "get_last": True})
+        last_block_number = last_result['block_number']
+
+        tokens = [Token(token_addr) for token_addr in [last_result['token0_address'], last_result['token1_address']]]
+
+        pool_volume_history = BlockSeries(
+            series=[BlockSeriesRow(blockNumber=0,
+                                   blockTimestamp=0,
+                                   sampleTimestamp=0,
+                                   output=new_trading_volume(tokens))
+                    for _ in range(input.count)],
+            errors=None)
+
+        token0_in = 0
+        token0_out = 0
+        token1_in = 0
+        token1_out = 0
+        for c in range(count, -1, -1):
+            prev_block_number = self.context.block_number - c * interval
+            prev_block_timestamp = int(BlockNumber(prev_block_number).timestamp)
+
+            if prev_block_number < last_block_number:
+                try:
+                    curr_result = self.context.run_model(
+                        'pool.dex', {"address": input.address}, block_number=prev_block_number)
+                except ModelDataError as _err:
+                    # When there was no data
+                    curr_result = dict(
+                        token0_in=0, token0_out=0,
+                        token1_in=0, token1_out=0,
+                        token0_price=0, token1_price=0)
+            else:
+                # use last_result
+                curr_result = last_result
+
+            if c == count:
+                token0_in = curr_result['token0_in']
+                token0_out = curr_result['token0_out']
+                token1_in = curr_result['token1_in']
+                token1_out = curr_result['token1_out']
+            else:
+                pool_volume_history.series[count - c - 1].blockNumber = int(prev_block_number)
+                pool_volume_history.series[count - c - 1].blockTimestamp = prev_block_timestamp
+                pool_volume_history.series[count - c - 1].sampleTimestamp = prev_block_timestamp
+
+                pool_volume_history.series[count - c - 1].output[0].sellAmount = curr_result['token0_in'] - token0_in
+                pool_volume_history.series[count - c - 1].output[0].buyAmount = curr_result['token0_out'] - token0_out
+                pool_volume_history.series[count - c - 1].output[0].sellValue = (
+                    curr_result['token0_in'] - token0_in) * curr_result['token0_price']
+                pool_volume_history.series[count - c - 1].output[0].buyValue = (
+                    curr_result['token0_out'] - token0_out) * curr_result['token0_price']
+
+                pool_volume_history.series[count - c - 1].output[1].sellAmount = curr_result['token1_in'] - token1_in
+                pool_volume_history.series[count - c - 1].output[1].buyAmount = curr_result['token1_out'] - token1_out
+                pool_volume_history.series[count - c - 1].output[1].sellValue = (
+                    curr_result['token1_in'] - token1_in) * curr_result['token1_price']
+                pool_volume_history.series[count - c - 1].output[1].buyValue = (
+                    curr_result['token1_out'] - token1_out) * curr_result['token1_price']
+
+                token0_in = curr_result['token0_in']
+                token0_out = curr_result['token0_out']
+                token1_in = curr_result['token1_in']
+                token1_out = curr_result['token1_out']
+
+        return pool_volume_history
+
+
+@Model.describe(slug='dex.pool-volume-historical-ledger',
+                version='1.10',
+                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                description=('The volume of each token swapped in a pool '
+                             'during the block interval from the current - Historical'),
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=VolumeInputHistorical,
+                output=BlockSeries[Some[TokenTradingVolume]])
+class DexPoolSwapVolumeHistoricalLedger(Model):
     def run(self, input: VolumeInputHistorical) -> BlockSeries[Some[TokenTradingVolume]]:
         # pylint:disable=locally-disabled,protected-access,line-too-long,unsubscriptable-object
         pool = Contract(address=input.address)
@@ -753,15 +850,11 @@ class DexPoolSwapVolumeHistorical(Model):
         tokens = [Token(**token_info['asset'])
                   for token_info in pool_info['portfolio']['positions']]
 
-        # initialize empty TradingVolume
-        def new_trading_volume():
-            return Some[TokenTradingVolume](some=[TokenTradingVolume.default(token=tok) for tok in tokens])
-
         pool_volume_history = BlockSeries(
             series=[BlockSeriesRow(blockNumber=0,
                                    blockTimestamp=0,
                                    sampleTimestamp=0,
-                                   output=new_trading_volume())
+                                   output=new_trading_volume(tokens))
                     for _ in range(input.count)],
             errors=None)
 
