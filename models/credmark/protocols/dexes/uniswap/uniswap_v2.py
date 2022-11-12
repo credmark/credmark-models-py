@@ -761,6 +761,11 @@ class DexPoolSwapVolumeHistorical(Model):
                     for _ in range(input.count)],
             errors=None)
 
+        data_vols = [dict(
+            token0_in=0.0, token0_out=0.0,
+            token1_in=0.0, token1_out=0.0,
+            token0_price=0, token1_price=0.0)]
+
         token0_in = 0
         token0_out = 0
         token1_in = 0
@@ -776,12 +781,14 @@ class DexPoolSwapVolumeHistorical(Model):
                 except ModelDataError as _err:
                     # When there was no data
                     curr_result = dict(
-                        token0_in=0, token0_out=0,
-                        token1_in=0, token1_out=0,
-                        token0_price=0, token1_price=0)
+                        token0_in=0.0, token0_out=0.0,
+                        token1_in=0.0, token1_out=0.0,
+                        token0_price=0, token1_price=0.0)
             else:
                 # use last_result
                 curr_result = last_result
+
+            data_vols.append(curr_result)
 
             if c == count:
                 token0_in = curr_result['token0_in']
@@ -811,6 +818,8 @@ class DexPoolSwapVolumeHistorical(Model):
                 token0_out = curr_result['token0_out']
                 token1_in = curr_result['token1_in']
                 token1_out = curr_result['token1_out']
+
+        _df_vols = pd.DataFrame(data_vols)
 
         return pool_volume_history
 
@@ -982,7 +991,6 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
 
             df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
             df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
-
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
 

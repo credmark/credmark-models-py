@@ -113,7 +113,8 @@ def run_test_uni(self, pool_n, pool, test_volume):
     self.run_model('uniswap-v2.pool-tvl', {"address": pool}, block_number=block_number)
 
     if test_volume:
-        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
+        self.run_model('dex.pool-volume-historical',
+            {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
 
         self.run_model('dex.pool-volume',
                        {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "address": pool},
