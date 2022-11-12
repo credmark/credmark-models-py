@@ -62,7 +62,7 @@ class TestDashboard(CMKTest):
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=14048685)
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200,
-                       "count": 2, "address": "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"}, block_number=15048685)
+                       "count": 2, "address": "0x5a6A4D54456819380173272A5E8E9B9904BdF41B"}, block_number=15048685)
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f"}, block_number=14048685)
 
@@ -114,8 +114,7 @@ def run_test_uni(self, pool_n, pool, test_volume):
 
     if test_volume:
         self.run_model('dex.pool-volume-historical',
-                       {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool},
-                       block_number=block_number)
+            {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
 
         self.run_model('dex.pool-volume',
                        {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "address": pool},

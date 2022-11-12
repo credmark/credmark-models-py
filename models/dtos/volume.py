@@ -10,7 +10,7 @@ class TokenTradingVolume(DTO):
     buyValue: float
 
     @classmethod
-    def default(cls, token):
+    def default(cls, token: Token):
         return cls(token=token, sellAmount=0, buyAmount=0, sellValue=0, buyValue=0)
 
 
