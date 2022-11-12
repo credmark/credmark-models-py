@@ -726,7 +726,7 @@ def new_trading_volume(_tokens: List[Token]):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -746,9 +746,9 @@ class DexPoolSwapVolumeHistorical(Model):
         count = input.count
         interval = input.interval
 
+        # credmark-dev run pool.dex-latest -i '{"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"}' -j
         last_result = self.context.run_model(
-            'pool.dex',
-            input={"address": input.address, "get_last": True})
+            'pool.dex-latest', input={"address": input.address}, return_type=dict)
         last_block_number = last_result['block_number']
 
         tokens = [Token(token_addr) for token_addr in [last_result['token0_address'], last_result['token1_address']]]

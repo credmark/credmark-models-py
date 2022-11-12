@@ -91,8 +91,11 @@ if __name__ == '__main__':
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
     all_tests = [o for _n, o in locals().items()
-                 if inspect.isclass(o) and issubclass(o, CMKTest)
-                 and (args['tests'] == '__all__' or sum(o.__name__.lower().endswith(t) for t in args['tests'].split(",")) == 1)]
+                 if inspect.isclass(o) and
+                 issubclass(o, CMKTest) and
+                 (args['tests'] == '__all__' or
+                 sum(o.__name__.lower().endswith(t)
+                     for t in args['tests'].split(",")) == 1)]
 
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
 
