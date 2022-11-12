@@ -92,6 +92,26 @@ class TestDashboard(CMKTest):
                             "window": "23 days", "interval": 10, "confidence": 0.01, "lower_range": range_of_pool, "upper_range": range_of_pool},
                            block_number=block_number)
 
+    def test_dex_pool_volume(self) -> None:
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
+
+        # credmark-dev run dex.pool-volume -i '{"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,"count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
+        self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
+
+        # credmark-dev run pool.dex-latest -i '{"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
+        # credmark-dev run pool.dex-latest -i '{"address": "0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1"}' --api_url=http://localhost:8700 -j
+        self.run_model('pool.dex-latest', {"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
+
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+
+        self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+
+        self.run_model('pool.dex-latest', {"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+
 
 def run_test_uni(self, pool_n, pool, test_volume):
     # Uniswap V2: 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58
@@ -114,7 +134,7 @@ def run_test_uni(self, pool_n, pool, test_volume):
 
     if test_volume:
         self.run_model('dex.pool-volume-historical',
-            {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
+                       {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
 
         self.run_model('dex.pool-volume',
                        {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "address": pool},
@@ -153,17 +173,17 @@ def run_test_curve(self, pool_n, pool, test_volume):
 for n, addr in enumerate(TestDashboard.UNIV2_POOLS):
     setattr(TestDashboard,
             f'test_univ2_{n+1}',
-            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, pool_n < 4))
+            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
 for n, addr in enumerate(TestDashboard.UNIV3_POOLS):
     setattr(TestDashboard,
             f'test_univ3_{n+1}',
-            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, pool_n < 4))
+            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
 for n, addr in enumerate(TestDashboard.SUSHI_POOLS):
     setattr(TestDashboard,
             f'test_sushi_{n+1}',
-            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, pool_n < 4))
+            lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
 for n, addr in enumerate(TestDashboard.CURVE_POOLS):
     setattr(TestDashboard,
