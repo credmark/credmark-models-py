@@ -205,6 +205,11 @@ class TestPrice(CMKTest):
             self.run_model('price.quote', {"quote": token_input, "base": {
                            "symbol": "USD"}}, block_number=block_number)  # __all__
 
+    def test_dex_prefer(self) -> None:
+        self.run_model('price.dex-prefer', {"symbol": "AAVE"}, block_number=None)
+        self.run_model('price.dex-prefer', {"symbol": "AAVE"})
+        self.run_model('price.dex-prefer', {"address": "0x0000000000000000000000000000000000000348"})
+
     def test_chainlink(self):
         self.title('Price - Chainlink Oracle')
         block_number = 15000108

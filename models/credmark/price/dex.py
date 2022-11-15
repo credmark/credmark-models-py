@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled
+# pylint: disable=locally-disabled, unsupported-membership-test
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -275,7 +275,7 @@ class PriceInfoFromDex(Model):
 
 @Model.describe(slug='price.dex-blended',
                 version='1.17',
-                display_name='Token price - Credmark',
+                display_name='Credmark Token Price from Dex',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='price',
@@ -308,6 +308,42 @@ class PriceFromDexModel(Model):
         #                              local=True)
 
         return PriceWithQuote.usd(**price.dict())
+
+
+@Model.describe(slug='price.dex-prefer',
+                version='0.1',
+                display_name='Credmark Token Price from Dex with Chainlink as fallback',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=Token,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceFromDexPreferModel(Model):
+    """
+    Return token's price from Dex with Chainlink as fallback
+    """
+
+    def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
+        try:
+            price_dex = self.context.run_model('price.dex', input=input, local=True)
+            return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
+        except ModelDataError as err:
+            if "No price for" in err.data.message:
+                try:
+                    return self.context.run_model(
+                        'price.dex-blended',
+                        input=input,
+                        return_type=PriceWithQuote)
+                except ModelRunError as err2:
+                    if 'No pool to aggregate for' in err2.data.message:
+                        return self.context.run_model(
+                            'price.quote',
+                            input={'base': input.address},
+                            return_type=PriceWithQuote)
+            raise
 
 
 @Model.describe(slug='price.dex-blended-maybe',
