@@ -310,10 +310,10 @@ class PriceFromDexModel(Model):
         return PriceWithQuote.usd(**price.dict())
 
 
-@Model.describe(slug='price.dex-prefer',
+@Model.describe(slug='price.dex-db-prefer',
                 version='0.1',
-                display_name='Credmark Token Price from Dex with Chainlink as fallback',
-                description='The Current Credmark Supported Price Algorithms',
+                display_name='Credmark Token Price from Dex (Prefer to use DB)',
+                description='Retrive price from DB or call model',
                 developer='Credmark',
                 category='price',
                 subcategory='dex',
@@ -329,21 +329,17 @@ class PriceFromDexPreferModel(Model):
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         try:
             price_dex = self.context.run_model('price.dex-db', input=input, local=True)
-            return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
+            if price_dex['liquidity'] > 1e-08:
+                return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
         except ModelDataError as err:
             if "No price for" in err.data.message:
-                try:
-                    return self.context.run_model(
-                        'price.dex-blended',
-                        input=input,
-                        return_type=PriceWithQuote)
-                except ModelRunError as err2:
-                    if 'No pool to aggregate for' in err2.data.message:
-                        return self.context.run_model(
-                            'price.quote',
-                            input={'base': input.address},
-                            return_type=PriceWithQuote)
+                return self.context.run_model(
+                    'price.dex-blended',
+                    input=input,
+                    return_type=PriceWithQuote)
             raise
+
+        raise ModelDataError(f'There is no liquidity for {input.address}.')
 
 
 @Model.describe(slug='price.dex-blended-maybe',

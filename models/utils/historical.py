@@ -1,9 +1,23 @@
 from credmark.cmf.model import Model
+from credmark.dto import EmptyInput
 from credmark.cmf.model.errors import ModelErrorDTO
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types.series import (BlockSeries, BlockSeriesErrorRow,
                                        BlockSeriesRow)
 from models.dtos.historical import HistoricalRunModelInput
+
+
+@Model.describe(slug="historical.empty",
+                version="1.4",
+                display_name="An empty model to obtain block numbers",
+                description="",
+                category='utility',
+                subcategory='composer',
+                input=EmptyInput,
+                output=dict)
+class HistoricalEmpty(Model):
+    def run(self, _: EmptyInput) -> dict:
+        return {}
 
 
 @Model.describe(slug="historical.run-model",

@@ -1,9 +1,11 @@
 from credmark.dto import DTO, DTOField
 
-
-class HistoricalRunModelInput(DTO):
-    model_slug: str
-    model_input: dict
+class HistoricalDTO(DTO):
     window: str
     interval: str
     exclusive: bool = DTOField(False, description='exclude current block')
+
+
+class HistoricalRunModelInput(HistoricalDTO):
+    model_slug: str
+    model_input: dict
