@@ -328,7 +328,7 @@ class PriceFromDexPreferModel(Model):
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         try:
-            price_dex = self.context.run_model('price.dex', input=input, local=True)
+            price_dex = self.context.run_model('price.dex-db', input=input, local=True)
             return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
         except ModelDataError as err:
             if "No price for" in err.data.message:
