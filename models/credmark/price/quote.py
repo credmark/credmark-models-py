@@ -1,3 +1,4 @@
+# pylint:disable=try-except-raise, no-member
 from typing import List
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
@@ -9,7 +10,7 @@ from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
                                PriceHistoricalInput, PriceHistoricalInputs,
-                               PriceInput)
+                               PriceInput, PriceInputWithPreference)
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -57,7 +58,9 @@ class PriceQuoteHistorical(Model):
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote',
-                   "modelInput": PriceInput(base=input.base, quote=input.quote),
+                   "modelInput": PriceInputWithPreference(base=input.base,
+                                                          quote=input.quote,
+                                                          prefer=input.prefer),
                    "endTimestamp": self.context.block_number.timestamp,
                    "interval": input.interval,
                    "count": input.count,
@@ -79,18 +82,18 @@ class PriceQuoteHistorical(Model):
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=Some[PriceInput],
+                input=Some[PriceInputWithPreference],
                 output=Some[PriceWithQuote],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultipleMaybe(Model):
-    def run(self, input: Some[PriceInput]) -> Some[Maybe[PriceWithQuote]]:
+    def run(self, input: Some[PriceInputWithPreference]) -> Some[Maybe[PriceWithQuote]]:
         price_slug = 'price.quote-maybe'
 
         def _use_compose():
             token_prices_run = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': price_slug, 'modelInputs': input.some},
-                return_type=MapInputsOutput[PriceInput, Maybe[PriceWithQuote]])
+                return_type=MapInputsOutput[PriceInputWithPreference, Maybe[PriceWithQuote]])
 
             prices = []
             for p in token_prices_run:
@@ -120,18 +123,18 @@ class PriceQuoteMultipleMaybe(Model):
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=Some[PriceInput],
+                input=Some[PriceInputWithPreference],
                 output=Some[PriceWithQuote],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultiple(Model):
-    def run(self, input: Some[PriceInput]) -> Some[PriceWithQuote]:
+    def run(self, input: Some[PriceInputWithPreference]) -> Some[PriceWithQuote]:
         price_slug = 'price.quote'
 
         def _use_compose():
             token_prices_run = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': price_slug, 'modelInputs': input.some},
-                return_type=MapInputsOutput[PriceInput, PriceWithQuote])
+                return_type=MapInputsOutput[PriceInputWithPreference, PriceWithQuote])
 
             prices = []
             for p in token_prices_run:
@@ -153,7 +156,7 @@ class PriceQuoteMultiple(Model):
         return _use_for()
 
 
-class PriceBlocksInput(PriceInput):
+class PriceBlocksInput(PriceInputWithPreference):
     block_numbers: List[int] = DTOField(description='List of blocks to run')
 
 
@@ -179,7 +182,7 @@ class PriceQuoteMaybeBlock(Model):
             raise ModelRunError(f'Request block number ({max_input_block_numbers}) is '
                                 f'larger than current block number {self.context.block_number}')
 
-        pi = PriceInput(base=input.base, quote=input.quote)
+        pi = PriceInputWithPreference(base=input.base, quote=input.quote, prefer=input.prefer)
         pp = self.context.run_model('compose.map-blocks',
                                     {"modelSlug": "price.quote-maybe",
                                      "modelInput": pi,
@@ -196,14 +199,14 @@ class PriceQuoteMaybeBlock(Model):
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=PriceInput,
+                input=PriceInputWithPreference,
                 output=Maybe[PriceWithQuote])
 class PriceQuoteMaybe(Model):
     """
     Return token's price in Maybe
     """
 
-    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+    def run(self, input: PriceInputWithPreference) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model('price.quote', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
@@ -212,22 +215,50 @@ class PriceQuoteMaybe(Model):
         return Maybe.none()
 
 
-@Model.describe(slug='price.quote',
-                version='1.11',
-                display_name='Token Price - Quoted',
-                description='Credmark Supported Price Algorithms',
-                developer='Credmark',
-                category='protocol',
-                tags=['token', 'price'],
-                input=PriceInput,
-                output=PriceWithQuote,
-                errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(
+    slug='price.quote',
+    version='1.11',
+    display_name=('Credmark Token Price with preference of cex or dex (default), '
+                  'fiat conversion for non-USD from Chainlink'),
+    description='',
+    developer='Credmark',
+    category='protocol',
+    tags=['token', 'price'],
+    input=PriceInputWithPreference,
+    output=PriceWithQuote,
+    errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
-    """
-    Return token's price
-    """
+    def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
+        pi = {"base": input.base.address, "quote": input.quote.address}
+        try:
+            if input.prefer == 'cex':
+                try:
+                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
+                    price.src = 'cex|' + (price.src if price.src is not None else '')
+                    return price
+                except ModelDataError:
+                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
+                    price.src = 'dex|' + (price.src if price.src is not None else '')
+                    return price
+            else:
+                try:
+                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
+                    price.src = 'dex|' + (price.src if price.src is not None else '')
+                    return price
+                except ModelDataError:
+                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
+                    price.src = 'cex|' + (price.src if price.src is not None else '')
+                    return price
+        except ModelDataError:
+            raise
+            # cex_cross = PriceCexCross(self.context)
+            # price = cex_cross.run(input)
+            # price.src = 'dex|' + (price.src if price.src is not None else '')
+            # return price
 
-    CONVERT_TO_WRAP = {
+
+class PriceCommon:
+    WRAP_TOKEN = {
         Network.Mainnet: {
             Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
             {'symbol': 'WETH'},
@@ -236,61 +267,106 @@ class PriceQuote(Model):
         }
     }
 
-    def wrapper(self, token):
-        new_token = self.CONVERT_TO_WRAP[self.context.network].get(token.address, None)
+    UNWRAP_TOKEN = {
+        Network.Mainnet: {
+            'WETH': Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),
+            'WBTC': Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB')
+        }
+    }
+
+    @staticmethod
+    def wrap_token(context, token):
+        new_token = __class__.WRAP_TOKEN[context.network].get(token.address, None)
         if new_token is not None:
             return Currency(**new_token)
         return token
 
-    def replace_underlying(self, token):
+    @staticmethod
+    def unwrap_token(context, token):
+        new_token = __class__.UNWRAP_TOKEN[context.network].get(token.symbol, None)
+        if new_token is not None:
+            if Token(token.symbol).address == token.address:
+                return Currency(new_token)
+        return token
+
+    @staticmethod
+    def replace_underlying(context, token):
         if isinstance(token, Token) and not isinstance(token, NativeToken):
-            addr_maybe = self.context.run_model('token.underlying-maybe',
-                                                input=token,
-                                                return_type=Maybe[Address],
-                                                local=True)
+            addr_maybe = context.run_model('token.underlying-maybe',
+                                           input=token,
+                                           return_type=Maybe[Address],
+                                           local=True)
             if addr_maybe.just is not None:
                 return Currency(address=addr_maybe.just)
         return token
 
-    def get_price_usd(self, input):
+    @staticmethod
+    def get_price_usd_for_base(context, input, no_dex):
         # We already tried base with quote in USD.
         # When quote is non-USD, we try to obtain base's price quote in USD
         if input.quote != Currency(symbol='USD'):
-            price_usd_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                                     input=input.quote_usd(),
-                                                     return_type=Maybe[PriceWithQuote],
-                                                     local=True)
+            input_quote_usd = input.quote_usd()
+            input_quote_usd.base = __class__.unwrap_token(context, input_quote_usd.base)
+            price_usd_maybe = context.run_model('price.oracle-chainlink-maybe',
+                                                input=input_quote_usd,
+                                                return_type=Maybe[PriceWithQuote],
+                                                local=True)
             if price_usd_maybe.just is not None:
                 return price_usd_maybe.just
 
-        price_usd_maybe = self.context.run_model('price.dex-curve-fi-maybe',
-                                                 input=input.base,
-                                                 return_type=Maybe[Price],
-                                                 local=True)
-        if price_usd_maybe.just is not None:
-            return PriceWithQuote.usd(**price_usd_maybe.just.dict())
+        if no_dex:
+            raise ModelDataError('No chainlink source for this token')
 
-        price_usd = self.context.run_model('price.dex-blended',
-                                           input=self.wrapper(input.base),
-                                           return_type=PriceWithQuote)
+        return __class__.get_price_usd_from_dex(context, input.base)
 
-        return price_usd
+    @staticmethod
+    def get_price_usd_from_dex(context, input_base):
+        try:
+            price_usd = context.run_model('price.dex-db-prefer',
+                                          input=__class__.wrap_token(context, input_base),
+                                          return_type=PriceWithQuote,
+                                          local=True)
+            return price_usd
+        except ModelDataError:
+            price_usd_maybe = context.run_model('price.dex-curve-fi-maybe',
+                                                input=input_base,
+                                                return_type=Maybe[Price],
+                                                local=True)
 
+            if price_usd_maybe.just is not None:
+                return PriceWithQuote.usd(**price_usd_maybe.just.dict())
+            else:
+                raise
+
+
+class NoDEX:
+    no_dex = True
+
+
+class AllowDEX:
+    no_dex = False
+
+
+class PriceCexModel(Model, PriceCommon):
     def run(self, input: PriceInput) -> PriceWithQuote:
-        input.base = self.replace_underlying(input.base)
-        input.quote = self.replace_underlying(input.quote)
+        input.base = __class__.replace_underlying(self.context, input.base)
+        input.quote = __class__.replace_underlying(self.context, input.quote)
 
         # 1. Try chainlink (include check for same base and quote)
+        input_unwrap = input.copy()
+        input_unwrap.base = __class__.unwrap_token(self.context, input.base)
+        input_unwrap.quote = __class__.unwrap_token(self.context, input.quote)
+
         if input.base.address >= input.quote.address:
             price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                                 input=input,
+                                                 input=input_unwrap,
                                                  return_type=Maybe[PriceWithQuote],
                                                  local=True)
             if price_maybe.just is not None:
                 return price_maybe.just
         else:
             price_maybe = self.context.run_model('price.oracle-chainlink-maybe',
-                                                 input=input.inverse(),
+                                                 input=input_unwrap.inverse(),
                                                  return_type=Maybe[PriceWithQuote],
                                                  local=True)
             if price_maybe.just is not None:
@@ -299,12 +375,21 @@ class PriceQuote(Model):
         # 2. Try price with single-side of USD
         # 2.1 For the case of one of input is USD
         if input.base == Currency(symbol='USD'):
-            price_usd = self.get_price_usd(input.inverse()).inverse(input.quote.address)
+            price_usd = __class__.get_price_usd_for_base(
+                self.context,
+                input.inverse(),
+                no_dex=True).inverse(input.quote.address)
         else:
-            price_usd = self.get_price_usd(input)
+            price_usd = __class__.get_price_usd_for_base(
+                self.context,
+                input,
+                no_dex=self.no_dex)  # type: ignore
 
         if Currency(symbol='USD') in [input.base, input.quote]:
             return price_usd
+
+        # Reaching here, price_usd is price in USD for base
+        # Now let's calculate price in USD for quote
 
         # 2.2 For the case of neither input is USD
         quote_usd = self.context.run_model(
@@ -312,3 +397,86 @@ class PriceQuote(Model):
             {'base': input.quote},
             return_type=PriceWithQuote)
         return price_usd.cross(quote_usd.inverse(input.quote.address))
+
+
+@Model.describe(slug='price.cex',
+                version='0.1',
+                display_name='Credmark Token Price and fiat conversion from Chainlink',
+                description='Price and fiat conversion for non-USD from Chainlink',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceCex(PriceCexModel, NoDEX):
+    """
+    Return token's price and fiat conversion for non-USD from Chainlink
+    """
+
+
+class PriceCexCross(PriceCexModel, AllowDEX):
+    """
+    Return token's price and fiat conversion for non-USD from Chainlink
+    """
+
+
+@Model.describe(slug='price.dex',
+                version='0.2',
+                display_name='Credmark Token Price from Dex with Chainlink for fiat conversion',
+                description='Price from Dex with fiat conversion for non-USD',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceDex(Model, PriceCommon):
+    """
+    Return token's price from Dex with Chainlink for fiat conversion
+    """
+
+    def run(self, input: PriceInput) -> PriceWithQuote:
+        usd_currency = Currency(symbol="USD")
+        usd_address = usd_currency.address
+
+        input.base = __class__.replace_underlying(self.context, input.base)
+        input.quote = __class__.replace_underlying(self.context, input.quote)
+
+        # 1. Use chainlink when both are fiat
+        if input.base.fiat and input.quote.fiat:
+            return self.context.run_model('price.cex',
+                                          input=input,
+                                          return_type=PriceWithQuote,
+                                          )
+
+        # 2. Use chainlink when either half is fiat
+        if input.quote.fiat:
+            price_usd = __class__.get_price_usd_from_dex(self.context, input.base)
+
+            if input.quote == usd_currency:
+                return price_usd
+            else:
+                price_quote = self.context.run_model('price.cex',
+                                                     input={'base': input.quote},
+                                                     return_type=PriceWithQuote)
+                return price_usd.cross(price_quote)
+
+        if input.base.fiat:
+            price_usd = __class__.get_price_usd_from_dex(self.context, input.quote)
+
+            if input.base == usd_currency:
+                return price_usd.inverse(input.quote.address)
+            else:
+                price_quote = self.context.run_model('price.cex',
+                                                     input={'base': input.base},
+                                                     return_type=PriceWithQuote)
+                return price_usd.inverse(usd_address).cross(price_quote)
+
+        # 3. Use only dex
+        price_usd_base = __class__.get_price_usd_from_dex(self.context, input.base)
+        price_usd_quote = __class__.get_price_usd_from_dex(self.context, input.quote)
+
+        return PriceWithQuote(price=price_usd_base.price / price_usd_quote.price,
+                              quoteAddress=input.quote.address,
+                              src=f'{price_usd_base.src}/{price_usd_quote.src}')

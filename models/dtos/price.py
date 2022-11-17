@@ -4,6 +4,7 @@ from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
                                 Some, Token, Tokens)
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
+from enum import Enum
 
 
 class PriceInput(DTO):
@@ -36,13 +37,13 @@ class PriceInput(DTO):
                  description='Quote token address to count the value')
 
     def inverse(self):
-        return PriceInput(base=self.quote, quote=self.base)
+        return __class__(base=self.quote, quote=self.base)
 
     def quote_usd(self):
-        return PriceInput(base=self.base, quote=Currency(symbol='USD'))
+        return __class__(base=self.base, quote=Currency(symbol='USD'))
 
     def quote_eth(self):
-        return PriceInput(base=self.base, quote=Currency(symbol='ETH`'))
+        return __class__(base=self.base, quote=Currency(symbol='ETH`'))
 
     class Config:
         schema_extra = {
@@ -52,13 +53,22 @@ class PriceInput(DTO):
         }
 
 
-class PriceHistoricalInput(PriceInput, MapBlockTimeSeriesInput):
+class Source(str, Enum):
+    CEX = 'cex'
+    DEX = 'dex'
+
+
+class PriceInputWithPreference(PriceInput):
+    prefer: Source = DTOField(Source.CEX, description='Preferred source')
+
+
+class PriceHistoricalInput(PriceInputWithPreference, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
 
 
-class PriceHistoricalInputs(Some[PriceInput], MapBlockTimeSeriesInput):
+class PriceHistoricalInputs(Some[PriceInputWithPreference], MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)

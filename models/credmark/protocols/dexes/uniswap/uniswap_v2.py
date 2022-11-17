@@ -746,9 +746,9 @@ class DexPoolSwapVolumeHistorical(Model):
         count = input.count
         interval = input.interval
 
-        # credmark-dev run pool.dex-latest -i '{"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"}' -j
+        # credmark-dev run pool.dex-db-latest -i '{"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"}' -j
         last_result = self.context.run_model(
-            'pool.dex-latest', input={"address": input.address}, return_type=dict)
+            'pool.dex-db-latest', input={"address": input.address}, return_type=dict)
         last_block_number = last_result['block_number']
 
         tokens = [Token(token_addr) for token_addr in [last_result['token0_address'], last_result['token1_address']]]
@@ -777,7 +777,7 @@ class DexPoolSwapVolumeHistorical(Model):
             if prev_block_number < last_block_number:
                 try:
                     curr_result = self.context.run_model(
-                        'pool.dex', {"address": input.address}, block_number=prev_block_number)
+                        'pool.dex-db', {"address": input.address}, block_number=prev_block_number)
                 except ModelDataError as _err:
                     # When there was no data
                     curr_result = dict(

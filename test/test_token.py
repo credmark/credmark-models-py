@@ -110,22 +110,46 @@ class TestToken(CMKTest):
         self.run_model('uniswap-v3.get-pool-info', {"address": "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"})
 
         # token.underlying-maybe,price.oracle-chainlink-maybe,price.oracle-chainlink
-        self.run_model('price.quote', {"base": {"symbol": "WETH"}})  # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"symbol": "CMK"}})  # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"symbol": "AAVE"}})  # ${token_price_deps}
+        self.run_model('price.dex', {"base": {"symbol": "WETH"}})  # ${token_price_deps}
+        self.run_model('price.dex', {"base": {"symbol": "CMK"}})  # ${token_price_deps}
+        self.run_model('price.dex', {"base": {"symbol": "AAVE"}})  # ${token_price_deps}
 
         # AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
         # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}})
-        self.run_model('price.quote', {"base": {"symbol": "USDC"}})  # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"symbol": "MKR"}})  # ${token_price_deps}
+        self.run_model('price.dex', {"base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}})
+        self.run_model('price.dex', {"base": {"symbol": "USDC"}})  # ${token_price_deps}
+        self.run_model('price.dex', {"base": {"symbol": "MKR"}})  # ${token_price_deps}
 
         # Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
         # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}})
+        self.run_model('price.dex', {"base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}})
         # RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
         # ${token_price_deps}
-        self.run_model('price.quote', {"base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}})
+        self.run_model('price.dex', {"base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}})
+
+        self.run_model('price.quote', {"base": {"symbol": "WETH"}, "prefer": "dex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "CMK"}, "prefer": "dex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "AAVE"}, "prefer": "dex"})  # ${token_price_deps}
+        self.run_model('price.quote', {
+                       "base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}, "prefer": "dex"})
+        self.run_model('price.quote', {"base": {"symbol": "USDC"}, "prefer": "dex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "MKR"}, "prefer": "dex"})  # ${token_price_deps}
+        self.run_model('price.quote', {
+                       "base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}, "prefer": "dex"})
+        self.run_model('price.quote', {
+                       "base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}, "prefer": "dex"})
+
+        self.run_model('price.quote', {"base": {"symbol": "WETH"}, "prefer": "cex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "CMK"}, "prefer": "cex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "AAVE"}, "prefer": "cex"})  # ${token_price_deps}
+        self.run_model('price.quote', {
+                       "base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}, "prefer": "cex"})
+        self.run_model('price.quote', {"base": {"symbol": "USDC"}, "prefer": "cex"})  # ${token_price_deps}
+        self.run_model('price.quote', {"base": {"symbol": "MKR"}, "prefer": "cex"})  # ${token_price_deps}
+        self.run_model('price.quote', {
+                       "base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}, "prefer": "cex"})
+        self.run_model('price.quote', {
+                       "base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}, "prefer": "cex"})
 
         self.run_model('token.holders', {"symbol": "CMK"})
         self.run_model('token.swap-pools', {"symbol": "CMK"})
