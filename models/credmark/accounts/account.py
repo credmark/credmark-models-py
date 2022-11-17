@@ -391,18 +391,22 @@ class AccountERC20TokenReturnHistorical(Model):
         return price_historical_result
 
 
+class AccountHistoricalInput(Account, HistoricalDTO):
+    ...
+
+
 @Model.describe(slug='account.token-historical',
-                version='0.1',
+                version='0.2',
                 display_name='Account Token Holdings Historical',
                 description='Account ERC20 Token Return',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
                 tags=['token'],
-                input=AccountReturnHistoricalInput,
+                input=AccountHistoricalInput,
                 output=MapBlockTimeSeriesOutput[Portfolio])
 class AccountERC20TokenHistorical(Model):
-    def run(self, input: AccountReturnHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+    def run(self, input: AccountHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
@@ -482,7 +486,7 @@ class AccountsERC20TokenReturn(Model):
         for account in input:
             input_address = account.address
             df_ts = get_token_transfer(self.context, input_address)
-            df_tss.extend(df_ts)
+            df_tss.append(df_ts)
             native_amount += native_token.balance_of_scaled(account.address.checksum)
 
         df = (pd.concat(df_tss)

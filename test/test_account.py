@@ -83,9 +83,9 @@ class TestAccount(CMKTest):
 
         # token-historical, token-return-historical
         self.run_model('account.token-historical',
-                       {"accounts": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
-                        "token_list": "cmf", "window": "5 days", "interval": "1 days"})
+                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
+                        "window": "5 days", "interval": "1 days"})
 
         self.run_model('account.token-return-historical',
-                       {"accounts": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
+                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
                         "token_list": "cmf", "window": "5 days", "interval": "1 days"})
