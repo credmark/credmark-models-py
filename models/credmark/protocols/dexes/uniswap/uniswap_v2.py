@@ -14,7 +14,6 @@ from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
-from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
 from models.dtos.tvl import TVLInfo
@@ -170,8 +169,8 @@ class UniswapV2LPQuantity(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = fix_erc20_token(token0)
-        token1 = fix_erc20_token(token1)
+        token0 = token0.as_erc20()
+        token1 = token1.as_erc20()
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -268,8 +267,8 @@ class UniswapV2LPFeeHistory(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = fix_erc20_token(token0)
-        token1 = fix_erc20_token(token1)
+        token0 = token0.as_erc20()
+        token1 = token1.as_erc20()
 
         with self.context.ledger.TokenBalance as q:
             df_ts = []
@@ -349,8 +348,8 @@ class UniswapV2LPFee(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = fix_erc20_token(token0)
-        token1 = fix_erc20_token(token1)
+        token0 = token0.as_erc20()
+        token1 = token1.as_erc20()
 
         # Obtain the last 2 when the current block has mint/burn
         with self.context.ledger.TokenBalance as q:
@@ -441,8 +440,8 @@ class UniswapPoolPriceInfo(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = fix_erc20_token(token0)
-        token1 = fix_erc20_token(token1)
+        token0 = token0.as_erc20()
+        token1 = token1.as_erc20()
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 

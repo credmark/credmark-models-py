@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled, unused-import, invalid-name
 
 from typing import List
 
@@ -19,7 +19,6 @@ from models.credmark.protocols.dexes.uniswap.liquidity import (
     tick_to_price, in_range, out_of_range)
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_POS_NFT, V3_FACTORY_ADDRESS, V3_POOL_FEES, V3_TICK, V3_POS)
-from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -357,7 +356,7 @@ class UniswapV2LPID(Model):
                             fee_token1=feetoken1,
                             in_range=in_range_str)
 
-# pylint:disable=invalid-name
+
 @Model.describe(slug='uniswap-v3.get-pool-info',
                 version='1.11',
                 display_name='Uniswap v3 Token Pools Info',
@@ -404,8 +403,8 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
         token0 = Token(address=Address(token0_addr).checksum)
         token1 = Token(address=Address(token1_addr).checksum)
-        token0 = fix_erc20_token(token0)
-        token1 = fix_erc20_token(token1)
+        token0 = token0.as_erc20()
+        token1 = token1.as_erc20()
         token0_symbol = token0.symbol
         token1_symbol = token1.symbol
 

@@ -18,7 +18,6 @@ from credmark.dto import DTO, DTOField, EmptyInput
 from web3.exceptions import ContractLogicError
 from models.dtos.historical import HistoricalDTO
 
-
 np.seterr(all='raise')
 
 
@@ -30,6 +29,9 @@ def get_token_transfer_columns(_context) -> List:
                          q.TOKEN_ADDRESS]
 
         return transfer_cols
+
+# Transaction Gas is from receipts per transaction. GAS_USED * EFFECTIVE_GAS_PRICE
+# Not full transaction (missing Ether transfers), can be found in TRACES (but lack of context),
 
 
 def get_token_transfer(_context, _address) -> pd.DataFrame:
@@ -161,7 +163,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     for tok_address, dfa in _df.groupby('token_address'):
         min_block_number = dfa.block_number.min()
 
-        tok = Token(tok_address)
+        tok = Token(tok_address).as_erc20()
 
         try:
             dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
@@ -292,7 +294,7 @@ class AccountERC20TokenReturn(Model):
         native_token = NativeToken()
         native_amount = native_token.balance_of_scaled(input.address.checksum)
 
-        # TODO: native token transaction and gas spending
+        # TODO: native token transaction (incomplete) and gas spending
         _df_native = get_native_transfer(self.context, input.address)
 
         # ERC-20 transaction
@@ -336,10 +338,10 @@ class AccountERC20TokenReturnHistorical(Model):
 
         df_historical = price_historical_result.to_dataframe()
 
-        native_token = NativeToken()
+        _native_token = NativeToken()
 
-        # TODO: native token transaction and gas spending
-        df_native = get_native_transfer(self.context, input.address)
+        # TODO: native token transaction (incomplete) and gas spending
+        _df_native = get_native_transfer(self.context, input.address)
 
         # ERC-20 transaction
         df_ts = get_token_transfer(self.context, input.address)
@@ -354,19 +356,20 @@ class AccountERC20TokenReturnHistorical(Model):
         else:
             token_list = None
 
-        native_token = NativeToken()
         for n_historical, row in df_historical.iterrows():
             _past_block_number = row['blockNumber']
             assets = []
-            native_token_bal = (df_native
-                                .query('(block_number <= @_past_block_number)')
-                                .groupby('token_address', as_index=False)['value']
-                                .sum())
+            _native_token_bal = (_df_native
+                                 .query('(block_number <= @_past_block_number)')
+                                 .groupby('token_address', as_index=False)['value']
+                                 .sum())
 
-            if not native_token_bal.empty:
-                assets.append(
-                    Position(amount=native_token.scaled(native_token_bal['value'][0]),
-                             asset=native_token))
+            # TODO: disabled
+            # if not _native_token_bal.empty:
+            #     assets.append(
+            #         Position(amount=native_token.scaled(_native_token_bal['value'][0]),
+            #                  asset=_native_token))
+
             if token_list is not None:
                 token_bal = (df_ts
                              .query(('(block_number <= @_past_block_number) & '
@@ -381,9 +384,12 @@ class AccountERC20TokenReturnHistorical(Model):
 
             for _, token_bal_row in token_bal.iterrows():
                 asset_token = Token(token_bal_row['token_address'])
-                assets.append(
-                    Position(amount=asset_token.scaled(token_bal_row['value']),
-                             asset=asset_token))
+                try:
+                    assets.append(
+                        Position(amount=asset_token.scaled(token_bal_row['value']),
+                                 asset=asset_token))
+                except ModelDataError:
+                    continue
 
             price_historical_result[n_historical].output = {"value": Portfolio(
                 positions=assets).get_value(block_number=_past_block_number)}
@@ -423,27 +429,27 @@ class AccountERC20TokenHistorical(Model):
 
         df_historical = price_historical_result.to_dataframe()
 
-        native_token = NativeToken()
+        _native_token = NativeToken()
 
-        # TODO: native token transaction and gas spending
-        df_native = get_native_transfer(self.context, input.address)
+        # TODO: native token transaction (incomplete) and gas spending
+        _df_native = get_native_transfer(self.context, input.address)
 
         # ERC-20 transaction
         df_ts = get_token_transfer(self.context, input.address)
 
-        native_token = NativeToken()
         for n_historical, row in df_historical.iterrows():
             _past_block_number = row['blockNumber']
             assets = []
-            native_token_bal = (df_native
-                                .query('(block_number <= @_past_block_number)')
-                                .groupby('token_address', as_index=False)['value']
-                                .sum())
+            _native_token_bal = (_df_native
+                                 .query('(block_number <= @_past_block_number)')
+                                 .groupby('token_address', as_index=False)['value']
+                                 .sum())
 
-            if not native_token_bal.empty:
-                assets.append(
-                    Position(amount=native_token.scaled(native_token_bal['value'][0]),
-                             asset=native_token))
+            # TODO
+            # if not _native_token_bal.empty:
+            #    assets.append(
+            #        Position(amount=_native_token.scaled(native_token_bal['value'][0]),
+            #                 asset=_native_token))
 
             token_bal = (df_ts
                          .query('(block_number <= @_past_block_number)')
@@ -452,9 +458,12 @@ class AccountERC20TokenHistorical(Model):
 
             for _, token_bal_row in token_bal.iterrows():
                 asset_token = Token(token_bal_row['token_address'])
-                assets.append(
-                    Position(amount=asset_token.scaled(token_bal_row['value']),
-                             asset=asset_token))
+                try:
+                    assets.append(
+                        Position(amount=asset_token.scaled(token_bal_row['value']),
+                                 asset=asset_token))
+                except ModelDataError:
+                    ...
 
             price_historical_result[n_historical].output = Portfolio(positions=assets)
 

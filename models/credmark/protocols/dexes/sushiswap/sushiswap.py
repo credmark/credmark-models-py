@@ -28,7 +28,7 @@ class SushiswapV2Factory(Model):
     }
 
     def run(self, _) -> Contract:
-        addr = self.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.network]
+        addr = __class__.SUSHISWAP_V2_FACTORY_ADDRESS[self.context.network]
         cc = Contract(address=addr)
         _ = cc.abi
         return cc

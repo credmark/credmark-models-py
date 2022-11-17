@@ -238,17 +238,17 @@ class PriceQuote(Model):
             model2, label2 = 'price.cex-maybe', 'cex'
 
         try:
-            price_maybe = self.context.run_model(
+            price_maybe1 = self.context.run_model(
                 model1, pi, return_type=Maybe[PriceWithQuote])
-            if price_maybe.just is not None:
-                price = price_maybe.just
+            if price_maybe1.just is not None:
+                price = price_maybe1.just
                 price.src = label1 + '|' + (price.src if price.src is not None else '')
                 return price
             else:
-                price = self.context.run_model(
-                    model2, pi, return_type=PriceWithQuote)
-                if price_maybe.just is not None:
-                    price = price_maybe.just
+                price_maybe2 = self.context.run_model(
+                    model2, pi, return_type=Maybe[PriceWithQuote])
+                if price_maybe2.just is not None:
+                    price = price_maybe2.just
                     price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
@@ -465,7 +465,6 @@ class PriceDexMaybe(Model):
     """
 
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
-
         try:
             price = self.context.run_model('price.dex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
