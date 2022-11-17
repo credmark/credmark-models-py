@@ -230,25 +230,29 @@ class PriceQuoteMaybe(Model):
 class PriceQuote(Model):
     def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
         pi = {"base": input.base.address, "quote": input.quote.address}
+        if input.prefer == 'cex':
+            model1, label1 = 'price.cex-maybe', 'cex'
+            model2, label2 = 'price.dex-maybe', 'dex'
+        else:
+            model1, label1 = 'price.dex-maybe', 'dex'
+            model2, label2 = 'price.cex-maybe', 'cex'
+
         try:
-            if input.prefer == 'cex':
-                try:
-                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
-                    price.src = 'cex|' + (price.src if price.src is not None else '')
-                    return price
-                except ModelDataError:
-                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
-                    price.src = 'dex|' + (price.src if price.src is not None else '')
-                    return price
+            price_maybe = self.context.run_model(
+                model1, pi, return_type=Maybe[PriceWithQuote])
+            if price_maybe.just is not None:
+                price = price_maybe.just
+                price.src = label1 + '|' + (price.src if price.src is not None else '')
+                return price
             else:
-                try:
-                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
-                    price.src = 'dex|' + (price.src if price.src is not None else '')
+                price = self.context.run_model(
+                    model2, pi, return_type=PriceWithQuote)
+                if price_maybe.just is not None:
+                    price = price_maybe.just
+                    price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
-                except ModelDataError:
-                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
-                    price.src = 'cex|' + (price.src if price.src is not None else '')
-                    return price
+                else:
+                    raise ModelDataError(f'No price can be found for {input}')
         except ModelDataError:
             raise
             # cex_cross = PriceCexCross(self.context)
@@ -415,22 +419,72 @@ class PriceCex(PriceCexModel, NoDEX):
     """
 
 
+@Model.describe(
+    slug='price.cex-maybe',
+    version='0.1',
+    display_name='Credmark Token Price and fiat conversion from Chainlink [Maybe]',
+    description='Price and fiat conversion for non-USD from Chainlink [Maybe]',
+    developer='Credmark',
+    category='protocol',
+    tags=['token', 'price'],
+    input=PriceInput,
+    output=Maybe[PriceWithQuote])
+class PriceCexMaybe(Model):
+    """
+    Return token's price in Maybe
+    """
+
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+        try:
+            price = self.context.run_model('price.cex', input=input, return_type=PriceWithQuote)
+            return Maybe[PriceWithQuote](just=price)
+        except (ModelRunError, ModelDataError) as _err:
+            pass
+        return Maybe.none()
+
+
 class PriceCexCross(PriceCexModel, AllowDEX):
     """
     Return token's price and fiat conversion for non-USD from Chainlink
     """
 
 
-@Model.describe(slug='price.dex',
-                version='0.2',
-                display_name='Credmark Token Price from Dex with Chainlink for fiat conversion',
-                description='Price from Dex with fiat conversion for non-USD',
-                developer='Credmark',
-                category='protocol',
-                tags=['token', 'price'],
-                input=PriceInput,
-                output=PriceWithQuote,
-                errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(
+    slug='price.dex-maybe',
+    version='0.2',
+    display_name='Credmark Token Price from Dex with Chainlink for fiat conversion [Maybe]',
+    description='Price from Dex with fiat conversion for non-USD [Maybe]',
+    developer='Credmark',
+    category='protocol',
+    tags=['token', 'price'],
+    input=PriceInput,
+    output=Maybe[PriceWithQuote])
+class PriceDexMaybe(Model):
+    """
+    Return token's price in Maybe
+    """
+
+    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+
+        try:
+            price = self.context.run_model('price.dex', input=input, return_type=PriceWithQuote)
+            return Maybe[PriceWithQuote](just=price)
+        except (ModelRunError, ModelDataError) as _err:
+            pass
+        return Maybe.none()
+
+
+@Model.describe(
+    slug='price.dex',
+    version='0.2',
+    display_name='Credmark Token Price from Dex with Chainlink for fiat conversion',
+    description='Price from Dex with fiat conversion for non-USD',
+    developer='Credmark',
+    category='protocol',
+    tags=['token', 'price'],
+    input=PriceInput,
+    output=PriceWithQuote,
+    errors=PRICE_DATA_ERROR_DESC)
 class PriceDex(Model, PriceCommon):
     """
     Return token's price from Dex with Chainlink for fiat conversion
