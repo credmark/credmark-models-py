@@ -8,6 +8,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
                                 Contract, MapBlocksOutput, Maybe,
                                 NativePosition, NativeToken, Network,
@@ -16,7 +17,7 @@ from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
 from credmark.dto import DTO, DTOField, EmptyInput
 from web3.exceptions import ContractLogicError
 from models.dtos.historical import HistoricalDTO
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+
 
 np.seterr(all='raise')
 
@@ -316,9 +317,9 @@ class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
                 subcategory='position',
                 tags=['token'],
                 input=AccountReturnHistoricalInput,
-                output=dict)
+                output=MapBlockTimeSeriesOutput[dict])
 class AccountERC20TokenReturnHistorical(Model):
-    def run(self, input: AccountReturnHistoricalInput) -> dict:
+    def run(self, input: AccountReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
@@ -357,27 +358,35 @@ class AccountERC20TokenReturnHistorical(Model):
         for n_historical, row in df_historical.iterrows():
             _past_block_number = row['blockNumber']
             assets = []
-            native_token_bal = df_native.query(
-                '(block_number <= @_past_block_number)').groupby('token_address', as_index=False)['value'].sum()
+            native_token_bal = (df_native
+                                .query('(block_number <= @_past_block_number)')
+                                .groupby('token_address', as_index=False)['value']
+                                .sum())
+
             if not native_token_bal.empty:
-                assets.append(Position(amount=native_token.scaled(native_token_bal['value'][0]), asset=native_token))
+                assets.append(
+                    Position(amount=native_token.scaled(native_token_bal['value'][0]),
+                             asset=native_token))
             if token_list is not None:
-                token_bal = (
-                    df_ts.query('(block_number <= @_past_block_number) & (token_address.isin(@token_list))')
-                         .groupby('token_address', as_index=False)['value'].sum())
+                token_bal = (df_ts
+                             .query(('(block_number <= @_past_block_number) & '
+                                     '(token_address.isin(@token_list))'))
+                             .groupby('token_address', as_index=False)['value']
+                             .sum())
             else:
-                token_bal = (
-                    df_ts.query('(block_number <= @_past_block_number)')
-                    .groupby('token_address', as_index=False)['value'].sum())
+                token_bal = (df_ts
+                             .query('(block_number <= @_past_block_number)')
+                             .groupby('token_address', as_index=False)['value']
+                             .sum())
+
             for _, token_bal_row in token_bal.iterrows():
                 asset_token = Token(token_bal_row['token_address'])
-                assets.append(Position(amount=asset_token.scaled(token_bal_row['value']), asset=asset_token))
+                assets.append(
+                    Position(amount=asset_token.scaled(token_bal_row['value']),
+                             asset=asset_token))
 
             price_historical_result[n_historical].output = {"value": Portfolio(
                 positions=assets).get_value(block_number=_past_block_number)}
-
-        # If we filter for one token address, use below
-        # df = df.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
 
         return price_historical_result
 

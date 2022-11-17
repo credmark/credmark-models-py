@@ -4,6 +4,8 @@ from cmk_test import CMKTest
 
 
 class TestPrice(CMKTest):
+    CEX_ONLY_TOKENS = ['0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab', ]
+
     CHAINLINK_TOKENS = ['0xf629cbd94d3791c9250152bd8dfbdf380e2a3b9c',
                         '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72',
                         '0xa0246c9032bc3a600820415ae600c6388619a14d',
@@ -22,7 +24,6 @@ class TestPrice(CMKTest):
                         '0x6f259637dcd74c767781e37bc6133cd6a68aa161',
                         '0xdf574c24545e5ffecb9a659c229253d4111d87e1',
                         '0x767fe9edc9e0df98e07454847909b5e959d7ca0e',
-                        '0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab',
                         '0xdd974d5c2e2928dea5f71b9825b8b646686bd200',
                         '0x1ceb5cb57c4d4e2b2433641b95dd330a33185a44',
                         '0x5a98fcbea516cf06857215779fd812ca3bef1b32',
@@ -299,20 +300,18 @@ class TestPrice(CMKTest):
 def run_test_price_mix(self, tok):
     block_number = 15000108
     for prefer in ['cex', 'dex']:
-        self.run_model('price.quote',
-                       {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": prefer},
-                       block_number=block_number)
+        if prefer == 'dex' and tok not in TestPrice.CEX_ONLY_TOKENS:
+            self.run_model('price.quote',
+                           {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": prefer},
+                           block_number=block_number)
+            self.run_model('price.quote',
+                        {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": prefer},
+                        block_number=block_number)
 
         if prefer == 'cex':
             self.run_model('price.quote',
                            {"quote": {"address": tok}, "base": {"symbol": "USD"}, "prefer": prefer},
                            block_number=block_number)
-
-        self.run_model('price.quote',
-                       {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": prefer},
-                       block_number=block_number)
-
-        if prefer == 'cex':
             self.run_model('price.quote',
                            {"quote": {"address": tok}, "base": {"symbol": "EUR"}, "prefer": prefer},
                            block_number=block_number)

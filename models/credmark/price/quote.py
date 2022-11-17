@@ -229,23 +229,24 @@ class PriceQuoteMaybe(Model):
     errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
     def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
+        pi = {"base": input.base.address, "quote": input.quote.address}
         try:
             if input.prefer == 'cex':
                 try:
-                    price = self.context.run_model('price.cex', input, return_type=PriceWithQuote)
+                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
                     price.src = 'cex|' + (price.src if price.src is not None else '')
                     return price
                 except ModelDataError:
-                    price = self.context.run_model('price.dex', input, return_type=PriceWithQuote)
+                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
                     price.src = 'dex|' + (price.src if price.src is not None else '')
                     return price
             else:
                 try:
-                    price = self.context.run_model('price.dex', input, return_type=PriceWithQuote)
+                    price = self.context.run_model('price.dex', pi, return_type=PriceWithQuote)
                     price.src = 'dex|' + (price.src if price.src is not None else '')
                     return price
                 except ModelDataError:
-                    price = self.context.run_model('price.cex', input, return_type=PriceWithQuote)
+                    price = self.context.run_model('price.cex', pi, return_type=PriceWithQuote)
                     price.src = 'cex|' + (price.src if price.src is not None else '')
                     return price
         except ModelDataError:

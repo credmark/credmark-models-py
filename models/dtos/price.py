@@ -1,4 +1,3 @@
-from typing import List
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Address, Contract, Currency, FiatCurrency,
