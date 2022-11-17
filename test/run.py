@@ -14,12 +14,13 @@ from importlib import import_module
 from cmk_test import CMKTest
 
 from test_aave import TestAAVE
+from test_account import TestAccount
+from test_balancer import TestBalancer
 from test_chainlink import TestChainlink
 from test_cmk import TestCMK
 from test_compose import TestCompose
 from test_compound import TestCompound
 from test_curve import TestCurve
-from test_balancer import TestBalancer
 from test_dashboard import TestDashboard
 from test_example import TestExample
 from test_finance import TestFinance
@@ -89,6 +90,14 @@ if __name__ == '__main__':
 
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
+
+    all_tests_name = [o.__name__.lower()
+                      for _n, o in locals().items()
+                      if inspect.isclass(o) and
+                      issubclass(o, CMKTest)
+                      ]
+
+    print(f'Tests: {all_tests_name}')
 
     all_tests = [o for _n, o in locals().items()
                  if inspect.isclass(o) and

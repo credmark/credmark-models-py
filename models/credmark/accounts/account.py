@@ -391,6 +391,72 @@ class AccountERC20TokenReturnHistorical(Model):
         return price_historical_result
 
 
+@Model.describe(slug='account.token-historical',
+                version='0.1',
+                display_name='Account Token Holdings Historical',
+                description='Account ERC20 Token Return',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountReturnHistoricalInput,
+                output=MapBlockTimeSeriesOutput[Portfolio])
+class AccountERC20TokenHistorical(Model):
+    def run(self, input: AccountReturnHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+        window_in_seconds = self.context.historical.to_seconds(input.window)
+        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        count = int(window_in_seconds / interval_in_seconds)
+
+        price_historical_result = self.context.run_model(
+            slug='compose.map-block-time-series',
+            input={"modelSlug": 'historical.empty',
+                   "modelInput": {},
+                   "endTimestamp": self.context.block_number.timestamp,
+                   "interval": interval_in_seconds,
+                   "count": count,
+                   "exclusive": input.exclusive},
+            return_type=MapBlockTimeSeriesOutput[dict])
+
+        df_historical = price_historical_result.to_dataframe()
+
+        native_token = NativeToken()
+
+        # TODO: native token transaction and gas spending
+        df_native = get_native_transfer(self.context, input.address)
+
+        # ERC-20 transaction
+        df_ts = get_token_transfer(self.context, input.address)
+
+        native_token = NativeToken()
+        for n_historical, row in df_historical.iterrows():
+            _past_block_number = row['blockNumber']
+            assets = []
+            native_token_bal = (df_native
+                                .query('(block_number <= @_past_block_number)')
+                                .groupby('token_address', as_index=False)['value']
+                                .sum())
+
+            if not native_token_bal.empty:
+                assets.append(
+                    Position(amount=native_token.scaled(native_token_bal['value'][0]),
+                             asset=native_token))
+
+            token_bal = (df_ts
+                         .query('(block_number <= @_past_block_number)')
+                         .groupby('token_address', as_index=False)['value']
+                         .sum())
+
+            for _, token_bal_row in token_bal.iterrows():
+                asset_token = Token(token_bal_row['token_address'])
+                assets.append(
+                    Position(amount=asset_token.scaled(token_bal_row['value']),
+                             asset=asset_token))
+
+            price_historical_result[n_historical].output = Portfolio(positions=assets)
+
+        return price_historical_result
+
+
 class AccountsReturnInput(Accounts):
     token_list: TokenListChoice = DTOField(
         description='Value all tokens or those from token.list, current choice: all, cmf.')
