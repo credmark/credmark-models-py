@@ -459,14 +459,7 @@ class PriceCexMaybe(Model):
             price = self.context.run_model('price.cex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError) as _err:
-
-
-<< << << < HEAD
             return Maybe.none()
-== == == =
-            pass
-        return Maybe.none()
->>>>>>> origin/main
 
 
 class PriceCexCross(PriceCexModel, AllowDEX):
@@ -491,20 +484,11 @@ class PriceDexMaybe(Model):
     """
 
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
         try:
             price = self.context.run_model('price.dex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError) as _err:
-<<<<<<< HEAD
             return Maybe.none()
-=======
-            pass
-        return Maybe.none()
->>>>>>> origin/main
 
 
 @Model.describe(
