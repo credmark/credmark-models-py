@@ -220,7 +220,7 @@ class PriceQuoteMaybe(Model):
     version='1.11',
     display_name=('Credmark Token Price with preference of cex or dex (default), '
                   'fiat conversion for non-USD from Chainlink'),
-    description='',
+    description='Credmark Token Price from cex or dex',
     developer='Credmark',
     category='protocol',
     tags=['token', 'price'],
@@ -238,17 +238,17 @@ class PriceQuote(Model):
             model2, label2 = 'price.cex-maybe', 'cex'
 
         try:
-            price_maybe = self.context.run_model(
+            price_maybe1 = self.context.run_model(
                 model1, pi, return_type=Maybe[PriceWithQuote])
-            if price_maybe.just is not None:
-                price = price_maybe.just
+            if price_maybe1.just is not None:
+                price = price_maybe1.just
                 price.src = label1 + '|' + (price.src if price.src is not None else '')
                 return price
             else:
-                price = self.context.run_model(
-                    model2, pi, return_type=PriceWithQuote)
-                if price_maybe.just is not None:
-                    price = price_maybe.just
+                price_maybe2 = self.context.run_model(
+                    model2, pi, return_type=Maybe[PriceWithQuote])
+                if price_maybe2.just is not None:
+                    price = price_maybe2.just
                     price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
@@ -278,6 +278,19 @@ class PriceCommon:
         }
     }
 
+    EXCEPTION_TOKEN = {
+        Network.Mainnet: {
+            # Wormhole SOL (problematic ABI/proxy)
+            Address('0xD31a59c85aE9D8edEFeC411D448f90841571b89c'),
+            # Wormhole BNB (problematic ABI/proxy)
+            Address('0x418d75f65a02b3d53b2418fb8e1fe493759c7605'),
+        }
+    }
+
+    @staticmethod
+    def is_native(context, token):
+        return token.address in __class__.WRAP_TOKEN[context.network]
+
     @staticmethod
     def wrap_token(context, token):
         new_token = __class__.WRAP_TOKEN[context.network].get(token.address, None)
@@ -287,6 +300,12 @@ class PriceCommon:
 
     @staticmethod
     def unwrap_token(context, token):
+        if __class__.is_native(context, token):
+            return token
+
+        if token.address in __class__.EXCEPTION_TOKEN[context.network]:
+            return token
+
         new_token = __class__.UNWRAP_TOKEN[context.network].get(token.symbol, None)
         if new_token is not None:
             if Token(token.symbol).address == token.address:
@@ -331,7 +350,8 @@ class PriceCommon:
                                           return_type=PriceWithQuote,
                                           local=True)
             return price_usd
-        except ModelDataError:
+
+        except (ModelRunError, ModelDataError):
             price_usd_maybe = context.run_model('price.dex-curve-fi-maybe',
                                                 input=input_base,
                                                 return_type=Maybe[Price],
@@ -439,8 +459,7 @@ class PriceCexMaybe(Model):
             price = self.context.run_model('price.cex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError) as _err:
-            pass
-        return Maybe.none()
+            return Maybe.none()
 
 
 class PriceCexCross(PriceCexModel, AllowDEX):
@@ -465,13 +484,11 @@ class PriceDexMaybe(Model):
     """
 
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
-
         try:
             price = self.context.run_model('price.dex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError) as _err:
-            pass
-        return Maybe.none()
+            return Maybe.none()
 
 
 @Model.describe(

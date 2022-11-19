@@ -13,7 +13,6 @@ from credmark.cmf.types import (Account, Accounts, Address, Contract,
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from credmark.cmf.types.series import BlockSeries
-from models.credmark.tokens.token import fix_erc20_token
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
 from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
@@ -142,7 +141,7 @@ class CurveFinancePoolInfoTokens(Model):
             tok_addr = Address(addr)
             if not tok_addr.is_null():
                 tok = Token(address=tok_addr.checksum)
-                tok = fix_erc20_token(tok)
+                tok = tok.as_erc20()
                 symbols_list.append(tok.symbol)
                 token_list.append(tok)
         return token_list, symbols_list
@@ -254,7 +253,7 @@ class CurveFinancePoolInfoTokens(Model):
                 try:
                     _ = lp_token.abi
                 except ModelDataError:
-                    lp_token = fix_erc20_token(lp_token)
+                    lp_token = lp_token.as_erc20()
                 lp_token_name = lp_token.name
                 lp_token_addr = lp_token.address
 

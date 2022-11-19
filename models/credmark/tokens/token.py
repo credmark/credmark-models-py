@@ -67,25 +67,6 @@ def get_eip1967_proxy_err(context, logger, address, verbose):
     return res
 
 
-def fix_erc20_token(tok):
-    try:
-        _ = tok.abi
-    except ModelDataError:
-        tok = Token(address=tok.checksum, abi=ERC_20_ABI)
-
-    if tok.proxy_for is not None:
-        try:
-            _ = tok.proxy_for.abi
-        except BlockNumberOutOfRangeError as err:
-            raise BlockNumberOutOfRangeError(
-                err.data.message + f' This is for Contract({tok.address})')
-        except ModelDataError:
-            tok.proxy_for._loaded = True  # pylint:disable=protected-access
-            tok.proxy_for.set_abi(ERC_20_ABI)
-
-    return tok
-
-
 def recursive_proxy(token):
     # if 'tokenURI' in token.abi.functions
     proxy_for = token.proxy_for
