@@ -14,6 +14,7 @@ from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
+from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
 from models.dtos.tvl import TVLInfo
@@ -117,28 +118,21 @@ class LPInput(DTO):
 
 class LPOutput(DTO):
     lp: Position
-    token0: Position
-    token1: Position
+    tokens: List[Position]
 
 
 class LPFeeOutput(DTO):
     lp: Position
-    token0: Position
-    token1: Position
-    token0_fee: Position
-    token1_fee: Position
+    tokens: List[PositionWithFee]
 
     @classmethod
     # pylint: disable=invalid-name
     def zero(cls, lp, token0, token1):
         lp_pos = Position(amount=0, asset=lp)
-        token0_pos = Position(amount=0, asset=token0)
-        token1_pos = Position(amount=0, asset=token1)
+        token0_pos = PositionWithFee(amount=0, fee=0, asset=token0)
+        token1_pos = PositionWithFee(amount=0, fee=0, asset=token1)
         return cls(lp=lp_pos,
-                   token0=token0_pos,
-                   token1=token1_pos,
-                   token0_fee=token0_pos,
-                   token1_fee=token1_pos)
+                   tokens=[token0_pos, token1_pos])
 
 
 class LPQuantityInput(DTO):
@@ -147,7 +141,7 @@ class LPQuantityInput(DTO):
 
 
 @Model.describe(slug='uniswap-v2.lp-pos',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 LP Position (inclusive of fee) for liquidity',
                 description='Returns position (inclusive of fee) for the amount of liquidity',
                 category='protocol',
@@ -181,12 +175,12 @@ class UniswapV2LPQuantity(Model):
         position0 = Position(amount=lp_token0, asset=token0)
         position1 = Position(amount=lp_token1, asset=token1)
 
-        out = LPOutput(lp=lp_position, token0=position0, token1=position1)
+        out = LPOutput(lp=lp_position, tokens=[position0, position1])
         return out
 
 
 @Model.describe(slug='uniswap-v2.lp',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 LP Position (inclusive of fee) for account',
                 description='Returns position (inclusive of fee) for account',
                 category='protocol',
@@ -220,23 +214,24 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
         input=LPQuantityInput(pool=pool, lp_balance=1e18),
         return_type=LPOutput,
         block_number=block_number)
-    ratio = lp_in_out.token1.amount / lp_in_out.token0.amount
 
-    lp_in_out.token0.amount = lp_in_out.token0.amount * transaction_value / 1e18
-    lp_in_out.token1.amount = lp_in_out.token1.amount * transaction_value / 1e18
+    ratio = lp_in_out.tokens[1].amount / lp_in_out.tokens[0].amount
+
+    lp_in_out.tokens[0].amount = lp_in_out.tokens[0].amount * transaction_value / 1e18
+    lp_in_out.tokens[1].amount = lp_in_out.tokens[1].amount * transaction_value / 1e18
 
     lp_il0 = (lp_prev_token0 * lp_prev_token1 / ratio) ** 0.5
     lp_il1 = lp_il0 * ratio
 
     return dict(
-        token0_lp=lp_pos.token0.amount,
-        token1_lp=lp_pos.token1.amount,
-        token0=try_zero(lp_in_out.token0.amount),
-        token1=try_zero(lp_in_out.token1.amount),
+        token0_lp=lp_pos.tokens[0].amount,
+        token1_lp=lp_pos.tokens[1].amount,
+        token0=try_zero(lp_in_out.tokens[0].amount),
+        token1=try_zero(lp_in_out.tokens[1].amount),
         lp_il0=lp_il0,
         lp_il1=lp_il1,
-        token0_fee=try_zero(lp_pos.token0.amount - lp_il0 - lp_in_out.token0.amount),
-        token1_fee=try_zero(lp_pos.token1.amount - lp_il1 - lp_in_out.token1.amount),
+        token0_fee=try_zero(lp_pos.tokens[0].amount - lp_il0 - lp_in_out.tokens[0].amount),
+        token1_fee=try_zero(lp_pos.tokens[1].amount - lp_il1 - lp_in_out.tokens[1].amount),
     )
 
 
@@ -248,7 +243,7 @@ def try_zero(flt):
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
@@ -329,7 +324,7 @@ class UniswapV2LPFeeHistory(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 LP Position (split for fee) for account',
                 description='Returns position (split for fee) for account',
                 category='protocol',
@@ -377,7 +372,7 @@ class UniswapV2LPFee(Model):
                 return_type=LPOutput,
                 block_number=prev2_block_number)
 
-            lp_prev_token0, lp_prev_token1 = lp_pos.token0.amount, lp_pos.token1.amount
+            lp_prev_token0, lp_prev_token1 = lp_pos.tokens[0].amount, lp_pos.tokens[1].amount
 
             v2_fee = calculate_v2_fee(
                 self.context, pool, lp, prev_block_number, prev_transaction_value,
@@ -389,7 +384,7 @@ class UniswapV2LPFee(Model):
                 return_type=LPOutput,
                 block_number=prev_block_number)
 
-            lp_prev_token0, lp_prev_token1 = lp_pos.token0.amount, lp_pos.token1.amount
+            lp_prev_token0, lp_prev_token1 = lp_pos.tokens[0].amount, lp_pos.tokens[1].amount
 
             v2_fee = calculate_v2_fee(
                 self.context, pool, lp, self.context.block_number, 0,
@@ -398,13 +393,13 @@ class UniswapV2LPFee(Model):
         lp_balance = pool.functions.balanceOf(lp).call()
 
         lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
-        position0 = Position(amount=v2_fee['token0_lp'] - v2_fee['token0_fee'], asset=token0)
-        position1 = Position(amount=v2_fee['token1_lp'] - v2_fee['token1_fee'], asset=token1)
-        position0_fee = Position(amount=v2_fee['token0_fee'], asset=token0)
-        position1_fee = Position(amount=v2_fee['token1_fee'], asset=token1)
+        position0 = PositionWithFee(amount=v2_fee['token0_lp'] -
+                                    v2_fee['token0_fee'], fee=v2_fee['token0_fee'], asset=token0)
+        position1 = PositionWithFee(amount=v2_fee['token1_lp'] -
+                                    v2_fee['token1_fee'], fee=v2_fee['token1_fee'], asset=token1)
 
-        return LPFeeOutput(lp=lp_position, token0=position0, token1=position1,
-                           token0_fee=position0_fee, token1_fee=position1_fee)
+        return LPFeeOutput(lp=lp_position,
+                           tokens=[position0, position1])
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
