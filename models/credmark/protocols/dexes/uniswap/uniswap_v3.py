@@ -19,6 +19,7 @@ from models.credmark.protocols.dexes.uniswap.liquidity import (
     tick_to_price, in_range, out_of_range)
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_POS_NFT, V3_FACTORY_ADDRESS, V3_POOL_FEES, V3_TICK, V3_POS)
+from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
 from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
                                PoolPriceInfo)
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -205,10 +206,7 @@ class V3LPPosition(DTO):
     lp: Address = DTOField(description='Account')
     id: int
     pool: Address
-    token0: Position
-    token1: Position
-    fee_token0: float
-    fee_token1: float
+    tokens: List[PositionWithFee]
     in_range: str
 
 
@@ -218,7 +216,7 @@ class V3LPOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.lp',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v3 LP Position and Fee for account',
                 description='Returns position and Fee for account',
                 category='protocol',
@@ -247,7 +245,7 @@ class V3IDInput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.id',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v3 LP Position and Fee for NFT ID',
                 description='Returns position and Fee for NFT ID',
                 category='protocol',
@@ -350,10 +348,8 @@ class UniswapV2LPID(Model):
         feetoken1 = token1.scaled(feetoken1)
 
         return V3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
-                            token0=Position(amount=a0, asset=token0),
-                            token1=Position(amount=a1, asset=token1),
-                            fee_token0=feetoken0,
-                            fee_token1=feetoken1,
+                            tokens=[PositionWithFee(amount=a0, fee=feetoken0, asset=token0),
+                                    PositionWithFee(amount=a1, fee=feetoken1, asset=token1)],
                             in_range=in_range_str)
 
 
