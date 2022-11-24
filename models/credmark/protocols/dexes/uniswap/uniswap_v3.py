@@ -229,15 +229,39 @@ class UniswapV2LP(Model):
 
         lp = input.lp
         nft_total = int(nft_manager.functions.balanceOf(lp.checksum).call())
-        lp_poses = []
-        for nft_n in range(nft_total):
-            nft_id = nft_manager.functions.tokenOfOwnerByIndex(lp.checksum, nft_n).call()
-            lp_pos = self.context.run_model(
-                'uniswap-v3.id',
-                {'id': nft_id},
-                return_type=V3LPPosition)
-            lp_poses.append(lp_pos)
-        return V3LPOutput(lp=lp, positions=lp_poses)
+        nft_ids = [nft_manager.functions.tokenOfOwnerByIndex(lp.checksum, nft_n).call()
+                   for nft_n in range(nft_total)]
+
+        def _use_for():
+            lp_poses = []
+            for nft_id in nft_ids:
+                lp_pos = self.context.run_model(
+                    'uniswap-v3.id',
+                    {'id': nft_id},
+                    return_type=V3LPPosition)
+                lp_poses.append(lp_pos)
+            return lp_poses
+
+        def _use_compose():
+            slug = 'uniswap-v3.id'
+            model_inputs = {"modelSlug": slug,
+                            "modelInputs": [{'id': nft_id}
+                                            for nft_id in nft_ids]}
+
+            all_results = self.context.run_model(
+                slug='compose.map-inputs',
+                input=model_inputs,
+                return_type=MapInputsOutput[dict, V3LPPosition])
+
+            lp_poses = [obj.output for obj in all_results.results if obj.output is not None]
+            return lp_poses
+
+        if len(nft_ids) > 4:
+            return V3LPOutput(lp=lp, positions=_use_compose())
+        elif len(nft_ids) > 0:
+            return V3LPOutput(lp=lp, positions=_use_for())
+        else:
+            return V3LPOutput(lp=lp, positions=[])
 
 
 class V3IDInput(DTO):
