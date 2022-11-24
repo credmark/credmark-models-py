@@ -1,7 +1,44 @@
 from typing import List
 import pandas as pd
 
-from credmark.cmf.types import (Address, NativeToken)
+from credmark.cmf.model import Model
+from credmark.cmf.types import (Account, Accounts, Address,
+                                NativeToken, Records)
+
+
+@Model.describe(slug='account.token-transfer',
+                version='1.7',
+                display_name='Accounts\' Token Transfer',
+                description='Accounts\' Token Transfer Table',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=Account,
+                output=Records)
+class AccountERC20Token(Model):
+    def run(self, input: Account) -> Records:
+        return self.context.run_model(
+            'accounts.token-transfer',
+            input=input.to_accounts().dict(),
+            return_type=Records)
+
+
+@Model.describe(slug='accounts.token-transfer',
+                version='1.7',
+                display_name='Account\'s Token Transfer Table',
+                description='Account\'s Token Transfer Table',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=Accounts,
+                output=Records)
+class AccountsERC20Token(Model):
+    def run(self, input: Accounts) -> Records:
+        df_erc20 = get_token_transfer(self.context, input.to_address())
+        ret = Records.from_dataframe(df_erc20)
+        return ret
 
 
 def get_token_transfer(_context, _accounts: List[Address]) -> pd.DataFrame:
