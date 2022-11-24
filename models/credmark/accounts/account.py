@@ -9,7 +9,7 @@ from credmark.cmf.types import (Account, Accounts,
                                 NativePosition, NativeToken,
                                 Portfolio, Position, Records,
                                 Token, TokenPosition)
-from credmark.dto import DTOField, EmptyInput
+from credmark.dto import DTOField, EmptyInput, cross_examples
 from models.dtos.historical import HistoricalDTO
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
 from models.credmark.ledger.transaction import get_token_transfer, get_native_transfer
@@ -34,6 +34,10 @@ class AccountReturnInput(Account):
 
     class Config:
         use_enum_values = True
+        schema_extra = {
+            'examples': [{'address': '0x388C818CA8B9251b393131C08a736A67ccB19297',
+                          'token_list': 'cmf'}]
+        }
 
 
 @Model.describe(slug='account.token-return',
@@ -62,6 +66,11 @@ class AccountsReturnInput(Accounts):
 
     class Config:
         use_enum_values = True
+        schema_extra = {
+            'examples': [{'accounts': ['0x388C818CA8B9251b393131C08a736A67ccB19297',
+                                       '0xf9cbBA7BF1b10E045691dDECa48182dB213E8F8B'],
+                          'token_list': 'cmf'}]
+        }
 
 # create_instance_from_error_dict(result.error.dict())
 
@@ -124,7 +133,12 @@ class AccountERC20TokenReturnHistorical(Model):
 
 
 class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
-    ...
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(AccountsReturnInput.Config.schema_extra['examples'],
+                                       HistoricalDTO.Config.schema_extra['examples'],
+                                       limit=10)
+        }
 
 
 @Model.describe(slug='accounts.token-return-historical',
@@ -217,9 +231,10 @@ class AccountsERC20TokenReturnHistorical(Model):
 class AccountHistoricalInput(Account, HistoricalDTO):
     class Config:
         schema_extra = {
-            'examples': [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297',
-                          'window': '5 days', 'interval': '1 day'}]
-        }
+            'examples': cross_examples(
+                [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297'}],
+                HistoricalDTO.Config.schema_extra['examples'],
+                limit=10)}
 
 
 @Model.describe(
@@ -247,15 +262,13 @@ class AccountERC20TokenHistorical(Model):
 class AccountsHistoricalInput(Accounts, HistoricalDTO):
     class Config:
         schema_extra = {
-            'examples': [
-                {"accounts": [{"address": "0x388c818ca8b9251b393131c08a736a67ccb19297"}],
-                 'window': '5 days', 'interval': '1 day'},
-                {"accounts": ["0x388c818ca8b9251b393131c08a736a67ccb19297"],
-                 'window': '5 days', 'interval': '1 day', 'exclusive': "False"}, ]
+            'examples': cross_examples(
+                Accounts.Config.schema_extra['examples'],
+                HistoricalDTO.Config.schema_extra['examples'])
         }
 
 
-@Model.describe(
+@ Model.describe(
     slug='accounts.token-historical',
     version='0.3',
     display_name='Account Token Holdings Historical',
@@ -326,16 +339,16 @@ class AccountsERC20TokenHistorical(Model):
         return price_historical_result  # type: ignore
 
 
-@Model.describe(slug='account.token-erc20',
-                version='1.7',
-                display_name='Account Token ERC20',
-                description='Account ERC20 transaction table',
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['token'],
-                input=Account,
-                output=Records)
+@ Model.describe(slug='account.token-erc20',
+                 version='1.7',
+                 display_name='Account Token ERC20',
+                 description='Account ERC20 transaction table',
+                 developer="Credmark",
+                 category='account',
+                 subcategory='position',
+                 tags=['token'],
+                 input=Account,
+                 output=Records)
 class AccountERC20Token(Model):
     def run(self, input: Account) -> Records:
         return self.context.run_model(
@@ -344,16 +357,16 @@ class AccountERC20Token(Model):
             return_type=Records)
 
 
-@Model.describe(slug='accounts.token-erc20',
-                version='1.7',
-                display_name='Account Token ERC20',
-                description='Account ERC20 transaction table',
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['token'],
-                input=Accounts,
-                output=Records)
+@ Model.describe(slug='accounts.token-erc20',
+                 version='1.7',
+                 display_name='Account Token ERC20',
+                 description='Account ERC20 transaction table',
+                 developer="Credmark",
+                 category='account',
+                 subcategory='position',
+                 tags=['token'],
+                 input=Accounts,
+                 output=Records)
 class AccountsERC20Token(Model):
     def run(self, input: Accounts) -> Records:
         df_erc20 = get_token_transfer(self.context, input.to_address())
@@ -361,16 +374,16 @@ class AccountsERC20Token(Model):
         return ret
 
 
-@Model.describe(slug="account.portfolio",
-                version="0.3",
-                display_name="Account Portfolio",
-                description="All of the token holdings for an account",
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['portfolio'],
-                input=Account,
-                output=Portfolio)
+@ Model.describe(slug="account.portfolio",
+                 version="0.3",
+                 display_name="Account Portfolio",
+                 description="All of the token holdings for an account",
+                 developer="Credmark",
+                 category='account',
+                 subcategory='position',
+                 tags=['portfolio'],
+                 input=Account,
+                 output=Portfolio)
 class AccountPortfolio(Model):
     def run(self, input: Account) -> Portfolio:
         return self.context.run_model(
@@ -379,7 +392,7 @@ class AccountPortfolio(Model):
             return_type=Portfolio)
 
 
-@Model.describe(
+@ Model.describe(
     slug="account.portfolio-aggregate",
     version="0.2",
     display_name="Account Portfolios for a list of Accounts",
@@ -395,16 +408,16 @@ class AccountsPortfolioAggregate(Model):
         return self.context.run_model('accounts.portfolio', input=input, return_type=Portfolio)
 
 
-@Model.describe(slug="accounts.portfolio",
-                version="0.4",
-                display_name="Account Portfolio",
-                description="All of the token holdings for an account",
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['portfolio'],
-                input=Accounts,
-                output=Portfolio)
+@ Model.describe(slug="accounts.portfolio",
+                 version="0.4",
+                 display_name="Account Portfolio",
+                 description="All of the token holdings for an account",
+                 developer="Credmark",
+                 category='account',
+                 subcategory='position',
+                 tags=['portfolio'],
+                 input=Accounts,
+                 output=Portfolio)
 class AccountsPortfolio(Model):
     def run(self, input: Accounts) -> Portfolio:
         positions = []
