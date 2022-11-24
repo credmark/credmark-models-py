@@ -22,23 +22,23 @@ class TestAccount(CMKTest):
                                          "account": "0xAeCf596D2286940b8DA0AB14b07619F01E8213f2"})
 
     def test_account_token(self):
-        # account.token-erc20
-        self.run_model('account.token-erc20', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
-        self.run_model('account.token-erc20', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
-        self.run_model('account.token-erc20', {'address': '0x9c5083dd4838e120dbeac44c052179692aa5dac5'})
+        # account.token-transfer
+        self.run_model('account.token-transfer', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
+        self.run_model('account.token-transfer', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
+        self.run_model('account.token-transfer', {'address': '0x9c5083dd4838e120dbeac44c052179692aa5dac5'})
 
-        self.run_model('accounts.token-erc20',
+        self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
 
         # Keep this out to avoid hitting size limit: "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"
-        self.run_model('accounts.token-erc20',
+        self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5",
                                      "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
                                      ]})
 
     def test_account_portfolio(self):
-        self.run_model('account.position-in-curve', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
-        self.run_model('accounts.position-in-curve', {"accounts": ["0x5291fBB0ee9F51225f0928Ff6a83108c86327636"]})
+        self.run_model('curve.lp', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
+        self.run_model('curve.lp-accounts', {"accounts": ["0x5291fBB0ee9F51225f0928Ff6a83108c86327636"]})
 
         self.run_model('account.portfolio', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 

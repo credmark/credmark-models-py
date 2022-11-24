@@ -268,7 +268,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
         }
 
 
-@ Model.describe(
+@Model.describe(
     slug='accounts.token-historical',
     version='0.3',
     display_name='Account Token Holdings Historical',
@@ -339,51 +339,16 @@ class AccountsERC20TokenHistorical(Model):
         return price_historical_result  # type: ignore
 
 
-@ Model.describe(slug='account.token-erc20',
-                 version='1.7',
-                 display_name='Account Token ERC20',
-                 description='Account ERC20 transaction table',
-                 developer="Credmark",
-                 category='account',
-                 subcategory='position',
-                 tags=['token'],
-                 input=Account,
-                 output=Records)
-class AccountERC20Token(Model):
-    def run(self, input: Account) -> Records:
-        return self.context.run_model(
-            'accounts.token-erc20',
-            input=input.to_accounts().dict(),
-            return_type=Records)
-
-
-@ Model.describe(slug='accounts.token-erc20',
-                 version='1.7',
-                 display_name='Account Token ERC20',
-                 description='Account ERC20 transaction table',
-                 developer="Credmark",
-                 category='account',
-                 subcategory='position',
-                 tags=['token'],
-                 input=Accounts,
-                 output=Records)
-class AccountsERC20Token(Model):
-    def run(self, input: Accounts) -> Records:
-        df_erc20 = get_token_transfer(self.context, input.to_address())
-        ret = Records.from_dataframe(df_erc20)
-        return ret
-
-
-@ Model.describe(slug="account.portfolio",
-                 version="0.3",
-                 display_name="Account Portfolio",
-                 description="All of the token holdings for an account",
-                 developer="Credmark",
-                 category='account',
-                 subcategory='position',
-                 tags=['portfolio'],
-                 input=Account,
-                 output=Portfolio)
+@Model.describe(slug="account.portfolio",
+                version="0.3",
+                display_name="Account Portfolio",
+                description="All of the token holdings for an account",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=Account,
+                output=Portfolio)
 class AccountPortfolio(Model):
     def run(self, input: Account) -> Portfolio:
         return self.context.run_model(
@@ -392,7 +357,7 @@ class AccountPortfolio(Model):
             return_type=Portfolio)
 
 
-@ Model.describe(
+@Model.describe(
     slug="account.portfolio-aggregate",
     version="0.2",
     display_name="Account Portfolios for a list of Accounts",
@@ -408,16 +373,16 @@ class AccountsPortfolioAggregate(Model):
         return self.context.run_model('accounts.portfolio', input=input, return_type=Portfolio)
 
 
-@ Model.describe(slug="accounts.portfolio",
-                 version="0.4",
-                 display_name="Account Portfolio",
-                 description="All of the token holdings for an account",
-                 developer="Credmark",
-                 category='account',
-                 subcategory='position',
-                 tags=['portfolio'],
-                 input=Accounts,
-                 output=Portfolio)
+@Model.describe(slug="accounts.portfolio",
+                version="0.4",
+                display_name="Account Portfolio",
+                description="All of the token holdings for an account",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=Accounts,
+                output=Portfolio)
 class AccountsPortfolio(Model):
     def run(self, input: Accounts) -> Portfolio:
         positions = []
@@ -452,7 +417,7 @@ class AccountsPortfolio(Model):
                 pass
 
         curve_lp_position = self.context.run_model(
-            'accounts.position-in-curve',
+            'curve.lp-accounts',
             input=input)
 
         # positions.extend([CurveLPPosition(**p) for p in curve_lp_position['positions']])

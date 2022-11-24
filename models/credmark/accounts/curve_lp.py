@@ -13,39 +13,37 @@ class CurveLPPosition(Position):
     lp_position: Portfolio
 
 
-@Model.describe(
-    slug="accounts.position-in-curve",
-    version="1.5",
-    display_name="Accounts position in Curve LP",
-    description="All the positions in Curve LP",
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['curve'],
-    input=Accounts,
-    output=Portfolio)
+@Model.describe(slug="curve.lp-accounts",
+                version="1.5",
+                display_name="Accounts position in Curve LP",
+                description="All the positions in Curve LP",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['curve'],
+                input=Accounts,
+                output=Portfolio)
 class GetCurveLPPositionAccounts(Model):
     def run(self, input: Accounts) -> Portfolio:
         port = Portfolio()
         for acc in input:
-            p2 = self.context.run_model('account.position-in-curve',
+            p2 = self.context.run_model('curve.lp',
                                         input=acc,
                                         return_type=Portfolio)
             port = Portfolio.merge(port, p2)
         return port
 
 
-@Model.describe(
-    slug="account.position-in-curve",
-    version="1.5",
-    display_name="account position in Curve LP",
-    description="All the positions in Curve LP",
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['curve'],
-    input=Account,
-    output=Portfolio)
+@Model.describe(slug="curve.lp",
+                version="1.5",
+                display_name="Account position in Curve LP",
+                description="All the positions in Curve LP",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['curve'],
+                input=Account,
+                output=Portfolio)
 class GetCurveLPPosition(Model):
     CURVE_LP_TOKEN = {
         Network.Mainnet: {
@@ -54,7 +52,7 @@ class GetCurveLPPosition(Model):
     }
 
     def run(self, input: Account) -> Portfolio:
-        df = (self.context.run_model('account.token-erc20',
+        df = (self.context.run_model('account.token-transfer',
                                      input=input,
                                      return_type=Records)
               .to_dataframe())

@@ -30,19 +30,19 @@ class Tradeable:
         self.__tid = tid
         self.__traces = traces
 
-    @ property
+    @property
     def tid(self):
         return self.__tid
 
-    @ property
+    @property
     def traces(self):
         return self.__traces
 
-    @ abstractmethod
+    @abstractmethod
     def requires(self, block_number: BlockNumber) -> Generator[MarketTarget, None, None]:
         pass
 
-    @ abstractmethod
+    @abstractmethod
     def value(self,
               block_number: datetime,
               tag: str,
@@ -50,7 +50,7 @@ class Tradeable:
               mkt_adj=lambda x: x) -> float:
         ...
 
-    @ abstractmethod
+    @abstractmethod
     def value_scenarios(self,
                         block_number: datetime,
                         tag: str,
