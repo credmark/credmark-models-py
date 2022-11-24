@@ -7,7 +7,7 @@ from credmark.cmf.types import (Account, Accounts, Currency, Maybe, Portfolio,
                                 TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
-from models.credmark.accounts.account import CurveLPPosition
+from models.credmark.accounts.curve_lp import CurveLPPosition
 from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
                                                           PortfolioVaRInput,
                                                           VaRHistoricalInput,

@@ -8,7 +8,7 @@ from credmark.dto import EmptyInput
 
 
 @Model.describe(slug='token.list',
-                version='0.1',
+                version='0.2',
                 display_name='List of non-scam tokens',
                 description='The current Credmark supported list to value account',
                 category='token',
@@ -19,5 +19,7 @@ class TokenList(Model):
         existing_tokens = [
             (v['address'], v['symbol'], v['name'], v['decimals'])
             for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[str(self.context.chain_id)].values()]
-        rec = Records(records=existing_tokens, fields=['address', 'symbol', 'name', 'decimals'])
+        rec = Records(records=existing_tokens,
+                      fields=['address', 'symbol', 'name', 'decimals'],
+                      n_rows=len(existing_tokens))
         return rec
