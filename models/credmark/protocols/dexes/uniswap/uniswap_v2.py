@@ -318,7 +318,7 @@ class UniswapV2LPFeeHistory(Model):
                        'token0', 'token1',
                        'lp_il0', 'lp_il1',
                        'token0_fee', 'token1_fee']:
-                _df.loc[row_n, it] = try_zero(v2_fee[it])
+                _df.loc[row_n, it] = try_zero(v2_fee[it])  # type: ignore
 
         return _df.to_dict()
 

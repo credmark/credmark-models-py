@@ -99,23 +99,26 @@ if __name__ == '__main__':
 
     print(f'All Tests: {all_tests_name}')
 
-    all_tests = [o for _n, o in locals().items()
-                 if inspect.isclass(o) and
-                 issubclass(o, CMKTest) and
-                 (args['tests'] == '__all__' or sum(o.__name__.endswith(t)
-                                                    for t in args['tests'].split(",")) == 1)]
+    all_tests_sel = [o for _n, o in locals().items()
+                     if inspect.isclass(o) and
+                     issubclass(o, CMKTest) and
+                     (args['tests'] == '__all__' or sum(o.__name__.endswith(t)
+                                                        for t in args['tests'].split(",")) == 1)]
 
-    print(f'Run Tests: {all_tests}')
+    print(f'Run Tests: {all_tests_sel}')
 
-    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests])
+    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests_sel])
 
-    runner = unittest.TextTestRunner()
     if args['serial']:
         CMKTest.fail_first = True
-        # runner.run(suites)
         sys.argv = sys.argv[:1]
+        if args['tests'] != '__all__':
+            tests_to_run = args['tests'].split(",")
+            for test_name in tests_to_run:
+                sys.argv.insert(len(sys.argv), f"Test{test_name}")
         unittest.main(failfast=True)
     else:
+        runner = unittest.TextTestRunner()
         CMKTest.fail_first = False
         concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(parallel_count))
         runner.run(concurrent_suite)
