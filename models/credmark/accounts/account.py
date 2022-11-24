@@ -341,7 +341,7 @@ class AccountsERC20TokenHistorical(Model):
 
 @Model.describe(slug="account.portfolio",
                 version="0.3",
-                display_name="Account\'s Portfolio",
+                display_name="Account\'s Token Holding as a Portfolio",
                 description="All of the token holdings for an account",
                 developer="Credmark",
                 category='account',
@@ -375,7 +375,7 @@ class AccountsPortfolioAggregate(Model):
 
 @Model.describe(slug="accounts.portfolio",
                 version="0.4",
-                display_name="Accounts\' Portfolio",
+                display_name="Accounts\' Token Holding as a Portfolio",
                 description="All of the token holdings for a list of accounts",
                 developer="Credmark",
                 category='account',
