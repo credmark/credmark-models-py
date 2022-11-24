@@ -389,14 +389,13 @@ class AccountsPortfolio(Model):
         native_token = NativeToken()
         native_amount = 0
         for acc in input.accounts:
-            native_amount += native_token.balance_of_scaled(acc.address.checksum)
+            native_amount += native_token.balance_of(acc.address.checksum)
+
         if not math.isclose(native_amount, 0):
             positions.append(
                 NativePosition(
-                    amount=NativeToken().scaled(native_amount),
-                    asset=NativeToken()
-                )
-            )
+                    amount=native_token.scaled(native_amount),
+                    asset=NativeToken()))
 
         token_addresses = (get_token_transfer(self.context, input.to_address())
                            ['token_address']
