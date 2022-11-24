@@ -30,9 +30,11 @@ class TestAccount(CMKTest):
         self.run_model('accounts.token-erc20',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
 
+        # Keep this out to avoid hitting size limit: "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"
         self.run_model('accounts.token-erc20',
-                       {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
-                                     "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"]})
+                       {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5",
+                                     "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
+                                     ]})
 
     def test_account_portfolio(self):
         self.run_model('account.position-in-curve', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
@@ -65,15 +67,20 @@ class TestAccount(CMKTest):
         self.run_model('accounts.token-return',
                        {"accounts": ["0x5291fBB0ee9F51225f0928Ff6a83108c86327636"], "token_list": "cmf"})
 
+        # 0x9c5083dd4838e120dbeac44c052179692aa5dac5 too long
         self.run_model('accounts.token-return',
                        {"accounts": ["0x5291fBB0ee9F51225f0928Ff6a83108c86327636",
-                                     "0x9c5083dd4838e120dbeac44c052179692aa5dac5"], "token_list": "cmf"})
+                                     "0x109B3C39d675A2FF16354E116d080B94d238a7c9"], "token_list": "cmf"})
+
+        self.run_model('accounts.token-return',
+                       {"accounts": ["0x5291fBB0ee9F51225f0928Ff6a83108c86327636",
+                                     "0x109B3C39d675A2FF16354E116d080B94d238a7c9"], "token_list": "all"})
 
         # Long-loading account
         # self.run_model('account.token-return', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
 
         # 2. UMA treasury
-        # 0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a
+        # 0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a relative small
         # 0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67
         self.run_model('account.token-return',
                        {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a", "token_list": "cmf"}, block_number=15447136)
