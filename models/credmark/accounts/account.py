@@ -42,8 +42,8 @@ class AccountReturnInput(Account):
 
 @Model.describe(slug='account.token-return',
                 version='0.6',
-                display_name='Account Token Return',
-                description='Account ERC20 Token Return',
+                display_name='Account\'s ERC20 Token Return',
+                description='Account\'s ERC20 Token Return',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
@@ -77,15 +77,15 @@ class AccountsReturnInput(Accounts):
 
 @Model.describe(slug='accounts.token-return',
                 version='0.6',
-                display_name='Account Token Return',
-                description='Account ERC20 Token Return',
+                display_name='Accounts\' Token Return',
+                description='Accounts\' Token Return',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
                 tags=['token'],
                 input=AccountsReturnInput,
                 output=TokenReturnOutput)
-class AccountsERC20TokenReturn(Model):
+class AccountsTokenReturn(Model):
     def run(self, input: AccountsReturnInput) -> TokenReturnOutput:
         native_token = NativeToken()
         native_amount = 0
@@ -110,8 +110,8 @@ class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
 
 @Model.describe(slug='account.token-return-historical',
                 version='0.1',
-                display_name='Account Token Return Historical',
-                description='Account ERC20 Token Return',
+                display_name='Account\'s Token Return Historical',
+                description='Account\'s  Token Return Historical',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
@@ -143,15 +143,15 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 
 @Model.describe(slug='accounts.token-return-historical',
                 version='0.2',
-                display_name='Account Token Return Historical',
-                description='Account ERC20 Token Return',
+                display_name='Accounts\' Token Return Historical',
+                description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
                 tags=['token'],
                 input=AccountsReturnHistoricalInput,
                 output=MapBlockTimeSeriesOutput[dict])
-class AccountsERC20TokenReturnHistorical(Model):
+class AccountsTokenReturnHistorical(Model):
     def run(self, input: AccountsReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
@@ -240,8 +240,8 @@ class AccountHistoricalInput(Account, HistoricalDTO):
 @Model.describe(
     slug='account.token-historical',
     version='0.3',
-    display_name='Account Token Holdings Historical',
-    description='Account ERC20 Token Return',
+    display_name='Account\'s Token Holding Historical',
+    description='Account\'s Token Holding Historical',
     developer="Credmark",
     category='account',
     subcategory='position',
@@ -271,8 +271,8 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 @Model.describe(
     slug='accounts.token-historical',
     version='0.3',
-    display_name='Account Token Holdings Historical',
-    description='Account ERC20 Token Return',
+    display_name='Accounts\' Token Holding Historical',
+    description='Accounts\' Token Holding Historical',
     developer="Credmark",
     category='account',
     subcategory='position',
@@ -341,7 +341,7 @@ class AccountsERC20TokenHistorical(Model):
 
 @Model.describe(slug="account.portfolio",
                 version="0.3",
-                display_name="Account Portfolio",
+                display_name="Account's Portfolio",
                 description="All of the token holdings for an account",
                 developer="Credmark",
                 category='account',
@@ -360,7 +360,7 @@ class AccountPortfolio(Model):
 @Model.describe(
     slug="account.portfolio-aggregate",
     version="0.2",
-    display_name="Account Portfolios for a list of Accounts",
+    display_name="(PEPRECATED) use account.portfolio",
     description="All of the token holdings for an account",
     developer="Credmark",
     category='account',
@@ -375,8 +375,8 @@ class AccountsPortfolioAggregate(Model):
 
 @Model.describe(slug="accounts.portfolio",
                 version="0.4",
-                display_name="Account Portfolio",
-                description="All of the token holdings for an account",
+                display_name="Accounts\' Portfolio",
+                description="All of the token holdings for a list of accounts",
                 developer="Credmark",
                 category='account',
                 subcategory='position',
