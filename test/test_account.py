@@ -114,29 +114,28 @@ class TestAccount(CMKTest):
 
     def test_token_historical(self):
         # token-historical, token-return-historical
-        self.run_model('account.token-historical',
-                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
-                        "window": "5 days", "interval": "1 days"})
+        for acc_input in [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]:
+            self.run_model('account.token-historical',
+                           acc_input | {"window": "5 days", "interval": "1 days"})
+            self.run_model('account.token-return-historical',
+                           acc_input | {"window": "5 days", "interval": "1 days"})
 
-        self.run_model('accounts.token-historical',
-                       {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9"],
-                        "window": "5 days", "interval": "1 days"})
-
-        self.run_model('accounts.token-historical',
-                       {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9", "0x388C818CA8B9251b393131C08a736A67ccB19297"],
-                        "window": "5 days", "interval": "1 days"})
-
-        self.run_model('account.token-return-historical',
-                       {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9",
-                        "token_list": "cmf", "window": "5 days", "interval": "1 days"})
-
-        self.run_model('accounts.token-return-historical',
-                       {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9"],
-                        "token_list": "cmf", "window": "5 days", "interval": "1 days"})
-
-        self.run_model('accounts.token-return-historical',
-                       {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9", "0x388C818CA8B9251b393131C08a736A67ccB19297"],
-                        "token_list": "cmf", "window": "5 days", "interval": "1 days"})
+        # 0x9c5083dd4838e120dbeac44c052179692aa5dac5 contains NFT
+        for accs_input in [
+            {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9"]},
+            {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9",
+                          "0x388C818CA8B9251b393131C08a736A67ccB19297"]},
+            {"accounts": ["0x195e8cd1cca12fd18643000c6d4e21b766d92a10"]},
+            {"accounts": ["0x195e8cd1cca12fd18643000c6d4e21b766d92a10",
+                          "0x9c5083dd4838e120dbeac44c052179692aa5dac5"]},
+            {"accounts": ["0x195e8cd1cca12fd18643000c6d4e21b766d92a10",
+                          "0x9c5083dd4838e120dbeac44c052179692aa5dac5",
+                          "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]},
+        ]:
+            self.run_model('accounts.token-historical',
+                           accs_input | {"window": "5 days", "interval": "1 days"})
+            self.run_model('accounts.token-return-historical',
+                           accs_input | {"token_list": "cmf", "window": "5 days", "interval": "1 days"})
 
     def test_token_leger(self):
         self.run_model('ledger.account-token-transfers',

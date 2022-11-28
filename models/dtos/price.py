@@ -53,13 +53,13 @@ class PriceInput(DTO):
         }
 
 
-class Source(str, Enum):
+class PriceSource(str, Enum):
     CEX = 'cex'
     DEX = 'dex'
 
 
 class PriceInputWithPreference(PriceInput):
-    prefer: Source = DTOField(Source.CEX, description='Preferred source')
+    prefer: PriceSource = DTOField(PriceSource.CEX, description='Preferred source')
 
 
 class PriceHistoricalInput(PriceInputWithPreference, MapBlockTimeSeriesInput):
