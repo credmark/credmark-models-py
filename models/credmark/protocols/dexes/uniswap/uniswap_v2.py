@@ -7,7 +7,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts,
                                 Maybe, Portfolio, Position, Price,
-                                PriceWithQuote, Some, Token, Tokens)
+                                PriceWithQuote, Some, Token, Tokens,
+                                Records)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -243,15 +244,15 @@ def try_zero(flt):
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.2',
+                version='0.4',
                 display_name='Uniswap v2 LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=LPInput,
-                output=dict)
+                output=Records)
 class UniswapV2LPFeeHistory(Model):
-    def run(self, input: LPInput) -> dict:
+    def run(self, input: LPInput) -> Records:
         pool = input.pool
         lp = input.lp
 
@@ -266,32 +267,48 @@ class UniswapV2LPFeeHistory(Model):
         token1 = token1.as_erc20()
 
         with self.context.ledger.TokenBalance as q:
-            df_ts = []
-            offset = 0
-
             q_cols = [q.BLOCK_NUMBER,
                       q.LOG_INDEX,
                       q.FROM_ADDRESS,
                       q.TO_ADDRESS,
                       q.TRANSACTION_VALUE]
-            while True:
-                df_tt = q.select(
-                    columns=q_cols,
-                    order_by=q.BLOCK_NUMBER,
-                    where=(q.ADDRESS.eq(lp)
-                           .and_(q.TOKEN_ADDRESS.eq(pool.address))
-                           )
-                ).to_dataframe()
 
-                if df_tt.shape[0] > 0:
-                    df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
+        def _use_ledger():
+            with self.context.ledger.TokenBalance as q:
+                df_ts = []
+                offset = 0
 
-        _df = pd.DataFrame()
-        if len(df_ts) > 0:
-            _df = pd.concat(df_ts).drop_duplicates()
+                q_cols = [q.BLOCK_NUMBER,
+                          q.LOG_INDEX,
+                          q.FROM_ADDRESS,
+                          q.TO_ADDRESS,
+                          q.TRANSACTION_VALUE]
+                while True:
+                    df_tt = q.select(
+                        columns=q_cols,
+                        order_by=q.BLOCK_NUMBER,
+                        where=(q.ADDRESS.eq(lp)
+                               .and_(q.TOKEN_ADDRESS.eq(pool.address))
+                               )
+                    ).to_dataframe()
+
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+
+            _df = pd.DataFrame()
+            if len(df_ts) > 0:
+                _df = pd.concat(df_ts).drop_duplicates()
+            return _df
+
+        def _use_model():
+            return self.context.run_model('account.token-transfer',
+                                          input={'address': lp, 'tokens': [pool.address]},
+                                          return_type=Records).to_dataframe()
+
+        _df = _use_model().rename(columns={'value': 'transaction_value'})[q_cols]
 
         new_data = [(int(self.context.block_number), -1, input.lp, input.lp, 0)]
 
@@ -320,7 +337,7 @@ class UniswapV2LPFeeHistory(Model):
                        'token0_fee', 'token1_fee']:
                 _df.loc[row_n, it] = try_zero(v2_fee[it])  # type: ignore
 
-        return _df.to_dict()
+        return Records.from_dataframe(_df)
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
