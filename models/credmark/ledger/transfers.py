@@ -74,7 +74,8 @@ class AccountsERC20Token(Model):
         return Records.from_dataframe(df_erc20)
 
 
-def get_token_transfer(_context, _accounts: List[Address], _tokens: List[Address], start_block: int) -> pd.DataFrame:
+def get_token_transfer(_context, _accounts: List[Address],
+                       _tokens: List[Address], start_block: int) -> pd.DataFrame:
     def _use_ledger():
         with _context.ledger.TokenTransfer as q:
             transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
@@ -113,10 +114,9 @@ def get_token_transfer(_context, _accounts: List[Address], _tokens: List[Address
                 .reset_index(drop=True))
 
     def _use_model():
+        req = {'accounts': _accounts, 'startBlock': start_block}
         if len(_tokens) > 0:
-            req = {'accounts': _accounts, 'tokens': _tokens, 'startBlock': start_block}
-        else:
-            req = {'accounts': _accounts, 'startBlock': start_block}
+            req |= {'tokens': _tokens}
 
         result = (pd.DataFrame(_context.run_model(
             'ledger.account-token-transfers',
