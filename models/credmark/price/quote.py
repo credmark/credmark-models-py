@@ -252,8 +252,8 @@ class PriceQuote(Model):
                     price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
-                    raise ModelDataError(f'No price can be found for {input}')
-        except ModelDataError:
+                    raise ModelRunError(f'No price can be found for {input}')
+        except ModelRunError:
             raise
             # cex_cross = PriceCexCross(self.context)
             # price = cex_cross.run(input)
@@ -338,7 +338,7 @@ class PriceCommon:
                 return price_usd_maybe.just
 
         if no_dex:
-            raise ModelDataError('No chainlink source for this token')
+            raise ModelRunError(f'No chainlink source for this token {input.base.address}')
 
         return __class__.get_price_usd_from_dex(context, input.base)
 

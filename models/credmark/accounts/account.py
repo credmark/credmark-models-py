@@ -1,267 +1,24 @@
 import math
-from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 import numpy as np
-import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
-                                       ModelRunError)
+from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
-                                Contract, MapBlocksOutput, Maybe,
-                                NativePosition, NativeToken, Network,
-                                Portfolio, Position, PriceWithQuote, Records,
-                                Token, TokenPosition, Tokens)
-from credmark.dto import DTO, DTOField, EmptyInput
-from web3.exceptions import ContractLogicError
+from credmark.cmf.types import (Account, Accounts,
+                                NativePosition, NativeToken,
+                                Portfolio, Position, Records,
+                                Token, TokenPosition)
+from credmark.dto import DTOField, EmptyInput, cross_examples
 from models.dtos.historical import HistoricalDTO
+from models.credmark.accounts.token_return import TokenReturnOutput, token_return
+from models.credmark.ledger.transaction import get_token_transfer, get_native_transfer
 
 np.seterr(all='raise')
 
 
-def get_token_transfer_columns(_context) -> List:
-    with _context.ledger.TokenTransfer as q:
-        transfer_cols = [q.BLOCK_NUMBER,
-                         q.TO_ADDRESS,
-                         q.FROM_ADDRESS,
-                         q.TOKEN_ADDRESS]
-
-        return transfer_cols
-
 # Transaction Gas is from receipts per transaction. GAS_USED * EFFECTIVE_GAS_PRICE
 # Not full transaction (missing Ether transfers), can be found in TRACES (but lack of context),
-
-
-def get_token_transfer(_context, _address) -> pd.DataFrame:
-    with _context.ledger.TokenTransfer as q:
-        transfer_cols = get_token_transfer_columns(_context)
-        df_ts = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
-        offset = 0
-        while True:
-            df_tt = (q.select(
-                columns=transfer_cols,
-                aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
-                            f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value')],
-                where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))).parentheses_(),
-                order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX),
-                offset=offset).to_dataframe())
-
-            if df_tt.shape[0] > 0:
-                df_ts.append(df_tt)
-            if df_tt.shape[0] < 5000:
-                break
-            offset += 5000
-
-    return (pd.concat(df_ts)
-              .assign(value=lambda x: x.value.apply(int))
-              .drop_duplicates()
-              .sort_values('block_number')
-              .reset_index(drop=True))
-
-
-def get_native_transfer(_context, _address) -> pd.DataFrame:
-    with _context.ledger.Transaction as q:
-        transfer_cols = get_token_transfer_columns(_context)
-        df_ts = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
-        offset = 0
-
-        native_token_addr = NativeToken().address
-        while True:
-            rs_tt = (q.select(
-                columns=[q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS],
-                aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
-                            f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value'),
-                            (q.field(native_token_addr).squote(), 'token_address')],
-                where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))
-                       ).parentheses_().and_(q.field('value').dquote().ne(0)),
-                order_by=q.BLOCK_NUMBER.comma_(q.TRANSACTION_INDEX),
-                offset=offset))
-
-            df_tt = rs_tt.to_dataframe()
-
-            if df_tt.shape[0] > 0:
-                df_ts.append(df_tt)
-            if df_tt.shape[0] < 5000:
-                break
-            offset += 5000
-
-    return (pd.concat(df_ts)
-              .assign(value=lambda x: x.value.apply(int))
-              .drop_duplicates()
-              .sort_values('block_number')
-              .reset_index(drop=True))
-
-
-class TokenReturn(DTO):
-    token_address: Address
-    token_symbol: str
-    current_amount: float
-    current_value: Optional[float]
-    token_return: Optional[float]
-    transactions: Optional[int] = DTOField(description="Number of transactions")
-
-
-class TokenReturnOutput(DTO):
-    token_returns: List[TokenReturn]
-    total_current_value: float
-    total_return: float
-
-    @classmethod
-    def default(cls):
-        return cls(token_returns=[], total_current_value=0, total_return=0)
-
-
-# pylint:disable=too-many-branches
-def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenReturnOutput:
-    if _token_list == 'cmf':
-        token_list = (_context.run_model('token.list',
-                                         return_type=Records,
-                                         block_number=0).to_dataframe()
-                      ['address']
-                      .values)
-    elif _token_list == 'all':
-        token_list = None
-    else:
-        raise ModelInputError(
-            'The token_list field in input shall be one of all or cmf (token list from token.list)')
-
-    all_tokens = []
-
-    native_token = NativeToken()
-
-    if not math.isclose(native_amount, 0):
-        native_token_price = _context.run_model(slug='price.quote',
-                                                input=dict(base=native_token),
-                                                return_type=PriceWithQuote).price
-        native_token_return = TokenReturn(
-            token_address=native_token.address,
-            token_symbol=native_token.symbol,
-            current_amount=native_amount,
-            current_value=native_amount*native_token_price,
-            token_return=None,
-            transactions=None
-        )
-    else:
-        native_token_return = TokenReturn(
-            token_address=native_token.address,
-            token_symbol=native_token.symbol,
-            current_amount=0,
-            current_value=0,
-            token_return=None,
-            transactions=None
-        )
-
-    _block_times = [BlockNumber(blk).timestamp_datetime
-                    for blk in _df.block_number.unique().tolist()]
-
-    _logger.info(f'{_df.shape[0]} rows, {_df["token_address"].unique().shape[0]} tokens')
-
-    _token_min_block = _df.groupby('token_address')["block_number"].min()
-
-    for tok_address, dfa in _df.groupby('token_address'):
-        min_block_number = dfa.block_number.min()
-
-        tok = Token(tok_address).as_erc20()
-
-        try:
-            dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
-        except ModelDataError:
-            if tok.abi is not None and 'decimals' not in tok.abi.functions:
-                continue  # skip for ERC-721`
-            raise
-        except ContractLogicError:
-            continue
-
-        try:
-            tok_symbol = tok.symbol
-        except ModelRunError:
-            tok_symbol = ''
-
-        if (token_list is None or
-            tok.address.checksum in token_list or
-                tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
-            then_pq = _context.run_model(slug='price.quote-maybe',
-                                         input=dict(base=tok),
-                                         return_type=Maybe[PriceWithQuote],
-                                         block_number=min_block_number)
-            if then_pq.is_just():
-                then_price = then_pq.just.price
-            else:
-                then_price = None
-        else:
-            then_price = None
-
-        value = None
-        block_numbers = []
-        past_prices = {}
-        if then_price is not None:
-            block_numbers = dfa.block_number.unique().tolist()
-
-            dd = datetime.now()
-            pp = _context.run_model('price.quote-maybe-blocks',
-                                    input=dict(base=tok, block_numbers=block_numbers),
-                                    return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
-
-            for r in pp.results:
-                if r.output is not None and r.output.just is not None:
-                    past_prices[r.blockNumber] = r.output.just.price
-                else:
-                    raise ValueError(f'Unable to obtain price for {tok} on block {r.output}')
-
-            value = 0
-
-            tt = datetime.now() - dd
-            _logger.info((tok_symbol, then_price, tt.seconds,
-                          len(block_numbers), tt.seconds / len(block_numbers),
-                          min_block_number))
-        else:
-            _logger.info((tok_symbol, then_price, len(block_numbers), 'Skip price'))
-
-        balance = 0
-        for _n, r in dfa.iterrows():
-            balance += r.value
-            if then_price is not None:
-                value += -r.value * past_prices[r.block_number]
-
-        if value is not None:
-            if balance != 0:
-                current_price = _context.run_model(slug='price.quote',
-                                                   input=dict(base=tok),
-                                                   return_type=PriceWithQuote).price
-                current_value = balance * current_price
-            else:
-                current_value = 0.0
-
-            tok_return = value + current_value
-        else:
-            tok_return = None
-            current_value = None
-
-        all_tokens.append(
-            TokenReturn(
-                token_address=tok.address,
-                token_symbol=tok.symbol,
-                current_amount=balance,
-                current_value=current_value,
-                token_return=tok_return,
-                transactions=dfa.shape[0]))
-
-    total_current_value = sum(x.current_value for x in all_tokens
-                              if x.current_value is not None)
-
-    total_return = sum(x.token_return for x in all_tokens
-                       if x.token_return is not None)
-
-    return TokenReturnOutput(
-        token_returns=all_tokens + [native_token_return],
-        total_current_value=(
-            total_current_value +
-            (native_token_return.current_value
-             if native_token_return.current_value is not None
-             else 0)),
-        total_return=total_return)
 
 
 # pylint:disable=invalid-name
@@ -277,12 +34,16 @@ class AccountReturnInput(Account):
 
     class Config:
         use_enum_values = True
+        schema_extra = {
+            'examples': [{'address': '0x388C818CA8B9251b393131C08a736A67ccB19297',
+                          'token_list': 'cmf'}]
+        }
 
 
 @Model.describe(slug='account.token-return',
-                version='1.6',
-                display_name='Account Token Return',
-                description='Account ERC20 Token Return',
+                version='0.6',
+                display_name='Account\'s ERC20 Token Return',
+                description='Account\'s ERC20 Token Return',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
@@ -291,19 +52,56 @@ class AccountReturnInput(Account):
                 output=TokenReturnOutput)
 class AccountERC20TokenReturn(Model):
     def run(self, input: AccountReturnInput) -> TokenReturnOutput:
+        return self.context.run_model('accounts.token-return',
+                                      input=AccountsReturnInput(
+                                          accounts=[input.address],  # type: ignore
+                                          token_list=input.token_list).dict(),
+                                      return_type=TokenReturnOutput)
+
+
+class AccountsReturnInput(Accounts):
+    token_list: TokenListChoice = DTOField(
+        TokenListChoice.CMF,
+        description='Value all tokens or those from token.list, choices: [all, cmf].')
+
+    class Config:
+        use_enum_values = True
+        schema_extra = {
+            'examples': [{'accounts': ['0x388C818CA8B9251b393131C08a736A67ccB19297',
+                                       '0xf9cbBA7BF1b10E045691dDECa48182dB213E8F8B'],
+                          'token_list': 'cmf'}]
+        }
+
+# create_instance_from_error_dict(result.error.dict())
+
+
+@Model.describe(slug='accounts.token-return',
+                version='0.6',
+                display_name='Accounts\' Token Return',
+                description='Accounts\' Token Return',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountsReturnInput,
+                output=TokenReturnOutput)
+class AccountsTokenReturn(Model):
+    def run(self, input: AccountsReturnInput) -> TokenReturnOutput:
         native_token = NativeToken()
-        native_amount = native_token.balance_of_scaled(input.address.checksum)
+        native_amount = 0
+        for account in input:
+            native_amount += native_token.balance_of_scaled(account.address.checksum)
 
         # TODO: native token transaction (incomplete) and gas spending
-        _df_native = get_native_transfer(self.context, input.address)
+        _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
-        df_ts = get_token_transfer(self.context, input.address)
+        df_erc20 = get_token_transfer(self.context, input.to_address())
 
         # If we filter for one token address, use below
-        # df = df.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
+        # df_erc20 = df_erc20.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
 
-        return token_return(self.context, self.logger, df_ts, native_amount, input.token_list)
+        return token_return(self.context, self.logger, df_erc20, native_amount, input.token_list)
 
 
 class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
@@ -312,8 +110,8 @@ class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
 
 @Model.describe(slug='account.token-return-historical',
                 version='0.1',
-                display_name='Account Token Return Historical',
-                description='Account ERC20 Token Return',
+                display_name='Account\'s Token Return Historical',
+                description='Account\'s  Token Return Historical',
                 developer="Credmark",
                 category='account',
                 subcategory='position',
@@ -322,6 +120,39 @@ class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
                 output=MapBlockTimeSeriesOutput[dict])
 class AccountERC20TokenReturnHistorical(Model):
     def run(self, input: AccountReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
+        return self.context.run_model(
+            'accounts.token-return-historical',
+            input=AccountsReturnHistoricalInput(
+                **input.to_accounts().dict(),
+                token_list=input.token_list,
+                window=input.window,
+                interval=input.interval,
+                exclusive=input.exclusive
+            ).dict(),
+            return_type=MapBlockTimeSeriesOutput[dict])
+
+
+class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(AccountsReturnInput.Config.schema_extra['examples'],
+                                       HistoricalDTO.Config.schema_extra['examples'],
+                                       limit=10)
+        }
+
+
+@Model.describe(slug='accounts.token-return-historical',
+                version='0.2',
+                display_name='Accounts\' Token Return Historical',
+                description='Accounts\' ERC20 Token Return',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountsReturnHistoricalInput,
+                output=MapBlockTimeSeriesOutput[dict])
+class AccountsTokenReturnHistorical(Model):
+    def run(self, input: AccountsReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
@@ -341,12 +172,12 @@ class AccountERC20TokenReturnHistorical(Model):
         _native_token = NativeToken()
 
         # TODO: native token transaction (incomplete) and gas spending
-        _df_native = get_native_transfer(self.context, input.address)
+        _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
-        df_ts = get_token_transfer(self.context, input.address)
+        df_ts = get_token_transfer(self.context, input.to_address())
 
-        if input.token_list == 'cmf':
+        if input.token_list == TokenListChoice.CMF:
             token_list = (self.context.run_model('token.list',
                                                  input=EmptyInput(),
                                                  return_type=Records,
@@ -398,21 +229,66 @@ class AccountERC20TokenReturnHistorical(Model):
 
 
 class AccountHistoricalInput(Account, HistoricalDTO):
-    ...
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(
+                [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297'}],
+                HistoricalDTO.Config.schema_extra['examples'],
+                limit=10)}
 
 
-@Model.describe(slug='account.token-historical',
-                version='0.2',
-                display_name='Account Token Holdings Historical',
-                description='Account ERC20 Token Return',
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['token'],
-                input=AccountHistoricalInput,
-                output=MapBlockTimeSeriesOutput[Portfolio])
+@Model.describe(
+    slug='account.token-historical',
+    version='0.3',
+    display_name='Account\'s Token Holding Historical',
+    description='Account\'s Token Holding Historical',
+    developer="Credmark",
+    category='account',
+    subcategory='position',
+    tags=['token'],
+    input=AccountHistoricalInput,
+    output=MapBlockTimeSeriesOutput[Portfolio])
 class AccountERC20TokenHistorical(Model):
     def run(self, input: AccountHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+        return self.context.run_model(
+            'accounts.token-historical',
+            AccountsHistoricalInput(
+                **input.to_accounts().dict(),   # type: ignore
+                window=input.window,
+                interval=input.interval,
+                exclusive=input.exclusive))
+
+
+class AccountsHistoricalInput(Accounts, HistoricalDTO):
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(
+                Accounts.Config.schema_extra['examples'],
+                HistoricalDTO.Config.schema_extra['examples'])
+        }
+
+
+@Model.describe(
+    slug='accounts.token-historical',
+    version='0.3',
+    display_name='Accounts\' Token Holding Historical',
+    description='Accounts\' Token Holding Historical',
+    developer="Credmark",
+    category='account',
+    subcategory='position',
+    tags=['token'],
+    input=AccountsHistoricalInput,
+    output=MapBlockTimeSeriesOutput[Portfolio])
+class AccountsERC20TokenHistorical(Model):
+    def run(self, input: AccountsHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+        _native_token = NativeToken()
+
+        # TODO: native token transaction (incomplete) and gas spending
+        _df_native = get_native_transfer(self.context, input.to_address())
+
+        # ERC-20 transaction
+        df_erc20 = get_token_transfer(self.context, input.to_address())
+
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
@@ -429,14 +305,6 @@ class AccountERC20TokenHistorical(Model):
 
         df_historical = price_historical_result.to_dataframe()
 
-        _native_token = NativeToken()
-
-        # TODO: native token transaction (incomplete) and gas spending
-        _df_native = get_native_transfer(self.context, input.address)
-
-        # ERC-20 transaction
-        df_ts = get_token_transfer(self.context, input.address)
-
         for n_historical, row in df_historical.iterrows():
             _past_block_number = row['blockNumber']
             assets = []
@@ -451,7 +319,7 @@ class AccountERC20TokenHistorical(Model):
             #        Position(amount=_native_token.scaled(native_token_bal['value'][0]),
             #                 asset=_native_token))
 
-            token_bal = (df_ts
+            token_bal = (df_erc20
                          .query('(block_number <= @_past_block_number)')
                          .groupby('token_address', as_index=False)['value']
                          .sum())
@@ -465,103 +333,15 @@ class AccountERC20TokenHistorical(Model):
                 except ModelDataError:
                     ...
 
-            price_historical_result[n_historical].output = Portfolio(positions=assets)
+            price_historical_result[n_historical].output = \
+                Portfolio(positions=assets)  # type: ignore
 
-        return price_historical_result
-
-
-class AccountsReturnInput(Accounts):
-    token_list: TokenListChoice = DTOField(
-        description='Value all tokens or those from token.list, current choice: all, cmf.')
-
-
-@Model.describe(slug='accounts.token-return',
-                version='0.5',
-                display_name='Account Token Return',
-                description='Account ERC20 Token Return',
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['token'],
-                input=AccountsReturnInput,
-                output=TokenReturnOutput)
-class AccountsERC20TokenReturn(Model):
-    def run(self, input: AccountsReturnInput) -> TokenReturnOutput:
-        transfer_cols = get_token_transfer_columns(self.context)
-        df_tss = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
-
-        native_token = NativeToken()
-        native_amount = 0
-        for account in input:
-            input_address = account.address
-            df_ts = get_token_transfer(self.context, input_address)
-            df_tss.append(df_ts)
-            native_amount += native_token.balance_of_scaled(account.address.checksum)
-
-        df = (pd.concat(df_tss)
-                .assign(value=lambda x: x.value.apply(int))
-                .drop_duplicates()
-                .sort_values('block_number')
-                .reset_index(drop=True))
-
-        erc20_token_returns = token_return(self.context,
-                                           self.logger,
-                                           df,
-                                           native_amount,
-                                           input.token_list)
-
-        return erc20_token_returns
-
-
-@Model.describe(slug='account.token-erc20',
-                version='1.5',
-                display_name='Account Token ERC20',
-                description='Account ERC20 transaction table',
-                developer="Credmark",
-                category='account',
-                subcategory='position',
-                tags=['token'],
-                input=Account,
-                output=Records)
-class AccountERC20Token(Model):
-    def run(self, input: Account) -> Records:
-        # pylint:disable=locally-disabled,line-too-long
-        with self.context.ledger.TokenTransfer as q:
-            transfer_cols = [q.BLOCK_NUMBER,
-                             q.LOG_INDEX,
-                             q.TRANSACTION_HASH,
-                             q.TO_ADDRESS,
-                             q.FROM_ADDRESS,
-                             q.TOKEN_ADDRESS]
-
-            df_ts = []
-            offset = 0
-            while True:
-                df_tt = (
-                    q.select(
-                        aggregates=[((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.address)} '
-                                      f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'value')],
-                        where=(q.TO_ADDRESS.eq(input.address).or_(q.FROM_ADDRESS.eq(input.address))).parentheses_(),
-                        group_by=transfer_cols,
-                        offset=offset)
-                    .to_dataframe())
-
-                if df_tt.shape[0] > 0:
-                    df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
-
-            if len(df_ts) == 0:
-                return Records(records=[], fields=transfer_cols + ['value'])
-            else:
-                ret = Records.from_dataframe(pd.concat(df_ts))
-                return ret
+        return price_historical_result  # type: ignore
 
 
 @Model.describe(slug="account.portfolio",
                 version="0.3",
-                display_name="Account Portfolio",
+                display_name="Account\'s Token Holding as a Portfolio",
                 description="All of the token holdings for an account",
                 developer="Credmark",
                 category='account',
@@ -569,47 +349,65 @@ class AccountERC20Token(Model):
                 tags=['portfolio'],
                 input=Account,
                 output=Portfolio)
-class WalletInfoModel(Model):
+class AccountPortfolio(Model):
     def run(self, input: Account) -> Portfolio:
+        return self.context.run_model(
+            'accounts.portfolio',
+            input=input.to_accounts().dict(),
+            return_type=Portfolio)
+
+
+@Model.describe(
+    slug="account.portfolio-aggregate",
+    version="0.2",
+    display_name="(PEPRECATED) use accounts.portfolio",
+    description="All of the token holdings for an account",
+    developer="Credmark",
+    category='account',
+    subcategory='position',
+    tags=['portfolio'],
+    input=Accounts,
+    output=Portfolio)
+class AccountsPortfolioAggregate(Model):
+    def run(self, input: Accounts) -> Portfolio:
+        return self.context.run_model('accounts.portfolio', input=input, return_type=Portfolio)
+
+
+@Model.describe(slug="accounts.portfolio",
+                version="0.4",
+                display_name="Accounts\' Token Holding as a Portfolio",
+                description="All of the token holdings for a list of accounts",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=Accounts,
+                output=Portfolio)
+class AccountsPortfolio(Model):
+    def run(self, input: Accounts) -> Portfolio:
         positions = []
         native_token = NativeToken()
-        native_amount = native_token.balance_of_scaled(input.address.checksum)
+        native_amount = 0
+        for acc in input.accounts:
+            native_amount += native_token.balance_of(acc.address.checksum)
+
         if not math.isclose(native_amount, 0):
             positions.append(
                 NativePosition(
-                    amount=NativeToken().scaled(native_amount),
-                    asset=NativeToken()
-                )
-            )
+                    amount=native_token.scaled(native_amount),
+                    asset=NativeToken()))
 
-        with self.context.ledger.TokenTransfer as q:
-            df_ts = []
-            offset = 0
-            while True:
-                df_tt = (q
-                         .select(aggregates=[(q.TOKEN_ADDRESS.distinct(), q.TOKEN_ADDRESS)],
-                                 # pylint:disable=line-too-long
-                                 where=q.FROM_ADDRESS.eq(input.address).or_(q.TO_ADDRESS.eq(input.address)),
-                                 offset=offset)
-                         .to_dataframe())
-
-                if df_tt.shape[0] > 0:
-                    df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
-
-            if len(df_ts) == 0:
-                token_addresses = []
-            else:
-                token_addresses = (pd
-                                   .concat(df_ts)
-                                   [q.TOKEN_ADDRESS])
+        token_addresses = (get_token_transfer(self.context, input.to_address())
+                           ['token_address']
+                           .drop_duplicates()
+                           .to_list())
 
         for t in token_addresses:
             try:
                 token = Token(address=t)
-                balance = token.scaled(token.functions.balanceOf(input.address).call())
+                balance = 0
+                for acc in input.accounts:
+                    balance += token.scaled(token.functions.balanceOf(acc.address.checksum).call())
                 if not math.isclose(balance, 0):
                     positions.append(
                         TokenPosition(asset=token, amount=balance))
@@ -618,128 +416,10 @@ class WalletInfoModel(Model):
                 pass
 
         curve_lp_position = self.context.run_model(
-            'account.position-in-curve',
+            'curve.lp-accounts',
             input=input)
 
         # positions.extend([CurveLPPosition(**p) for p in curve_lp_position['positions']])
         positions.extend(curve_lp_position['positions'])
 
         return Portfolio(positions=positions)
-
-
-@Model.describe(
-    slug="account.portfolio-aggregate",
-    version="0.2",
-    display_name="Account Portfolios for a list of Accounts",
-    description="All of the token holdings for an account",
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['portfolio'],
-    input=Accounts,
-    output=Portfolio)
-class AccountsPortfolio(Model):
-    def run(self, input: Accounts) -> Portfolio:
-        native_position = NativePosition(amount=0, asset=NativeToken())
-
-        all_positions = []
-        for acct in input:
-            port = self.context.run_model('account.portfolio', input=acct, return_type=Portfolio)
-            native_pos_n = None
-            for pos_n, pos in enumerate(port.positions):
-                if pos.asset.address == native_position.asset.address:
-                    native_position.amount += pos.amount
-                    native_pos_n = pos_n
-                    break
-
-            if native_pos_n is not None:
-                port.positions.pop(native_pos_n)
-            all_positions.extend(port.positions)
-
-        all_positions.append(native_position)
-        return Portfolio(positions=all_positions)
-
-
-class CurveLPPosition(Position):
-    pool: Contract
-    supply_position: Portfolio
-    lp_position: Portfolio
-
-
-@Model.describe(
-    slug="account.position-in-curve",
-    version="1.4",
-    display_name="account position in Curve LP",
-    description="All the positions in Curve LP",
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['curve'],
-    input=Account,
-    output=Portfolio)
-class GetCurveLPPosition(Model):
-    CURVE_LP_TOKEN = {
-        Network.Mainnet: {
-            Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff')
-        }
-    }
-
-    def run(self, input: Account) -> Portfolio:
-        df = (self.context.run_model('account.token-erc20',
-                                     input=input,
-                                     return_type=Records)
-              .to_dataframe())
-
-        _lp_tokens = self.CURVE_LP_TOKEN[self.context.network]
-        lp_tx = df.query('token_address in @_lp_tokens')
-
-        txs = lp_tx.transaction_hash.unique().tolist()
-        lp_position = []
-        for _tx in txs:
-            df_tx = df.query('transaction_hash == @_tx')
-            if df_tx.shape[0] == 2:
-                tx_in = df_tx.query('token_address not in @_lp_tokens')
-                in_token = Token(address=tx_in['token_address'].iloc[0])
-                in_token_amount = in_token.scaled(tx_in['value'].iloc[0])
-                if tx_in['from_address'].iloc[0] == input.address:
-                    in_token_amount = abs(in_token_amount)
-                else:
-                    in_token_amount = -abs(in_token_amount)
-
-                tx_out = df_tx.query('token_address in @_lp_tokens')
-                lp_token = Token(address=tx_out['token_address'].iloc[0])
-                lp_token_amount = tx_out['value'].iloc[0]
-                _lp_token_amount_scaled = lp_token.scaled(lp_token_amount)
-                if tx_in['from_address'].iloc[0] == input.address:
-                    lp_token_amount = abs(lp_token_amount)
-                else:
-                    lp_token_amount = -abs(lp_token_amount)
-
-                pool_info = self.context.run_model('curve-fi.pool-info', lp_token)
-                pool_contract = Contract(address=pool_info['address'])
-                pool_tokens = Tokens(**pool_info['tokens'])
-                withdraw_token_amount = np.zeros(len(pool_tokens.tokens))
-                np_balances = np.array(pool_info['balances'])
-                for tok_n, tok in enumerate(pool_tokens):
-                    withdraw_one = [0] * len(pool_tokens.tokens)
-                    withdraw_one[tok_n] = 1
-                    withdraw_token_amount[tok_n] = pool_contract.functions.calc_token_amount(
-                        withdraw_one, False).call()
-                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens.tokens[tok_n].scaled(1)
-
-                for tok_n, tok in enumerate(pool_tokens.tokens):
-                    ratio = np_balances.dot(withdraw_token_amount) / np_balances[tok_n]
-                    amount = lp_token_amount / ratio
-                    lp_position.append(Position(asset=tok,
-                                                amount=pool_tokens.tokens[tok_n].scaled(amount)))
-
-                _ = CurveLPPosition(
-                    asset=lp_token,
-                    amount=_lp_token_amount_scaled,
-                    pool=Contract(address=lp_token.functions.minter().call()),
-                    supply_position=Portfolio(
-                        positions=[TokenPosition(asset=in_token,
-                                                 amount=in_token_amount)]),
-                    lp_position=Portfolio(positions=lp_position))
-
-        return Portfolio(positions=lp_position)
