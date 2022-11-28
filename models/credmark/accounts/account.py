@@ -1,3 +1,5 @@
+# pylint: disable=too-many-function-args
+
 import math
 from enum import Enum
 
@@ -12,7 +14,8 @@ from credmark.cmf.types import (Account, Accounts,
 from credmark.dto import DTOField, EmptyInput, cross_examples
 from models.dtos.historical import HistoricalDTO
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
-from models.credmark.ledger.transaction import get_token_transfer, get_native_transfer
+from models.credmark.ledger.transfers import get_token_transfer, get_native_transfer
+from web3.exceptions import ContractLogicError
 
 np.seterr(all='raise')
 
@@ -76,7 +79,7 @@ class AccountsReturnInput(Accounts):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.6',
+                version='0.7',
                 display_name='Accounts\' Token Return',
                 description='Accounts\' Token Return',
                 developer="Credmark",
@@ -96,7 +99,7 @@ class AccountsTokenReturn(Model):
         _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
-        df_erc20 = get_token_transfer(self.context, input.to_address())
+        df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
         # If we filter for one token address, use below
         # df_erc20 = df_erc20.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
@@ -141,8 +144,9 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
         }
 
 
+# TODO: NFT
 @Model.describe(slug='accounts.token-return-historical',
-                version='0.2',
+                version='0.6',
                 display_name='Accounts\' Token Return Historical',
                 description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
@@ -175,7 +179,7 @@ class AccountsTokenReturnHistorical(Model):
         _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
-        df_ts = get_token_transfer(self.context, input.to_address())
+        df_ts = get_token_transfer(self.context, input.to_address(), [], 0)
 
         if input.token_list == TokenListChoice.CMF:
             token_list = (self.context.run_model('token.list',
@@ -214,16 +218,25 @@ class AccountsTokenReturnHistorical(Model):
                              .sum())
 
             for _, token_bal_row in token_bal.iterrows():
-                asset_token = Token(token_bal_row['token_address'])
-                try:
-                    assets.append(
-                        Position(amount=asset_token.scaled(token_bal_row['value']),
-                                 asset=asset_token))
-                except ModelDataError:
-                    continue
+                if not math.isclose(token_bal_row['value'], 0):
+                    asset_token = Token(token_bal_row['token_address']).as_erc20()
+                    try_price = self.context.run_model('price.quote-maybe',
+                                                       input={'base': asset_token},
+                                                       block_number=_past_block_number)
+                    if try_price['just'] is None:
+                        continue
 
-            price_historical_result[n_historical].output = {"value": Portfolio(
-                positions=assets).get_value(block_number=_past_block_number)}
+                    try:
+                        assets.append(
+                            Position(amount=asset_token.scaled(token_bal_row['value']),
+                                     asset=asset_token))
+                    except (ModelDataError, ContractLogicError):
+                        # NFT: ContractLogicError
+                        continue
+
+            price_historical_result[n_historical].output = (
+                {"value": Portfolio(positions=assets)
+                 .get_value(block_number=_past_block_number)})
 
         return price_historical_result
 
@@ -270,7 +283,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 @Model.describe(
     slug='accounts.token-historical',
-    version='0.3',
+    version='0.6',
     display_name='Accounts\' Token Holding Historical',
     description='Accounts\' Token Holding Historical',
     developer="Credmark",
@@ -287,7 +300,7 @@ class AccountsERC20TokenHistorical(Model):
         _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
-        df_erc20 = get_token_transfer(self.context, input.to_address())
+        df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
         window_in_seconds = self.context.historical.to_seconds(input.window)
         interval_in_seconds = self.context.historical.to_seconds(input.interval)
@@ -325,13 +338,15 @@ class AccountsERC20TokenHistorical(Model):
                          .sum())
 
             for _, token_bal_row in token_bal.iterrows():
-                asset_token = Token(token_bal_row['token_address'])
-                try:
-                    assets.append(
-                        Position(amount=asset_token.scaled(token_bal_row['value']),
-                                 asset=asset_token))
-                except ModelDataError:
-                    ...
+                if not math.isclose(token_bal_row['value'], 0):
+                    asset_token = Token(token_bal_row['token_address']).as_erc20()
+                    try:
+                        assets.append(
+                            Position(amount=asset_token.scaled(token_bal_row['value']),
+                                     asset=asset_token))
+                    except (ModelDataError, ContractLogicError):
+                        # NFT: ContractLogicError
+                        continue
 
             price_historical_result[n_historical].output = \
                 Portfolio(positions=assets)  # type: ignore
@@ -374,7 +389,7 @@ class AccountsPortfolioAggregate(Model):
 
 
 @Model.describe(slug="accounts.portfolio",
-                version="0.4",
+                version="0.5",
                 display_name="Accounts\' Token Holding as a Portfolio",
                 description="All of the token holdings for a list of accounts",
                 developer="Credmark",
@@ -397,7 +412,7 @@ class AccountsPortfolio(Model):
                     amount=native_token.scaled(native_amount),
                     asset=NativeToken()))
 
-        token_addresses = (get_token_transfer(self.context, input.to_address())
+        token_addresses = (get_token_transfer(self.context, input.to_address(), [], 0)
                            ['token_address']
                            .drop_duplicates()
                            .to_list())

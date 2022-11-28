@@ -1,0 +1,181 @@
+from typing import List
+import pandas as pd
+
+from credmark.cmf.model import Model
+from credmark.dto import DTO, DTOField, cross_examples
+from credmark.cmf.types import (Account, Accounts, Address,
+                                NativeToken, Records)
+
+
+class Tokens(DTO):
+    tokens: List[Address] = DTOField([], description='List of tokens')
+    startBlock: int = DTOField(0, description='start block number')
+
+    class Config:
+        schema_extra = {
+            'examples': [{}, {"tokens": ["0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"]}]
+        }
+
+
+class AccountWithToken(Account, Tokens):
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(
+                Tokens.Config.schema_extra['examples'],
+                Account.Config.schema_extra['examples'],
+                limit=10)}
+
+
+class AccountsWithToken(Accounts, Tokens):
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(
+                Tokens.Config.schema_extra['examples'],
+                Accounts.Config.schema_extra['examples'],
+                limit=10)}
+
+
+@Model.describe(slug='account.token-transfer',
+                version='1.7',
+                display_name='Accounts\' Token Transfer',
+                description='Accounts\' Token Transfer Table',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountWithToken,
+                output=Records)
+class AccountERC20Token(Model):
+    def run(self, input: AccountWithToken) -> Records:
+        return self.context.run_model(
+            'accounts.token-transfer',
+            input=input.to_accounts().dict() |
+            {"tokens": input.tokens,
+             "startBlock": input.startBlock},
+            return_type=Records)
+
+
+@Model.describe(slug='accounts.token-transfer',
+                version='1.7',
+                display_name='Account\'s Token Transfer Table',
+                description='Account\'s Token Transfer Table',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountsWithToken,
+                output=Records)
+class AccountsERC20Token(Model):
+    def run(self, input: AccountsWithToken) -> Records:
+        df_erc20 = get_token_transfer(self.context,
+                                      input.to_address(),
+                                      input.tokens,
+                                      input.startBlock)
+        return Records.from_dataframe(df_erc20)
+
+
+def get_token_transfer(_context, _accounts: List[Address], _tokens: List[Address], start_block: int) -> pd.DataFrame:
+    def _use_ledger():
+        with _context.ledger.TokenTransfer as q:
+            transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
+                             q.TRANSACTION_HASH, q.LOG_INDEX]
+            df_ts = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
+
+        with _context.ledger.TokenTransfer as q:
+            for _address in _accounts:
+                where_cond = (q.TO_ADDRESS.eq(_address).or_(
+                    q.FROM_ADDRESS.eq(_address))).parentheses_()
+                if len(_tokens) > 0:
+                    where_cond = where_cond.and_(q.TOKEN_ADDRESS.in_(_tokens))
+                if start_block > 0:
+                    where_cond = where_cond.and_(q.BLOCK_NUMBER.le(start_block))
+                offset = 0
+                while True:
+                    df_tt = (q.select(
+                        columns=transfer_cols,
+                        aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
+                                      f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value')],
+                        where=where_cond,
+                        order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX),
+                        offset=offset).to_dataframe())
+
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+
+        return (pd.concat(df_ts)
+                .assign(value=lambda x: x.value.apply(int),
+                        block_number=lambda x: x.block_number.apply(int))
+                .drop_duplicates()
+                .sort_values('block_number')
+                .reset_index(drop=True))
+
+    def _use_model():
+        if len(_tokens) > 0:
+            req = {'accounts': _accounts, 'tokens': _tokens, 'startBlock': start_block}
+        else:
+            req = {'accounts': _accounts, 'startBlock': start_block}
+
+        result = (pd.DataFrame(_context.run_model(
+            'ledger.account-token-transfers',
+            req))
+            .assign(value=lambda x: x.transaction_value.apply(int),
+                    block_number=lambda x: x.block_number.apply(int))
+            .drop(columns='transaction_value'))
+        return result
+
+    return _use_model()
+
+
+def get_native_transfer(_context, _accounts: List[Address]) -> pd.DataFrame:
+    native_token_addr = NativeToken().address
+
+    def _use_ledger():
+        with _context.ledger.Transaction as q:
+            transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS,
+                             q.HASH, q.TRANSACTION_INDEX]
+            df_ts = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
+
+        with _context.ledger.Transaction as q:
+            for _address in _accounts:
+                offset = 0
+                while True:
+                    rs_tt = (q.select(
+                        columns=transfer_cols,
+                        aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
+                                    f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value'),
+                                    (q.field(native_token_addr).squote(), 'token_address')],
+                        where=(q.TO_ADDRESS.eq(_address).or_(q.FROM_ADDRESS.eq(_address))
+                               ).parentheses_().and_(q.field('value').dquote().ne(0)),
+                        order_by=q.BLOCK_NUMBER.comma_(q.TRANSACTION_INDEX),
+                        offset=offset))
+
+                    df_tt = rs_tt.to_dataframe()
+
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+
+            return (pd.concat(df_ts)
+                    .assign(value=lambda x: x.value.apply(int),
+                            block_number=lambda x: x.block_number.apply(int))
+                    .drop_duplicates()
+                    .sort_values('block_number')
+                    .rename(columns={'hash': 'transaction_hash', 'transaction_index': 'log_index'})
+                    .reset_index(drop=True))
+
+    def _use_model():
+        result = (pd.DataFrame(_context.run_model(
+            'ledger.account-native-token-transfers',
+            {'accounts': _accounts}))
+            .assign(value=lambda x: x.transaction_value.apply(int),
+                    block_number=lambda x: x.block_number.apply(int),
+                    token_address=native_token_addr)
+            .drop(columns='transaction_value'))
+        return result
+
+    return _use_model()
