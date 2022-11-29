@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
@@ -17,7 +18,7 @@ np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.7",
+                version="1.8",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
@@ -141,7 +142,7 @@ class UniswapPoolVaR(Model):
         p_a = (1-input.lower_range) * p_0
         p_b = (1+input.upper_range) * p_0
 
-        if np.isclose(p_a, 0):
+        if math.isclose(p_a, 0):
             impermenant_loss_vector_under = np.zeros(ratio_change.shape)
         else:
             impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (

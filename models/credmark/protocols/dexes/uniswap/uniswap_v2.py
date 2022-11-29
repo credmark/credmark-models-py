@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines
+import math
 from typing import List
 
 import numpy as np
@@ -143,7 +144,7 @@ class V2LPQuantityInput(DTO):
 
 @Model.describe(slug='uniswap-v2.lp-pos',
                 version='0.2',
-                display_name='Uniswap v2 LP Position (inclusive of fee) for liquidity',
+                display_name='Uniswap v2 (Sushiswap) LP Position (inclusive of fee) for liquidity',
                 description='Returns position (inclusive of fee) for the amount of liquidity',
                 category='protocol',
                 subcategory='uniswap-v2',
@@ -182,7 +183,7 @@ class UniswapV2LPQuantity(Model):
 
 @Model.describe(slug='uniswap-v2.lp',
                 version='0.2',
-                display_name='Uniswap v2 LP Position (inclusive of fee) for account',
+                display_name='Uniswap v2 (Sushiswap) LP Position (inclusive of fee) for account',
                 description='Returns position (inclusive of fee) for account',
                 category='protocol',
                 subcategory='uniswap-v2',
@@ -237,15 +238,15 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
 
 
 def try_zero(flt):
-    if np.isclose(flt, 0):
+    if math.isclose(flt, 0):
         return 0
     return flt
 
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.4',
-                display_name='Uniswap v2 LP Position and Fee history for account',
+                version='0.6',
+                display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
                 subcategory='uniswap-v2',
@@ -341,8 +342,8 @@ class UniswapV2LPFeeHistory(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
-                version='0.2',
-                display_name='Uniswap v2 LP Position (split for fee) for account',
+                version='0.4',
+                display_name='Uniswap v2 (Sushiswap) LP Position (split for fee) for account',
                 description='Returns position (split for fee) for account',
                 category='protocol',
                 subcategory='uniswap-v2',
