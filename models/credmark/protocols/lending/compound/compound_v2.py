@@ -1,5 +1,6 @@
 # pylint:disable=line-too-long
 
+import math
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
@@ -227,7 +228,7 @@ class CompoundV2AllPoolsValue(Model):
 
 
 @Model.describe(slug="compound-v2.pool-info",
-                version="1.5",
+                version="1.6",
                 display_name="Compound V2 - pool/market information",
                 description="Compound V2 - pool/market information",
                 category='protocol',
@@ -413,7 +414,7 @@ class CompoundV2GetPoolInfo(Model):
         borrowRate = cToken.functions.borrowRatePerBlock().call() / self.ETH_MANTISSA
         supplyRate = cToken.functions.supplyRatePerBlock().call() / self.ETH_MANTISSA
 
-        if np.isclose(cash + totalBorrows - totalReserves, 0):
+        if math.isclose(cash + totalBorrows - totalReserves, 0):
             utilizationRate = 0
         else:
             utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)

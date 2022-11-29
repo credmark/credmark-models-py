@@ -1,5 +1,7 @@
 # pylint: disable=locally-disabled, unused-import, invalid-name
 
+import math
+
 from typing import List
 
 import numpy as np
@@ -376,7 +378,7 @@ class UniswapV2LPID(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -501,7 +503,7 @@ class UniswapV3GetPoolInfo(Model):
         # -i '{"address":"0x5c0f97e0ed70e0163b799533ce142f650e39a3e6",
         #      "price_slug": "uniswap-v3.get-weighted-price"}'
 
-        # assert np.isclose(
+        # assert math.isclose(
         #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
         #    float(liquidity * liquidity))
 
@@ -509,7 +511,7 @@ class UniswapV3GetPoolInfo(Model):
         ratio_right = float(liquidity * liquidity)
 
         try:
-            assert np.isclose(ratio_left, ratio_right)
+            assert math.isclose(ratio_left, ratio_right)
         except AssertionError:
             compare_ratio = ratio_left/ratio_right
             assert 0.99 < compare_ratio < 1.01
@@ -553,7 +555,7 @@ class UniswapV3GetPoolInfo(Model):
 
         scale_multiplier = (10 ** (token0.decimals - token1.decimals))
         tick_price0 = tick_to_price(current_tick) * scale_multiplier
-        if np.isclose(0, tick_price0):
+        if math.isclose(0, tick_price0):
             tick_price1 = 0
         else:
             tick_price1 = 1/tick_price0
