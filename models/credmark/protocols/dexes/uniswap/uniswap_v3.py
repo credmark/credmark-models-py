@@ -2,8 +2,6 @@
 
 from typing import List
 
-from math import log
-
 import numpy as np
 import numpy.linalg as nplin
 import pandas as pd
