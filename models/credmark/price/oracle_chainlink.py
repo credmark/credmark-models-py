@@ -119,7 +119,8 @@ class PriceOracleChainlink(Model):
         new_input.quote = self.check_wrap(new_input.quote)
         return new_input
 
-    def run(self, input: PriceInput) -> PriceWithQuote:  # pylint: disable=too-many-return-statements)
+    # pylint: disable=too-many-return-statements, too-many-branches
+    def run(self, input: PriceInput) -> PriceWithQuote:
         new_input = self.replace_input(input)
         base = new_input.base
         quote = new_input.quote
