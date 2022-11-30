@@ -31,7 +31,7 @@ class PriceOracleChainlinkMaybe(Model):
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.9',
+                version='1.10',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 category='protocol',
