@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestToken(CMKTest):
+class TestToken(CMFTest):
     def test_volume(self):
         self.run_model('token.overall-volume-block',
                        {'symbol': 'USDC', 'block_number': -1000})

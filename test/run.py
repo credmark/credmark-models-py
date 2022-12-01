@@ -11,7 +11,10 @@ import inspect
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from importlib import import_module
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
+
+from test_bsc import TestBSC
+from test_polygon import TestPolygon
 
 from test_aave import TestAAVE
 from test_account import TestAccount
@@ -57,36 +60,36 @@ if __name__ == '__main__':
                         help=('test to run'))
 
     args = vars(parser.parse_args())
-    CMKTest.type = args['type']
+    CMFTest.type = args['type']
 
     if args['type'] == 'test':
         sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
-        CMKTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
-        CMKTest.pre_flag = ['--model_path', 'x']
+        CMFTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
+        CMFTest.pre_flag = ['--model_path', 'x']
         parallel_count = args['parallel_count']
     elif args['type'] == 'prod':
-        CMKTest.post_flag = []
-        CMKTest.pre_flag = []
+        CMFTest.post_flag = []
+        CMFTest.pre_flag = []
         parallel_count = args['parallel_count']
     elif args['type'] == 'prod-local':
-        CMKTest.post_flag = ['-l', '*']
-        CMKTest.pre_flag = []
+        CMFTest.post_flag = ['-l', '*']
+        CMFTest.pre_flag = []
         parallel_count = args['parallel_count']
     elif args['type'] == 'gw':
-        CMKTest.post_flag = ['-l', '-']
-        CMKTest.pre_flag = ['--model_path', 'x']
-        CMKTest.skip_nonzero = True
+        CMFTest.post_flag = ['-l', '-']
+        CMFTest.pre_flag = ['--model_path', 'x']
+        CMFTest.skip_nonzero = True
         parallel_count = args['parallel_count']
     else:
         print(f'Unknown test type {args["type"]}')
         sys.exit()
 
-    print(f'Run with flags of: {CMKTest.pre_flag} {CMKTest.post_flag} {args["tests"]}')
+    print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
 
-    CMKTest.test_main = import_module('credmark.cmf.credmark_dev')
+    CMFTest.test_main = import_module('credmark.cmf.credmark_dev')
 
-    CMKTest.block_number = args["block_number"]
-    CMKTest.start_n = args["start_n"]
+    CMFTest.block_number = args["block_number"]
+    CMFTest.start_n = args["start_n"]
 
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
@@ -94,14 +97,14 @@ if __name__ == '__main__':
     all_tests_name = [o.__name__
                       for _n, o in locals().items()
                       if inspect.isclass(o) and
-                      issubclass(o, CMKTest)
+                      issubclass(o, CMFTest)
                       ]
 
     print(f'All Tests: {all_tests_name}')
 
     all_tests_sel = [o for _n, o in locals().items()
                      if inspect.isclass(o) and
-                     issubclass(o, CMKTest) and
+                     issubclass(o, CMFTest) and
                      (args['tests'] == '__all__' or sum(o.__name__.endswith(t)
                                                         for t in args['tests'].split(",")) == 1)]
 
@@ -110,7 +113,7 @@ if __name__ == '__main__':
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests_sel])
 
     if args['serial']:
-        CMKTest.fail_first = True
+        CMFTest.fail_first = True
         sys.argv = sys.argv[:1]
         if args['tests'] != '__all__':
             tests_to_run = args['tests'].split(",")
@@ -119,6 +122,6 @@ if __name__ == '__main__':
         unittest.main(failfast=True)
     else:
         runner = unittest.TextTestRunner()
-        CMKTest.fail_first = False
+        CMFTest.fail_first = False
         concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(parallel_count))
         runner.run(concurrent_suite)

@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestAAVE(CMKTest):
+class TestAAVE(CMFTest):
     def test(self):
         self.title('Aave V2')
 

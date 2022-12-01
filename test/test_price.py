@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestPrice(CMKTest):
+class TestPrice(CMFTest):
     CEX_ONLY_TOKENS = ['0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab', ]
 
     CHAINLINK_TOKENS = ['0xf629cbd94d3791c9250152bd8dfbdf380e2a3b9c',
@@ -305,8 +305,8 @@ def run_test_price_mix(self, tok):
                            {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": prefer},
                            block_number=block_number)
             self.run_model('price.quote',
-                        {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": prefer},
-                        block_number=block_number)
+                           {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": prefer},
+                           block_number=block_number)
 
         if prefer == 'cex':
             self.run_model('price.quote',

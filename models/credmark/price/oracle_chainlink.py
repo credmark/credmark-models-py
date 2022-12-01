@@ -31,7 +31,7 @@ class PriceOracleChainlinkMaybe(Model):
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.10',
+                version='1.11',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 category='protocol',
@@ -75,15 +75,16 @@ class PriceOracleChainlink(Model):
              'quote': {'symbol': 'BTC'}},
         },
         Network.BSC: {
+            # ZIL
             Address('0xb86abcb37c3a4b64f74f59301aff131a1becc787'):
             {'feed': {'address': '0x3e3aA4FC329529C8Ab921c810850626021dbA7e6'},
-             'quote': {'symbol': 'ZIL'}},
+             'quote': {'symbol': 'USD'}},
         },
         Network.Polygon: {
-            # BSC's contract address
+            # ZEC: using BSC's contract address
             Address('0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb'):
             {'feed': {'address': '0x6EA4d89474d9410939d429B786208c74853A5B47'},
-             'quote': {'symbol': 'ZEC'}},
+             'quote': {'symbol': 'USD'}},
         }
     }
 
@@ -101,7 +102,9 @@ class PriceOracleChainlink(Model):
             # BTC => WBTC
             Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
             {'symbol': 'BTC'},
-        }
+        },
+        Network.BSC: {},
+        Network.Polygon: {},
     }
 
     """
@@ -131,12 +134,13 @@ class PriceOracleChainlink(Model):
         if base == quote:
             return PriceWithQuote(price=1, src=f'{self.slug}|Equal', quoteAddress=quote.address)
 
-        price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
-                                             input=new_input,
-                                             return_type=Maybe[PriceWithQuote],
-                                             local=True)
-        if price_maybe.just is not None:
-            return price_maybe.just
+        if self.context.chain_id == Network.Mainnet:
+            price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
+                                                 input=new_input,
+                                                 return_type=Maybe[PriceWithQuote],
+                                                 local=True)
+            if price_maybe.just is not None:
+                return price_maybe.just
 
         try_override_base = self.OVERRIDE_FEED[self.context.network].get(base.address, None)
         if try_override_base is not None:

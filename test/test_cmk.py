@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestCMK(CMKTest):
+class TestCMK(CMFTest):
     def test(self):
         self.title('CMK')
 

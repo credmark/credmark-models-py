@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestAccount(CMKTest):
+class TestAccount(CMFTest):
     def test_account_var(self):
         self.run_model('account.var', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636",
                        "window": "3 days", "interval": 1, "confidence": 0.01})

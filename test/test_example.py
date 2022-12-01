@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestExample(CMKTest):
+class TestExample(CMFTest):
     def test(self):
         self.title('Neil\'s example')
         self.run_model('contrib.neilz', {})

@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestTVL(CMKTest):
+class TestTVL(CMFTest):
     def test(self):
         block_number = 14830357
         self.title('TVL')
