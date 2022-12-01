@@ -31,7 +31,7 @@ class PriceOracleChainlinkMaybe(Model):
 
 
 @Model.describe(slug='price.oracle-chainlink',
-                version='1.9',
+                version='1.10',
                 display_name='Token Price - from Oracle',
                 description='Get token\'s price from Oracle',
                 category='protocol',
@@ -73,6 +73,17 @@ class PriceOracleChainlink(Model):
             Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
             {'ens': {'domain': 'wbtc-btc.data.eth'},
              'quote': {'symbol': 'BTC'}},
+        },
+        Network.BSC: {
+            Address('0xb86abcb37c3a4b64f74f59301aff131a1becc787'):
+            {'feed': {'address': '0x3e3aA4FC329529C8Ab921c810850626021dbA7e6'},
+             'quote': {'symbol': 'ZIL'}},
+        },
+        Network.Polygon: {
+            # BSC's contract address
+            Address('0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb'):
+            {'feed': {'address': '0x6EA4d89474d9410939d429B786208c74853A5B47'},
+             'quote': {'symbol': 'ZEC'}},
         }
     }
 
@@ -108,7 +119,8 @@ class PriceOracleChainlink(Model):
         new_input.quote = self.check_wrap(new_input.quote)
         return new_input
 
-    def run(self, input: PriceInput) -> PriceWithQuote:  # pylint: disable=too-many-return-statements)
+    # pylint: disable=too-many-return-statements, too-many-branches
+    def run(self, input: PriceInput) -> PriceWithQuote:
         new_input = self.replace_input(input)
         base = new_input.base
         quote = new_input.quote
@@ -128,14 +140,27 @@ class PriceOracleChainlink(Model):
 
         try_override_base = self.OVERRIDE_FEED[self.context.network].get(base.address, None)
         if try_override_base is not None:
-            override_feed = try_override_base['ens']
-            override_quote = Currency(**try_override_base['quote'])
+            if 'ens' in try_override_base:
+                override_ens = try_override_base['ens']
+                override_quote = Currency(**try_override_base['quote'])
 
-            p0 = self.context.run_model('chainlink.price-by-ens',
-                                        input=override_feed,
-                                        return_type=Price,
-                                        local=True)
+                p0 = self.context.run_model('chainlink.price-by-ens',
+                                            input=override_ens,
+                                            return_type=Price,
+                                            local=True)
+            elif 'feed' in try_override_base:
+                override_feed = try_override_base['feed']
+                override_quote = Currency(**try_override_base['quote'])
+
+                p0 = self.context.run_model('chainlink.price-by-feed',
+                                            input=override_feed,
+                                            return_type=Price,
+                                            local=True)
+            else:
+                raise ModelRunError(f'Unknown override {try_override_base}')
+
             pq0 = PriceWithQuote(**p0.dict(), quoteAddress=quote.address)
+
             if override_quote.address == quote.address:
                 return pq0
             else:
@@ -146,13 +171,25 @@ class PriceOracleChainlink(Model):
 
         try_override_quote = self.OVERRIDE_FEED[self.context.network].get(quote.address, None)
         if try_override_quote is not None:
-            override_feed = try_override_quote['ens']
-            override_quote = Currency(**try_override_quote['quote'])
+            if 'ens' in try_override_quote:
+                override_ens = try_override_quote['ens']
+                override_quote = Currency(**try_override_quote['quote'])
 
-            p0 = self.context.run_model('chainlink.price-by-ens',
-                                        input=override_feed,
-                                        return_type=Price,
-                                        local=True)
+                p0 = self.context.run_model('chainlink.price-by-ens',
+                                            input=override_ens,
+                                            return_type=Price,
+                                            local=True)
+            elif 'feed' in try_override_quote:
+                override_feed = try_override_quote['feed']
+                override_quote = Currency(**try_override_quote['quote'])
+
+                p0 = self.context.run_model('chainlink.price-by-feed',
+                                            input=override_feed,
+                                            return_type=Price,
+                                            local=True)
+            else:
+                raise ModelRunError(f'Unknown override {try_override_quote}')
+
             pq0 = PriceWithQuote(**p0.dict(), quoteAddress=quote.address).inverse(quote.address)
             if override_quote.address == base.address:
                 return pq0
