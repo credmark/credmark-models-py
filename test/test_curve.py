@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestCurve(CMKTest):
+class TestCurve(CMFTest):
     def test_poolinfo(self):
         self.title('Curve - Pool Info')
 

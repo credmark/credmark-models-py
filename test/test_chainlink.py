@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestChainlink(CMKTest):
+class TestChainlink(CMFTest):
     block_number: int = 15000108
 
     def test_ens(self):

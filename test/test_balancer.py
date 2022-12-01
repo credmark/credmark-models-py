@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestBalancer(CMKTest):
+class TestBalancer(CMFTest):
     def test_pool_info(self):
         self.title('Balancer - Pool Info')
         self.run_model('balancer-fi.get-pool-price-info', {"address": "0x32296969Ef14EB0c6d29669C550D4a0449130230"})

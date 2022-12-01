@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestDashboard(CMKTest):
+class TestDashboard(CMFTest):
     SUSHI_POOLS = ['0x6a091a3406E0073C3CD6340122143009aDac0EDa',
                    '0x397ff1542f962076d0bfe58ea045ffa2d347aca0',
                    '0xceff51756c56ceffca006cd410b03ffc46dd3a58',

@@ -1,12 +1,13 @@
 import sys
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.model.errors import ModelRunError, ModelEngineError
 from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
 from models.dtos.price import PriceInput
+from models.tmp_abi_lookup import CHAINLINK_AGG
 from web3.exceptions import ContractLogicError
 
 
@@ -56,7 +57,7 @@ class ChainLinkPriceByENS(Model):
 
 
 @Model.describe(slug='chainlink.price-by-feed',
-                version="1.2",
+                version="1.3",
                 display_name="Chainlink - Price by feed",
                 description="Input a Chainlink valid feed",
                 category='protocol',
@@ -66,6 +67,12 @@ class ChainLinkPriceByENS(Model):
 class ChainLinkPriceByFeed(Model):
     def run(self, input: Contract) -> Price:
         feed_contract = input
+        try:
+            feed_contract.abi
+        except ModelEngineError:
+            feed_contract._loaded = True  # pylint:disable=protected-access
+            feed_contract.set_abi(CHAINLINK_AGG)
+
         (_roundId, answer,
             _startedAt, _updatedAt,
             _answeredInRound) = feed_contract.functions.latestRoundData().call()

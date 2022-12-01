@@ -1,9 +1,9 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmk_test import CMKTest
+from cmf_test import CMFTest
 
 
-class TestFinance(CMKTest):
+class TestFinance(CMFTest):
     def test0(self):
         self.title('VaR')
 
