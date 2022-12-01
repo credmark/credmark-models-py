@@ -10,3 +10,5 @@ class TestPolygon(CMFTest):
 
         self.run_model('price.oracle-chainlink',
                        {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb"}, block_number=36286847, chain_id=137)
+
+        self.run_model('chain.get-latest-block', {}, block_number=36286847, chain_id=137)
