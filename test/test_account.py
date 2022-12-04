@@ -27,6 +27,14 @@ class TestAccount(CMFTest):
         self.run_model('account.token-transfer', {"address": "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"})
         self.run_model('account.token-transfer', {'address': '0x9c5083dd4838e120dbeac44c052179692aa5dac5'})
 
+        # Console Test to return int
+        # run_model('account.token-transfer', {"address":"0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"}, return_type=Records).to_dataframe().value.sum()
+        # run_model('ledger.account-token-transfers', {"accounts": ["0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"], "blockNumber": self.context.block_number})
+
+        # get_token_transfer(context, ['0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'], [], 0).value.sum()
+        # get_native_transfer(context, ['0x109B3C39d675A2FF16354E116d080B94d238a7c9'])
+        # get_native_transfer(context, ['0x109B3C39d675A2FF16354E116d080B94d238a7c9'], fix_int = False).value.sum
+
         self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
 

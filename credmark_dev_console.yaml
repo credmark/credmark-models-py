@@ -16,3 +16,5 @@ imports:
     - models.dtos.price.DexPoolAggregationInput
     - models.dtos.price.DexPriceTokenInput
     - models.dtos.price.DexPricePoolInput
+    - models.credmark.ledger.transfers.get_token_transfer
+    - models.credmark.ledger.transfers.get_native_transfer

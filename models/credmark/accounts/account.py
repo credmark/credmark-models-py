@@ -79,7 +79,7 @@ class AccountsReturnInput(Accounts):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.7',
+                version='0.8',
                 display_name='Accounts\' Token Return',
                 description='Accounts\' Token Return',
                 developer="Credmark",
@@ -146,7 +146,7 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 
 # TODO: NFT
 @Model.describe(slug='accounts.token-return-historical',
-                version='0.6',
+                version='0.7',
                 display_name='Accounts\' Token Return Historical',
                 description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
@@ -283,7 +283,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 @Model.describe(
     slug='accounts.token-historical',
-    version='0.6',
+    version='0.7',
     display_name='Accounts\' Token Holding Historical',
     description='Accounts\' Token Holding Historical',
     developer="Credmark",
@@ -389,7 +389,7 @@ class AccountsPortfolioAggregate(Model):
 
 
 @Model.describe(slug="accounts.portfolio",
-                version="0.5",
+                version="0.6",
                 display_name="Accounts\' Token Holding as a Portfolio",
                 description="All of the token holdings for a list of accounts",
                 developer="Credmark",

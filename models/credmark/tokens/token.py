@@ -6,7 +6,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Price, PriceWithQuote,
+                                NativeToken, Network, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
@@ -181,25 +181,27 @@ class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
 
 
-@Model.describe(
-    slug="token.logo",
-    version="1.0",
-    display_name="Token Logo",
-    developer="Credmark",
-    category='protocol',
-    tags=['token'],
-    input=Token,
-    output=TokenLogoOutput
-)
+@Model.describe(slug="token.logo",
+                version="1.1",
+                display_name="Token Logo",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=TokenLogoOutput
+                )
 class TokenLogoModel(Model):
     """
     Return token's logo
     """
 
     def run(self, input: Token) -> TokenLogoOutput:
-        if self.context.chain_id != 1:
+        if self.context.chain_id != Network.Mainnet:
             raise ModelDataError(message="Logos are only available for ethereum mainnet",
                                  code=ModelDataError.Codes.NO_DATA)
+
+        if self.context.block_number != 0:
+            return self.context.run_model(self.slug, input, block_number=0)
 
         # Handle native token
         if input.address == NativeToken().address:
