@@ -36,7 +36,7 @@ class AccountsWithToken(Accounts, Tokens):
 
 
 @Model.describe(slug='account.token-transfer',
-                version='1.7',
+                version='1.12',
                 display_name='Accounts\' Token Transfer',
                 description='Accounts\' Token Transfer Table',
                 developer="Credmark",
@@ -55,8 +55,12 @@ class AccountERC20Token(Model):
             return_type=Records)
 
 
+def fix_transfer(df_in):
+    return df_in.assign(value=lambda x: x.value.apply(int))
+
+
 @Model.describe(slug='accounts.token-transfer',
-                version='1.7',
+                version='1.12',
                 display_name='Account\'s Token Transfer Table',
                 description='Account\'s Token Transfer Table',
                 developer="Credmark",
@@ -70,12 +74,14 @@ class AccountsERC20Token(Model):
         df_erc20 = get_token_transfer(self.context,
                                       input.to_address(),
                                       input.tokens,
-                                      input.startBlock)
-        return Records.from_dataframe(df_erc20)
+                                      input.startBlock,
+                                      fix_int=False)
+        return Records.from_dataframe(df_erc20, fix_int_columns=['value'])
 
 
 def get_token_transfer(_context, _accounts: List[Address],
-                       _tokens: List[Address], start_block: int) -> pd.DataFrame:
+                       _tokens: List[Address], start_block: int,
+                       fix_int=True) -> pd.DataFrame:
     def _use_ledger():
         with _context.ledger.TokenTransfer as q:
             transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
@@ -107,8 +113,7 @@ def get_token_transfer(_context, _accounts: List[Address],
                     offset += 5000
 
         return (pd.concat(df_ts)
-                .assign(value=lambda x: x.value.apply(int),
-                        block_number=lambda x: x.block_number.apply(int))
+                .assign(block_number=lambda x: x.block_number.apply(int))
                 .drop_duplicates()
                 .sort_values('block_number')
                 .reset_index(drop=True))
@@ -118,18 +123,22 @@ def get_token_transfer(_context, _accounts: List[Address],
         if len(_tokens) > 0:
             req |= {'tokens': _tokens}
 
-        result = (pd.DataFrame(_context.run_model(
+        model_result = _context.run_model(
             'ledger.account-token-transfers',
-            req))
-            .assign(value=lambda x: x.transaction_value.apply(int),
-                    block_number=lambda x: x.block_number.apply(int))
-            .drop(columns='transaction_value'))
+            req)
+
+        result = (pd.DataFrame(model_result)
+                  .assign(block_number=lambda x: x.block_number.apply(int))
+                  .rename(columns={'transaction_value': 'value'}))
         return result
+
+    if fix_int:
+        return fix_transfer(_use_model())
 
     return _use_model()
 
 
-def get_native_transfer(_context, _accounts: List[Address]) -> pd.DataFrame:
+def get_native_transfer(_context, _accounts: List[Address], fix_int=True) -> pd.DataFrame:
     native_token_addr = NativeToken().address
 
     def _use_ledger():
@@ -161,8 +170,7 @@ def get_native_transfer(_context, _accounts: List[Address]) -> pd.DataFrame:
                     offset += 5000
 
             return (pd.concat(df_ts)
-                    .assign(value=lambda x: x.value.apply(int),
-                            block_number=lambda x: x.block_number.apply(int))
+                    .assign(block_number=lambda x: x.block_number.apply(int))
                     .drop_duplicates()
                     .sort_values('block_number')
                     .rename(columns={'hash': 'transaction_hash', 'transaction_index': 'log_index'})
@@ -172,10 +180,12 @@ def get_native_transfer(_context, _accounts: List[Address]) -> pd.DataFrame:
         result = (pd.DataFrame(_context.run_model(
             'ledger.account-native-token-transfers',
             {'accounts': _accounts}))
-            .assign(value=lambda x: x.transaction_value.apply(int),
-                    block_number=lambda x: x.block_number.apply(int),
+            .assign(block_number=lambda x: x.block_number.apply(int),
                     token_address=native_token_addr)
-            .drop(columns='transaction_value'))
+            .rename(columns={'transaction_value': 'value'}))
         return result
+
+    if fix_int:
+        return fix_transfer(_use_model())
 
     return _use_model()

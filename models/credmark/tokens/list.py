@@ -18,8 +18,9 @@ class TokenList(Model):
     def run(self, _: EmptyInput) -> Records:
         existing_tokens = [
             (v['address'], v['symbol'], v['name'], v['decimals'])
-            for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[str(self.context.chain_id)].values()]
+            for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[self.context.chain_id].values()]
         rec = Records(records=existing_tokens,
                       fields=['address', 'symbol', 'name', 'decimals'],
-                      n_rows=len(existing_tokens))
+                      n_rows=len(existing_tokens),
+                      fix_int_columns=[])
         return rec

@@ -28,6 +28,7 @@ class LatestBlock(DTO):
                 display_name="Obtain latest block",
                 description='block number and timestamp',
                 category='chain',
+                input=EmptyInput,
                 output=LatestBlock)
 class GetLatestBlock(Model):
     def run(self, _) -> LatestBlock:
