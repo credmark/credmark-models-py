@@ -269,7 +269,7 @@ class PriceInfoFromDex(Model):
                 all_pool_infos.extend(infos.some)
             return all_pool_infos
 
-        return Some[PoolPriceInfo](some=_use_for(local=True))
+        return Some[PoolPriceInfo](some=_use_for(local=False))
 
 
 @Model.describe(slug='price.dex-blended',
