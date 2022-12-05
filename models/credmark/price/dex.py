@@ -128,28 +128,12 @@ class DexWeightedPrice(Model):
 
     def aggregate_pool(self, model_slug, input: DexPriceTokenInput):
         pool_price_infos = self.context.run_model(model_slug,
-                                                  input=input,
-                                                  local=True)
+                                                  input=input)
 
         pool_aggregator_input = DexPoolAggregationInput(**input.dict(),
                                                         **pool_price_infos)
 
         return PoolPriceAggregator(self.context).run(pool_aggregator_input)
-
-
-@Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.8',
-                display_name='Uniswap v3 - get price weighted by liquidity',
-                description='The Uniswap v3 pools that support a token contract',
-                category='protocol',
-                subcategory='uniswap-v3',
-                tags=['price'],
-                input=DexPriceTokenInput,
-                output=Price,
-                errors=PRICE_DATA_ERROR_DESC)
-class UniswapV3WeightedPrice(DexWeightedPrice):
-    def run(self, input: DexPriceTokenInput) -> Price:
-        return self.aggregate_pool('uniswap-v3.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
@@ -173,6 +157,21 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
             if 'No pool to aggregate' in err.data.message:
                 return Maybe.none()
             raise
+
+
+@Model.describe(slug='uniswap-v3.get-weighted-price',
+                version='1.8',
+                display_name='Uniswap v3 - get price weighted by liquidity',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class UniswapV3WeightedPrice(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Price:
+        return self.aggregate_pool('uniswap-v3.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
