@@ -382,12 +382,9 @@ class AccountsERC20TokenHistorical(Model):
                 continue
 
             for past_block, price in zip(past_blocks, prices):
-                try:
-                    (price_historical_result[historical_blocks[past_block]]  # type: ignore
-                     .output[token_rows[token_addr][past_block]]
-                     .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
-                except IndexError:
-                    breakpoint()
+                (price_historical_result[historical_blocks[past_block]]  # type: ignore
+                    .output[token_rows[token_addr][past_block]]
+                    .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
 
         res = price_historical_result.dict()
         for n in range(len(res['results'])):
