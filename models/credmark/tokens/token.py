@@ -182,7 +182,7 @@ class TokenLogoOutput(DTO):
 
 
 @Model.describe(slug="token.logo",
-                version="1.1",
+                version="1.2",
                 display_name="Token Logo",
                 developer="Credmark",
                 category='protocol',
@@ -201,7 +201,10 @@ class TokenLogoModel(Model):
                                  code=ModelDataError.Codes.NO_DATA)
 
         if self.context.block_number != 0:
-            return self.context.run_model(self.slug, input, block_number=0)
+            return self.context.run_model(self.slug,
+                                          input,
+                                          block_number=0,
+                                          return_type=TokenLogoOutput)
 
         # Handle native token
         if input.address == NativeToken().address:
