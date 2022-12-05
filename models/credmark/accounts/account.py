@@ -9,8 +9,10 @@ from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types import (Account, Accounts,
                                 NativePosition, NativeToken,
-                                Portfolio, Position, Records,
-                                Token, TokenPosition)
+                                Portfolio, Position,
+                                PortfolioWithPrice, PositionWithPrice,
+                                PriceWithQuote,
+                                Records, Token, TokenPosition, BlockNumber)
 from credmark.dto import DTOField, EmptyInput, cross_examples
 from models.dtos.historical import HistoricalDTO
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
@@ -252,7 +254,7 @@ class AccountHistoricalInput(Account, HistoricalDTO):
 
 @Model.describe(
     slug='account.token-historical',
-    version='0.3',
+    version='0.4',
     display_name='Account\'s Token Holding Historical',
     description='Account\'s Token Holding Historical',
     developer="Credmark",
@@ -260,9 +262,9 @@ class AccountHistoricalInput(Account, HistoricalDTO):
     subcategory='position',
     tags=['token'],
     input=AccountHistoricalInput,
-    output=MapBlockTimeSeriesOutput[Portfolio])
+    output=dict)
 class AccountERC20TokenHistorical(Model):
-    def run(self, input: AccountHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+    def run(self, input: AccountHistoricalInput) -> dict:
         return self.context.run_model(
             'accounts.token-historical',
             AccountsHistoricalInput(
@@ -283,7 +285,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 @Model.describe(
     slug='accounts.token-historical',
-    version='0.7',
+    version='0.8',
     display_name='Accounts\' Token Holding Historical',
     description='Accounts\' Token Holding Historical',
     developer="Credmark",
@@ -291,9 +293,9 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
     subcategory='position',
     tags=['token'],
     input=AccountsHistoricalInput,
-    output=MapBlockTimeSeriesOutput[Portfolio])
+    output=dict)
 class AccountsERC20TokenHistorical(Model):
-    def run(self, input: AccountsHistoricalInput) -> MapBlockTimeSeriesOutput[Portfolio]:
+    def run(self, input: AccountsHistoricalInput) -> dict:
         _native_token = NativeToken()
 
         # TODO: native token transaction (incomplete) and gas spending
@@ -318,11 +320,14 @@ class AccountsERC20TokenHistorical(Model):
 
         df_historical = price_historical_result.to_dataframe()
 
+        historical_blocks = {}
+        token_blocks = {}
+        token_rows = {}
         for n_historical, row in df_historical.iterrows():
-            _past_block_number = row['blockNumber']
+            past_block_number = int(row['blockNumber'])
             assets = []
             _native_token_bal = (_df_native
-                                 .query('(block_number <= @_past_block_number)')
+                                 .query('(block_number <= @past_block_number)')
                                  .groupby('token_address', as_index=False)['value']
                                  .sum())
 
@@ -333,25 +338,58 @@ class AccountsERC20TokenHistorical(Model):
             #                 asset=_native_token))
 
             token_bal = (df_erc20
-                         .query('(block_number <= @_past_block_number)')
+                         .query('(block_number <= @past_block_number)')
                          .groupby('token_address', as_index=False)['value']
-                         .sum())
+                         .sum()
+                         .reset_index(drop=True))  # type: ignore
 
-            for _, token_bal_row in token_bal.iterrows():
+            historical_blocks[past_block_number] = n_historical
+            n_skip = 0
+            for n_row, token_bal_row in token_bal.iterrows():
                 if not math.isclose(token_bal_row['value'], 0):
-                    asset_token = Token(token_bal_row['token_address']).as_erc20()
+                    token_bal_addr = token_bal_row['token_address']
+                    asset_token = Token(token_bal_addr).as_erc20()
                     try:
                         assets.append(
-                            Position(amount=asset_token.scaled(token_bal_row['value']),
-                                     asset=asset_token))
+                            PositionWithPrice(
+                                amount=asset_token.scaled(token_bal_row['value']),
+                                asset=asset_token,
+                                fiat_quote=PriceWithQuote.usd(price=0, src='')))
+
+                        if token_rows.get(token_bal_addr) is None:
+                            token_blocks[token_bal_addr] = set([past_block_number])
+                            token_rows[token_bal_addr] = {past_block_number: n_row - n_skip}
+                        else:
+                            token_blocks[token_bal_addr].add(past_block_number)
+                            token_rows[token_bal_addr][past_block_number] = n_row - n_skip
+
                     except (ModelDataError, ContractLogicError):
                         # NFT: ContractLogicError
+                        n_skip += 1
                         continue
 
             price_historical_result[n_historical].output = \
-                Portfolio(positions=assets)  # type: ignore
+                PortfolioWithPrice(positions=assets)  # type: ignore
 
-        return price_historical_result  # type: ignore
+        for token_addr, past_blocks in token_blocks.items():
+            prices = (self.context.run_model(
+                'price.dex-db-blocks',
+                input={'address': token_addr, 'blocks': list(past_blocks)})
+                ['results'])
+            if len(prices) == 0 or len(prices) != len(past_blocks):
+                continue
+
+            for past_block, price in zip(past_blocks, prices):
+                (price_historical_result[historical_blocks[past_block]]  # type: ignore
+                 .output[token_rows[token_addr][past_block]]
+                 .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
+
+        res = price_historical_result.dict()
+        for n in range(len(res['results'])):
+            res['results'][n]['blockTimestamp'] = BlockNumber(  # type: ignore
+                res['results'][n]['blockNumber']).timestamp  # type: ignore
+
+        return res
 
 
 @Model.describe(slug="account.portfolio",
