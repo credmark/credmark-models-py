@@ -367,6 +367,8 @@ class AccountsERC20TokenHistorical(Model):
                         # NFT: ContractLogicError
                         n_skip += 1
                         continue
+                else:
+                    n_skip += 1
 
             price_historical_result[n_historical].output = \
                 PortfolioWithPrice(positions=assets)  # type: ignore
@@ -380,9 +382,12 @@ class AccountsERC20TokenHistorical(Model):
                 continue
 
             for past_block, price in zip(past_blocks, prices):
-                (price_historical_result[historical_blocks[past_block]]  # type: ignore
-                 .output[token_rows[token_addr][past_block]]
-                 .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
+                try:
+                    (price_historical_result[historical_blocks[past_block]]  # type: ignore
+                     .output[token_rows[token_addr][past_block]]
+                     .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
+                except IndexError:
+                    breakpoint()
 
         res = price_historical_result.dict()
         for n in range(len(res['results'])):
