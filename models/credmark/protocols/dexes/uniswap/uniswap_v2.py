@@ -17,8 +17,8 @@ from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
-                               PoolPriceInfo)
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
+from models.dtos.pool import PoolPriceInfo
 from models.dtos.tvl import TVLInfo
 from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
