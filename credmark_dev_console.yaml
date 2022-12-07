@@ -18,3 +18,5 @@ imports:
     - models.dtos.price.DexPricePoolInput
     - models.credmark.ledger.transfers.get_token_transfer
     - models.credmark.ledger.transfers.get_native_transfer
+    - models.credmark.protocols.dexes.uniswap.univ2_pool.UniV2Pool
+    - models.credmark.protocols.dexes.uniswap.univ3_pool.UniV3Pool
