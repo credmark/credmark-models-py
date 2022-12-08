@@ -11,8 +11,8 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import EmptyInput
 from models.dtos.price import (PRICE_DATA_ERROR_DESC, DexPoolAggregationInput,
-                               DexPriceTokenInput, DexPriceTokensInput,
-                               PoolPriceInfo)
+                               DexPriceTokenInput, DexPriceTokensInput)
+from models.dtos.pool import PoolPriceInfo
 from web3.exceptions import BadFunctionCallOutput
 
 

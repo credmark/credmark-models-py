@@ -4,11 +4,13 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
     ModelDataError, ModelRunError, create_instance_from_error_dict)
 from credmark.dto import DTOField
-from credmark.cmf.types import (Currency, Maybe, NativeToken, Network, Price, PriceWithQuote,
+from credmark.cmf.types import (Address, Currency,
+                                Maybe, NativeToken, Network,
+                                Price, PriceWithQuote,
                                 Some, Token, MapBlocksOutput)
 from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
-from models.dtos.price import (PRICE_DATA_ERROR_DESC, Address,
+from models.dtos.price import (PRICE_DATA_ERROR_DESC,
                                PriceHistoricalInput, PriceHistoricalInputs,
                                PriceInput, PriceInputWithPreference)
 

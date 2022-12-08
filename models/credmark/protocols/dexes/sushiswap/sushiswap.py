@@ -7,8 +7,8 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
     UniswapV2PoolMeta
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
-                               PoolPriceInfo)
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
+from models.dtos.pool import PoolPriceInfo
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",

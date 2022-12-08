@@ -15,13 +15,13 @@ from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput, DTOField
 from models.credmark.price.dex import get_primary_token_tuples
-from models.credmark.protocols.dexes.uniswap.liquidity import (
+from models.credmark.protocols.dexes.uniswap.univ3_math import (
     tick_to_price, in_range, out_of_range)
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_POS_NFT, V3_FACTORY_ADDRESS, V3_POOL_FEES, V3_TICK, V3_POS)
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput,
-                               PoolPriceInfo)
+from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
+from models.dtos.pool import PoolPriceInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from scipy.optimize import minimize
 from web3.exceptions import BadFunctionCallOutput

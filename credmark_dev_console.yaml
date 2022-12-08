@@ -12,9 +12,12 @@ imports:
     - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolValue
     - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfo
     - models.dtos.volume.TokenTradingVolume
-    - models.dtos.price.PoolPriceInfo
+    - models.dtos.pool.PoolPriceInfo
+    - models.dtos.pool.PoolPriceInfoWithVolume
     - models.dtos.price.DexPoolAggregationInput
     - models.dtos.price.DexPriceTokenInput
     - models.dtos.price.DexPricePoolInput
     - models.credmark.ledger.transfers.get_token_transfer
     - models.credmark.ledger.transfers.get_native_transfer
+    - models.credmark.protocols.dexes.uniswap.univ2_pool.UniV2Pool
+    - models.credmark.protocols.dexes.uniswap.univ3_pool.UniV3Pool
