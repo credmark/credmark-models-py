@@ -130,8 +130,10 @@ class UniV2Pool:
 
         self.previous_block_number = _pool_data['previous_block_number']
         self.previous_log_index = _pool_data['previous_log_index']
-        self.previous_price_info = PoolPriceInfoWithVolume(
-            **_pool_data['previous_price_info']) if _pool_data['previous_price_info'] is not None else None
+        self.previous_price_info = (
+            PoolPriceInfoWithVolume(**_pool_data['previous_price_info'])
+            if _pool_data['previous_price_info'] is not None
+            else None)
 
         self.token0_in = _pool_data['token0_in']
         self.token0_out = _pool_data['token0_out']
