@@ -121,10 +121,11 @@ class UniswapFee(Model):
                            .groupby('transaction_hash', as_index=False)
                            ["token_address"]
                            .count())
-        _df_tx_non_swap = (df_tx_total.merge(
-            df_groupby_hash.loc[(df_groupby_hash.token_address != 2), :],
-            on='transaction_hash',
-            how='inner'))
+        _df_tx_non_swap = (
+            df_tx_total.merge(
+                df_groupby_hash.loc[(df_groupby_hash.token_address != 2), :],
+                on='transaction_hash',
+                how='inner'))
 
         # Use the swap transactions hashes to filter all transactions
         df_tx_swap = df_tx_total.merge(

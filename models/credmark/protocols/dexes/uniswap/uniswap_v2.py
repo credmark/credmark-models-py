@@ -243,6 +243,25 @@ def try_zero(flt):
     return flt
 
 
+def uniswap_v2_fee_sample_data():
+    _df_sample = pd.DataFrame(
+        columns=['block_number', 'log_index', 'from_address', 'to_address', 'transaction_value'],
+        data=[(int(10109485), int(173),
+              '0x0000000000000000000000000000000000000000',
+               '0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329',
+               int(1885295466071170)),
+              (int(10431987), int(27),
+              '0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329',
+               '0x7fba4b8dc5e7616e59622806932dbea72537a56b',
+               int(-357094337512011)),
+              (int(10933740), int(178),
+              '0x0000000000000000000000000000000000000000',
+               '0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329',
+               int(75011156151825)), ])
+
+    return _df_sample
+
+
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
                 version='0.6',
@@ -900,7 +919,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             if len(df_all_swaps) == 0:
                 return pool_volume_history
 
-            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
+            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])  # type: ignore
 
             event_swap_args_lower = sorted([c.lower() for c in event_swap_args])
             if event_swap_args_lower == sorted(['evt_amount0in', 'evt_amount1in', 'evt_amount0out', 'evt_amount1out']):
@@ -980,7 +999,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             if len(df_all_swaps) == 0:
                 return pool_volume_history
 
-            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])
+            df_all_swaps.columns = pd.Index([c.lower() for c in df_all_swaps.columns])  # type: ignore
 
             for col in ['evt_tokens_bought', 'evt_tokens_sold']:
                 df_all_swaps[col] = df_all_swaps.loc[:, col].astype(float)  # type: ignore
@@ -1001,7 +1020,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                                  {f'evt_amount{n}_in': ['sum'] for n in range(tokens_n)} |
                                  {f'evt_amount{n}_out': ['sum'] for n in range(tokens_n)}))  # type: ignore
 
-            df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])
+            df_all_swaps.columns = pd.Index([a for a, _ in df_all_swaps.columns])  # type: ignore
             df_all_swaps = df_all_swaps.sort_values('min_block_number').reset_index(drop=True)
         else:
             raise ModelRunError(f'Unknown pool info model {input.pool_info_model=}')
