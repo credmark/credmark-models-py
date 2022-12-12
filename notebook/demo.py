@@ -16,7 +16,9 @@ def main():
     crv_token = Token('0xD533a949740bb3306d119CC777fa900bA034cd52')
     print(crv_token.symbol, crv_token.decimals)
 
-    context.run_model('price.cex', {'base': crv_token})  # type: ignore
+    result = context.run_model('price.cex', {'base': crv_token})  # type: ignore
+    print(result)
+    print(result['price'])  # type: ignore
 
 
 if __name__ == '__main__':
