@@ -17,3 +17,7 @@ def main():
     print(crv_token.symbol, crv_token.decimals)
 
     context.run_model('price.cex', {'base': crv_token})  # type: ignore
+
+
+if __name__ == '__main__':
+    main()
