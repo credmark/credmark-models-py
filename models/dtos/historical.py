@@ -1,4 +1,4 @@
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField, cross_examples
 
 
 class HistoricalDTO(DTO):
@@ -17,3 +17,11 @@ class HistoricalDTO(DTO):
 class HistoricalRunModelInput(HistoricalDTO):
     model_slug: str
     model_input: dict
+
+    class Config:
+        schema_extra = {
+            'examples':  cross_examples(
+                [{"model_slug": "aave-v2.token-asset", "model_input": {"symbol":"USDC"}},],
+                HistoricalDTO.Config.schema_extra['examples'],
+                limit=10)
+        }

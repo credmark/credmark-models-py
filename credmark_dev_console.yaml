@@ -21,3 +21,5 @@ imports:
     - models.credmark.ledger.transfers.get_native_transfer
     - models.credmark.protocols.dexes.uniswap.univ2_pool.UniV2Pool
     - models.credmark.protocols.dexes.uniswap.univ3_pool.UniV3Pool
+    - models.dtos.historical.HistoricalDTO
+    - models.dtos.historical.HistoricalRunModelInput

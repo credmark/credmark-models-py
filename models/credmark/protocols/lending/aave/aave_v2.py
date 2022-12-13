@@ -240,31 +240,46 @@ class AaveV2GetAssets(Model):
 
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
-        aave_debts_infos = []
-
         model_slug = 'aave-v2.token-asset'
         model_inputs = [Token(address=addr) for addr in aave_assets_address]
-        all_pool_infos_results = self.context.run_model(
-            slug='compose.map-inputs',
-            input={'modelSlug': model_slug,
-                   'modelInputs': model_inputs},
-            return_type=MapInputsOutput[dict, AaveDebtInfo]
-        )
 
-        aave_debts_infos = []
-        for pool_n, pool_result in enumerate(all_pool_infos_results):
-            if pool_result.output is not None:
-                aave_debts_infos.append(pool_result.output)
-            elif pool_result.error is not None:
-                self.logger.error(pool_result.error)
-                raise ModelRunError(
-                    (f'Error with models({self.context.block_number}).' +
-                     f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
-                     pool_result.error.message))
-            else:
-                raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+        def _use_compose():
+            all_pool_infos_results = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, AaveDebtInfo]
+            )
 
-        return Some[AaveDebtInfo](some=aave_debts_infos)
+            aave_debts_infos = []
+            for pool_n, pool_result in enumerate(all_pool_infos_results):
+                if pool_result.output is not None:
+                    aave_debts_infos.append(pool_result.output)
+                elif pool_result.error is not None:
+                    self.logger.error(pool_result.error)
+                    raise ModelRunError(
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
+                         pool_result.error.message))
+                else:
+                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+
+            return aave_debts_infos
+
+        def _use_for():
+            aave_debts_infos = []
+            for asset_n, asset in enumerate(model_inputs):
+                debt_info = self.context.run_model(
+                    model_slug, asset,
+                    return_type=AaveDebtInfo)
+                aave_debts_infos.append(debt_info)
+                self.logger.info(
+                    f'[{self.slug}] asset '
+                    f'({asset_n+1}/{len(model_inputs)}): {asset}')
+            return aave_debts_infos
+
+        return Some[AaveDebtInfo](some=_use_compose())
+        # return Some[AaveDebtInfo](some=_use_for())
 
 
 @Model.describe(slug="aave-v2.lending-pool-assets-portfolio",
