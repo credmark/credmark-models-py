@@ -78,7 +78,7 @@ class UniswapV2PoolMeta:
                     break
                 offset += 5000
 
-            all_df = pd.concat(df_ts)
+            all_df = pd.concat(df_ts, axis=0)
 
         evt_pair = all_df['evt_pair']  # type: ignore
 
@@ -161,7 +161,7 @@ class UniswapV2LPQuantity(Model):
             pool.set_abi(UNISWAP_V2_POOL_ABI)
 
         reserves = pool.functions.getReserves().call()
-        total_supply = pool.functions.totalSupply().call()
+        lp_total_supply = pool.functions.totalSupply().call()
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
@@ -170,8 +170,13 @@ class UniswapV2LPQuantity(Model):
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
-        lp_token0 = scaled_reserve0 * lp_balance / total_supply
-        lp_token1 = scaled_reserve1 * lp_balance / total_supply
+        if math.isclose(lp_balance, 0):
+            return V2LPOutput(
+                lp=Position(amount=lp_balance, asset=pool),
+                tokens=[Position(amount=0, asset=token0), Position(amount=0, asset=token1)])
+
+        lp_token0 = scaled_reserve0 * lp_balance / lp_total_supply
+        lp_token1 = scaled_reserve1 * lp_balance / lp_total_supply
 
         lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
         position0 = Position(amount=lp_token0, asset=token0)
@@ -204,13 +209,8 @@ class UniswapV2LP(Model):
 # pylint: disable=invalid-name
 def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
                      lp_prev_token0, lp_prev_token1):
-    # current LP position
-    lp_pos = context.run_model(
-        'uniswap-v2.lp',
-        input=V2LPInput(pool=pool, lp=lp),
-        return_type=V2LPOutput,
-        block_number=block_number)
 
+    # Get the amount of tokens for a given amount of LP tokens.
     lp_in_out = context.run_model(
         'uniswap-v2.lp-pos',
         input=V2LPQuantityInput(pool=pool, lp_balance=1e18),
@@ -219,21 +219,45 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
 
     ratio = lp_in_out.tokens[1].amount / lp_in_out.tokens[0].amount
 
-    lp_in_out.tokens[0].amount = lp_in_out.tokens[0].amount * transaction_value / 1e18
-    lp_in_out.tokens[1].amount = lp_in_out.tokens[1].amount * transaction_value / 1e18
-
+    # Position implied from previous LP position (without fee)
     lp_il0 = (lp_prev_token0 * lp_prev_token1 / ratio) ** 0.5
     lp_il1 = lp_il0 * ratio
 
+    # LP position at block_number from LP token (with fee)
+    # $x = lp / lp_total_supply * token_x$
+    # $y = lp / lp_total_supply * token_y$
+    default_block = context.web3.eth.default_block
+    context.web3.eth.default_block = block_number
+    lp_balance = pool.functions.balanceOf(lp).call()
+    context.web3.eth.default_block = default_block
+
+    if lp_balance != 0:
+        lp_pos_token0 = lp_in_out.tokens[0].amount * lp_balance / 1e18
+        lp_pos_token1 = lp_in_out.tokens[1].amount * lp_balance / 1e18
+    else:
+        lp_pos_token0, lp_pos_token1 = 0.0, 0.0
+
+    # LP position from recent deposit/withdraw (no contribution to fee)
+    if transaction_value != 0:
+        lp_in_out_amount0 = lp_in_out.tokens[0].amount * transaction_value / 1e18
+        lp_in_out_amount1 = lp_in_out.tokens[1].amount * transaction_value / 1e18
+    else:
+        lp_in_out_amount0, lp_in_out_amount1 = 0.0, 0.0
+
+    # fee = With fee - Without fee - Just-in
+    # 1. "With fee" uses end-of-block lp token holding to calculate - up-to-date
+    # 2. "Without fee" uses previous end-of-block holding to calculate - up-to-date
+    # 3. "Just in" is calculated from the current end-of-block's ratio,
+    #    which may not be the original amount put in due to other swaps inside the block.
     return dict(
-        token0_lp=lp_pos.tokens[0].amount,
-        token1_lp=lp_pos.tokens[1].amount,
-        token0=try_zero(lp_in_out.tokens[0].amount),
-        token1=try_zero(lp_in_out.tokens[1].amount),
+        token0_lp=lp_pos_token0,
+        token1_lp=lp_pos_token1,
+        token0=try_zero(lp_in_out_amount0),
+        token1=try_zero(lp_in_out_amount1),
         lp_il0=lp_il0,
         lp_il1=lp_il1,
-        token0_fee=try_zero(lp_pos.tokens[0].amount - lp_il0 - lp_in_out.tokens[0].amount),
-        token1_fee=try_zero(lp_pos.tokens[1].amount - lp_il1 - lp_in_out.tokens[1].amount),
+        token0_fee=try_zero(lp_pos_token0 - lp_il0 - lp_in_out_amount0),
+        token1_fee=try_zero(lp_pos_token1 - lp_il1 - lp_in_out_amount1),
     )
 
 
@@ -264,7 +288,7 @@ def uniswap_v2_fee_sample_data():
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.6',
+                version='0.8',
                 display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
@@ -330,6 +354,8 @@ class UniswapV2LPFeeHistory(Model):
 
         _df = _use_model().rename(columns={'value': 'transaction_value'})[q_cols]
 
+        # _df.loc[1:, 'transaction_value'] = -1 * (_df.loc[0, 'transaction_value'])
+
         new_data = [(int(self.context.block_number), -1, input.lp, input.lp, 0)]
 
         if _df.empty or (_df["block_number"].tail(1) != int(self.context.block_number)).all():
@@ -361,7 +387,7 @@ class UniswapV2LPFeeHistory(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
-                version='0.4',
+                version='0.6',
                 display_name='Uniswap v2 (Sushiswap) LP Position (split for fee) for account',
                 description='Returns position (split for fee) for account',
                 category='protocol',
@@ -430,10 +456,14 @@ class UniswapV2LPFee(Model):
         lp_balance = pool.functions.balanceOf(lp).call()
 
         lp_position = Position(amount=pool.scaled(lp_balance), asset=pool)
-        position0 = PositionWithFee(amount=v2_fee['token0_lp'] -
-                                    v2_fee['token0_fee'], fee=v2_fee['token0_fee'], asset=token0)
-        position1 = PositionWithFee(amount=v2_fee['token1_lp'] -
-                                    v2_fee['token1_fee'], fee=v2_fee['token1_fee'], asset=token1)
+        position0 = PositionWithFee(
+            amount=v2_fee['token0_lp'] - v2_fee['token0_fee'],
+            fee=v2_fee['token0_fee'],
+            asset=token0)
+        position1 = PositionWithFee(
+            amount=v2_fee['token1_lp'] - v2_fee['token1_fee'],
+            fee=v2_fee['token1_fee'],
+            asset=token1)
 
         return V2LPFeeOutput(lp=lp_position,
                              tokens=[position0, position1])

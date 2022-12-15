@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     print(f'Run Tests: {all_tests_sel}')
 
-    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(x) for x in all_tests_sel])
+    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(testCaseClass=x) for x in all_tests_sel])
 
     if args['serial']:
         CMFTest.fail_first = True
