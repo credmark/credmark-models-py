@@ -284,6 +284,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
                 HistoricalDTO.Config.schema_extra['examples'])
         }
 
+
 @Model.describe(
     slug='accounts.token-historical',
     version='0.9',
@@ -388,32 +389,32 @@ def account_token_historical(self, input, do_wobble_price):
             continue
 
         if len(prices) < len(past_blocks):
-            if do_wobble_price:
-                last_price = (self.context.run_model('price.dex-db-latest',
-                                                     input={'address': token_addr}))
-                last_price_block = last_price['blockNumber']
-                # TODO: temporary fix to price not catching up with the latest
-                blocks_in_prices = set(p['blockNumber'] for p in prices)
-                for blk_n, blk in enumerate(past_blocks):
-                    if blk not in blocks_in_prices:
-                        # 500 blocks = 100 minutes
-                        blk_diff = (blk - last_price_block)
-                        if 0 < blk_diff < 500:
-                            self.logger.info(
-                                f'Use last price for {token_addr} for '
-                                f'{blk} close to {last_price_block} ({blk_diff})')
-                            prices.insert(blk_n, last_price)
-                        else:
-                            self.logger.info(
-                                f'Not use last price for {token_addr} '
-                                f'for {blk} far to {last_price_block} ({blk_diff})')
-                            new_price = self.context.run_model(
-                                'price.quote',
-                                input={'base': token_addr, 'prefer': 'cex'},
-                                block_number=blk)  # type: ignore
-                            prices.insert(blk_n, new_price)
-            else:
+            if not do_wobble_price:
                 continue
+
+            last_price = (self.context.run_model('price.dex-db-latest',
+                                                 input={'address': token_addr}))
+            last_price_block = last_price['blockNumber']
+            # TODO: temporary fix to price not catching up with the latest
+            blocks_in_prices = set(p['blockNumber'] for p in prices)
+            for blk_n, blk in enumerate(past_blocks):
+                if blk not in blocks_in_prices:
+                    # 500 blocks = 100 minutes
+                    blk_diff = (blk - last_price_block)
+                    if 0 < blk_diff < 500:
+                        self.logger.info(
+                            f'Use last price for {token_addr} for '
+                            f'{blk} close to {last_price_block} ({blk_diff})')
+                        prices.insert(blk_n, last_price)
+                    else:
+                        self.logger.info(
+                            f'Not use last price for {token_addr} '
+                            f'for {blk} far to {last_price_block} ({blk_diff})')
+                        new_price = self.context.run_model(
+                            'price.quote',
+                            input={'base': token_addr, 'prefer': 'cex'},
+                            block_number=blk)  # type: ignore
+                        prices.insert(blk_n, new_price)
 
         for past_block, price in zip(past_blocks, prices):
             (price_historical_result[historical_blocks[past_block]]  # type: ignore
