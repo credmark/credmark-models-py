@@ -1,6 +1,5 @@
 # pylint: disable=too-many-function-args
 
-import sys
 import math
 from enum import Enum
 
