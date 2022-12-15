@@ -245,10 +245,14 @@ class AccountsTokenReturnHistorical(Model):
 
 
 class AccountHistoricalInput(Account, HistoricalDTO):
+    include_price: bool = DTOField(default=True, description='Include price quote')
+
     class Config:
         schema_extra = {
             'examples': cross_examples(
-                [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297'}],
+                [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297'},
+                 {'address': '0x388c818ca8b9251b393131c08a736a67ccb19297',
+                  'include_price': False}],
                 HistoricalDTO.Config.schema_extra['examples'],
                 limit=10)}
 
@@ -272,15 +276,21 @@ class AccountERC20TokenHistorical(Model):
                 **input.to_accounts().dict(),   # type: ignore
                 window=input.window,
                 interval=input.interval,
-                exclusive=input.exclusive))
+                exclusive=input.exclusive,
+                include_price=input.include_price))
 
 
 class AccountsHistoricalInput(Accounts, HistoricalDTO):
+    include_price: bool = DTOField(default=True, description='Include price quote')
+
     class Config:
         schema_extra = {
             'examples': cross_examples(
                 Accounts.Config.schema_extra['examples'],
-                HistoricalDTO.Config.schema_extra['examples'])
+                HistoricalDTO.Config.schema_extra['examples'],
+                [{'address': '0x388c818ca8b9251b393131c08a736a67ccb19297'},
+                 {'address': '0x388c818ca8b9251b393131c08a736a67ccb19297',
+                 'include_price': False}]),
         }
 
 
@@ -297,10 +307,10 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
     output=dict)
 class AccountsERC20TokenHistorical(Model):
     def run(self, input: AccountsHistoricalInput) -> dict:
-        return account_token_historical(self, input, True)
+        return account_token_historical(self, input, True, input.include_price)
 
 
-def account_token_historical(self, input, do_wobble_price):
+def account_token_historical(self, input, do_wobble_price, _include_price):
     _native_token = NativeToken()
 
     # TODO: native token transaction (incomplete) and gas spending
@@ -355,11 +365,17 @@ def account_token_historical(self, input, do_wobble_price):
                 token_bal_addr = token_bal_row['token_address']
                 asset_token = Token(token_bal_addr).as_erc20()
                 try:
-                    assets.append(
-                        PositionWithPrice(
-                            amount=asset_token.scaled(token_bal_row['value']),
-                            asset=asset_token,
-                            fiat_quote=PriceWithQuote.usd(price=0, src='')))
+                    if _include_price:
+                        assets.append(
+                            PositionWithPrice(
+                                amount=asset_token.scaled(token_bal_row['value']),
+                                asset=asset_token,
+                                fiat_quote=PriceWithQuote.usd(price=0, src='')))
+                    else:
+                        assets.append(
+                            Position(
+                                amount=asset_token.scaled(token_bal_row['value']),
+                                asset=asset_token))
 
                     if token_rows.get(token_bal_addr) is None:
                         token_blocks[token_bal_addr] = set([past_block_number])
@@ -375,50 +391,55 @@ def account_token_historical(self, input, do_wobble_price):
             else:
                 n_skip += 1
 
-        price_historical_result[n_historical].output = \
-            PortfolioWithPrice(positions=assets)  # type: ignore
+        if _include_price:
+            price_historical_result[n_historical].output = \
+                PortfolioWithPrice(positions=assets)  # type: ignore
+        else:
+            price_historical_result[n_historical].output = \
+                Portfolio(positions=assets)  # type: ignore
 
-    for token_addr, past_blocks in token_blocks.items():
-        prices = (self.context.run_model(
-            'price.dex-db-blocks',
-            input={'address': token_addr, 'blocks': list(past_blocks)})
-            ['results'])
+    if _include_price:
+        for token_addr, past_blocks in token_blocks.items():
+            prices = (self.context.run_model(
+                'price.dex-db-blocks',
+                input={'address': token_addr, 'blocks': list(past_blocks)})
+                ['results'])
 
-        if len(prices) == 0:
-            continue
-
-        if len(prices) < len(past_blocks):
-            if not do_wobble_price:
+            if len(prices) == 0:
                 continue
 
-            last_price = (self.context.run_model('price.dex-db-latest',
-                                                 input={'address': token_addr}))
-            last_price_block = last_price['blockNumber']
-            # TODO: temporary fix to price not catching up with the latest
-            blocks_in_prices = set(p['blockNumber'] for p in prices)
-            for blk_n, blk in enumerate(past_blocks):
-                if blk not in blocks_in_prices:
-                    # 500 blocks = 100 minutes
-                    blk_diff = (blk - last_price_block)
-                    if 0 < blk_diff < 500:
-                        self.logger.info(
-                            f'Use last price for {token_addr} for '
-                            f'{blk} close to {last_price_block} ({blk_diff})')
-                        prices.insert(blk_n, last_price)
-                    else:
-                        self.logger.info(
-                            f'Not use last price for {token_addr} '
-                            f'for {blk} far to {last_price_block} ({blk_diff})')
-                        new_price = self.context.run_model(
-                            'price.quote',
-                            input={'base': token_addr, 'prefer': 'cex'},
-                            block_number=blk)  # type: ignore
-                        prices.insert(blk_n, new_price)
+            if len(prices) < len(past_blocks):
+                if not do_wobble_price:
+                    continue
 
-        for past_block, price in zip(past_blocks, prices):
-            (price_historical_result[historical_blocks[past_block]]  # type: ignore
-                .output[token_rows[token_addr][past_block]]
-                .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
+                last_price = (self.context.run_model('price.dex-db-latest',
+                                                     input={'address': token_addr}))
+                last_price_block = last_price['blockNumber']
+                # TODO: temporary fix to price not catching up with the latest
+                blocks_in_prices = set(p['blockNumber'] for p in prices)
+                for blk_n, blk in enumerate(past_blocks):
+                    if blk not in blocks_in_prices:
+                        # 500 blocks = 100 minutes
+                        blk_diff = (blk - last_price_block)
+                        if 0 < blk_diff < 500:
+                            self.logger.info(
+                                f'Use last price for {token_addr} for '
+                                f'{blk} close to {last_price_block} ({blk_diff})')
+                            prices.insert(blk_n, last_price)
+                        else:
+                            self.logger.info(
+                                f'Not use last price for {token_addr} '
+                                f'for {blk} far to {last_price_block} ({blk_diff})')
+                            new_price = self.context.run_model(
+                                'price.quote',
+                                input={'base': token_addr, 'prefer': 'cex'},
+                                block_number=blk)  # type: ignore
+                            prices.insert(blk_n, new_price)
+
+            for past_block, price in zip(past_blocks, prices):
+                (price_historical_result[historical_blocks[past_block]]  # type: ignore
+                    .output[token_rows[token_addr][past_block]]
+                    .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
 
     res = price_historical_result.dict()
     for n in range(len(res['results'])):
