@@ -178,7 +178,8 @@ class TokenTransferTransactionTag(Model):
     """
 
     def run(self, input: TransactionTagInput) -> dict:
-        if input.block_number != self.context.block_number:
+        input_block_number = input.block_number
+        if input_block_number != int(self.context.block_number):
             return self.context.run_model(self.slug, input=input, block_number=input.block_number)
 
         with self.context.ledger.TokenTransfer as q:

@@ -82,6 +82,6 @@ class HistoricalRunModel(Model):
                                      blockTimestamp=result.blockNumber.timestamp,
                                      sampleTimestamp=result.blockNumber.timestamp,
                                      output=result.output)
-            results.series.append(out_row)  # type: ignore
+            results.series.append(out_row)  # type: ignore #pylint:disable=no-member
 
         return results

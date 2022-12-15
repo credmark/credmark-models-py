@@ -22,6 +22,7 @@ from web3.exceptions import ContractLogicError
 np.seterr(all='raise')
 
 
+# TODO
 # Transaction Gas is from receipts per transaction. GAS_USED * EFFECTIVE_GAS_PRICE
 # Not full transaction (missing Ether transfers), can be found in TRACES (but lack of context),
 
