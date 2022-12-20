@@ -405,15 +405,21 @@ def account_token_historical(self, input, do_wobble_price, _include_price):
                 input={'address': token_addr, 'blocks': list(past_blocks)})
                 ['results'])
 
-            if len(prices) == 0:
+            if len(prices) == 0 and len(past_blocks) != 1:
                 continue
 
             if len(prices) < len(past_blocks):
                 if not do_wobble_price:
                     continue
 
-                last_price = (self.context.run_model('price.dex-db-latest',
-                                                     input={'address': token_addr}))
+                try:
+                    last_price = self.context.run_model(
+                        'price.dex-db-latest', input={'address': token_addr})
+                except ModelDataError as err:
+                    if "No price for" in err.data.message:  # pylint:disable=unsupported-membership-test
+                        continue
+                    raise
+
                 last_price_block = last_price['blockNumber']
                 # TODO: temporary fix to price not catching up with the latest
                 blocks_in_prices = set(p['blockNumber'] for p in prices)
@@ -424,12 +430,12 @@ def account_token_historical(self, input, do_wobble_price, _include_price):
                         if 0 < blk_diff < 500:
                             self.logger.info(
                                 f'Use last price for {token_addr} for '
-                                f'{blk} close to {last_price_block} ({blk_diff})')
+                                f'{blk} close to {last_price_block} ({blk_diff=})')
                             prices.insert(blk_n, last_price)
                         else:
                             self.logger.info(
                                 f'Not use last price for {token_addr} '
-                                f'for {blk} far to {last_price_block} ({blk_diff})')
+                                f'for {blk} far to {last_price_block} ({blk_diff=})')
                             new_price = self.context.run_model(
                                 'price.quote',
                                 input={'base': token_addr, 'prefer': 'cex'},
