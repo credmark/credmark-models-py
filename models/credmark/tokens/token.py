@@ -236,6 +236,31 @@ class TokenLogoModel(Model):
             code=ModelDataError.Codes.NO_DATA)
 
 
+class TokenTotalSupplyOutput(DTO):
+    total_supply: int = DTOField(description="Total supply of token")
+    total_supply_scaled: float = DTOField(description="Total supply scaled to token decimals")
+
+
+@Model.describe(slug="token.total-supply",
+                version="1.0",
+                display_name="Token total supply",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=TokenTotalSupplyOutput)
+class TokenTotalSupplyModel(Model):
+    """
+    Return token's total supply
+    """
+
+    def run(self, input: Token) -> TokenTotalSupplyOutput:
+        return TokenTotalSupplyOutput(
+            total_supply=input.total_supply,
+            total_supply_scaled=input.total_supply_scaled,
+        )
+
+
 class TokenBalanceInput(Token):
     account: Address = \
         DTOField(
@@ -252,16 +277,14 @@ class TokenBalanceOutput(DTO):
     price: Price = DTOField(description="Token price")
 
 
-@Model.describe(
-    slug="token.balance",
-    version="1.1",
-    display_name="Token Balance",
-    developer="Credmark",
-    category='protocol',
-    tags=['token'],
-    input=TokenBalanceInput,
-    output=TokenBalanceOutput
-)
+@Model.describe(slug="token.balance",
+                version="1.1",
+                display_name="Token Balance",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=TokenBalanceInput,
+                output=TokenBalanceOutput)
 class TokenBalanceModel(Model):
     """
     Return token's balance
