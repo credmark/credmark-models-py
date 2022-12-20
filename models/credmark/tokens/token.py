@@ -373,6 +373,38 @@ class TokenHolders(Model):
                                       total_holders=total_holders)
 
 
+class TokenHoldersCountOutput(DTO):
+    count: int = DTOField(description='Total number of holders')
+
+
+@Model.describe(slug='token.holders-count',
+                version='1.0',
+                display_name='Token Holders count',
+                description='Total number of holders of a Token',
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=TokenHoldersCountOutput)
+class TokenHoldersCount(Model):
+    def run(self, input: Token) -> TokenHoldersCountOutput:
+        with self.context.ledger.TokenBalance as q:
+            df = q.select(
+                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                            ('COUNT(*) OVER()', 'total_holders')],
+                where=q.TOKEN_ADDRESS.eq(input.address),
+                group_by=[q.ADDRESS],
+                order_by=q.field('balance').dquote().desc(),
+                having=q.field('balance').dquote().gt(0),
+                limit=1,
+            ).to_dataframe()
+
+            total_holders = df['total_holders'].values[0]
+            if total_holders is None:
+                total_holders = 0
+
+            return TokenHoldersCountOutput(count=total_holders)
+
+
 @Model.describe(slug='token.holders-all',
                 version='0.3',
                 display_name='Token Holders All',
