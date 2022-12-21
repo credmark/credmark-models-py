@@ -364,6 +364,7 @@ class AccountsERC20TokenHistorical(Model):
                                     continue
                                 prices.insert(blk_n, new_price)
 
+                # pylint:disable=line-too-long
                 for past_block, price in zip(past_blocks, prices):
                     (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
                         .output['positions'][token_rows[token_addr][str(past_block)]]  # type: ignore
