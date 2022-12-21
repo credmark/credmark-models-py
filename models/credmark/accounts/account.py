@@ -5,7 +5,7 @@ from enum import Enum
 
 import numpy as np
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types import (Account, Accounts,
                                 NativePosition, NativeToken,
@@ -296,7 +296,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 @Model.describe(
     slug='accounts.token-historical',
-    version='0.9',
+    version='0.10',
     display_name='Accounts\' Token Holding Historical',
     description='Accounts\' Token Holding Historical',
     developer="Credmark",
@@ -306,153 +306,186 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
     input=AccountsHistoricalInput,
     output=dict)
 class AccountsERC20TokenHistorical(Model):
-    def run(self, input: AccountsHistoricalInput) -> dict:
-        return account_token_historical(self, input, True, input.include_price)
+    def account_token_historical(self, input, do_wobble_price):
+        _include_price = input.include_price
 
+        balance_result = self.context.run_model('accounts.token-historical-balance', input)
 
-def account_token_historical(self, input, do_wobble_price, _include_price):
-    _native_token = NativeToken()
+        historical_blocks = balance_result['historical_blocks']
+        token_blocks = balance_result['token_blocks']
+        token_rows = balance_result['token_rows']
 
-    # TODO: native token transaction (incomplete) and gas spending
-    _df_native = get_native_transfer(self.context, input.to_address())
-
-    # ERC-20 transaction
-    df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
-
-    window_in_seconds = self.context.historical.to_seconds(input.window)
-    interval_in_seconds = self.context.historical.to_seconds(input.interval)
-    count = int(window_in_seconds / interval_in_seconds)
-
-    price_historical_result = self.context.run_model(
-        slug='compose.map-block-time-series',
-        input={"modelSlug": 'historical.empty',
-               "modelInput": {},
-               "endTimestamp": self.context.block_number.timestamp,
-               "interval": interval_in_seconds,
-               "count": count,
-               "exclusive": input.exclusive},
-        return_type=MapBlockTimeSeriesOutput[dict])
-
-    df_historical = price_historical_result.to_dataframe()
-
-    historical_blocks = {}
-    token_blocks = {}
-    token_rows = {}
-    for n_historical, row in df_historical.iterrows():
-        past_block_number = int(row['blockNumber'])
-        assets = []
-        _native_token_bal = (_df_native
-                             .query('(block_number <= @past_block_number)')
-                             .groupby('token_address', as_index=False)['value']
-                             .sum())
-
-        # TODO
-        # if not _native_token_bal.empty:
-        #    assets.append(
-        #        Position(amount=_native_token.scaled(native_token_bal['value'][0]),
-        #                 asset=_native_token))
-
-        token_bal = (df_erc20
-                     .query('(block_number <= @past_block_number)')
-                     .groupby('token_address', as_index=False)['value']
-                     .sum()
-                     .reset_index(drop=True))  # type: ignore
-
-        historical_blocks[past_block_number] = n_historical
-        n_skip = 0
-        for n_row, token_bal_row in token_bal.iterrows():
-            if not math.isclose(token_bal_row['value'], 0):
-                token_bal_addr = token_bal_row['token_address']
-                asset_token = Token(token_bal_addr).as_erc20()
-                try:
-                    if _include_price:
-                        assets.append(
-                            PositionWithPrice(
-                                amount=asset_token.scaled(token_bal_row['value']),
-                                asset=asset_token,
-                                fiat_quote=PriceWithQuote.usd(price=0, src='')))
-                    else:
-                        assets.append(
-                            Position(
-                                amount=asset_token.scaled(token_bal_row['value']),
-                                asset=asset_token))
-
-                    if token_rows.get(token_bal_addr) is None:
-                        token_blocks[token_bal_addr] = set([past_block_number])
-                        token_rows[token_bal_addr] = {past_block_number: n_row - n_skip}
-                    else:
-                        token_blocks[token_bal_addr].add(past_block_number)
-                        token_rows[token_bal_addr][past_block_number] = n_row - n_skip
-
-                except (ModelDataError, ContractLogicError):
-                    # NFT: ContractLogicError
-                    n_skip += 1
-                    continue
-            else:
-                n_skip += 1
+        price_historical_result = MapBlockTimeSeriesOutput[dict](**balance_result)
 
         if _include_price:
-            price_historical_result[n_historical].output = \
-                PortfolioWithPrice(positions=assets)  # type: ignore
-        else:
-            price_historical_result[n_historical].output = \
-                Portfolio(positions=assets)  # type: ignore
+            for token_addr, past_blocks in token_blocks.items():
+                prices = (self.context.run_model(
+                    'price.dex-db-blocks',
+                    input={'address': token_addr, 'blocks': list(past_blocks)})
+                    ['results'])
 
-    if _include_price:
-        for token_addr, past_blocks in token_blocks.items():
-            prices = (self.context.run_model(
-                'price.dex-db-blocks',
-                input={'address': token_addr, 'blocks': list(past_blocks)})
-                ['results'])
-
-            if len(prices) == 0 and len(past_blocks) != 1:
-                continue
-
-            if len(prices) < len(past_blocks):
-                if not do_wobble_price:
+                if len(prices) == 0 and len(past_blocks) != 1:
                     continue
 
-                try:
-                    last_price = self.context.run_model(
-                        'price.dex-db-latest', input={'address': token_addr})
-                except ModelDataError as err:
-                    if "No price for" in err.data.message:  # pylint:disable=unsupported-membership-test
+                if len(prices) < len(past_blocks):
+                    if not do_wobble_price:
                         continue
-                    raise
 
-                last_price_block = last_price['blockNumber']
-                # TODO: temporary fix to price not catching up with the latest
-                blocks_in_prices = set(p['blockNumber'] for p in prices)
-                for blk_n, blk in enumerate(past_blocks):
-                    if blk not in blocks_in_prices:
-                        # 500 blocks = 100 minutes
-                        blk_diff = (blk - last_price_block)
-                        if 0 < blk_diff < 500:
-                            self.logger.info(
-                                f'Use last price for {token_addr} for '
-                                f'{blk} close to {last_price_block} ({blk_diff=})')
-                            prices.insert(blk_n, last_price)
+                    try:
+                        last_price = self.context.run_model(
+                            'price.dex-db-latest', input={'address': token_addr})
+                    except ModelDataError as err:
+                        if "No price for" in err.data.message:  # pylint:disable=unsupported-membership-test
+                            continue
+                        raise
+
+                    last_price_block = last_price['blockNumber']
+                    # TODO: temporary fix to price not catching up with the latest
+                    blocks_in_prices = set(p['blockNumber'] for p in prices)
+                    for blk_n, blk in enumerate(past_blocks):
+                        if blk not in blocks_in_prices:
+                            # 500 blocks = 100 minutes
+                            blk_diff = (blk - last_price_block)
+                            if 0 < blk_diff < 500:
+                                self.logger.info(
+                                    f'Use last price for {token_addr} for '
+                                    f'{blk} close to {last_price_block} ({blk_diff=})')
+                                prices.insert(blk_n, last_price)
+                            else:
+                                self.logger.info(
+                                    f'Not use last price for {token_addr} '
+                                    f'for {blk} far to {last_price_block} ({blk_diff=})')
+                                try:
+                                    new_price = self.context.run_model(
+                                        'price.quote',
+                                        input={'base': token_addr, 'prefer': 'cex'},
+                                        block_number=blk)  # type: ignore
+                                except ModelRunError as _err:
+                                    continue
+                                prices.insert(blk_n, new_price)
+
+                for past_block, price in zip(past_blocks, prices):
+                    (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
+                        .output['positions'][token_rows[token_addr][str(past_block)]]  # type: ignore
+                        ['fiat_quote']) = PriceWithQuote.usd(price=price['price'], src='dex').dict()
+
+        res = price_historical_result.dict()
+        for n in range(len(res['results'])):
+            res['results'][n]['blockTimestamp'] = BlockNumber(  # type: ignore
+                res['results'][n]['blockNumber']).timestamp  # type: ignore
+
+        return res
+
+    def run(self, input: AccountsHistoricalInput) -> dict:
+        return self.account_token_historical(input, True)
+
+
+@Model.describe(
+    slug='accounts.token-historical-balance',
+    version='0.1',
+    display_name='Accounts\' Token Holding Historical',
+    description='Accounts\' Token Holding Historical',
+    developer="Credmark",
+    category='account',
+    subcategory='position',
+    tags=['token'],
+    input=AccountsHistoricalInput,
+    output=dict)
+class AccountsERC20TokenHistoricalBalance(Model):
+    def run(self, input: AccountsHistoricalInput) -> dict:
+        _include_price = input.include_price
+
+        _native_token = NativeToken()
+
+        # TODO: native token transaction (incomplete) and gas spending
+        _df_native = get_native_transfer(self.context, input.to_address())
+
+        # ERC-20 transaction
+        df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
+
+        window_in_seconds = self.context.historical.to_seconds(input.window)
+        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        count = int(window_in_seconds / interval_in_seconds)
+
+        price_historical_result = self.context.run_model(
+            slug='compose.map-block-time-series',
+            input={"modelSlug": 'historical.empty',
+                   "modelInput": {},
+                   "endTimestamp": self.context.block_number.timestamp,
+                   "interval": interval_in_seconds,
+                   "count": count,
+                   "exclusive": input.exclusive},
+            return_type=MapBlockTimeSeriesOutput[dict])
+
+        df_historical = price_historical_result.to_dataframe()
+
+        historical_blocks = {}
+        token_blocks = {}
+        token_rows = {}
+        for n_historical, row in df_historical.iterrows():
+            past_block_number = int(row['blockNumber'])  # type: ignore
+            assets = []
+            _native_token_bal = (_df_native
+                                 .query('(block_number <= @past_block_number)')
+                                 .groupby('token_address', as_index=False)['value']
+                                 .sum())
+
+            # TODO
+            # if not _native_token_bal.empty:
+            #    assets.append(
+            #        Position(amount=_native_token.scaled(native_token_bal['value'][0]),
+            #                 asset=_native_token))
+
+            token_bal = (df_erc20
+                         .query('(block_number <= @past_block_number)')
+                         .groupby('token_address', as_index=False)['value']
+                         .sum()
+                         .reset_index(drop=True))  # type: ignore
+
+            historical_blocks[past_block_number] = n_historical
+            n_skip = 0
+            for n_row, token_bal_row in token_bal.iterrows():
+                if not math.isclose(token_bal_row['value'], 0):
+                    token_bal_addr = token_bal_row['token_address']
+                    asset_token = Token(token_bal_addr).as_erc20()
+                    try:
+                        if _include_price:
+                            assets.append(
+                                PositionWithPrice(
+                                    amount=asset_token.scaled(token_bal_row['value']),
+                                    asset=asset_token,
+                                    fiat_quote=PriceWithQuote.usd(price=0, src='')))
                         else:
-                            self.logger.info(
-                                f'Not use last price for {token_addr} '
-                                f'for {blk} far to {last_price_block} ({blk_diff=})')
-                            new_price = self.context.run_model(
-                                'price.quote',
-                                input={'base': token_addr, 'prefer': 'cex'},
-                                block_number=blk)  # type: ignore
-                            prices.insert(blk_n, new_price)
+                            assets.append(
+                                Position(
+                                    amount=asset_token.scaled(token_bal_row['value']),
+                                    asset=asset_token))
 
-            for past_block, price in zip(past_blocks, prices):
-                (price_historical_result[historical_blocks[past_block]]  # type: ignore
-                    .output[token_rows[token_addr][past_block]]
-                    .fiat_quote) = PriceWithQuote.usd(price=price['price'], src='dex')
+                        if token_rows.get(token_bal_addr) is None:
+                            token_blocks[token_bal_addr] = set([past_block_number])
+                            token_rows[token_bal_addr] = {past_block_number: n_row - n_skip}
+                        else:
+                            token_blocks[token_bal_addr].add(past_block_number)
+                            token_rows[token_bal_addr][past_block_number] = n_row - n_skip
 
-    res = price_historical_result.dict()
-    for n in range(len(res['results'])):
-        res['results'][n]['blockTimestamp'] = BlockNumber(  # type: ignore
-            res['results'][n]['blockNumber']).timestamp  # type: ignore
+                    except (ModelDataError, ContractLogicError):
+                        # NFT: ContractLogicError
+                        n_skip += 1
+                        continue
+                else:
+                    n_skip += 1
 
-    return res
+            if _include_price:
+                price_historical_result[n_historical].output = \
+                    PortfolioWithPrice(positions=assets)  # type: ignore
+            else:
+                price_historical_result[n_historical].output = \
+                    Portfolio(positions=assets)  # type: ignore
+
+        return price_historical_result.dict() | \
+            {'token_blocks': token_blocks,
+             'historical_blocks': historical_blocks,
+             'token_rows': token_rows}
 
 
 @Model.describe(slug="account.portfolio",
