@@ -123,6 +123,10 @@ class PriceOracleChainlink(Model):
             Address('0xca3f508b8e4dd382ee878a314789373d80a5190a'):
             {'feed': {'address': '0xab827b69dacd586a37e80a7d552a4395d576e645'},
              'quote': {'symbol': 'USD'}},
+            # BNB / USD
+            Address('0x0000000000000000010000100100111001000010'):
+            {'feed': {'address': '0x0567f2323251f0aab15c8dfb1967e4e8a7d42aee'},
+             'quote': {'symbol': 'USD'}},
             # BSW / USD
             Address('0x965f527d9159dce6288a2219db51fc6eef120dd1'):
             {'feed': {'address': '0x08e70777b982a58d23d05e3d7714f44837c06a21'},
@@ -544,23 +548,35 @@ class PriceOracleChainlink(Model):
         }
     }
 
-    ROUTING_ADDRESSES = [
-        Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),  # ETH
-        Address('0x0000000000000000000000000000000000000348'),  # USD
-        Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),  # BTC
-    ]
+    ROUTING_ADDRESSES = {
+        Network.Mainnet: [
+            Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'),  # ETH
+            Address('0x0000000000000000000000000000000000000348'),  # USD
+            Address('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'),  # BTC
+        ],
+        Network.BSC: [],
+        Network.Polygon: [],
+    }
 
     WRAP_TOKEN = {
         Network.Mainnet: {
             # WETH => ETH
             Address('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'):
             {'symbol': 'ETH'},
-            # BTC => WBTC
+            # WBTC => BTC
             Address('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'):
             {'symbol': 'BTC'},
         },
-        Network.BSC: {},
-        Network.Polygon: {},
+        Network.BSC: {
+            # WBNB => BNB
+            Address('0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'):
+            {'address': '0x0000000000000000010000100100111001000010'}
+        },
+        Network.Polygon: {
+            # WMATIC => MATIC
+            Address('0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'):
+            {'address': '0x0000000000000000000000000000000000001010'}
+        },
     }
 
     """
@@ -662,7 +678,7 @@ class PriceOracleChainlink(Model):
 
         p1 = None
         r1 = None
-        for rt_addr in self.ROUTING_ADDRESSES:
+        for rt_addr in self.ROUTING_ADDRESSES[self.context.network]:
             if rt_addr not in (quote.address, base.address):
                 price_input = PriceInput(base=base, quote=Currency(address=rt_addr))
 
@@ -678,7 +694,7 @@ class PriceOracleChainlink(Model):
         if p1 is not None:
             p2 = None
             r2 = None
-            for rt_addr in self.ROUTING_ADDRESSES:
+            for rt_addr in self.ROUTING_ADDRESSES[self.context.network]:
                 if rt_addr not in (quote.address, base.address):
                     price_input = PriceInput(base=Currency(address=rt_addr), quote=quote)
 
