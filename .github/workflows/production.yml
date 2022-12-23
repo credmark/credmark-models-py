@@ -1,0 +1,58 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout build repo
+        uses: actions/checkout@v2
+        with:
+          repository: credmark/models-py-build
+          path: ./build-files
+          ssh-key: ${{ secrets.MODELS_PY_BUILD_DEPLOY_KEY }}
+
+      - name: Copy http build files
+        run: |
+          # Delete Dockerfile for the previous build
+          ./build-files/scripts/copy-http-build-files.sh .
+      - name: Build and Push to Github container registry
+        id: build-tag-push-image-new-registry
+        env:
+          IMAGE_TAG: latest
+          DOCKER_REGISTRY: ${{secrets.DOCKER_REGISTRY}}
+          DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+          DOCKER_IMAGE: ${{ github.event.repository.name }}
+          DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+          DOCKER_IMAGE_URL: ${{env.DOCKER_REGISTRY}}/${{env.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE}}
+          MODELS_WEBHOOK_URL_PROD: ${{secrets.MODELS_WEBHOOK_URL_PROD}}
+          AUTH_HEADER_PROD: ${{secrets.AUTH_HEADER_PROD}}
+          
+        run: |
+          DOCKER_IMAGE_URL=$DOCKER_REGISTRY/$DOCKER_USERNAME/$DOCKER_IMAGE
+          # Build image
+          docker build --build-arg GITHUB_TOKEN=$GITHUB_TOKEN -t $DOCKER_IMAGE_URL:$IMAGE_TAG .
+          # Login to github registry
+          echo $DOCKER_PASSWORD | docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME --password-stdin
+          # Push images
+          echo "Pushing image to New Container registry..."
+          docker push $DOCKER_IMAGE_URL:$IMAGE_TAG
+          echo "::set-output name=image::$DOCKER_IMAGE_URL:$IMAGE_TAG"
+          # Logout
+          docker logout $DOCKER_REGISTRY
+          echo "Sending webhook call..."
+          curl -X POST -H "Content-Type: application/json" -d '{"message": "webhook"}' -H "Authorization: $AUTH_HEADER_PROD" $MODELS_WEBHOOK_URL_PROD
