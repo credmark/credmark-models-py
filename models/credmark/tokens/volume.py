@@ -3,7 +3,7 @@ from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (Address, BlockNumber, Contract,
-                                NativeToken, PriceWithQuote,
+                                JoinType, NativeToken, PriceWithQuote,
                                 Token)
 from credmark.dto import DTO, DTOField
 
@@ -30,15 +30,14 @@ class TokenVolumeBlockInput(DTO):
     address: Address
     include_price: bool = DTOField(default=True, description='Include price quote')
 
-    def __init__(self, **data) -> None:
-        if 'address' in data:
-            super().__init__(**data)
-        else:
-            address = Token(**data).address
-            super().__init__(address=address, block_number=data['block_number'])
-
-    def to_token(self) -> Token:
+    @property
+    def token(self):
         return Token(self.address)
+
+    def __init__(self, **data) -> None:
+        if 'address' not in data:
+            data['address'] = Token(**data).address
+        super().__init__(**data)
 
 
 class TokenVolumeBlockRange(DTO):
@@ -86,7 +85,7 @@ class TokenVolumeBlock(Model):
                 df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
                               where=q.BLOCK_NUMBER.gt(old_block)).to_dataframe()
         else:
-            input_token = input.to_token()
+            input_token = input.token
             with self.context.ledger.TokenTransfer as q:
                 df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
                               where=(q.TOKEN_ADDRESS.eq(token_address)
@@ -123,15 +122,14 @@ class TokenVolumeWindowInput(DTO):
     address: Address
     include_price: bool = DTOField(default=True, description='Include price quote')
 
-    def __init__(self, **data) -> None:
-        if 'address' in data:
-            super().__init__(**data)
-        else:
-            address = Token(**data).address
-            super().__init__(address=address, window=data['window'])
-
-    def to_token(self) -> Token:
+    @property
+    def token(self):
         return Token(self.address)
+
+    def __init__(self, **data) -> None:
+        if 'address' not in data:
+            data['address'] = Token(**data).address
+        super().__init__(**data)
 
 
 @Model.describe(slug='token.overall-volume-window',
@@ -171,7 +169,7 @@ class TokenVolumeSegmentOutput(DTO):
 
 
 @Model.describe(slug='token.volume-segment-block',
-                version='1.2',
+                version='1.3',
                 display_name='Token Volume By Segment by Block',
                 description='The Current Credmark Supported trading volume algorithm',
                 category='protocol',
@@ -191,64 +189,82 @@ class TokenVolumeSegmentBlock(Model):
         else:
             block_seg = - old_block
 
-        block_start = self.context.block_number - block_seg * input.n
+        block_end = int(self.context.block_number)
+        block_start = block_end - block_seg * input.n
         if block_start < 0:
             raise ModelRunError(
                 'Start block shall be larger than zero: '
-                f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
+                f'{block_end} - {block_seg} * {input.n} = {block_start}')
 
         native_token = NativeToken()
-        if input.address == native_token.address:
+        if token_address == native_token.address:
             input_token = native_token
-            with self.context.ledger.Transaction as q:
-                f1 = q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()
-                df = q.select(aggregates=[
-                    (f"floor({f1} / {block_seg})",
-                     'block_label'),
-                    (q.BLOCK_NUMBER.min_(), 'block_number_min'),
-                    (q.BLOCK_TIMESTAMP.min_(), 'block_ts_min'),
-                    (q.BLOCK_NUMBER.max_(), 'block_number_max'),
-                    (q.BLOCK_TIMESTAMP.max_(), 'block_ts_max'),
-                    (q.VALUE.sum_(), 'sum_value')],
-                    where=q.BLOCK_NUMBER.gt(block_start),
-                    group_by=[q.field('block_label').dquote()],
-                    order_by=q.field('block_label').dquote()).to_dataframe()
+            with self.context.ledger.Transaction.as_('t') as t,\
+                    self.context.ledger.Block.as_('s') as s,\
+                    self.context.ledger.Block.as_('e') as e:
+                df = s.select(
+                    aggregates=[
+                        (s.NUMBER, 'from_block'),
+                        (s.TIMESTAMP, 'from_timestamp'),
+                        (e.NUMBER, 'to_block'),
+                        (e.TIMESTAMP, 'to_timestamp'),
+                        (t.VALUE.sum_(), 'sum_value')
+                    ],
+                    joins=[
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
+                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER))
+                    ],
+                    group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
+                    having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
+                        block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
+                    order_by=s.NUMBER.asc()
+                ).to_dataframe()
         else:
-            input_token = input.to_token()
-            with self.context.ledger.TokenTransfer as q:
-                f1 = q.BLOCK_NUMBER.minus_(str(block_start)).minus_('1').parentheses_()
-                df = q.select(aggregates=[
-                    (f"floor({f1} / {block_seg})",
-                     'block_label'),
-                    (q.BLOCK_NUMBER.min_(), 'block_number_min'),
-                    (q.BLOCK_TIMESTAMP.min_(), 'block_ts_min'),
-                    (q.BLOCK_NUMBER.max_(), 'block_number_max'),
-                    (q.BLOCK_TIMESTAMP.max_(), 'block_ts_max'),
-                    (q.VALUE.sum_(), 'sum_value')],
-                    where=(q.TOKEN_ADDRESS.eq(token_address)
-                           .and_(q.BLOCK_NUMBER.gt(block_start))),
-                    group_by=[q.field('block_label').dquote()],
-                    order_by=q.field('block_label').dquote()).to_dataframe()
+            input_token = input.token
+            with self.context.ledger.TokenTransfer.as_('t') as t,\
+                    self.context.ledger.Block.as_('s') as s,\
+                    self.context.ledger.Block.as_('e') as e:
 
+                df = s.select(
+                    aggregates=[
+                        (s.NUMBER, 'from_block'),
+                        (s.TIMESTAMP, 'from_timestamp'),
+                        (e.NUMBER, 'to_block'),
+                        (e.TIMESTAMP, 'to_timestamp'),
+                        (t.VALUE.sum_(), 'sum_value')
+                    ],
+                    joins=[
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
+                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER)
+                         .and_(t.TOKEN_ADDRESS.eq(token_address)))
+                    ],
+                    group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
+                    having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
+                        block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
+                    order_by=s.NUMBER.asc()
+                ).to_dataframe()
+
+        df[['sum_value']] = df[['sum_value']].fillna(0)
         volumes = []
         for _, r in df.iterrows():
-            vol_scaled = input_token.scaled(r['sum_value'])
+            vol = r['sum_value']
+            vol_scaled = input_token.scaled(vol)
             price_last = None
             value_last = None
             if input.include_price:
-                price_last = (self.context.models(block_number=r['block_number_max'])
+                price_last = (self.context.models(block_number=r['to_block'])
                               .price.quote(base=input_token,
                                            return_type=PriceWithQuote)).price  # type: ignore
                 value_last = vol_scaled * price_last
 
-            vol = TokenVolumeBlockRange(volume=r['sum_value'],
+            vol = TokenVolumeBlockRange(volume=vol,
                                         volume_scaled=vol_scaled,
                                         price_last=price_last,
                                         value_last=value_last,
-                                        from_block=r['block_number_min'],
-                                        from_timestamp=r['block_ts_min'],
-                                        to_block=r['block_number_max'],
-                                        to_timestamp=r['block_ts_max'],)
+                                        from_block=r['from_block'],
+                                        from_timestamp=r['from_timestamp'],
+                                        to_block=r['to_block'],
+                                        to_timestamp=r['to_timestamp'],)
             volumes.append(vol)
 
         output = TokenVolumeSegmentOutput(address=input.address, volumes=volumes)
