@@ -204,8 +204,23 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
         return self.aggregate_pool('sushiswap.get-pool-info-token-price', input)
 
 
+@Model.describe(slug='pancakeswap.get-weighted-price',
+                version='1.8',
+                display_name='Pancakeswap (Uniswap V2) - get price weighted by liquidity',
+                description='The Pancake pools that support a token contract',
+                category='protocol',
+                subcategory='pancake',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class PancakeGetAveragePrice(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Price:
+        return self.aggregate_pool('pancakeswap.get-pool-info-token-price', input)
+
+
 @Model.describe(slug='price.dex-pool',
-                version='0.4',
+                version='0.5',
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -217,7 +232,8 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
                                              'sushiswap.get-pool-info-token-price',
-                                             'uniswap-v3.get-pool-info-token-price']
+                                             'uniswap-v3.get-pool-info-token-price',
+                                             'pancakeswap.get-pool-info-token-price']
 
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         # For testing with other power, set this = default power for the token here
