@@ -1,3 +1,5 @@
+# pylint:disable=unsupported-membership-test
+
 from typing import Optional
 
 from credmark.cmf.model import Model
@@ -404,7 +406,14 @@ class AaveV2GetTokenAsset(Model):
         totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
         totalInterest = totalStableDebt - totalStablePrincipleDebt
 
-        pq = self.context.models.price.quote(base=input, return_type=PriceWithQuote)
+        try:
+            pdb = self.context.models.price.dex_db(address=input.address)
+            pq = PriceWithQuote.usd(price=pdb['price'], src=pdb['protocol'])
+        except ModelDataError as err:
+            if "No price for" in err.data.message:
+                pq = self.context.models.price.quote(base=input, return_type=PriceWithQuote)
+            raise
+
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
             totalLiquidity = totalSupply - totalDebt
