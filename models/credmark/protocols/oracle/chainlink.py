@@ -161,7 +161,7 @@ class ChainLinkPriceByRegistry(Model):
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
                 self.logger.debug(f'No feed found for {base_address}/{quote_address}')
-                raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
+                raise ModelRunError(f'No feed found for {base_address}/{quote_address}') from err
             raise err
         finally:
             del sys.tracebacklimit

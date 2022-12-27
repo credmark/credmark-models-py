@@ -85,9 +85,10 @@ class CMKGetVestingAccounts(Model):
                             contract.events.VestingScheduleAdded,
                             from_block=0,
                             to_block=self.context.block_number)
-                    except (ReadTimeoutError, ReadTimeout):
+                    except (ReadTimeoutError, ReadTimeout) as err:
                         raise ModelRunError(
-                            f'There was timeout error when reading logs for {contract.address}')
+                            'There was timeout error '
+                            f'when reading logs for {contract.address}') from err
 
                 for vae in vesting_added_events:
                     acc = vae['args']['account']
@@ -175,9 +176,10 @@ class CMKGetVestingByAccount(Model):
                             from_block=0,
                             to_block=self.context.block_number)
 
-                    except (ReadTimeoutError, ReadTimeout):
+                    except (ReadTimeoutError, ReadTimeout) as err:
                         raise ModelRunError(
-                            f'There was timeout error when reading logs for {input.address}')
+                            'There was timeout error '
+                            f'when reading logs for {input.address}') from err
 
                 claims_all = [dict(d['args']) for d in allocation_claimed_events]
 
@@ -318,9 +320,9 @@ class CMKVestingEvents(Model):
                         from_block=0,
                         to_block=self.context.block_number)
 
-                except (ReadTimeoutError, ReadTimeout):
+                except (ReadTimeoutError, ReadTimeout) as err:
                     raise ModelRunError(
-                        f'There was timeout error when reading logs for {input.address}')
+                        f'There was timeout error when reading logs for {input.address}') from err
 
             claims = [dict(d['args']) for d in allocation_claimed_events]
             return claims
