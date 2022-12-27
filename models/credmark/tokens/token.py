@@ -103,7 +103,8 @@ class TokenUnderlying(Model):
                     abi_functions = input.proxy_for.abi.functions
                 except BlockNumberOutOfRangeError as err:
                     raise BlockNumberOutOfRangeError(
-                        err.data.message + f' This is the proxy for Contract({input.address})')
+                        err.data.message + \
+                        f' This is the proxy for Contract({input.address})') from err
             else:
                 abi_functions = input.abi.functions
 

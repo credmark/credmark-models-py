@@ -288,7 +288,7 @@ class UniswapV2LPID(Model):
             lp_addr = nft_manager.functions.ownerOf(nft_id).call()
         except ContractLogicError as err:
             if 'execution reverted: Invalid token ID' in err.args[0]:
-                raise ModelRunError(f'Invalid token ID: {nft_id} for non-existed or burnt')
+                raise ModelRunError(f'Invalid token ID: {nft_id} for non-existed or burnt') from err
             raise
 
         token0_addr = Address(position.token0)
