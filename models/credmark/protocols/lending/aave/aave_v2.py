@@ -4,9 +4,9 @@ from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, NativeToken,
-                                Network, Portfolio, Position, PriceWithQuote,
-                                Some, Token)
+from credmark.cmf.types import (Account, Address, Contract, Contracts,
+                                NativeToken, Network, Portfolio, Position,
+                                PriceWithQuote, Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
@@ -439,3 +439,58 @@ class AaveV2GetTokenAsset(Model):
         else:
             raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
                                 f'for {aToken.address=}')
+
+
+@Model.describe(
+    slug="aave-v2.account-info",
+    version="0.1",
+    display_name="Aave V2 user account info",
+    description="Aave V2 user balance (principal and interest) and debt",
+    category="protocol",
+    subcategory="aave-v2",
+    input=Account,
+    output=dict,
+)
+class AaveV2GetAccountInfo(Model):
+    def run(self, input: Account) -> dict:
+        lending_pool_provider = self.context.run_model(
+            "aave-v2.get-lending-pool-provider",
+            input=EmptyInput(),
+            return_type=Contract,
+            local=True,
+        )
+        data_provider_address = lending_pool_provider.functions.getAddress(
+            "0x0100000000000000000000000000000000000000000000000000000000000000"
+        ).call()
+        protocolDataProvider = Contract(address=data_provider_address)
+        reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
+        keys = [
+            "currentATokenBalance",
+            "currentStableDebt",
+            "currentVariableDebt",
+            "principalStableDebt",
+            "scaledVariableDebt",
+            "stableBorrowRate",
+            "liquidityRate",
+            "stableRateLastUpdated",
+            "usageAsCollateralEnabled",
+        ]
+        user_reserve_data = {}
+        for token_name, token_address in reserve_tokens:
+            values = protocolDataProvider.functions.getUserReserveData(
+                token_address, input.address
+            ).call()
+            for i, value in enumerate(values):
+                if type(value) == int:
+                    values[i] = float(value / 1e18)
+            user_reserve_data[token_name] = dict(zip(keys, values))
+
+            keys_for_price = ['currentATokenBalance',
+                              'currentStableDebt',
+                              'currentVariableDebt']
+            res = [user_reserve_data[token_name][k] for k in keys_for_price] 
+            if sum(res) > 0:
+                pdb = self.context.models.price.dex_db_prefer(address=token_address)
+                pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
+                user_reserve_data[token_name]["PriceWithQuote"] = pq.dict()
+        return user_reserve_data
