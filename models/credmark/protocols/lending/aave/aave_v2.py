@@ -475,22 +475,33 @@ class AaveV2GetAccountInfo(Model):
             "stableRateLastUpdated",
             "usageAsCollateralEnabled",
         ]
+        keys_need_to_be_scaled = keys[:5]
         user_reserve_data = {}
+
         for token_name, token_address in reserve_tokens:
-            values = protocolDataProvider.functions.getUserReserveData(
+            reserve_data = protocolDataProvider.functions.getUserReserveData(
                 token_address, input.address
             ).call()
-            for i, value in enumerate(values):
-                if type(value) == int:
-                    values[i] = float(value / 1e18)
-            user_reserve_data[token_name] = dict(zip(keys, values))
 
-            keys_for_price = ['currentATokenBalance',
-                              'currentStableDebt',
-                              'currentVariableDebt']
-            res = [user_reserve_data[token_name][k] for k in keys_for_price] 
-            if sum(res) > 0:
-                pdb = self.context.models.price.dex_db_prefer(address=token_address)
+            total_balance_and_debt = sum(reserve_data[:3])
+            if total_balance_and_debt > 0:
+                aToken_addresses = protocolDataProvider.functions.getReserveTokensAddresses(
+                    token_address).call()
+                aToken = get_eip1967_proxy_err(self.context,
+                                               self.logger,
+                                               aToken_addresses[0],
+                                               True)
+
+                token_info = {}
+                for key, value in zip(keys, reserve_data):
+                    if key in keys_need_to_be_scaled:
+                        token_info[key] = aToken.scaled(value)
+                    else:
+                        token_info[key] = value
+
+                pdb = self.context.models.price.dex_db_prefer(
+                    address=token_address)
                 pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
-                user_reserve_data[token_name]["PriceWithQuote"] = pq.dict()
+                token_info["PriceWithQuote"] = pq.dict()
+                user_reserve_data[token_name] = token_info
         return user_reserve_data
