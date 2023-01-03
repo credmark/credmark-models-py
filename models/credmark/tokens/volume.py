@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, no-member
+# pylint: disable=locally-disabled, unused-import, no-member, line-too-long
 from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
@@ -211,8 +211,8 @@ class TokenVolumeSegmentBlock(Model):
                         (t.VALUE.sum_(), 'sum_value')
                     ],
                     joins=[
-                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
-                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER))
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
+                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
                     having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
@@ -234,8 +234,8 @@ class TokenVolumeSegmentBlock(Model):
                         (t.VALUE.sum_(), 'sum_value')
                     ],
                     joins=[
-                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
-                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER)
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
+                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}')
                          .and_(t.TOKEN_ADDRESS.eq(token_address)))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],

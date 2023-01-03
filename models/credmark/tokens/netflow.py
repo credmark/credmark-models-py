@@ -1,3 +1,4 @@
+# pylint:disable=line-too-long
 from typing import List, Union
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
@@ -214,6 +215,7 @@ class TokenVolumeSegmentBlock(Model):
             with self.context.ledger.Transaction.as_('t') as t,\
                     self.context.ledger.Block.as_('s') as s,\
                     self.context.ledger.Block.as_('e') as e:
+
                 df = s.select(
                     aggregates=[
                         (s.NUMBER, 'from_block'),
@@ -223,8 +225,8 @@ class TokenVolumeSegmentBlock(Model):
                         (t.VALUE.sum_(), 'sum_value')
                     ],
                     joins=[
-                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
-                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER)
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
+                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}')
                          .and_(t.TO_ADDRESS.eq(input.netflow_address)
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
                     ],
@@ -249,8 +251,8 @@ class TokenVolumeSegmentBlock(Model):
                         (t.VALUE.sum_(), 'sum_value')
                     ],
                     joins=[
-                        (e, e.NUMBER.eq(s.NUMBER.plus_(block_seg).minus_(1))),
-                        (JoinType.LEFT_OUTER, t, t.BLOCK_NUMBER.between_(s.NUMBER, e.NUMBER)
+                        (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
+                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}')
                          .and_(t.TOKEN_ADDRESS.eq(token_address))
                          .and_(t.TO_ADDRESS.eq(input.netflow_address)
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
