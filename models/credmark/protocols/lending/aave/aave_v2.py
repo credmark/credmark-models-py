@@ -55,7 +55,9 @@ class AaveV2GetLendingPoolProviders(Model):
     """
     LENDING_POOL_ADDRESS_PROVIDER_REGISTRY = {
         Network.Mainnet: '0x52D306e36E3B6B02c153d0266ff0f85d18BCD413',
-        Network.Kovan: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
+        Network.Görli: '0x3465454D658019f8A0eABD3bC61d2d1Dd3a0735F'
+        # DEPRECATED - Kovan
+        # Network.Kovan: '0x1E40B561EC587036f9789aF83236f057D1ed2A90'
     }
 
     def run(self, _) -> Contracts:
@@ -84,21 +86,42 @@ class AaveV2GetLendingPoolProviders(Model):
                 subcategory='aave-v2',
                 input=EmptyInput,
                 output=Contract)
-class AaveV2GetLendingPoolProvider(Model):
+class AaveV2GetAddressProvider(Model):
     """
     Returns the lending pool address provider
     """
     LENDING_POOL_ADDRESS_PROVIDER = {
-        # For mainnet
-        Network.Mainnet: '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5',
-        # Kovan
-        Network.Kovan: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
+        Network.Mainnet: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+        Network.Görli: '0x5E52dEc931FFb32f609681B8438A51c675cc232d'
+        # DEPRECATED - Kovan
+        # Network.Kovan: '0x88757f2f99175387ab4c6a4b3067c77a695b0349'
     }
 
     def run(self, _) -> Contract:
         cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.network])
         _ = cc.abi
         return cc
+
+
+@Model.describe(slug="aave-v2.get-protocol-data-provider",
+                version="1.1",
+                display_name="Aave V2 - Get protocol data provider",
+                description="Query data provider from address provider",
+                category='protocol',
+                subcategory='aave-v2',
+                input=EmptyInput,
+                output=Contract)
+class AaveV2GetProtocolDataProvider(Model):
+    def run(self, _) -> Contract:
+        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
+                                                       input=EmptyInput(),
+                                                       return_type=Contract,
+                                                       local=True,
+                                                       )
+        data_provider_address = lending_pool_provider.functions.getAddress("0x01").call()
+        data_provider = Contract(data_provider_address)
+        _ = data_provider.abi
+        return data_provider
 
 
 @Model.describe(slug="aave-v2.get-lending-pool",
@@ -110,7 +133,7 @@ class AaveV2GetLendingPoolProvider(Model):
                 input=EmptyInput,
                 output=Contract)
 class AaveV2GetLendingPool(Model):
-    def run(self, input: EmptyInput) -> Contract:
+    def run(self, _) -> Contract:
         lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
                                                        input=EmptyInput(),
                                                        return_type=Contract,
@@ -130,7 +153,7 @@ class AaveV2GetLendingPool(Model):
                 input=EmptyInput,
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
-    def run(self, input: EmptyInput) -> Contract:
+    def run(self, _) -> Contract:
         lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
                                                        input=EmptyInput(),
                                                        return_type=Contract,
@@ -453,40 +476,37 @@ class AaveV2GetTokenAsset(Model):
 )
 class AaveV2GetAccountInfo(Model):
     def run(self, input: Account) -> dict:
-        lending_pool_provider = self.context.run_model(
-            "aave-v2.get-lending-pool-provider",
+        protocolDataProvider = self.context.run_model(
+            "aave-v2.get-protocol-data-provider",
             input=EmptyInput(),
             return_type=Contract,
             local=True,
         )
-        data_provider_address = lending_pool_provider.functions.getAddress(
-            "0x0100000000000000000000000000000000000000000000000000000000000000"
-        ).call()
-        protocolDataProvider = Contract(address=data_provider_address)
         reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
-        keys = [
+
+        keys_need_to_be_scaled = [
             "currentATokenBalance",
             "currentStableDebt",
             "currentVariableDebt",
             "principalStableDebt",
             "scaledVariableDebt",
-            "stableBorrowRate",
-            "liquidityRate",
-            "stableRateLastUpdated",
-            "usageAsCollateralEnabled",
         ]
-        keys_need_to_be_scaled = keys[:5]
+        keys_need_not_to_scaled = ["stableBorrowRate",
+                                   "liquidityRate",
+                                   "stableRateLastUpdated",
+                                   "usageAsCollateralEnabled", ]
+        keys = keys_need_to_be_scaled + keys_need_not_to_scaled
         user_reserve_data = {}
 
         for token_name, token_address in reserve_tokens:
-            reserve_data = protocolDataProvider.functions.getUserReserveData(
-                token_address, input.address
-            ).call()
+            reserve_data = (protocolDataProvider.functions
+                            .getUserReserveData(token_address, input.address.checksum).call())
 
             total_balance_and_debt = sum(reserve_data[:3])
             if total_balance_and_debt > 0:
-                aToken_addresses = protocolDataProvider.functions.getReserveTokensAddresses(
-                    token_address).call()
+                aToken_addresses = (protocolDataProvider.functions
+                                    .getReserveTokensAddresses(token_address).call())
+
                 aToken = get_eip1967_proxy_err(self.context,
                                                self.logger,
                                                aToken_addresses[0],
