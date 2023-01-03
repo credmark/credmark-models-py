@@ -27,3 +27,6 @@ class TestAAVE(CMFTest):
         self.run_model('aave-v2.lending-pool-assets', {}, block_number=12770589)
 
         self.run_model('aave-v2.lending-pool-assets-portfolio', {}, block_number=12770589)
+
+        self.run_model('aave-v2.account-info',
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
