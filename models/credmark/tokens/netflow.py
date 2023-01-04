@@ -28,10 +28,16 @@ class TokenNetflowBlockInput(DTO):
 
 
 class TokenNetflowBlockRange(DTO):
-    volume: int
-    volume_scaled: float
+    inflow: int
+    inflow_scaled: float
+    outflow: int
+    outflow_scaled: float
+    netflow: int
+    netflow_scaled: float
     price_last: Union[float, None]
-    value_last: Union[float, None]
+    inflow_value_last: Union[float, None]
+    outflow_value_last: Union[float, None]
+    netflow_value_last: Union[float, None]
     from_block: int
     from_timestamp: int
     to_block: int
@@ -43,7 +49,7 @@ class TokenNetflowOutput(TokenNetflowBlockRange):
 
 
 @Model.describe(slug='token.netflow-block',
-                version='1.3',
+                version='1.4',
                 display_name='Token netflow',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -70,8 +76,13 @@ class TokenNetflowBlock(Model):
             input_token = native_token
             with self.context.ledger.Transaction as q:
                 df = q.select(
-                    aggregates=[((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
-                                  f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'sum_value')],
+                    aggregates=[
+                        ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                        ((f'SUM(CASE WHEN {q.FROM_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                        ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'netflow')],
                     where=q.BLOCK_NUMBER.gt(old_block)
                     .and_(q.TO_ADDRESS.eq(input.netflow_address)
                           .or_(q.FROM_ADDRESS.eq(input.netflow_address)).parentheses_())
@@ -80,31 +91,55 @@ class TokenNetflowBlock(Model):
             input_token = input.token
             with self.context.ledger.TokenTransfer as q:
                 df = q.select(
-                    aggregates=[((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
-                                  f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'sum_value')],
+                    aggregates=[
+                        ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                        ((f'SUM(CASE WHEN {q.FROM_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                        ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'netflow')],
                     where=q.BLOCK_NUMBER.gt(old_block)
                     .and_(q.TOKEN_ADDRESS.eq(token_address))
                     .and_(q.TO_ADDRESS.eq(input.netflow_address)
                           .or_(q.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()),
+                    bigint_cols=['inflow', 'outflow', 'netflow']
                 ).to_dataframe()
 
-        vol = df.sum_value.values[0]
-        vol = 0 if vol is None else vol
-        vol_scaled = input_token.scaled(vol)
+        df = df.fillna(0)
+        inflow = df.inflow.values[0]
+        inflow = inflow if inflow is not None else 0
+        inflow_scaled = input_token.scaled(inflow)
+        outflow = df.outflow.values[0]
+        outflow = outflow if outflow is not None else 0
+        outflow_scaled = input_token.scaled(outflow)
+        netflow = df.netflow.values[0]
+        netflow = netflow if netflow is not None else 0
+        netflow_scaled = input_token.scaled(netflow)
+
         price_last = None
-        value_last = None
+        inflow_value_last = None
+        outflow_value_last = None
+        netflow_value_last = None
         if input.include_price:
             price_last = self.context.models.price.quote(
                 base=input_token,
                 return_type=PriceWithQuote).price  # type: ignore
-            value_last = vol_scaled * price_last
+            inflow_value_last = inflow_scaled * price_last
+            outflow_value_last = outflow_scaled * price_last
+            netflow_value_last = netflow_scaled * price_last
 
         output = TokenNetflowOutput(
             address=input.address,
-            volume=vol,
-            volume_scaled=vol_scaled,
+            inflow=inflow,
+            inflow_scaled=inflow_scaled,
+            outflow=outflow,
+            outflow_scaled=outflow_scaled,
+            netflow=netflow,
+            netflow_scaled=netflow_scaled,
             price_last=price_last,
-            value_last=value_last,
+            inflow_value_last=inflow_value_last,
+            outflow_value_last=outflow_value_last,
+            netflow_value_last=netflow_value_last,
             from_block=from_block,
             from_timestamp=from_block.timestamp,
             to_block=to_block,
@@ -131,7 +166,7 @@ class TokenNetflowWindowInput(DTO):
 
 
 @Model.describe(slug='token.netflow-window',
-                version='1.3',
+                version='1.4',
                 display_name='Token netflow',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',
@@ -164,7 +199,7 @@ class TokenNetflowSegmentOutput(DTO):
 
 
 @Model.describe(slug='token.netflow-segment-block',
-                version='1.3',
+                version='1.4',
                 display_name='Token netflow by segment by block',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -222,7 +257,12 @@ class TokenVolumeSegmentBlock(Model):
                         (s.TIMESTAMP, 'from_timestamp'),
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
-                        (t.VALUE.sum_(), 'sum_value')
+                        ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                        ((f'SUM(CASE WHEN {t.FROM_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                        ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE {t.VALUE.neg_()} END)'), 'netflow')
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
@@ -248,7 +288,12 @@ class TokenVolumeSegmentBlock(Model):
                         (s.TIMESTAMP, 'from_timestamp'),
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
-                        (t.VALUE.sum_(), 'sum_value')
+                        ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                        ((f'SUM(CASE WHEN {t.FROM_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                        ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
+                          f'THEN {t.VALUE} ELSE {t.VALUE.neg_()} END)'), 'netflow')
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
@@ -264,27 +309,48 @@ class TokenVolumeSegmentBlock(Model):
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
 
-        df[['sum_value']] = df[['sum_value']].fillna(0)
+        df = df.fillna(0)
         netflows = []
         for _, r in df.iterrows():
-            vol = r['sum_value']
-            vol_scaled = input_token.scaled(vol)
+            inflow = r['inflow']
+            inflow = inflow if inflow is not None else 0
+            inflow_scaled = input_token.scaled(inflow)
+            outflow = r['outflow']
+            outflow = outflow if outflow is not None else 0
+            outflow_scaled = input_token.scaled(outflow)
+            netflow = r['netflow']
+            netflow = netflow if netflow is not None else 0
+            netflow_scaled = input_token.scaled(netflow)
+
             price_last = None
-            value_last = None
+            inflow_value_last = None
+            outflow_value_last = None
+            netflow_value_last = None
             if input.include_price:
                 price_last = (self.context.models(block_number=r['to_block'])
                               .price.quote(base=input_token,
                                            return_type=PriceWithQuote)).price  # type: ignore
-                value_last = vol_scaled * price_last
+                inflow_value_last = inflow_scaled * price_last
+                outflow_value_last = outflow_scaled * price_last
+                netflow_value_last = netflow_scaled * price_last
 
-            netflow = TokenNetflowBlockRange(volume=vol,
-                                             volume_scaled=vol_scaled,
-                                             price_last=price_last,
-                                             value_last=value_last,
-                                             from_block=r['from_block'],
-                                             from_timestamp=r['from_timestamp'],
-                                             to_block=r['to_block'],
-                                             to_timestamp=r['to_timestamp'],)
+            netflow = TokenNetflowOutput(
+                address=input.address,
+                inflow=inflow,
+                inflow_scaled=inflow_scaled,
+                outflow=outflow,
+                outflow_scaled=outflow_scaled,
+                netflow=netflow,
+                netflow_scaled=netflow_scaled,
+                price_last=price_last,
+                inflow_value_last=inflow_value_last,
+                outflow_value_last=outflow_value_last,
+                netflow_value_last=netflow_value_last,
+                from_block=r['from_block'],
+                from_timestamp=r['from_timestamp'],
+                to_block=r['to_block'],
+                to_timestamp=r['to_timestamp']
+            )
             netflows.append(netflow)
 
         output = TokenNetflowSegmentOutput(address=input.address, netflows=netflows)
@@ -297,7 +363,7 @@ class TokenNetflowSegmentWindowInput(TokenNetflowWindowInput):
 
 
 @Model.describe(slug='token.netflow-segment-window',
-                version='1.3',
+                version='1.4',
                 display_name='Token netflow by segment in window',
                 description='The current Credmark supported netflow algorithm',
                 category='protocol',
