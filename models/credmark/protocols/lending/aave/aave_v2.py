@@ -361,7 +361,16 @@ class AaveV2GetLiabilityInPortfolios(Model):
                 input=Token,
                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
-    def run(self, input: Token) -> AaveDebtInfo:
+    def _get_token_price(self, token: Token):
+        try:
+            pdb = self.context.models.price.dex_db(address=token.address)
+            return PriceWithQuote.usd(price=pdb['price'], src=pdb['protocol'])
+        except ModelDataError as err:
+            if "No price for" in err.data.message:
+                return self.context.models.price.quote(base=token, return_type=PriceWithQuote)
+            raise
+
+    def run(self, input: Token):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract,
@@ -429,21 +438,13 @@ class AaveV2GetTokenAsset(Model):
         totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
         totalInterest = totalStableDebt - totalStablePrincipleDebt
 
-        try:
-            pdb = self.context.models.price.dex_db(address=input.address)
-            pq = PriceWithQuote.usd(price=pdb['price'], src=pdb['protocol'])
-        except ModelDataError as err:
-            if "No price for" in err.data.message:
-                pq = self.context.models.price.quote(base=input, return_type=PriceWithQuote)
-            raise
-
         if totalStableDebt is not None and totalVariableDebt is not None:
             totalDebt = totalStableDebt + totalVariableDebt
             totalLiquidity = totalSupply - totalDebt
 
             return AaveDebtInfo(
                 token=input,
-                token_price=pq,  # type: ignore
+                token_price=self._get_token_price(input),  # type: ignore
                 tokenName=input.name,
                 aToken=aToken,
                 stableDebtToken=stableDebtToken,
