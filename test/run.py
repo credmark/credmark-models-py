@@ -24,6 +24,7 @@ from test_cmk import TestCMK
 from test_compose import TestCompose
 from test_compound import TestCompound
 from test_curve import TestCurve
+from test_fiat import TestFiat
 from test_dashboard import TestDashboard
 from test_example import TestExample
 from test_finance import TestFinance
