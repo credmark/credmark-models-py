@@ -181,7 +181,7 @@ class CMKGetVestingByAccount(Model):
                             'There was timeout error '
                             f'when reading logs for {input.address}') from err
 
-                claims_all = [dict(d['args']) for d in allocation_claimed_events]
+                claims_all = [dict(**d['args']) for d in allocation_claimed_events]
 
                 for c in claims_all:
                     if c['account'] == input.address:
