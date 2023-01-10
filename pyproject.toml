@@ -8,7 +8,7 @@ packages = [{ include = "models" }]
 
 [tool.poetry.dependencies]
 python = ">=3.9.0,<3.11"
-credmark-model-framework = { git = "https://github.com/credmark/credmark-model-framework-py.git", tag = "0.8.69" }
+credmark-model-framework = { git = "https://github.com/credmark/credmark-model-framework-py.git", tag = "0.8.71" }
 numpy = ">=1.21.0"
 matplotlib = ">=3.5.1"
 pandas = ">=1.3.0"

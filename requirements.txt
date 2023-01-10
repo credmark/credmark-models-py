@@ -1,4 +1,4 @@
-git+https://github.com/credmark/credmark-model-framework-py.git@0.8.70
+git+https://github.com/credmark/credmark-model-framework-py.git@0.8.71
 # data libraries
 numpy==1.23.3
 matplotlib>=3.5.1
