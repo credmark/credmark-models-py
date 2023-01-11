@@ -1,5 +1,6 @@
-# pylint:disable=unused-import
+# pylint:disable=unused-import, line-too-long
 
+import pandas as pd
 from typing import Optional
 
 from credmark.cmf.model import Model
@@ -63,6 +64,30 @@ class AaveV2GetAccountInfo(Model):
                                                aToken_addresses[0],
                                                True)
 
+                # Fetch aToken transfer for an account
+                _minted = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={
+                        'to': input.address.checksum},
+                    from_block=0,
+                    contract_address=aToken.address.checksum))
+
+                _burnt = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={
+                        'from': input.address.checksum},
+                    from_block=0,
+                    contract_address=aToken.address.checksum))
+
+                _combined = (pd.concat(
+                    [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
+                     (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: -x.value))
+                     ])
+                    .sort_values(['blockNumber', 'logIndex'])
+                    .reset_index(drop=True))
+
+                atoken_tx = aToken.scaled(_combined.value.sum())
+
                 token_info = {}
                 for key, value in zip(keys, reserve_data):
                     if key in keys_need_to_be_scaled:
@@ -74,20 +99,7 @@ class AaveV2GetAccountInfo(Model):
                     address=token_address)
                 pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
                 token_info["PriceWithQuote"] = pq.dict()
+                token_info['ATokenReward'] = token_info['currentATokenBalance'] - atoken_tx
                 user_reserve_data[token_name] = token_info
+
         return user_reserve_data
-
-
-# Fetch aToken transfer for an account
-
-# minted = pd.DataFrame(aToken.fetch_events(
-#           aToken.events.Transfer,
-#           argument_filters={
-#          'to': 'account_address_in_checksum'},
-#           from_block=0))
-
-# burnt = pd.DataFrame(aToken.fetch_events(
-#           aToken.events.Transfer,
-#           argument_filters={
-#          'from': 'account_address_in_checksum'},
-#           from_block=0))
