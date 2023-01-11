@@ -352,9 +352,30 @@ class UniswapV2LPFeeHistory(Model):
                                           input={'address': lp, 'tokens': [pool.address]},
                                           return_type=Records).to_dataframe()
 
-        _df = _use_model().rename(columns={'value': 'transaction_value'})[q_cols]
-
+        # _df = _use_model().rename(columns={'value': 'transaction_value'})[q_cols]
         # _df.loc[1:, 'transaction_value'] = -1 * (_df.loc[0, 'transaction_value'])
+
+        def _use_events():
+            minted = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
+                'to': lp.checksum}, from_block=0, contract_address=pool.address.checksum))
+            burnt = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
+                'from': lp.checksum}, from_block=0, contract_address=pool.address.checksum))
+            df_combined = (pd.concat(
+                [minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
+                 (burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: -x.value))
+                 ])
+                .sort_values(['blockNumber', 'logIndex'])
+                .rename(columns={
+                    'blockNumber': 'block_number',
+                    'logIndex': 'log_index',
+                    'from': 'from_address',
+                    'to': 'to_address',
+                    'value': 'transaction_value'})
+                .reset_index(drop=True))
+
+            return df_combined
+
+        _df = _use_events()
 
         new_data = [(int(self.context.block_number), -1, input.lp, input.lp, 0)]
 
