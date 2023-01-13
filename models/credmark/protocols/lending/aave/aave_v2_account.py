@@ -48,12 +48,13 @@ class AaveV2GetAccountInfo(Model):
                                    "stableRateLastUpdated",
                                    "usageAsCollateralEnabled", ]
         keys = keys_need_to_be_scaled + keys_need_not_to_scaled
-        user_reserve_data = {}
 
+        ray = 10**27
+        seconds_per_year = 31536000
+        user_reserve_data = {}
         for token_name, token_address in reserve_tokens:
             reserve_data = (protocolDataProvider.functions
                             .getUserReserveData(token_address, input.address.checksum).call())
-
             total_balance_and_debt = sum(reserve_data[:3])
             if total_balance_and_debt > 0:
                 aToken_addresses = (protocolDataProvider.functions
@@ -81,7 +82,7 @@ class AaveV2GetAccountInfo(Model):
 
                 _combined = (pd.concat(
                     [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
-                     (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: -x.value))
+                     (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: x.value*-1))
                      ])
                     .sort_values(['blockNumber', 'logIndex'])
                     .reset_index(drop=True))
@@ -100,6 +101,25 @@ class AaveV2GetAccountInfo(Model):
                 pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
                 token_info["PriceWithQuote"] = pq.dict()
                 token_info['ATokenReward'] = token_info['currentATokenBalance'] - atoken_tx
+
+                # get variableBorrowRate from getReserveData
+                token_reserve_data = (protocolDataProvider.functions
+                                      .getReserveData(token_address).call())
+                token_info['variableBorrowRate'] = token_reserve_data[4]
+
+                # Calculate APY for deposit and borrow
+                deposit_APR = token_info['liquidityRate']/ray
+                variable_borrow_APR = token_info['variableBorrowRate']/ray
+                stable_borrow_APR = token_info['stableBorrowRate']/ray
+
+                deposit_APY = ((1 + (deposit_APR / seconds_per_year)) ** seconds_per_year) - 1
+                variable_borrow_APY = ((1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
+                stable_borrow_APY = ((1 + (stable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
+
+                token_info['depositAPY'] = deposit_APY
+                token_info['variableBorrowAPY'] = variable_borrow_APY
+                token_info['stableBorrowAPY'] = stable_borrow_APY
+
                 user_reserve_data[token_name] = token_info
 
         return user_reserve_data
