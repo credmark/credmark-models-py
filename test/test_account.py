@@ -142,13 +142,15 @@ class TestAccount(CMFTest):
         ]:
             self.run_model('accounts.token-historical',
                            accs_input | {"window": "5 days", "interval": "1 days"})
+            self.run_model('accounts.token-historical',
+                           accs_input | {"window": "5 days", "interval": "1 days", 'quote': 'AAVE'})
             self.run_model('accounts.token-return-historical',
                            accs_input | {"token_list": "cmf", "window": "5 days", "interval": "1 days"})
 
         # no price
         self.run_model(
             'account.token-historical',
-            {"address":"0x5D7F34372FA8708E09689D400A613EeE67F75543", "window": "5 days", "interval": "1 day","include_price": "false"})
+            {"address": "0x5D7F34372FA8708E09689D400A613EeE67F75543", "window": "5 days", "interval": "1 day", "include_price": "false"})
 
     def test_token_leger(self):
         self.run_model('ledger.account-token-transfers',
