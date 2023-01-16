@@ -8,6 +8,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types import (Account, Accounts,
+                                Currency, FiatCurrency,
                                 NativePosition, NativeToken,
                                 Portfolio, Position,
                                 PortfolioWithPrice, PositionWithPrice,
@@ -282,6 +283,7 @@ class AccountERC20TokenHistorical(Model):
 
 class AccountsHistoricalInput(Accounts, HistoricalDTO):
     include_price: bool = DTOField(default=True, description='Include price quote')
+    quote: Currency = DTOField(default=Currency(symbol='USD'), description='')
 
     class Config:
         schema_extra = {
@@ -327,6 +329,16 @@ class AccountsERC20TokenHistorical(Model):
                 if len(prices) == 0 and len(past_blocks) != 1:
                     continue
 
+                if input.quote.address != FiatCurrency(symbol='USD').address:
+                    quotes = (self.context.run_model(
+                        'price.dex-db-blocks',
+                        input={'address': input.quote.address, 'blocks': list(past_blocks)})
+                        ['results'])
+
+                    if len(prices) <= len(quotes):
+                        for p, q in zip(prices, quotes):
+                            p['price'] /= q['price']
+
                 if len(prices) < len(past_blocks):
                     if not do_wobble_price:
                         continue
@@ -334,6 +346,11 @@ class AccountsERC20TokenHistorical(Model):
                     try:
                         last_price = self.context.run_model(
                             'price.dex-db-latest', input={'address': token_addr})
+                        if input.quote.address != FiatCurrency(symbol='USD').address:
+                            last_quote = self.context.run_model(
+                                'price.dex-db-latest', input={'address': input.quote.address})
+                            last_price['price'] /= last_quote['price']
+
                     except ModelDataError as err:
                         if "No price for" in err.data.message:  # pylint:disable=unsupported-membership-test
                             continue
@@ -358,7 +375,10 @@ class AccountsERC20TokenHistorical(Model):
                                 try:
                                     new_price = self.context.run_model(
                                         'price.quote',
-                                        input={'base': token_addr, 'prefer': 'cex'},
+                                        input={
+                                            'base': token_addr,
+                                            'quote': input.quote.address,
+                                            'prefer': 'cex'},
                                         block_number=blk)  # type: ignore
                                 except ModelRunError as _err:
                                     continue
@@ -368,7 +388,10 @@ class AccountsERC20TokenHistorical(Model):
                 for past_block, price in zip(past_blocks, prices):
                     (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
                         .output['positions'][token_rows[token_addr][str(past_block)]]  # type: ignore
-                        ['fiat_quote']) = PriceWithQuote.usd(price=price['price'], src='dex').dict()
+                        ['fiat_quote']) = PriceWithQuote(
+                            price=price['price'],
+                            src='dex',
+                            quoteAddress=input.quote.address).dict()
 
         res = price_historical_result.dict()
         for n in range(len(res['results'])):
@@ -455,7 +478,10 @@ class AccountsERC20TokenHistoricalBalance(Model):
                                 PositionWithPrice(
                                     amount=asset_token.scaled(token_bal_row['value']),
                                     asset=asset_token,
-                                    fiat_quote=PriceWithQuote.usd(price=0, src='')))
+                                    fiat_quote=PriceWithQuote(
+                                        price=0.0,
+                                        quoteAddress=input.quote.address,
+                                        src='')))
                         else:
                             assets.append(
                                 Position(
