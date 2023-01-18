@@ -18,13 +18,22 @@ from web3.exceptions import BadFunctionCallOutput
 
 @Model.describe(slug='dex.primary-tokens',
                 version='0.1',
-                display_name='Dex Primary Tokens',
-                description='Tokens as primary trading pair',
+                display_name='DEX Tokens - Primary, or Ring0',
+                description='Tokens to form primary trading pairs for new token issuance',
                 category='protocol',
                 subcategory='dex',
                 tags=['uniswap-v2', 'uniswap-v3', 'sushiswap'],
                 output=Some[Address])
 class DexPrimaryTokens(Model):
+    """
+    dex.primary-tokens: ring0 tokens
+
+    get_primary_token_tuples: a utility function to create token trading pairs
+    - For primary token, with non-self primary tokens
+    - For weth, weth with each in primary tokens
+    - For rest, with primary tokens and weth
+    """
+
     PRIMARY_TOKENS = {
         Network.Mainnet: (lambda: [Token('USDC'), Token('DAI'), Token('USDT')])
     }
@@ -47,6 +56,7 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
                                        return_type=Some[Address],
                                        local=True).some
 
+    # WETH or native token's address
     weth_address = Token('WETH').address
 
     if input_address not in primary_tokens and input_address != weth_address:
