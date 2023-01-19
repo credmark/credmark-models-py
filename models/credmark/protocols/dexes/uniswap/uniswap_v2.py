@@ -32,6 +32,7 @@ class UniswapV2PoolMeta:
     def get_uniswap_pools(context, input_address: Address, factory_addr: Address) -> Contracts:
         factory = Contract(address=factory_addr)
         token_pairs = get_primary_token_tuples(context, input_address)
+
         contracts = []
         try:
             for token_pair in token_pairs:
@@ -86,7 +87,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -510,7 +511,7 @@ class UniswapPoolPriceInfo(Model):
         except ModelDataError:
             pool = Contract(address=input.address, abi=UNISWAP_V2_POOL_ABI)
 
-        primary_tokens = self.context.run_model('dex.primary-tokens',
+        primary_tokens = self.context.run_model('dex.ring0-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
                                                 local=True).some

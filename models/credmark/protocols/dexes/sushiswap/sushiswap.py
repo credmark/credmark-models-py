@@ -35,7 +35,7 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.5',
+                version='1.6',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
