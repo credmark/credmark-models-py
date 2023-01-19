@@ -75,7 +75,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -85,18 +85,6 @@ class UniswapV3PoolInfo(DTO):
 class UniswapV3GetPools(Model):
     def run(self, input: Token) -> Contracts:
         try:
-            primary_tokens = self.context.run_model('dex.primary-tokens',
-                                                    input=EmptyInput(),
-                                                    return_type=Some[Address],
-                                                    local=True).some
-
-            # For stablecoins, exclude use WETH pools.
-            # In those pools, the price for stablecoins in those pools will always be 1.
-            weth_address = Token('WETH').address
-
-            if input.address not in primary_tokens and input.address != weth_address:
-                primary_tokens.append(weth_address)
-
             addr = V3_FACTORY_ADDRESS[self.context.network]
             uniswap_factory = Contract(address=addr)
             pools = []
@@ -120,7 +108,7 @@ class UniswapV3GetPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -378,7 +366,7 @@ class UniswapV2LPID(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.12',
+                version='1.13',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -395,7 +383,7 @@ class UniswapV3GetPoolInfo(Model):
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         # pylint:disable=locally-disabled, too-many-locals
-        primary_tokens = self.context.run_model('dex.primary-tokens',
+        primary_tokens = self.context.run_model('dex.ring0-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
                                                 local=True).some
@@ -764,15 +752,15 @@ class TokenPrice(Price):
                 output=Some[TokenPrice])
 class DexPrimaryTokensUniV3(Model):
     def run(self, _) -> Some[TokenPrice]:
-        primary_tokens = self.context.run_model('dex.primary-tokens',
-                                                input=EmptyInput(),
-                                                return_type=Some[Address],
-                                                local=True).some
+        ring0_tokens = self.context.run_model('dex.ring0-tokens',
+                                              input=EmptyInput(),
+                                              return_type=Some[Address],
+                                              local=True).some
 
         # tokens = primary_tokens[:2]
         # tokens = primary_tokens[1:]
         # tokens = [primary_tokens[0], primary_tokens[2]]
-        tokens = primary_tokens
+        tokens = ring0_tokens
 
         prices = {}
         weights = []

@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unsupported-membership-test
+# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -16,8 +16,8 @@ from models.dtos.pool import PoolPriceInfo
 from web3.exceptions import BadFunctionCallOutput
 
 
-@Model.describe(slug='dex.primary-tokens',
-                version='0.1',
+@Model.describe(slug='dex.ring0-tokens',
+                version='0.2',
                 display_name='DEX Tokens - Primary, or Ring0',
                 description='Tokens to form primary trading pairs for new token issuance',
                 category='protocol',
@@ -26,21 +26,21 @@ from web3.exceptions import BadFunctionCallOutput
                 output=Some[Address])
 class DexPrimaryTokens(Model):
     """
-    dex.primary-tokens: ring0 tokens
+    dex.ring0-tokens: ring0 tokens
 
     get_primary_token_tuples: a utility function to create token trading pairs
-    - For primary token, with non-self primary tokens
-    - For weth, weth with each in primary tokens
-    - For rest, with primary tokens and weth
+    - For ring0 tokens, with non-self ring0 tokens
+    - For ring1 tokens (for now, weth), with each in rin0 tokens and ring1 tokens before it.
+    - For rest, with ring0 and ring1 tokens
     """
 
-    PRIMARY_TOKENS = {
+    RING0_TOKENS = {
         Network.Mainnet: (lambda: [Token('USDC'), Token('DAI'), Token('USDT')])
     }
 
     def run(self, _) -> Some[Address]:
         valid_tokens = []
-        for t in self.PRIMARY_TOKENS[self.context.network]():
+        for t in self.RING0_TOKENS[self.context.network]():
             try:
                 _ = (t.deployed_block_number is not None and
                      t.deployed_block_number >= self.context.block_number)
@@ -51,16 +51,29 @@ class DexPrimaryTokens(Model):
 
 
 def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Address, Address]]:
-    primary_tokens = context.run_model('dex.primary-tokens',
-                                       input=EmptyInput(),
-                                       return_type=Some[Address],
-                                       local=True).some
+    ring0_tokens = context.run_model('dex.ring0-tokens',
+                                     input=EmptyInput(),
+                                     return_type=Some[Address],
+                                     local=True).some
+    primary_tokens = ring0_tokens.copy()
 
     # WETH or native token's address
     weth_address = Token('WETH').address
+    # _wbtc_address = Token('WBTC').address
+    ring1_tokens = [weth_address]
 
-    if input_address not in primary_tokens and input_address != weth_address:
-        primary_tokens.append(weth_address)
+    """
+    TODO:
+    # 1. In ring0 => all pair without self.
+    # 2. In ring1+ => add tokens in ring0 and ring1 before
+    # e.g. When ring1+ has [wbtc, wbtc2] => for wbtc, add weth; for wbtc2, add weth and wbtc2.
+    # 3. _ => include all ring0 and ring1+
+    """
+    if input_address not in ring0_tokens:
+        if input_address not in ring1_tokens:
+            primary_tokens.extend(ring1_tokens)
+        else:
+            primary_tokens.extend(ring1_tokens[:ring1_tokens.index(input_address)])
 
     token_pairs = []
 
@@ -69,8 +82,12 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
             continue
         if input_address.to_int() < token_address.to_int():
             token_pairs.append((input_address.checksum, token_address.checksum))
+            # TEST
+            # token_pairs.append((Token(input_address).symbol, Token(token_address).symbol))
         else:
             token_pairs.append((token_address.checksum, input_address.checksum))
+            # TEST
+            # token_pairs.append((Token(token_address).symbol, Token(input_address).symbol))
 
     return token_pairs
 

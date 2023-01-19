@@ -32,6 +32,7 @@ class UniswapV2PoolMeta:
     def get_uniswap_pools(context, input_address: Address, factory_addr: Address) -> Contracts:
         factory = Contract(address=factory_addr)
         token_pairs = get_primary_token_tuples(context, input_address)
+
         contracts = []
         try:
             for token_pair in token_pairs:
@@ -86,7 +87,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -510,12 +511,11 @@ class UniswapPoolPriceInfo(Model):
         except ModelDataError:
             pool = Contract(address=input.address, abi=UNISWAP_V2_POOL_ABI)
 
-        primary_tokens = self.context.run_model('dex.primary-tokens',
+        primary_tokens = self.context.run_model('dex.ring0-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
                                                 local=True).some
-        # Count WETH-pool as primary pool
-        primary_tokens.append(Token('WETH').address)
+        weth_address = Token('WETH').address
 
         reserves = pool.functions.getReserves().call()
         if reserves == [0, 0, 0]:
@@ -543,43 +543,47 @@ class UniswapPoolPriceInfo(Model):
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
 
-        is_primary_pool = token0.address in primary_tokens and token1.address in primary_tokens
-
-        if token0.address in primary_tokens:
-            primary_address = token0.address
-        elif token1.address in primary_tokens:
-            primary_address = token1.address
-        else:
-            primary_address = Address.null()
-
         ref_price = 1.0
-        weth_address = Token('WETH').address
 
         # 1. If both are stablecoins (non-WETH): do nothing
-        # 2. If SB-WETH: use SB to price WETH
-        # 3. If WETH-X: use WETH to price
-        # 4. If SB-X: use SB to price
+        # 2. If SB-WETH/WBTC: use SB to price WETH/WBTC
+        # 3. If WETH-WBTC: use WETH to price WBTC
+        # 4. If SB/WETH/WBTC-X: use SB/WETH/WBTC to price
+
+        is_primary_pool = token0.address in primary_tokens and token1.address in primary_tokens
 
         if is_primary_pool:
-            if token0.address == weth_address:
-                ref_price = self.context.run_model(
-                    slug=input.price_slug,
-                    input=DexPriceTokenInput(
-                        **token1.dict(),
-                        weight_power=input.weight_power,
-                        debug=input.debug),
-                    return_type=Price,
-                    local=True).price
-            if token1.address == weth_address:
-                ref_price = self.context.run_model(
-                    slug=input.price_slug,
-                    input=DexPriceTokenInput(
-                        **token0.dict(),
-                        weight_power=input.weight_power,
-                        debug=input.debug),
-                    return_type=Price,
-                    local=True).price
+            pass
+        elif token0.address == weth_address and token1.address in primary_tokens:
+            ref_price = self.context.run_model(
+                slug=input.price_slug,
+                input=DexPriceTokenInput(
+                    **token1.dict(),
+                    weight_power=input.weight_power,
+                    debug=input.debug),
+                return_type=Price,
+                local=True).price
+        elif token1.address == weth_address and token0.address in primary_tokens:
+            ref_price = self.context.run_model(
+                slug=input.price_slug,
+                input=DexPriceTokenInput(
+                    **token0.dict(),
+                    weight_power=input.weight_power,
+                    debug=input.debug),
+                return_type=Price,
+                local=True).price
+        # elif token0.address == weth_address and token1.address == wbtc_address:
+        # use token0 as reference token
+        # elif token1.address == weth_address and token0.address == wbtc_address:
+        # use token1 as reference token
         else:
+            if token0.address in primary_tokens + [weth_address]:
+                primary_address = token0.address
+            elif token1.address in primary_tokens + [weth_address]:
+                primary_address = token1.address
+            else:
+                primary_address = Address.null()
+
             if not primary_address.is_null():
                 ref_price = self.context.run_model(
                     slug=input.price_slug,
@@ -590,8 +594,10 @@ class UniswapPoolPriceInfo(Model):
                     return_type=Price,
                     local=True).price
                 if ref_price is None:
-                    raise ModelRunError(f'Can not retriev price for '
+                    raise ModelRunError(f'Can not retrieve price for '
                                         f'{Token(address=primary_address)}')
+            else:
+                raise ModelRunError(f'Primary address can not be null for {token0.address} and {token1.address}')
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
                                         price0=tick_price0,
