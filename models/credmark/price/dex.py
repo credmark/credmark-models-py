@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unsupported-membership-test
+# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -58,9 +58,23 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
 
     # WETH or native token's address
     weth_address = Token('WETH').address
+    _wbtc_address = Token('WBTC').address
 
-    if input_address not in primary_tokens and input_address != weth_address:
-        primary_tokens.append(weth_address)
+    if input_address not in primary_tokens:
+        if input_address != weth_address:
+            primary_tokens.append(weth_address)
+
+        """
+        TODO:
+        # in ring1+ => add ring1
+        # e.g. ring1+ has [wbtc, wbtc2] => for wbtc, add weth; for wbtc2, add weth and wbtc2.
+        # not in ring1+ => include all ring1+
+        if input_address not in [weth_address, _wbtc_address]:
+            primary_tokens.append(weth_address)
+            primary_tokens.append(_wbtc_address)
+        elif input_address == _wbtc_address:
+            primary_tokens.append(_weth_address)
+        """
 
     token_pairs = []
 
