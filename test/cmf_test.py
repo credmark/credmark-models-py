@@ -150,13 +150,13 @@ class CMFTest(TestCase):
         if self.start_n > CMFTest.test_n:
             logging.info(f'Skip ({CMFTest.test_n})')
             CMFTest.test_n += 1
-            return
+            return {}
 
         logging.info(
             f'Running case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}): expected {exit_code=} {cmd_line}')
 
         if self.skip_nonzero and exit_code != 0:
-            return
+            return {}
 
         succeed = False
         start = None

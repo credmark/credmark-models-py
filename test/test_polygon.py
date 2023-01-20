@@ -10,7 +10,6 @@ class TestPolygon(CMFTest):
         self.title('Polygon')
 
         last_block_output = self.run_model_with_output('chain.get-latest-block', {}, block_number=None, chain_id=137)
-
         last_block = last_block_output['output']['blockNumber']
 
         self.run_model('price.oracle-chainlink',
