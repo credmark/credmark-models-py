@@ -15,7 +15,7 @@ class TestBSC(CMFTest):
     def test(self):
         self.title('BSC')
 
-        last_block_output = self.run_model('chain.get-latest-block', {}, block_number=None, chain_id=56)
+        last_block_output = self.run_model_with_output('chain.get-latest-block', {}, block_number=None, chain_id=56)
 
         last_block = last_block_output['output']['blockNumber']
 
