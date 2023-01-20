@@ -56,7 +56,7 @@ class CMFTest(TestCase):
     def title(self, title):
         logging.info(f'\n{title}\n')
 
-    def run_model(self, model_slug, model_input, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
+    def run_model_with_output(self, model_slug, model_input, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
         if self.type == 'test':
             cmd = 'python test/test.py'
         else:
@@ -123,3 +123,64 @@ class CMFTest(TestCase):
             sys.exit()
 
         return stdout_result
+
+    def run_model(self, model_slug, model_input, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
+        if self.type == 'test':
+            cmd = 'python test/test.py'
+        else:
+            cmd = 'credmark-dev'
+        sys.argv = ([cmd] +
+                    self.pre_flag +
+                    ['run', model_slug, '-j'] +
+                    ['-i', json.dumps(model_input)] +
+                    self.post_flag +
+                    ['-b', f'{self.block_number if block_number is None else block_number}'] +
+                    ([] if chain_id == 1 else ['-c', str(chain_id)]))
+
+        cmd_line = ' '.join(sys.argv)
+
+        # no self.pre_flag
+        cmd_line_local = ' '.join(
+            [cmd] +
+            ['run', model_slug, '-j'] +
+            ['-i', f"'{json.dumps(model_input)}'"] +
+            self.post_flag +
+            [f'-b {self.block_number if block_number is None else block_number}'])
+
+        if self.start_n > CMFTest.test_n:
+            logging.info(f'Skip ({CMFTest.test_n})')
+            CMFTest.test_n += 1
+            return {}
+
+        logging.info(
+            f'Running case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}): expected {exit_code=} {cmd_line}')
+
+        if self.skip_nonzero and exit_code != 0:
+            return {}
+
+        succeed = False
+        start = None
+        duration = timedelta(seconds=0)
+        err_code = None
+        try:
+            start = datetime.now()
+            self.test_main.main()
+        except SystemExit as err:
+            logging.info(f'{err=}, {err.code=}, Expected {exit_code=}')
+            err_code = err.code
+        finally:
+            self.assertTrue(err_code == exit_code)
+            succeed = True
+
+            if start is not None:
+                duration = datetime.now() - start
+            logging.info(
+                (f'{"Finished" if succeed else "Failed"} '
+                    f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
+                    f'I ran: {cmd_line}\n'
+                    f'U run: {cmd_line_local}'))
+
+        CMFTest.test_n += 1
+
+        if self.fail_first and not succeed:
+            sys.exit()
