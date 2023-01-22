@@ -1,10 +1,12 @@
-# pylint:disable=unsupported-membership-test
+# pylint:disable=unsupported-membership-test, line-too-long, pointless-string-statement
+
+import pandas as pd
 
 from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts,
+from credmark.cmf.types import (Address, Account, Contract, Contracts,
                                 NativeToken, Network, Portfolio, Position,
                                 PriceWithQuote, Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
@@ -71,11 +73,121 @@ class AaveV2GetLendingPoolProviders(Model):
             all_providers.append(cc)
         return Contracts(contracts=all_providers)
 
+
+@Model.describe(slug="aave-v2.get-incentive-controller",
+                version="0.1",
+                display_name="Aave V2 - Get incentive controller",
+                description="Aave V2 - Get incentive controller",
+                category='protocol',
+                subcategory='aave-v2',
+                input=EmptyInput,
+                output=Contract)
+class AaveV2GetIncentiveController(Model):
+    """
+    Returns the incentive controller
+    """
+    LENDING_POOL_INCENTIVE_CONTROLLER = {
+        Network.Mainnet: '0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5',
+        Network.Polygon: '0x357D51124f59836DeD84c8a1730D72B749d8BC23'
+    }
+
+    def run(self, _) -> Contract:
+        addr = Address(self.LENDING_POOL_INCENTIVE_CONTROLLER[self.context.network])
+        return Contract(address=addr)
+
+
+@Model.describe(slug="aave-v2.get-lp-reward",
+                version="0.1",
+                display_name="Aave V2 - Get incentive controller",
+                description="Aave V2 - Get incentive controller",
+                category='protocol',
+                subcategory='aave-v2',
+                input=Account,
+                output=dict)
+class AaveV2GetLPIncentive(Model):
+    STAKED_AAVE = {
+        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
+    }
+
+    def run(self, input: Account) -> dict:
+        """
+        https://app.aave.com/governance/proposal/?proposalId=11
+        2,200 stkAAVE per day will be allocated pro-rata across supported markets
+        based on the dollar value of the borrowing activity in the underlying market
+        """
+
+        incentive_controller = self.context.run_model(
+            'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
+
+        # _accrued_rewards shall match with accured amount from event log
+        _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(input.address).call()
+
+        # data provider gets the reserve tokens and find asset for that reserve token
+        _data_provider = self.context.run_model(
+            'aave-v2.get-protocol-data-provider', input=EmptyInput(), local=True, return_type=Contract)
+        # data_provider.functions.getReserveTokensAddresses().call()
+        # incentive_controller.functions.getUserAssetData(input.address).call()
+
+        if not incentive_controller.proxy_for:
+            raise ModelDataError('Incentive Controller is a proxy contract')
+
+        df_accrued = pd.DataFrame(
+            incentive_controller.fetch_events(
+                incentive_controller.proxy_for.events.RewardsAccrued,
+                from_block=0,
+                to_block=self.context.block_number,
+                contract_address=incentive_controller.address, argument_filters={'user': input.address}))
+
+        df_claimed = pd.DataFrame(
+            incentive_controller.fetch_events(
+                incentive_controller.proxy_for.events.RewardsClaimed,
+                from_block=0,
+                to_block=self.context.block_number,
+                contract_address=incentive_controller.address, argument_filters={'claimer': input.address}))
+
+        staked_aave = Token(self.STAKED_AAVE[self.context.network])
+
+        return {
+            'accrued_scaled': int(df_accrued.amount.sum()) / 10 ** staked_aave.decimals if not df_accrued.empty else 0,
+            'claimed_scaled': int(df_claimed.amount.sum()) / 10 ** staked_aave.decimals if not df_claimed.empty else 0,
+            'staked_aave_address': staked_aave.address.checksum
+        }
+
+
+@Model.describe(slug="aave-v2.get-staking-reward",
+                version="0.1",
+                display_name="Aave V2 - Get staking controller",
+                description="Aave V2 - Get staking controller",
+                category='protocol',
+                subcategory='aave-v2',
+                input=Account,
+                output=dict)
+class AaveV2GetStakingIncentive(Model):
+    STAKED_AAVE = {
+        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
+    }
+
+    def run(self, input: Account) -> dict:
+        staked_aave = Token(self.STAKED_AAVE[self.context.network])
+        balance_of_scaled = staked_aave.balance_of_scaled(input.address.checksum)
+        total_reward = staked_aave.scaled(staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
+
+        # this does not include unclaimed rewards
+        _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(input.address.checksum).call()
+
+        return {
+            'staked_aave_address': staked_aave.address.checksum,
+            'balance_scaled': balance_of_scaled,
+            'reward_scaled': total_reward}
+
+
+"""
 # PriceOracle
 # getAssetPrice() Returns the price of the supported _asset in ETH wei units.
 # getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
 # getSourceOfAsset()
 # getFallbackOracle()
+"""
 
 
 @Model.describe(slug="aave-v2.get-lending-pool-provider",
