@@ -463,3 +463,50 @@ class AaveV2GetTokenAsset(Model):
         else:
             raise ModelRunError(f'Unable to obtain {totalStableDebt=} and {totalVariableDebt=} '
                                 f'for {aToken.address=}')
+
+
+@Model.describe(
+    slug="aave-v2.reserve-config",
+    version="0.1",
+    display_name="Aave V2 reserve configuration data",
+    description="Aave V2 metadata of the inputted reserve token",
+    category="protocol",
+    subcategory="aave-v2",
+    input=Token,
+    output=dict,
+)
+class AaveV2GetReserveConfigurationData(Model):
+    def run(self, input: Token) -> dict:
+        protocolDataProvider = self.context.run_model(
+            "aave-v2.get-protocol-data-provider",
+            input=EmptyInput(),
+            return_type=Contract,
+            local=True,
+        )
+        config_data = protocolDataProvider.functions\
+            .getReserveConfigurationData(input.address).call()
+
+        keys_need_to_be_decimal = ['ltv',
+                                   'liquidationThreshold',
+                                   'liquidationBonus',
+                                   'reserveFactor']
+
+        keys = ['decimals',
+                'ltv',
+                'liquidationThreshold',
+                'liquidationBonus',
+                'reserveFactor',
+                'usageAsCollateralEnabled',
+                'borrowingEnabled',
+                'stableBorrowRateEnabled',
+                'isActive',
+                'isFrozen']
+
+        reserve_config_data = {}
+        for key, value in zip(keys, config_data):
+            if key in keys_need_to_be_decimal:
+                reserve_config_data[key] = value/10000
+            else:
+                reserve_config_data[key] = value
+
+        return reserve_config_data

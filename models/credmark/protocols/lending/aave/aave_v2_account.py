@@ -123,3 +123,43 @@ class AaveV2GetAccountInfo(Model):
                 user_reserve_data[token_name] = token_info
 
         return user_reserve_data
+
+
+@Model.describe(
+    slug="aave-v2.account-summary",
+    version="0.1",
+    display_name="Aave V2 user account summary",
+    description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
+    category="protocol",
+    subcategory="aave-v2",
+    input=Account,
+    output=dict,
+)
+class AaveV2GetAccountSummary(Model):
+    def run(self, input: Account) -> dict:
+        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
+                                                   input=EmptyInput(),
+                                                   return_type=Contract,
+                                                   local=True)
+
+        user_account_data = {}
+        account_data = aave_lending_pool.functions.getUserAccountData(input.address).call()
+
+        keys_need_to_be_scaled = ['totalCollateralETH',
+                                  'totalDebtETH',
+                                  'availableBorrowsETH']
+        keys_need_to_be_decimal = ['currentLiquidationThreshold',
+                                   'ltv']
+
+        keys = keys_need_to_be_scaled + keys_need_to_be_decimal + ['healthFactor']
+
+        native_token = NativeToken()
+        for key, value in zip(keys, account_data):
+            if key in keys_need_to_be_scaled:
+                user_account_data[key] = native_token.scaled(value)
+            elif key in keys_need_to_be_decimal:
+                user_account_data[key] = value/10000
+            else:
+                user_account_data[key] = value
+
+        return user_account_data
