@@ -30,3 +30,15 @@ class TestAAVE(CMFTest):
 
         self.run_model('aave-v2.account-info',
                        {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+
+    def test_reserve(self):
+        self.run_model('aave-v2.reserve-config', {'symbol': 'AAVE'}, block_number = 16462000)
+        self.run_model('aave-v2.reserve-config', {'symbol': 'CRV'}, block_number = 16462000)
+        self.run_model('aave-v2.reserve-config', {'symbol': 'LINK'}, block_number = 16462000)
+
+    def test_acccount(self):
+        self.run_model('aave-v2.account-info',
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+
+        self.run_model('aave-v2.account-summary',
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
