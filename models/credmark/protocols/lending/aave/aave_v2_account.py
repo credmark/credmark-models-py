@@ -171,8 +171,9 @@ class AccountAAVEHistorical(Account):
 @Model.describe(
     slug="aave-v2.account-summary-historical",
     version="0.1",
-    display_name="Aave V2 user account summary",
-    description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
+    display_name="Aave V2 user account summary historical",
+    description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
+                 "Assume there are \"efficient liquiditor\" to act upon each breach of health factor."),
     category="protocol",
     subcategory="aave-v2",
     input=AccountAAVEHistorical,
@@ -199,7 +200,7 @@ class AaveV2GetAccountSummaryHistorical(Model):
         if lending_pool.proxy_for is None:
             raise ModelDataError('lending pool shall be a proxy contract')
 
-        # Fetch liquidationCall events for this user
+        # 2. Fetch liquidationCall events for this user
         df = pd.DataFrame(
             lending_pool.fetch_events(
                 lending_pool.proxy_for.events.LiquidationCall,
