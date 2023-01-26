@@ -245,9 +245,9 @@ class AaveV2GetAccountSummaryHistorical(Model):
 
                 # Event block series: 12567(10)
                 # Difference:         13113(*)  (* to be replace with 3)
-                # To keep:             2  7
+                # To keep:             2  7     (in blocks_to_run_simple_last)
                 # Shift difference:   *13113    (* to be replace with 3)
-                # To keep             1 5  10   (to be subtracted by 1)
+                # To keep             1 5  10   (in blocks_to_run_simple_prev, to be subtracted by 1)
 
                 blocks_to_run = df.blockNumber.unique()
                 blocks_to_run_diff = blocks_to_run[1:] - blocks_to_run[:-1]
