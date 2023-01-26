@@ -173,7 +173,7 @@ class AccountAAVEHistorical(Account):
     version="0.1",
     display_name="Aave V2 user account summary historical",
     description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
-                 "Assume there are \"efficient liquiditor\" to act upon each breach of health factor."),
+                 "Assume there are \"efficient liquiditors\" to act upon each breach of health factor."),
     category="protocol",
     subcategory="aave-v2",
     input=AccountAAVEHistorical,
@@ -181,6 +181,27 @@ class AccountAAVEHistorical(Account):
 )
 class AaveV2GetAccountSummaryHistorical(Model):
     def run(self, input: AccountAAVEHistorical) -> dict:
+        """
+        # Test in console
+
+        goto_block(16127000)
+
+        result = context.run_model('aave-v2.account-summary-historical', {"address":"0x57E04786E231Af3343562C062E0d058F25daCE9E", "window": "90 days", "interval": "1 days"})
+        df = (pd.DataFrame(
+                data = [(r['blockNumber'],
+                  r['result']['healthFactor'],
+                  r['result']['totalDebtETH'],
+                  r['result']['totalCollateralETH'],
+                  r['result']['currentLiquidationThreshold']) for r in result['result']],
+                columns = ['blockNumber', 'healthFactor', 'totalDebtETH', 'totalCollateralETH', 'currentLiquidationThreshold'])
+                .query('totalDebtETH > 0'))
+
+        df.plot('blockNumber', 'healthFactor')
+        df.plot('blockNumber', ['totalDebtETH', 'totalCollateralETH'])
+        plt.show()
+
+        """
+
         # 1. Fetch historical user account data
         result_historical = self.context.run_model('historical.run-model',
                                                    dict(
@@ -192,43 +213,70 @@ class AaveV2GetAccountSummaryHistorical(Model):
 
         result_historical_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_historical]
 
+        historical_blocks = set(p.blockNumber for p in result_historical)
+
         first_block = result_historical[0].blockNumber
         last_block = result_historical[-1].blockNumber
 
-        lending_pool = Contract(**self.context.run_model('aave-v2.get-lending-pool', local=True))
-
-        if lending_pool.proxy_for is None:
-            raise ModelDataError('lending pool shall be a proxy contract')
-
         # 2. Fetch liquidationCall events for this user
-        df = pd.DataFrame(
-            lending_pool.fetch_events(
-                lending_pool.proxy_for.events.LiquidationCall,
-                argument_filters={'user': input.address.checksum},
-                from_block=first_block, to_block=last_block,
-                contract_address=lending_pool.address,
-            ))  # type: ignore
+        result_blocks_format = []
+        if last_block > first_block:
+            lending_pool = Contract(**self.context.run_model('aave-v2.get-lending-pool', local=True))
 
-        if not df.empty:
-            # skip continuous blocks
-            blocks_to_run = df.blockNumber.unique()
-            blocks_to_run_diff = blocks_to_run[1:] - blocks_to_run[:-1]
-            blocks_to_run_sel = np.insert(blocks_to_run_diff, blocks_to_run_diff.size, 2)
-            blocks_to_run_simple = blocks_to_run[np.where(blocks_to_run_sel != 1)]
+            if lending_pool.proxy_for is None:
+                raise ModelDataError('lending pool shall be a proxy contract')
 
-            result_blocks = self.context.run_model('compose.map-blocks',
-                                                   {"modelSlug": "aave-v2.account-summary",
-                                                    "modelInput": {'address': input.address},
-                                                    "blockNumbers": blocks_to_run_simple.tolist()},
-                                                   return_type=MapBlocksOutput[dict])
+            df = pd.DataFrame(
+                lending_pool.fetch_events(
+                    lending_pool.proxy_for.events.LiquidationCall,
+                    argument_filters={'user': input.address.checksum},
+                    from_block=first_block, to_block=last_block,
+                    contract_address=lending_pool.address,
+                ))  # type: ignore
 
-            result_blocks_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_blocks]
-        else:
-            result_blocks_format = []
+            if not df.empty:
+                # Skip continuous blocks
+                # Keep those blocks with > 2 differences to the next one and before the liquidation
+
+                # Use * to label block with liquidation call event. - for without.
+                # Block number: 12345678
+                # Label:        ---***--
+                # To be kept:   --+--+--
+
+                # Event block series: 12567(10)
+                # Difference:         13113(*)  (* to be replace with 3)
+                # To keep:             2  7
+                # Shift difference:   *13113    (* to be replace with 3)
+                # To keep             1 5  10   (to be subtracted by 1)
+
+                blocks_to_run = df.blockNumber.unique()
+                blocks_to_run_diff = blocks_to_run[1:] - blocks_to_run[:-1]
+
+                blocks_to_run_last = np.insert(blocks_to_run_diff, blocks_to_run_diff.size, 3)
+                blocks_to_run_simple_last = set(blocks_to_run[np.where(blocks_to_run_last > 2)].tolist())
+
+                blocks_to_run_prev = np.insert(blocks_to_run_diff, 0, 3)
+                blocks_to_run_simple_prev = set((blocks_to_run[np.where(blocks_to_run_prev > 2)] - 1).tolist())
+
+                blocks_to_run_simple = blocks_to_run_simple_last | blocks_to_run_simple_prev
+
+                # get block not in historical
+                blocks_to_run_simple = blocks_to_run_simple - historical_blocks
+
+                if len(blocks_to_run_simple) > 0:
+                    result_blocks = self.context.run_model(
+                        'compose.map-blocks',
+                        {"modelSlug": "aave-v2.account-summary",
+                         "modelInput": {'address': input.address},
+                         "blockNumbers": blocks_to_run_simple},
+                        return_type=MapBlocksOutput[dict])
+
+                    result_blocks_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_blocks]
 
         result_comb = sorted(result_historical_format + result_blocks_format,
                              key=lambda x: x['blockNumber'])  # type: ignore
 
+        # The combined result is sorted by the block number
         # result_blocks = [p.blockNumber for p in result_comb])
         # assert sorted(result_blocks) == result_blocks
         return {'result': result_comb}
