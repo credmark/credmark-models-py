@@ -179,13 +179,14 @@ class TokenTransferTransactionTag(Model):
 
     def run(self, input: TransactionTagInput) -> dict:
         input_block_number = input.block_number
+
         if input_block_number != int(self.context.block_number):
-            return self.context.run_model(self.slug, input=input, block_number=input.block_number)
+            return self.context.run_model(self.slug, input=input, block_number=input_block_number)
 
         with self.context.ledger.TokenTransfer as q:
             df_txn = q.select(columns=q.columns,
                               where=q.TRANSACTION_HASH.eq(input.hash).and_(
-                                  q.BLOCK_NUMBER.eq(input.block_number))).to_dataframe()
+                                  q.BLOCK_NUMBER.eq(input_block_number))).to_dataframe()
 
         return self.context.run_model('token.txn-classify', input=df_txn.to_dict())
 

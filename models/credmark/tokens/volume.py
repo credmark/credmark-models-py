@@ -143,14 +143,14 @@ class TokenVolumeWindowInput(DTO):
 class TokenVolumeWindow(Model):
     def run(self, input: TokenVolumeWindowInput) -> TokenVolumeOutput:
         window_in_seconds = self.context.historical.to_seconds(input.window)
-        old_block_timestamp = self.context.block_number.timestamp - window_in_seconds
-        old_block = BlockNumber.from_timestamp(old_block_timestamp)
+        past_block_timestamp = self.context.block_number.timestamp - window_in_seconds
+        past_block_number = BlockNumber.from_timestamp(past_block_timestamp)
 
         return self.context.run_model(
             'token.overall-volume-block',
             input=TokenVolumeBlockInput(
                 address=input.address,
-                block_number=old_block,
+                block_number=past_block_number,
                 include_price=input.include_price),
             return_type=TokenVolumeOutput)
 
