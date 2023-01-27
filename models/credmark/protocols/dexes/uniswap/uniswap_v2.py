@@ -240,10 +240,10 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
 
     # LP position from recent deposit/withdraw (no contribution to fee)
     if transaction_value != 0:
-        lp_in_out_amount0 = lp_in_out.tokens[0].amount * transaction_value / 1e18
-        lp_in_out_amount1 = lp_in_out.tokens[1].amount * transaction_value / 1e18
+        in_out_amount0 = lp_in_out.tokens[0].amount * transaction_value / 1e18
+        in_out_amount1 = lp_in_out.tokens[1].amount * transaction_value / 1e18
     else:
-        lp_in_out_amount0, lp_in_out_amount1 = 0.0, 0.0
+        in_out_amount0, in_out_amount1 = 0.0, 0.0
 
     # fee = With fee - Without fee - Just-in
     # 1. "With fee" uses end-of-block lp token holding to calculate - up-to-date
@@ -253,12 +253,12 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
     return dict(
         token0_lp=lp_pos_token0,
         token1_lp=lp_pos_token1,
-        token0=try_zero(lp_in_out_amount0),
-        token1=try_zero(lp_in_out_amount1),
+        in_out_amount0=try_zero(in_out_amount0),
+        in_out_amount1=try_zero(in_out_amount1),
         lp_il0=lp_il0,
         lp_il1=lp_il1,
-        token0_fee=try_zero(lp_pos_token0 - lp_il0 - lp_in_out_amount0),
-        token1_fee=try_zero(lp_pos_token1 - lp_il1 - lp_in_out_amount1),
+        token0_fee=try_zero(lp_pos_token0 - lp_il0 - in_out_amount0),
+        token1_fee=try_zero(lp_pos_token1 - lp_il1 - in_out_amount1),
     )
 
 
@@ -289,7 +289,7 @@ def uniswap_v2_fee_sample_data():
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.8',
+                version='0.9',
                 display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
@@ -312,7 +312,8 @@ class UniswapV2LPFeeHistory(Model):
         token1 = token1.as_erc20()
 
         with self.context.ledger.TokenBalance as q:
-            q_cols = [q.BLOCK_NUMBER,
+            q_cols = [q.TRANSACTION_HASH,
+                      q.BLOCK_NUMBER,
                       q.LOG_INDEX,
                       q.FROM_ADDRESS,
                       q.TO_ADDRESS,
@@ -358,15 +359,22 @@ class UniswapV2LPFeeHistory(Model):
 
         def _use_events():
             minted = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
-                'to': lp.checksum}, from_block=0, contract_address=pool.address.checksum))
+                'to': lp.checksum}, from_block=0, to_block=self.context.block_number,
+                contract_address=pool.address.checksum))
             burnt = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
-                'from': lp.checksum}, from_block=0, contract_address=pool.address.checksum))
+                'from': lp.checksum}, from_block=0, to_block=self.context.block_number,
+                contract_address=pool.address.checksum))
+            df_empty = pd.DataFrame(data=[], columns=['transactionHash',
+                                    'blockNumber', 'logIndex', 'from', 'to', 'value'])
             df_combined = (pd.concat(
-                [minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
-                 (burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: -x.value))
+                [minted.loc[:, ['transactionHash', 'blockNumber', 'logIndex', 'from', 'to', 'value']] if not minted.empty else df_empty,
+                 (burnt.loc[:, ['transactionHash', 'blockNumber', 'logIndex', 'from', 'to', 'value']].assign(
+                     value=lambda x: -x.value) if not burnt.empty else df_empty)
                  ])
+                .assign(transactionHash=lambda r: r.transactionHash.apply(lambda x: x.hex()))
                 .sort_values(['blockNumber', 'logIndex'])
                 .rename(columns={
+                    'transactionHash': 'transaction_hash',
                     'blockNumber': 'block_number',
                     'logIndex': 'log_index',
                     'from': 'from_address',
@@ -378,10 +386,12 @@ class UniswapV2LPFeeHistory(Model):
 
         _df = _use_events()
 
-        new_data = [(int(self.context.block_number), -1, input.lp, input.lp, 0)]
+        if _df.empty:
+            return Records.from_dataframe(_df)
 
-        if _df.empty or (_df["block_number"].tail(1) != int(self.context.block_number)).all():
-            _df = pd.concat([_df, pd.DataFrame(new_data, columns=q_cols)]).reset_index(drop=True)
+        if (_df["block_number"].tail(1) != int(self.context.block_number)).all():
+            new_row = [('', int(self.context.block_number), -1, input.lp, input.lp, 0)]
+            _df = pd.concat([_df, pd.DataFrame(new_row, columns=q_cols)]).reset_index(drop=True)
 
         lp_prev_token0 = 0
         lp_prev_token1 = 0
@@ -400,7 +410,7 @@ class UniswapV2LPFeeHistory(Model):
             lp_prev_token1 = v2_fee['token1_lp']
 
             for it in ['token0_lp', 'token1_lp',
-                       'token0', 'token1',
+                       'in_out_amount0', 'in_out_amount1',
                        'lp_il0', 'lp_il1',
                        'token0_fee', 'token1_fee']:
                 _df.loc[row_n, it] = try_zero(v2_fee[it])  # type: ignore
@@ -411,7 +421,7 @@ class UniswapV2LPFeeHistory(Model):
 @Model.describe(slug='uniswap-v2.lp-fee',
                 version='0.6',
                 display_name='Uniswap v2 (Sushiswap) LP Position (split for fee) for account',
-                description='Returns position (split for fee) for account',
+                description='Returns position (split for fee) for account. The fee is accumulated from last position change.',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=V2LPInput,

@@ -73,16 +73,30 @@ class TestUniswap(CMFTest):
         self.run_model('uniswap-v2.lp-pos', {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp_balance": 10000})
 
         self.run_model('uniswap-v2.lp-fee-history',
-                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"}, block_number=15936945)
+                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                           "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"},
+                       block_number=15_936_945)
 
         self.run_model('uniswap-v2.lp-fee-history',
-                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15936945)
+                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                           "lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"},
+                       block_number=15_936_945)
 
         self.run_model('uniswap-v2.lp-fee',
-                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"}, block_number=15933378)
+                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                           "lp": "0x76E2E2D4d655b83545D4c50D9521F5bc63bC5329"},
+                       block_number=15_933_378)
 
         self.run_model('uniswap-v2.lp-fee',
-                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15936945)
+                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                           "lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"},
+                       block_number=15_936_945)
+
+        # 5 deposits and 1 withdraw: 15977444 - 16094145
+        self.run_model('uniswap-v2.lp-fee',
+                       {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                           "lp": "0x18196A32F99bD5feeAfd6bD6b55a63A0EeEf23a6"},
+                       block_number=16_495_182)
 
         # 19      15933378 332  0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329  0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc - 73345863221727   43423.909024   35.432141 - 5366.999992 - 4.379253   48697.181460   39.734917      93.727556    0.076478
         # 20      15936945 - 1  0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329  0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329                  0   42487.140465   36.303070      0.000000    0.000000   42434.611431   36.258187      52.529034    0.044883
