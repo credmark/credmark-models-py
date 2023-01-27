@@ -168,10 +168,9 @@ class CMFTest(TestCase):
         except SystemExit as err:
             logging.info(f'{err=}, {err.code=}, Expected {exit_code=}')
             err_code = err.code
-        finally:
             self.assertTrue(err_code == exit_code)
             succeed = True
-
+        finally:
             if start is not None:
                 duration = datetime.now() - start
             logging.info(
@@ -179,6 +178,7 @@ class CMFTest(TestCase):
                     f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
                     f'I ran: {cmd_line}\n'
                     f'U run: {cmd_line_local}'))
+
 
         CMFTest.test_n += 1
 
