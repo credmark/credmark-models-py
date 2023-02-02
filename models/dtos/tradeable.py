@@ -13,7 +13,7 @@ class MarketTarget(DTO):
     """
     Used by PortfolioManage to build the market
     """
-    key: str  # ensure unique in market oject
+    key: str  # ensure unique in market object
     artifact: Any
     block_number: BlockNumber
 
@@ -90,8 +90,8 @@ class TokenTradeable(Tradeable):
         TokenTrade's value does not change with the as_of to the Tradeable's own as_of
         Other type of trade could have time value.
         """
-        curent_price = mkt_adj(mkt[(block_number, tag, self.key)]['extracted'])
-        pnl = curent_price - self._init_price
+        current_price = mkt_adj(mkt[(block_number, tag, self.key)]['extracted'])
+        pnl = current_price - self._init_price
         pnl *= self._amount
         return pnl
 

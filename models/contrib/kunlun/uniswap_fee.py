@@ -155,7 +155,7 @@ class UniswapFee(Model):
                                     df.from_address.to_list()[1], df.to_address.to_list()[0],
                                     t0_amount, t1_amount, t1_amount / t0_amount))
                 else:
-                    raise ValueError('Cannot match tradeas\' from and to')
+                    raise ValueError('Cannot match trades\' from and to')
 
         df_tx_swap_one_line = pd.DataFrame(full_tx,
                                            columns=['transaction_hash',

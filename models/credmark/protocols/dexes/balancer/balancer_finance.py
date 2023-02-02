@@ -22,8 +22,8 @@ class BalancerPoolPriceInfo(DTO):
         token0: Token
         token1: Token
         ratio: float
-        tick_liqudity0: float
-        tick_liqudity1: float
+        tick_liquidity0: float
+        tick_liquidity1: float
     tokens: Tokens
     balances: List[float]
     weights: List[int]
@@ -51,15 +51,15 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
     c = invariant*invariant/ampTimesTotal
     c = divUp(mulUp(c, balances[tokenIndex]), P_D)
     b = bal_sum + divDown(invariant, ampTimesTotal)
-    prevTokenbalance = 0
+    prevTokenBalance = 0
     tokenBalance = divUp((invariant*invariant+c), (invariant+b))
     for i in range(255):
-        prevTokenbalance = tokenBalance
+        prevTokenBalance = tokenBalance
         tokenBalance = divUp((mulUp(tokenBalance, tokenBalance) + c), ((tokenBalance*Decimal(2))+b-invariant))
-        if tokenBalance > prevTokenbalance:
-            if tokenBalance-prevTokenbalance <= 1/1e18:
+        if tokenBalance > prevTokenBalance:
+            if tokenBalance-prevTokenBalance <= 1/1e18:
                 break
-        elif prevTokenbalance-tokenBalance <= 1/1e18:
+        elif prevTokenBalance-tokenBalance <= 1/1e18:
             break
     return tokenBalance
 
@@ -111,7 +111,7 @@ class GetBalancerAllPools(Model):
 
 
 @Model.describe(slug='balancer-fi.get-all-pools-price-info',
-                version='0.1',
+                version='0.2',
                 display_name='Balancer Finance - Get all pools',
                 description='Get all pools',
                 category='protocol',
@@ -134,7 +134,7 @@ class GetBalancerAllPoolInfo(Model):
 
 
 @Model.describe(slug='balancer-fi.get-pool-price-info',
-                version='0.0',
+                version='0.1',
                 display_name='Balancer Finance - Get pool price info',
                 description='Get price information for a Balancer pool',
                 category='protocol',
@@ -188,8 +188,8 @@ class GetBalancerPoolPriceInfo(Model):
                 token0=tokens[0],
                 token1=tokens[1],
                 ratio=ratios[0] / ratios[1],
-                tick_liqudity0=liquidity0,
-                tick_liqudity1=liquidity1)
+                tick_liquidity0=liquidity0,
+                tick_liquidity1=liquidity1)
             pool_info_dto = BalancerPoolPriceInfo(
                 tokens=Tokens(tokens=tokens),
                 balances=pool_info.balances,
@@ -217,8 +217,8 @@ class GetBalancerPoolPriceInfo(Model):
                         token0=token0,
                         token1=token1,
                         ratio=ratio01,
-                        tick_liqudity0=liquidity0,
-                        tick_liqudity1=liquidity1)
+                        tick_liquidity0=liquidity0,
+                        tick_liquidity1=liquidity1)
                     ratios.append(ratio)
 
         pool_info_dto = BalancerPoolPriceInfo(

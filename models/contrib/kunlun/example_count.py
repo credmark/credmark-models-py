@@ -17,12 +17,12 @@ class ContribModel(Model):
     def run(self, input: ApeCountInput) -> dict:
         if input.block_number_count > self.context.block_number:
             raise ModelRunError(f'input block number {input.block_number_count} is larger than '
-                                f'the current block numer ${self.context.block_number}')
+                                f'the current block number ${self.context.block_number}')
 
         with self.context.ledger.Transaction as q:
             count = q.select(
-                    aggregates=[(q.HASH.count_distinct_(), 'count_tx')],
-                    where=q.BLOCK_NUMBER.gt(self.context.block_number - input.block_number_count))
+                aggregates=[(q.HASH.count_distinct_(), 'count_tx')],
+                where=q.BLOCK_NUMBER.gt(self.context.block_number - input.block_number_count))
 
         with self.context.ledger.Transaction as q:
             df_txs = (q.select(

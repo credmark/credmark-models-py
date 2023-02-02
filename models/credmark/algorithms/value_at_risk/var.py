@@ -109,7 +109,7 @@ class VaRPortfolio(Model):
 
         assets_to_quote_list = list(assets_to_quote)
 
-        # TODO: kept two versions to see how r8unner's performance can avoid timeout
+        # TODO: kept two versions to see how runner's performance can avoid timeout
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',
@@ -182,7 +182,7 @@ class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices
     to calculate VaR(s) according to the VaR parameters.
-    The prices in priceLists is asssumed be sorted in descending order in time.
+    The prices in priceLists is assumed be sorted in descending order in time.
     """
 
     value_list = []
@@ -193,7 +193,7 @@ class VaREngineHistorical(Model):
         priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
 
         if len(priceLists) != 1:
-            raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
+            raise ModelRunError(f'There is no or more than 1 price list for {token.address=}')
 
         np_priceList = np.array(priceLists[0].prices)
 
@@ -261,7 +261,7 @@ class VaREngineHistorical(Model):
                 linreg_result = sps.linregress(all_ppl_vec, self.all_ppl_arr[:, i])
                 weights[i] = linreg_result.slope  # type: ignore
             except ValueError as err:
-                if 'Cannot calcualte a linear regression if all x values are identical' in str(err):
+                if 'Cannot calculate a linear regression if all x values are identical' in str(err):
                     weights[i] = 0
         weights /= weights.sum()
 

@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, invalid-name
+# pylint: disable=locally-disabled, unused-import, invalid-name, line-too-long
 
 import math
 
@@ -257,14 +257,14 @@ class V3IDInput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.id',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v3 LP Position and Fee for NFT ID',
                 description='Returns position and Fee for NFT ID',
                 category='protocol',
                 subcategory='uniswap-v3',
                 input=V3IDInput,
                 output=V3LPPosition)
-class UniswapV2LPID(Model):
+class UniswapV2LPId(Model):
     # pylint:disable=line-too-long
     def run(self, input: V3IDInput) -> V3LPPosition:
         nft_manager = Contract(V3_POS_NFT[self.context.network])
@@ -338,30 +338,30 @@ class UniswapV2LPID(Model):
         feeGrowthInside1LastX128 = position.feeGrowthInside1LastX128
 
         if position.tickUpper >= current_tick >= position.tickLower:
-            # In whitepaper, uncollected fees = liquidity( feeGrowthGlobal - feeGrowthOutsidelowerTick - feeGrowthOutsideUpperTick - feeGrowthInside)
+            # In whitepaper, uncollected fees = liquidity( feeGrowthGlobal - feeGrowthOutsideLowerTick - feeGrowthOutsideUpperTick - feeGrowthInside)
             # https://ethereum.stackexchange.com/questions/101955/trying-to-make-sense-of-uniswap-v3-fees-feegrowthinside0lastx128-feegrowthglob
-            feetoken0 = (feeGrowthGlobal0X128 - feeGrowthOutside0X128_lower -
-                         feeGrowthOutside0X128_upper - feeGrowthInside0LastX128)
-            feetoken1 = (feeGrowthGlobal1X128 - feeGrowthOutside1X128_lower -
-                         feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
+            fee_token0 = (feeGrowthGlobal0X128 - feeGrowthOutside0X128_lower -
+                          feeGrowthOutside0X128_upper - feeGrowthInside0LastX128)
+            fee_token1 = (feeGrowthGlobal1X128 - feeGrowthOutside1X128_lower -
+                          feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
         elif current_tick < position.tickLower:
-            feetoken0 = (feeGrowthOutside0X128_lower - feeGrowthOutside0X128_upper - feeGrowthInside0LastX128)
-            feetoken1 = (feeGrowthOutside1X128_lower - feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
+            fee_token0 = (feeGrowthOutside0X128_lower - feeGrowthOutside0X128_upper - feeGrowthInside0LastX128)
+            fee_token1 = (feeGrowthOutside1X128_lower - feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
         elif current_tick > position.tickUpper:
-            feetoken0 = (feeGrowthOutside0X128_upper - feeGrowthOutside0X128_lower - feeGrowthInside0LastX128)
-            feetoken1 = (feeGrowthOutside1X128_upper - feeGrowthOutside1X128_lower - feeGrowthInside1LastX128)
+            fee_token0 = (feeGrowthOutside0X128_upper - feeGrowthOutside0X128_lower - feeGrowthInside0LastX128)
+            fee_token1 = (feeGrowthOutside1X128_upper - feeGrowthOutside1X128_lower - feeGrowthInside1LastX128)
         else:
             raise ModelRunError('{position.tickUpper=} ?= {current_tick=} ?= {position.tickLower=}')
 
-        feetoken0 *= 1/(2**128) * position.liquidity
-        feetoken1 *= 1/(2**128) * position.liquidity
+        fee_token0 *= 1/(2**128) * position.liquidity
+        fee_token1 *= 1/(2**128) * position.liquidity
 
-        feetoken0 = token0.scaled(feetoken0)
-        feetoken1 = token1.scaled(feetoken1)
+        fee_token0 = token0.scaled(fee_token0)
+        fee_token1 = token1.scaled(fee_token1)
 
         return V3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
-                            tokens=[PositionWithFee(amount=a0, fee=feetoken0, asset=token0),
-                                    PositionWithFee(amount=a1, fee=feetoken1, asset=token1)],
+                            tokens=[PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
+                                    PositionWithFee(amount=a1, fee=fee_token1, asset=token1)],
                             in_range=in_range_str)
 
 
@@ -427,7 +427,7 @@ class UniswapV3GetPoolInfo(Model):
         token0_balance = token0.balance_of_scaled(input.address.checksum)
         token1_balance = token1.balance_of_scaled(input.address.checksum)
 
-        # 1. Liquidity for virutal amount of x and y
+        # 1. Liquidity for virtual amount of x and y
         liquidity = pool.functions.liquidity().call()
 
         # 2. To calculate liquidity within the range of tick
@@ -444,7 +444,7 @@ class UniswapV3GetPoolInfo(Model):
         # tick = log(p_current) / log(1.0001)
         p_current = tick_to_price(current_tick)
 
-        # lets say currentTick is 5 , then Liquiditys are like this:
+        # Let's say currentTick is 5 , then liquidity profile looks like this:
         #             2  -> Liquidity = Liquidity at tick3  - LiquidityNet at tick2
         #             3  -> Liquidity = Liquidity at tick4  - LiquidityNet at tick3
         #             4  -> Liquidity = Liquidity at tick5  - LiquidityNet at tick4
@@ -523,7 +523,7 @@ class UniswapV3GetPoolInfo(Model):
         one_tick_liquidity0_ori = token0.scaled(tick1_amount0)
         one_tick_liquidity1_ori = token1.scaled(tick1_amount1)
 
-        # We match the two tokens' liquidity for the minimal available, a fix for the iliquid pools.
+        # We match the two tokens' liquidity for the minimal available, a fix for the illiquid pools.
         tick1_amount0_adj = min(tick1_amount0, tick1_amount1 / sp / sp)
         tick1_amount1_adj = min(tick1_amount0 * sp * sp, tick1_amount1)
 
@@ -626,7 +626,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         weth_address = Token('WETH').address
 
         # 1. If both are stablecoins (non-WETH): use the relative ratio between each other.
-        #    So we are able to support depegged SB (like USDT in May 13th 2022)
+        #    So we are able to support de-pegged stablecoin (like USDT in May 13th 2022)
         # 2. If SB-WETH: use SB to price WETH
         # 3. If WETH-X: use WETH to price
         # 4. If SB-X: use SB to price
@@ -662,7 +662,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                     return_type=Price,
                     local=True).price
                 if ref_price is None:
-                    raise ModelRunError('Can not retriev price for WETH')
+                    raise ModelRunError('Can not retrieve price for WETH')
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
                                         price0=ratio_price0,
@@ -726,8 +726,8 @@ class UniswapV3GetTokenPoolInfo(Model):
 
         def _use_for(local):
             infos = []
-            for minput in model_inputs:
-                pi = self.context.run_model(model_slug, minput, return_type=PoolPriceInfo,
+            for m_input in model_inputs:
+                pi = self.context.run_model(model_slug, m_input, return_type=PoolPriceInfo,
                                             local=local)
                 infos.append(pi)
             return infos

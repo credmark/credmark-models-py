@@ -628,7 +628,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.12',
+                version='1.13',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -675,9 +675,9 @@ class UniswapV2GetTokenPriceInfo(Model):
 
         def _use_for(local):
             infos = []
-            for minput in model_inputs:
+            for m_input in model_inputs:
                 pi = self.context.run_model(model_slug,
-                                            minput,
+                                            m_input,
                                             return_type=Maybe[PoolPriceInfo],
                                             local=local)
                 if pi.is_just():

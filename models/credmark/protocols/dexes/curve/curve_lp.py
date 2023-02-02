@@ -17,8 +17,8 @@ class CurveFinanceLPDist(Model):
                 columns=[q.FROM_ADDRESS],
                 where=q.TO_ADDRESS.eq(input.address)).to_dataframe()['from_address']
 
-        gauageAddress = input.address
-        _gauge = Contract(address=gauageAddress)
+        gaugeAddress = input.address
+        _gauge = Contract(address=gaugeAddress)
 
         dist = []
 

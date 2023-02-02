@@ -192,7 +192,7 @@ class AbracadabraPortfolio(IterableListGenericDTO[AbracadabraVaultPortfolio]):
 
 # Fetching Collateral of each market of abracadabra on ethereum chain
 @Model.describe(slug="contrib.abracadabra-vault-portfolio",
-                version="1.0",
+                version="1.1",
                 display_name="Vault portfolio for abracadabra",
                 description="Get the vault portfolio for abracadabra",
                 category='protocol',
@@ -204,10 +204,10 @@ class AbracadabraGetVaultPortfolio(Model):
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
         # Values of ethereum_active_markets
-        ethereum_active_markets_vaules = list(ethereum_active_markets.values())
-        ethereum_active_markets_vaules = [value.lower() for value in ethereum_active_markets_vaules]
+        ethereum_active_markets_values = list(ethereum_active_markets.values())
+        ethereum_active_markets_values = [value.lower() for value in ethereum_active_markets_values]
         # Name of vault
-        position = ethereum_active_markets_vaules.index(str(input.address).lower())
+        position = ethereum_active_markets_values.index(str(input.address).lower())
         vault_name = ethereum_active_markets_keys[position]
 
         # Contract address of market
@@ -220,7 +220,7 @@ class AbracadabraGetVaultPortfolio(Model):
         borrow_fee = try_or(
             lambda: float(market_contract.functions.BORROW_OPENING_FEE().call()) / pow(10, 3)
         )
-        # Maximum Colletaral Ratio
+        # Maximum Collateral Ratio
         maximum_collateral_ratio = try_or(
             lambda: float(market_contract.functions.COLLATERIZATION_RATE().call()) / pow(10, 3)
         )

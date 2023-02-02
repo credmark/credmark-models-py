@@ -87,7 +87,7 @@ class CurveFinanceGetRegistry(Model):
 @Model.describe(slug="curve-fi.get-gauge-controller",
                 version='1.2',
                 display_name="Curve Finance - Get Gauge Controller",
-                description="Query the registry for the guage controller",
+                description="Query the registry for the gauge controller",
                 category='protocol',
                 subcategory='curve',
                 input=EmptyInput,
@@ -273,7 +273,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 @Model.describe(slug="curve-fi.pool-info",
                 version="1.26",
-                display_name="Curve Finance Pool Liqudity",
+                display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
                 subcategory='curve',
@@ -390,12 +390,12 @@ class CurveFinancePoolTVL(Model):
 
 @Model.describe(slug="curve-fi.all-pools-info",
                 version="2.1",
-                display_name="Curve Finance Pool Liqudity - All",
+                display_name="Curve Finance Pool Liquidity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
                 subcategory='curve',
                 output=Some[CurveFiPoolInfo])
-class CurveFinanceTotalTokenLiqudity(Model):
+class CurveFinanceTotalTokenLiquidity(Model):
     def run(self, _) -> Some[CurveFiPoolInfo]:
         pool_contracts = self.context.run_model('curve-fi.all-pools',
                                                 input=EmptyInput(),
@@ -537,8 +537,8 @@ class CurveFinanceGaugeRewardsCRV(Model):
         return {"yields": yields}
 
 
-# gauageAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
-# _gauge = Contract(address=gauageAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+# gaugeAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
+# _gauge = Contract(address=gaugeAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
 
 
 class CurveGaugeInput(DTO):

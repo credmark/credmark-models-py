@@ -535,8 +535,8 @@ class AccountPortfolio(Model):
 
 @Model.describe(
     slug="account.portfolio-aggregate",
-    version="0.2",
-    display_name="(PEPRECATED) use accounts.portfolio",
+    version="0.3",
+    display_name="(DEPRECATED) use accounts.portfolio",
     description="All of the token holdings for an account",
     developer="Credmark",
     category='account',

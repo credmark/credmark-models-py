@@ -11,7 +11,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import \
 @Model.describe(slug="finance.var-compound",
                 version="1.4",
                 display_name="Compound V2 VaR",
-                description="Calcualte the VaR of Compound contract of its net asset",
+                description="Calculate the VaR of Compound contract of its net asset",
                 category='protocol',
                 subcategory='compound',
                 tags=['var'],
