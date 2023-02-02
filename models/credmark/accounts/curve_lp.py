@@ -35,7 +35,7 @@ class GetCurveLPPositionAccounts(Model):
 
 
 @Model.describe(slug="curve.lp",
-                version="1.5",
+                version="1.6",
                 display_name="Account position in Curve LP",
                 description="All the positions in Curve LP",
                 developer="Credmark",
@@ -92,13 +92,15 @@ class GetCurveLPPosition(Model):
                     withdraw_one[tok_n] = 1
                     withdraw_token_amount[tok_n] = pool_contract.functions.calc_token_amount(
                         withdraw_one, False).call()
-                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens.tokens[tok_n].scaled(1)
+                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens[tok_n].scaled(1)
 
                 for tok_n, tok in enumerate(pool_tokens.tokens):
                     ratio = np_balances.dot(withdraw_token_amount) / np_balances[tok_n]
                     amount = lp_token_amount / ratio
-                    lp_position.append(Position(asset=tok,
-                                                amount=pool_tokens.tokens[tok_n].scaled(amount)))
+                    lp_position.append(
+                        Position(
+                            asset=tok,
+                            amount=pool_tokens[tok_n].scaled(amount)))
 
                 _ = CurveLPPosition(
                     asset=lp_token,

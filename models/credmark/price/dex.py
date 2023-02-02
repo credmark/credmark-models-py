@@ -288,9 +288,9 @@ class PriceInfoFromDex(Model):
 
         def _use_for(local):
             all_pool_infos = []
-            for mrun in model_inputs:
-                infos = self.context.run_model(mrun['modelSlug'],
-                                               mrun['modelInputs'][0],
+            for m_input in model_inputs:
+                infos = self.context.run_model(m_input['modelSlug'],
+                                               m_input['modelInputs'][0],
                                                Some[PoolPriceInfo],
                                                local=local)
                 all_pool_infos.extend(infos.some)
@@ -339,7 +339,7 @@ class PriceFromDexModel(Model):
 @Model.describe(slug='price.dex-db-prefer',
                 version='0.1',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
-                description='Retrive price from DB or call model',
+                description='Retrieve price from DB or call model',
                 developer='Credmark',
                 category='price',
                 subcategory='dex',

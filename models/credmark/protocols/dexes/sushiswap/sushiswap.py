@@ -14,7 +14,7 @@ from models.dtos.pool import PoolPriceInfo
 @Model.describe(slug="sushiswap.get-v2-factory",
                 version="1.0",
                 display_name="Sushiswap - get factory",
-                description="Returns the address of Suishiswap factory contract",
+                description="Returns the address of Sushiswap factory contract",
                 category='protocol',
                 subcategory='sushi',
                 input=EmptyInput,
@@ -79,9 +79,9 @@ class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug="sushiswap.all-pools",
-                version="1.1",
+                version="1.2",
                 display_name="Sushiswap all pairs",
-                description="Returns the addresses of all pairs on Suhsiswap protocol",
+                description="Returns the addresses of all pairs on Sushiswap protocol",
                 category='protocol',
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
@@ -101,7 +101,7 @@ class SushiswapAllPairs(Model):
         self.logger.warning(f'There are {error_count} errors in total {allPairsLength} pools.')
 
         return {"result": sushiswap_pairs_addresses,
-                'all_pairs_lenght': allPairsLength,
+                'all_pairs_length': allPairsLength,
                 'error_count': error_count}
 
 
@@ -114,7 +114,7 @@ class SushiSwapPool(DTO):
                 version="1.0",
                 display_name="Sushiswap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of "
-                             "both tokens on Suhsiswap protocol"),
+                             "both tokens on Sushiswap protocol"),
                 category='protocol',
                 subcategory='sushi',
                 input=SushiSwapPool)
@@ -134,7 +134,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.10',
+                version='1.11',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -181,9 +181,9 @@ class SushiswapGetTokenPriceInfo(Model):
 
         def _use_for(local):
             infos = []
-            for minput in model_inputs:
+            for m_input in model_inputs:
                 pi = self.context.run_model(model_slug,
-                                            minput,
+                                            m_input,
                                             return_type=Maybe[PoolPriceInfo],
                                             local=local)
                 if pi.is_just():

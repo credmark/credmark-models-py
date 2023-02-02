@@ -82,7 +82,7 @@ def get_comptroller(model):
     contract_implementation = Contract(address=proxy_address)
     if proxy_address != comptroller.proxy_for.address:
         model.context.logger.debug(
-            f'Comptroller\'s implmentation is corrected to {proxy_address} '
+            f'Comptroller\'s implementation is corrected to {proxy_address} '
             f'from {comptroller.proxy_for.address}')
     comptroller._meta.is_transparent_proxy = True
     comptroller._meta.proxy_implementation = contract_implementation
@@ -164,8 +164,8 @@ class CompoundV2AllPoolsInfo(Model):
             return pool_infos
 
         def _use_for():
-            pool_infos = [self.context.run_model(model_slug, minput, return_type=CompoundV2PoolInfo)
-                          for minput in model_inputs]
+            pool_infos = [self.context.run_model(model_slug, m_input, return_type=CompoundV2PoolInfo)
+                          for m_input in model_inputs]
             return pool_infos
 
         # pool_infos = _use_compose()
@@ -248,7 +248,7 @@ class CompoundV2GetPoolInfo(Model):
     5. exchangeRate: The exchange rate between a cToken and the underlying asset
        exchangeRate = (getCash() + totalBorrows() - totalReserves()) / totalSupply()
                     => cToken.scaled / pow(10, 2)
-       Liabitliy = totalSupply * exchangeRate, or
+       Liability = totalSupply * exchangeRate, or
                  = totalSupply / invExchangeRate
 
     6. reserveFactor: defines the portion of borrower interest that is
@@ -260,7 +260,7 @@ class CompoundV2GetPoolInfo(Model):
     10. borrowBalance(): balance of liability including interest
 
     # TODO
-    11. accuralBlockNumber
+    11. accrualBlockNumber
     12. exchangeRateStored
     13. initialExchangeRateMantissa
     14. interestRateModel
@@ -346,10 +346,10 @@ class CompoundV2GetPoolInfo(Model):
     DAYS_PER_YEAR = 365
 
     def test_fixture(self, chain_id):
-        compoud_assets = sorted(self.COMPOUND_ASSETS[chain_id].keys())
-        compoud_ctokens = sorted(['WETH' if t == 'cETH' else t[1:]
+        compound_assets = sorted(self.COMPOUND_ASSETS[chain_id].keys())
+        compound_ctokens = sorted(['WETH' if t == 'cETH' else t[1:]
                                   for t, _ in self.COMPOUND_CTOKEN[chain_id].items()])
-        assert compoud_assets == compoud_ctokens
+        assert compound_assets == compound_ctokens
 
     def run(self, input: Token) -> CompoundV2PoolInfo:
         comptroller = get_comptroller(self)
@@ -392,14 +392,14 @@ class CompoundV2GetPoolInfo(Model):
         if cToken.name != 'Compound Ether':
             assert cToken.functions.underlying().call() == token.address
 
-        # Get/calcualte info
+        # Get/calculate info
 
         irModel = Contract(address=cToken.functions.interestRateModel().call())
         _ = irModel.functions.isInterestRateModel().call()
         # self.logger.info(f'{irModel.address=}, {irModel.functions.isInterestRateModel().call()=}')
 
         # Cash is market liquidity ~ Liability + Reserve - Borrow, use it for TVL
-        # totalLiability is converted from cToken's suppply to the actual redeemable amount
+        # totalLiability is converted from cToken's supply to the actual redeemable amount
 
         cash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
@@ -506,8 +506,8 @@ class CompoundV2GetPoolValue(Model):
 
 @Model.describe(slug="compound-v2.all-pools-portfolio",
                 version="0.4",
-                display_name="Compound V2 - Porfolio of assets",
-                description="Compound V2 - Porfolio of assets",
+                display_name="Compound V2 - Portfolio of assets",
+                description="Compound V2 - Portfolio of assets",
                 category='protocol',
                 subcategory='compound',
                 output=LendingPoolPortfolios)
