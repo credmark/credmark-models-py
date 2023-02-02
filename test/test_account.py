@@ -129,7 +129,7 @@ class TestAccount(CMFTest):
                            acc_input | {"window": "5 days", "interval": "1 days"})
 
         # 0x9c5083dd4838e120dbeac44c052179692aa5dac5 contains NFT
-        for accs_input in [
+        for accounts_input in [
             {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9"]},
             {"accounts": ["0x109B3C39d675A2FF16354E116d080B94d238a7c9",
                           "0x388C818CA8B9251b393131C08a736A67ccB19297"]},
@@ -141,11 +141,11 @@ class TestAccount(CMFTest):
                           "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]},
         ]:
             self.run_model('accounts.token-historical',
-                           accs_input | {"window": "5 days", "interval": "1 days"})
+                           accounts_input | {"window": "5 days", "interval": "1 days"})
             self.run_model('accounts.token-historical',
-                           accs_input | {"window": "5 days", "interval": "1 days", 'quote': 'AAVE'})
+                           accounts_input | {"window": "5 days", "interval": "1 days", 'quote': 'AAVE'})
             self.run_model('accounts.token-return-historical',
-                           accs_input | {"token_list": "cmf", "window": "5 days", "interval": "1 days"})
+                           accounts_input | {"token_list": "cmf", "window": "5 days", "interval": "1 days"})
 
         # no price
         self.run_model(

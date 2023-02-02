@@ -38,21 +38,21 @@ def get_eip1967_proxy(context, logger, address, verbose):
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
     proxy_address = Address(context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
     if not proxy_address.is_null():
-        token_implemenation = Token(address=proxy_address)
+        token_implementation = Token(address=proxy_address)
         # TODO: Work around before we can load proxy in the past based on block number.
         if (token._meta.is_transparent_proxy and
             token.proxy_for is not None and
                 proxy_address != token.proxy_for.address):
             logger.debug(
-                f'token\'s implmentation is corrected to '
+                f'token\'s implementation is corrected to '
                 f'{proxy_address} from {token.proxy_for.address} for {token.address}')
         else:
             logger.debug(
-                f'token\'s implmentation is corrected to '
+                f'token\'s implementation is corrected to '
                 f'{proxy_address} from no-proxy for {token.address}')
 
         token._meta.is_transparent_proxy = True
-        token._meta.proxy_implementation = token_implemenation
+        token._meta.proxy_implementation = token_implementation
     else:
         if verbose:
             logger.info(f'Unable to retrieve proxy implementation for {address}')
@@ -103,7 +103,7 @@ class TokenUnderlying(Model):
                     abi_functions = input.proxy_for.abi.functions
                 except BlockNumberOutOfRangeError as err:
                     raise BlockNumberOutOfRangeError(
-                        err.data.message + \
+                        err.data.message +
                         f' This is the proxy for Contract({input.address})') from err
             else:
                 abi_functions = input.abi.functions

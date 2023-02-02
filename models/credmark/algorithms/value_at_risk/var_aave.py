@@ -22,10 +22,10 @@ class AaveV2GetVAR(Model):
     """
     VaR of Aave based on its inventory of tokens.
     The exposure of Aave is the number of tokens borrowed (totalDebt)
-    less than the total numbe of tokens (totalSupply) deposited.
+    less than the total number of tokens (totalSupply) deposited.
 
     - totalSupply of aToken is Aave's liability / loaner's asset, hence a negative sign
-    - totalDebt is Aava's asset / borrower's liability, hence a positive sign
+    - totalDebt is Aave's asset / borrower's liability, hence a positive sign
     - exposure = dbt.totalDebt_qty - dbt.totalSupply_qty = -dbt.totalLiquidity = (totalSupply - totalDebt)
 
     Reference:

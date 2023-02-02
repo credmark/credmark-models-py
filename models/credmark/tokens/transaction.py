@@ -159,7 +159,7 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
 
 @Model.describe(slug='token.transaction',
                 version='0.1',
-                display_name='Token Transactin',
+                display_name='Token Transaction',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
                 category='transaction',
@@ -193,7 +193,7 @@ class TokenTransferTransactionTag(Model):
 
 @Model.describe(slug='token.txn-classify',
                 version='0.0',
-                display_name='Token Transactin',
+                display_name='Token Transaction',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
                 category='transaction',

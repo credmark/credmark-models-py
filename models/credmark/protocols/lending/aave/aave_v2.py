@@ -119,7 +119,7 @@ class AaveV2GetLPIncentive(Model):
         incentive_controller = self.context.run_model(
             'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
 
-        # _accrued_rewards shall match with accured amount from event log
+        # _accrued_rewards shall match with accrued amount from event log
         _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(input.address).call()
 
         # data provider gets the reserve tokens and find asset for that reserve token
@@ -295,7 +295,7 @@ class AaveV2GetOraclePrice(Model):
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
-                version="1.1",
+                version="1.2",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
@@ -509,7 +509,7 @@ class AaveV2GetTokenAsset(Model):
         # 5. currentStableBorrowRate | uint128 | current stable borrow rate in ray |
         # 6. lastUpdateTimestamp | uint40 | timestamp of when reserve data was last updated |
 
-        # 7. aTokenAddress | address | address of associated aToken (tokenised deposit) |
+        # 7. aTokenAddress | address | address of associated aToken (tokenized deposit) |
         # 8. stableDebtTokenAddress | address | address of associated stable debt token |
         # 9. variableDebtTokenAddress | address | address of associated variable debt token |
         # 10. interestRateStrategyAddress | address | address of interest rate strategy

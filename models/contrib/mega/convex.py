@@ -17,14 +17,14 @@ class ConvexPoolInput(DTO):
         "base, crv, cvx apr for convex pool"
     ),
     input=ConvexPoolInput,
-    version="1.0",
+    version="1.1",
     developer="megaflare14",
     category="protocol",
     subcategory="curve",
     output=dict,
 )
 class ConvexPoolApr(Model):
-    # This is a re-implmentation of the convex subgraph from:
+    # This is a re-implementation of the convex subgraph from:
     # https://github.com/convex-community/convex-subgraph/blob/e9c5cdfae055802af99b545739d9cf67a2a4c2cd/subgraphs/curve-pools/src/services/pools.ts#L253
     CRV_ADDRESS = {Network.Mainnet: "0xD533a949740bb3306d119CC777fa900bA034cd52"}
     CVX_ADDRESS = {Network.Mainnet: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B"}
@@ -72,7 +72,7 @@ class ConvexPoolApr(Model):
         reward_contract = Contract(address=input.reward)
         finish_period = reward_contract.functions.periodFinish().call()
         supply = reward_contract.functions.totalSupply().call() / 1e18
-        virtual_suppy = supply * v_price
+        virtual_supply = supply * v_price
 
         base_apr = self.get_base_apr(input.lp_token, v_price)
 
@@ -99,8 +99,8 @@ class ConvexPoolApr(Model):
         if block_number < finish_period:
             rate = reward_contract.functions.rewardRate().call() / 1e18
             crvPerUnderlying = 0
-            if virtual_suppy > 0:
-                crvPerUnderlying = rate / virtual_suppy
+            if virtual_supply > 0:
+                crvPerUnderlying = rate / virtual_supply
             crv_per_year = crvPerUnderlying * self.SECONDS_IN_YEAR
             cvx_per_year = self.get_cvx_mint_amount(crv_per_year)
             crv_apr = crv_per_year * crv_price

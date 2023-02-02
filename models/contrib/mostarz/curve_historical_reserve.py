@@ -8,7 +8,7 @@ from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfo
 
 @Model.describe(slug="contrib.curve-fi-pool-historical-reserve",
                 version="1.2",
-                display_name="Curve Finance Pool Liqudity",
+                display_name="Curve Finance Pool Liquidity",
                 description="gets reserve ratio of stablecoin"
                 "pools in Curve for every day in the past year",
                 category='protocol',

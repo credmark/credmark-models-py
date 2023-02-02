@@ -173,7 +173,7 @@ class AccountAAVEHistorical(Account):
     version="0.1",
     display_name="Aave V2 user account summary historical",
     description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
-                 "Assume there are \"efficient liquiditors\" to act upon each breach of health factor."),
+                 "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
     category="protocol",
     subcategory="aave-v2",
     input=AccountAAVEHistorical,

@@ -109,7 +109,7 @@ class ExampleBlockTime(Model):
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
-        output.log("CMF's BlockNumber is used to get Block Number from datetime or timestamp")
+        output.log("CMF object BlockNumber is used to get Block Number from datetime or timestamp")
         block_number = BlockNumber.from_timestamp(block_time)
         output.log("BlockNumber's timestamp might be different from the input timestamp,")
         output.log("as the last block before the datetime is returned")

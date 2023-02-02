@@ -4,7 +4,7 @@ from cmf_test import CMFTest
 
 
 class TestCurve(CMFTest):
-    def test_poolinfo(self):
+    def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
 
         self.run_model('curve-fi.all-pools', {})  # curve-fi.get-registry,curve-fi.get-provider

@@ -18,7 +18,7 @@ np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.8",
+                version="1.9",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and Sushiswap pools",
                 category='protocol',
@@ -45,9 +45,9 @@ class UniswapPoolVaR(Model):
             raise ModelRunError('Pool abi can not be loaded.')
 
         if 'slot0' in [x['name'] for x in pool.abi if 'name' in x]:
-            impermenant_loss_type = 'V3'
+            impermanent_loss_type = 'V3'
         else:
-            impermenant_loss_type = 'V2'
+            impermanent_loss_type = 'V2'
 
         # get token and balances
         token0 = Token(address=pool.functions.token0().call())
@@ -56,7 +56,7 @@ class UniswapPoolVaR(Model):
         bal1 = token1.scaled(token1.functions.balanceOf(pool.address).call())
 
         # Current price
-        if impermenant_loss_type == 'V2':
+        if impermanent_loss_type == 'V2':
             p_0 = bal1 / bal0
         else:
             v3_info = self.context.run_model('uniswap-v3.get-pool-info',
@@ -122,9 +122,9 @@ class UniswapPoolVaR(Model):
         # ratio_1_over_0 with Token1's price change.
         portfolio_pnl_vector = (1 + ratio_change_0_over_1) / 2 * token1_change - 1
 
-        # Impermenant loss
+        # Impermanent loss
         # If we change the order of token0 and token1 to obtain the ratio,
-        # impermenant_loss_vector shall be very close to each other (invariant for the order)
+        # impermanent_loss_vector shall be very close to each other (invariant for the order)
         # i.e. For V2
         # np.allclose(
         #   2*np.sqrt(ratio_change)/(1+ratio_change)-1,
@@ -136,59 +136,59 @@ class UniswapPoolVaR(Model):
         # ratio_change[1] = 1000
 
         # V2
-        impermenant_loss_vector_v2 = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
+        impermanent_loss_vector_v2 = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
 
         # V3
         p_a = (1-input.lower_range) * p_0
         p_b = (1+input.upper_range) * p_0
 
         if math.isclose(p_a, 0):
-            impermenant_loss_vector_under = np.zeros(ratio_change.shape)
+            impermanent_loss_vector_under = np.zeros(ratio_change.shape)
         else:
-            impermenant_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
+            impermanent_loss_vector_under = (1 / np.sqrt(p_a) - 1 / np.sqrt(p_b)) / (
                 (np.sqrt(p_b) - np.sqrt(p_0)) / (np.sqrt(p_0) * np.sqrt(p_b)) +
                 (np.sqrt(p_0) - np.sqrt(p_a)) * 1 / (p_0 * ratio_change)) - 1
 
-        impermenant_loss_vector_between = (
+        impermanent_loss_vector_between = (
             (2*np.sqrt(ratio_change) - 1 - ratio_change) /
             (1 + ratio_change - np.sqrt(1-input.lower_range) -
                 ratio_change * np.sqrt(1 / (1 + input.upper_range))))
 
-        impermenant_loss_vector_above = (
+        impermanent_loss_vector_above = (
             np.sqrt(p_b) - np.sqrt(p_a)) / (
             (np.sqrt(p_b) - np.sqrt(p_0)) / (
                 np.sqrt(p_0) * np.sqrt(p_b)) * p_0 * ratio_change +
             (np.sqrt(p_0) - np.sqrt(p_a))) - 1
 
-        impermenant_loss_vector_v3 = impermenant_loss_vector_between.copy()
-        impermenant_loss_vector_v3[
-            (ratio_change < 1 - input.lower_range)] = impermenant_loss_vector_under[
+        impermanent_loss_vector_v3 = impermanent_loss_vector_between.copy()
+        impermanent_loss_vector_v3[
+            (ratio_change < 1 - input.lower_range)] = impermanent_loss_vector_under[
                 (ratio_change < 1 - input.lower_range)]
-        impermenant_loss_vector_v3[
-            (ratio_change > 1 + input.upper_range)] = impermenant_loss_vector_above[
+        impermanent_loss_vector_v3[
+            (ratio_change > 1 + input.upper_range)] = impermanent_loss_vector_above[
                 (ratio_change > 1 + input.lower_range)]
 
-        if impermenant_loss_type == 'V2':
-            impermenant_loss_vector = impermenant_loss_vector_v2.copy()
+        if impermanent_loss_type == 'V2':
+            impermanent_loss_vector = impermanent_loss_vector_v2.copy()
         else:
-            impermenant_loss_vector = impermenant_loss_vector_v3.copy()
+            impermanent_loss_vector = impermanent_loss_vector_v3.copy()
 
         # IL check
         # import matplotlib.pyplot as plt
-        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v2)
-        # plt.scatter(1 / ratio_change - 1, impermenant_loss_vector_v3)
+        # plt.scatter(1 / ratio_change - 1, impermanent_loss_vector_v2)
+        # plt.scatter(1 / ratio_change - 1, impermanent_loss_vector_v3)
         # plt.title(f'Pool PPL for -{input.lower_range}/+{input.upper_range}')
         # plt.show()
 
         # Or,
-        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v2)
-        # plt.scatter(ratio_change - 1, impermenant_loss_vector_v3)
+        # plt.scatter(ratio_change - 1, impermanent_loss_vector_v2)
+        # plt.scatter(ratio_change - 1, impermanent_loss_vector_v3)
         # plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
-        total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermenant_loss_vector) - 1
+        total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermanent_loss_vector) - 1
         total_pnl_without_il_vector = portfolio_pnl_vector
-        total_pnl_il_vector = impermenant_loss_vector
+        total_pnl_il_vector = impermanent_loss_vector
 
         var = {}
         var_without_il = {}
@@ -217,7 +217,7 @@ class UniswapPoolVaR(Model):
             weights=var_result_il.weights)
 
         # For V3, as existing assumptions, we need to cap the loss at -100%.
-        if impermenant_loss_type == 'V3':
+        if impermanent_loss_type == 'V3':
             var.var = np.max([-1, var.var])
             var_without_il.var = np.max([-1, var_without_il.var])
             var_il.var = np.max([-1, var_il.var])
@@ -227,8 +227,8 @@ class UniswapPoolVaR(Model):
             tokens_address=[token0.address, token1.address],
             tokens_symbol=[token0.symbol, token1.symbol],
             ratio=p_0,
-            IL_type=impermenant_loss_type,
-            lp_range=(None if impermenant_loss_type == 'V2'
+            IL_type=impermanent_loss_type,
+            lp_range=(None if impermanent_loss_type == 'V2'
                       else (input.lower_range, input.upper_range)),
             var=var,
             var_without_il=var_without_il,
