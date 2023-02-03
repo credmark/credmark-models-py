@@ -1,3 +1,5 @@
+# pylint:disable=line-too-long
+
 import math
 from datetime import datetime
 from typing import List, Optional
@@ -132,7 +134,8 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
                 if r.output is not None and r.output.just is not None:
                     past_prices[r.blockNumber] = r.output.just.price
                 else:
-                    raise ValueError(f'Unable to obtain price for {tok} on block {r.output}')
+                    raise ValueError(
+                        f'Unable to obtain price for {tok} on block {r.blockNumber} among {pp.results}')
 
             value = 0
 
