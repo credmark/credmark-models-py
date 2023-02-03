@@ -188,7 +188,7 @@ class UniswapV2LPQuantity(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v2 (Sushiswap) LP Position (inclusive of fee) for account',
                 description='Returns position (inclusive of fee) for account',
                 category='protocol',
@@ -221,8 +221,8 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
     ratio = lp_in_out.tokens[1].amount / lp_in_out.tokens[0].amount
 
     # Position implied from previous LP position (without fee)
-    lp_il0 = (lp_prev_token0 * lp_prev_token1 / ratio) ** 0.5
-    lp_il1 = lp_il0 * ratio
+    token0_lp_current = (lp_prev_token0 * lp_prev_token1 / ratio) ** 0.5
+    token1_lp_current = token0_lp_current * ratio
 
     # LP position at block_number from LP token (with fee)
     # $x = lp / lp_total_supply * token_x$
@@ -255,10 +255,10 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
         token1_lp=lp_pos_token1,
         in_out_amount0=try_zero(in_out_amount0),
         in_out_amount1=try_zero(in_out_amount1),
-        lp_il0=lp_il0,
-        lp_il1=lp_il1,
-        token0_fee=try_zero(lp_pos_token0 - lp_il0 - in_out_amount0),
-        token1_fee=try_zero(lp_pos_token1 - lp_il1 - in_out_amount1),
+        token0_lp_current=token0_lp_current,
+        token1_lp_current=token1_lp_current,
+        token0_fee=try_zero(lp_pos_token0 - token0_lp_current - in_out_amount0),
+        token1_fee=try_zero(lp_pos_token1 - token1_lp_current - in_out_amount1),
     )
 
 
@@ -289,7 +289,7 @@ def uniswap_v2_fee_sample_data():
 
 #pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='0.9',
+                version='1.0',
                 display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
@@ -411,7 +411,7 @@ class UniswapV2LPFeeHistory(Model):
 
             for it in ['token0_lp', 'token1_lp',
                        'in_out_amount0', 'in_out_amount1',
-                       'lp_il0', 'lp_il1',
+                       'token0_lp_current', 'token1_lp_current',
                        'token0_fee', 'token1_fee']:
                 _df.loc[row_n, it] = try_zero(v2_fee[it])  # type: ignore
 
@@ -419,7 +419,7 @@ class UniswapV2LPFeeHistory(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
-                version='0.6',
+                version='0.7',
                 display_name='Uniswap v2 (Sushiswap) LP Position (split for fee) for account',
                 description='Returns position (split for fee) for account. The fee is accumulated from last position change.',
                 category='protocol',
@@ -607,7 +607,9 @@ class UniswapPoolPriceInfo(Model):
                     raise ModelRunError(f'Can not retrieve price for '
                                         f'{Token(address=primary_address)}')
             else:
-                raise ModelRunError(f'Primary address can not be null for {token0.address} and {token1.address}')
+                self.logger.warning('There is no primary token in this pool: '
+                                    f'{token0.address}/{token0.symbol} and {token1.address}/{token1.symbol}')
+                ref_price = 0
 
         pool_price_info = PoolPriceInfo(src=input.price_slug,
                                         price0=tick_price0,
