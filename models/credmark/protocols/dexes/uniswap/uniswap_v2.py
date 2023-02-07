@@ -809,14 +809,20 @@ class DexPoolSwapBlockRange(Model):
         except ModelDataError:
             input.set_abi(UNISWAP_V3_POOL_ABI)
 
-        with input.ledger.events.Swap as q:
-            df = q.select(aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
-                                      (q.BLOCK_NUMBER.min_(), 'min'),
-                                      (q.BLOCK_NUMBER.max_(), 'max')]).to_dataframe()
+        def _use_ledger():
+            with input.ledger.events.Swap as q:
+                df = (q
+                    .select(
+                        aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
+                                    (q.BLOCK_NUMBER.min_(), 'min'),
+                                    (q.BLOCK_NUMBER.max_(), 'max')])
+                    .to_dataframe())
 
-            return {'count': df['count'][0],
-                    'min':   df['min'][0],
-                    'max':   df['max'][0]}
+                return {'count': df['count'][0],
+                        'min':   df['min'][0],
+                        'max':   df['max'][0]}
+
+        return _use_ledger()
 
 
 def new_trading_volume(_tokens: List[Token]):

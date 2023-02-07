@@ -92,8 +92,10 @@ class TestAccount(CMFTest):
         # 0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67
         self.run_model('account.token-return',
                        {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a", "token_list": "cmf"}, block_number=15447136)
-        self.run_model('account.token-return',
-                       {"address": "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67", "token_list": "cmf"}, block_number=15447136)
+
+        if '--api_url=http://localhost:8700' in self.post_flag:
+            self.run_model('account.token-return',
+                           {"address": "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67", "token_list": "cmf"}, block_number=15447136)
 
         self.run_model('accounts.token-return',
                        {"accounts": ["0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a",
