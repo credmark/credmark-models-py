@@ -86,7 +86,7 @@ class AccountVaR(Model):
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.7',
+                version='1.8',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -158,13 +158,14 @@ class VaRPortfolio(Model):
 
             return price_lists
 
-        price_lists = _use_compose()
+        price_lists = _use_for()
 
-        var_input = {
-            'portfolio': portfolio,
-            'priceLists': price_lists,
-            'interval': input.interval,
-            'confidence': input.confidence}
+        var_input = VaRHistoricalInput(
+            portfolio=portfolio,
+            priceLists=price_lists,
+            interval=input.interval,
+            confidence=input.confidence
+        )
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
@@ -263,6 +264,7 @@ class VaREngineHistorical(Model):
             except ValueError as err:
                 if 'Cannot calculate a linear regression if all x values are identical' in str(err):
                     weights[i] = 0
+
         weights /= weights.sum()
 
         output.cvar = weights

@@ -34,6 +34,7 @@ from test_sushiswap import TestSushiSwap
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
+from test_index_coop import TestIndexCoop
 
 
 logging.basicConfig(
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--serial', action='store_true', default=False,
                         help=('Run tests in serial'))
     parser.add_argument('-p', '--parallel_count', type=int, default=10,
-                        help=('Paralle count'))
+                        help=('Parallel count'))
     parser.add_argument('--api_url', type=str, default='http://localhost:8700',
                         help=('API to use'))
     parser.add_argument('-t', '--tests', type=str, default='__all__',
