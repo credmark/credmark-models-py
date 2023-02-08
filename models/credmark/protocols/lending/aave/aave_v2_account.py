@@ -77,14 +77,23 @@ class AaveV2GetAccountInfo(Model):
                     from_block=0,
                     contract_address=aToken.address.checksum))
 
-                _combined = (pd.concat(
-                    [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
-                     (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: x.value*-1))
-                     ])
-                    .sort_values(['blockNumber', 'logIndex'])
-                    .reset_index(drop=True))
-
-                atoken_tx = aToken.scaled(_combined.value.sum())
+                if _minted.empty and _burnt.empty:
+                    atoken_tx = 0.0
+                elif _minted.empty or _burnt.empty:
+                    _combined = pd.DataFrame()
+                    if _minted.empty:
+                        _combined = _burnt.assign(value=lambda x: x.value*-1)
+                    elif _burnt.empty:
+                        _combined = _minted
+                    atoken_tx = aToken.scaled(_combined.value.sum())
+                else:
+                    _combined = (pd.concat(
+                        [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
+                        (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: x.value*-1))
+                        ])
+                        .sort_values(['blockNumber', 'logIndex'])
+                        .reset_index(drop=True))
+                    atoken_tx = aToken.scaled(_combined.value.sum())
 
                 token_info = {}
                 for key, value in zip(keys, reserve_data):
