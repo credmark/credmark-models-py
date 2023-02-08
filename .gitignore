@@ -148,3 +148,6 @@ workspace.code-workspace
 # vim
 .swp
 tmp/
+
+# ruff
+/.ruff_cache
