@@ -36,9 +36,11 @@ from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
 from test_token import TestToken
+from test_tls import TestTLS
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
 from test_tls import TestTLS
+
 
 
 logging.basicConfig(
