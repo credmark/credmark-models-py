@@ -314,8 +314,14 @@ class PriceFromDexModel(Model):
     """
     Return token's price
     """
-
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
+        addr_maybe = self.context.run_model('token.underlying-maybe',
+                                        input=input,
+                                        return_type=Maybe[Address],
+                                        local=True)
+        if addr_maybe.just is not None:
+            input.address = addr_maybe.just
+
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo],
@@ -337,7 +343,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.1',
+                version='0.2',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -357,8 +363,8 @@ class PriceFromDexPreferModel(Model):
             price_dex = self.context.run_model('price.dex-db', input=input, local=True)
             if price_dex['liquidity'] > 1e-08:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
-        except ModelDataError as err:
-            if "No price for" in err.data.message:
+        except (ModelDataError, ModelRunError) as err:
+            if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
                 return self.context.run_model(
                     'price.dex-blended',
                     input=input,

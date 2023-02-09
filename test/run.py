@@ -35,6 +35,7 @@ from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
 from test_index_coop import TestIndexCoop
+from test_tls import TestTLS
 
 
 logging.basicConfig(
