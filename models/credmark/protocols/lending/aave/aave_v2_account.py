@@ -48,8 +48,10 @@ class AaveV2GetAccountInfo(Model):
 
         ray = 10**27
         seconds_per_year = 31536000
-        user_reserve_data = {}
-        for token_name, token_address in reserve_tokens:
+        user_reserve_data = []
+        for _token_name, token_address in reserve_tokens:
+            reserve_token = Token(token_address)
+
             reserve_data = (protocolDataProvider.functions
                             .getUserReserveData(token_address, input.address.checksum).call())
             total_balance_and_debt = sum(reserve_data[:3])
@@ -89,13 +91,17 @@ class AaveV2GetAccountInfo(Model):
                 else:
                     _combined = (pd.concat(
                         [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
-                        (_burnt.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']].assign(value=lambda x: x.value*-1))
-                        ])
+                         (_burnt.loc[:, ['blockNumber', 'logIndex', 'from',
+                          'to', 'value']].assign(value=lambda x: x.value*-1))
+                         ])
                         .sort_values(['blockNumber', 'logIndex'])
                         .reset_index(drop=True))
                     atoken_tx = aToken.scaled(_combined.value.sum())
 
                 token_info = {}
+                token_info['tokenSymbol'] = reserve_token.symbol
+                token_info['tokenAddress'] = reserve_token.address
+
                 for key, value in zip(keys, reserve_data):
                     if key in keys_need_to_be_scaled:
                         token_info[key] = aToken.scaled(value)
@@ -126,9 +132,9 @@ class AaveV2GetAccountInfo(Model):
                 token_info['variableBorrowAPY'] = variable_borrow_APY
                 token_info['stableBorrowAPY'] = stable_borrow_APY
 
-                user_reserve_data[token_name] = token_info
+                user_reserve_data.append(token_info)
 
-        return user_reserve_data
+        return {'reserveData': user_reserve_data}
 
 
 @Model.describe(
