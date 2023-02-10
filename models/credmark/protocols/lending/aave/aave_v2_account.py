@@ -183,8 +183,9 @@ class AaveV2GetAccountInfo(Model):
 
             user_reserve_data = []
             for p in user_reserve_data_run:
-                if p.output is not None and p.output != {}:
-                    user_reserve_data.append(p.output)
+                if p.output is not None:
+                    if p.output != {}:
+                        user_reserve_data.append(p.output)
                 elif p.error is not None:
                     self.logger.error(p.error)
                     raise create_instance_from_error_dict(p.error.dict())
