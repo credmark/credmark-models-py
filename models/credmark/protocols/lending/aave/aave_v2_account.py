@@ -128,10 +128,13 @@ class AaveV2GetAccountInfoAsset(Model):
                               .getReserveData(token_address).call())
         token_info['variableBorrowRate'] = token_reserve_data[4]
 
+        for key in ["variableBorrowRate", "stableBorrowRate", "liquidityRate"]:
+            token_info[key] = token_info[key]/ray
+
         # Calculate APY for deposit and borrow
-        deposit_APR = token_info['liquidityRate']/ray
-        variable_borrow_APR = token_info['variableBorrowRate']/ray
-        stable_borrow_APR = token_info['stableBorrowRate']/ray
+        deposit_APR = token_info['liquidityRate']
+        variable_borrow_APR = token_info['variableBorrowRate']
+        stable_borrow_APR = token_info['stableBorrowRate']
 
         deposit_APY = ((1 + (deposit_APR / seconds_per_year)) ** seconds_per_year) - 1
         variable_borrow_APY = ((1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
