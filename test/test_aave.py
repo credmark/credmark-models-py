@@ -37,6 +37,12 @@ class TestAAVE(CMFTest):
         self.run_model('aave-v2.reserve-config', {'symbol': 'LINK'}, block_number=16462000)
 
     def test_account(self):
+        # WBTC as collateral
+        self.run_model('aave-v2.account-info-reserve',
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3",
+                        "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"},
+                       block_number=16694809)
+
         self.run_model('aave-v2.account-info',
                        {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
 
