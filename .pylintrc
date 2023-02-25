@@ -97,7 +97,6 @@ disable=raw-checker-failed,
         too-few-public-methods, # for pydantic objects
         R0801, # Similar lines - models may be similar
         no-else-return,
-        no-self-use,
         fixme # TODO in comment
 
 # Enable the message, report, category or checker with the given id(s). You can
@@ -587,4 +586,4 @@ min-public-methods=1
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "BaseException, Exception".
-overgeneral-exceptions=BaseException
+overgeneral-exceptions=builtins.BaseException

@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, unsubscriptable-object
 import math
 from typing import List
 
@@ -166,8 +166,8 @@ class UniswapV2LPQuantity(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20()
-        token1 = token1.as_erc20()
+        token0 = token0.as_erc20(force=True)
+        token1 = token1.as_erc20(force=True)
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -250,16 +250,16 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
     # 2. "Without fee" uses previous end-of-block holding to calculate - up-to-date
     # 3. "Just in" is calculated from the current end-of-block's ratio,
     #    which may not be the original amount put in due to other swaps inside the block.
-    return dict(
-        token0_lp=lp_pos_token0,
-        token1_lp=lp_pos_token1,
-        in_out_amount0=try_zero(in_out_amount0),
-        in_out_amount1=try_zero(in_out_amount1),
-        token0_lp_current=token0_lp_current,
-        token1_lp_current=token1_lp_current,
-        token0_fee=try_zero(lp_pos_token0 - token0_lp_current - in_out_amount0),
-        token1_fee=try_zero(lp_pos_token1 - token1_lp_current - in_out_amount1),
-    )
+    return {
+        'token0_lp': lp_pos_token0,
+        'token1_lp':  lp_pos_token1,
+        'in_out_amount0': try_zero(in_out_amount0),
+        'in_out_amount1': try_zero(in_out_amount1),
+        'token0_lp_current':  token0_lp_current,
+        'token1_lp_current': token1_lp_current,
+        'token0_fee': try_zero(lp_pos_token0 - token0_lp_current - in_out_amount0),
+        'token1_fee': try_zero(lp_pos_token1 - token1_lp_current - in_out_amount1),
+    }
 
 
 def try_zero(flt):
@@ -308,8 +308,8 @@ class UniswapV2LPFeeHistory(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20()
-        token1 = token1.as_erc20()
+        token0 = token0.as_erc20(force=True)
+        token1 = token1.as_erc20(force=True)
 
         with self.context.ledger.TokenBalance as q:
             q_cols = [q.TRANSACTION_HASH,
@@ -438,8 +438,8 @@ class UniswapV2LPFee(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20()
-        token1 = token1.as_erc20()
+        token0 = token0.as_erc20(force=True)
+        token1 = token1.as_erc20(force=True)
 
         # Obtain the last 2 when the current block has mint/burn
         with self.context.ledger.TokenBalance as q:
@@ -533,8 +533,8 @@ class UniswapPoolPriceInfo(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20()
-        token1 = token1.as_erc20()
+        token0 = token0.as_erc20(force=True)
+        token1 = token1.as_erc20(force=True)
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -812,11 +812,11 @@ class DexPoolSwapBlockRange(Model):
         def _use_ledger():
             with input.ledger.events.Swap as q:
                 df = (q
-                    .select(
-                        aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
-                                    (q.BLOCK_NUMBER.min_(), 'min'),
-                                    (q.BLOCK_NUMBER.max_(), 'max')])
-                    .to_dataframe())
+                      .select(
+                          aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
+                                      (q.BLOCK_NUMBER.min_(), 'min'),
+                                      (q.BLOCK_NUMBER.max_(), 'max')])
+                      .to_dataframe())
 
                 return {'count': df['count'][0],
                         'min':   df['min'][0],
@@ -867,10 +867,10 @@ class DexPoolSwapVolumeHistorical(Model):
                     for _ in range(input.count)],
             errors=None)
 
-        data_vols = [dict(
-            token0_in=0.0, token0_out=0.0,
-            token1_in=0.0, token1_out=0.0,
-            token0_price=0, token1_price=0.0)]
+        data_vols = [{
+            'token0_in': 0.0, 'token0_out': 0.0,
+            'token1_in': 0.0, 'token1_out': 0.0,
+            'token0_price': 0, 'token1_price': 0.0}]
 
         token0_in = 0
         token0_out = 0
@@ -886,10 +886,10 @@ class DexPoolSwapVolumeHistorical(Model):
                         'pool.dex-db', {"address": input.address}, block_number=prev_block_number)
                 except ModelDataError as _err:
                     # When there was no data
-                    curr_result = dict(
-                        token0_in=0.0, token0_out=0.0,
-                        token1_in=0.0, token1_out=0.0,
-                        token0_price=0, token1_price=0.0)
+                    curr_result = {
+                        'token0_in': 0.0, 'token0_out': 0.0,
+                        'token1_in': 0.0, 'token1_out': 0.0,
+                        'token0_price': 0, 'token1_price': 0.0}
             else:
                 # use last_result
                 curr_result = last_result
@@ -931,7 +931,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical-ledger',
-                version='1.10',
+                version='1.11',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),

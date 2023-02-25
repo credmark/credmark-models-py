@@ -419,8 +419,8 @@ class CompoundV2GetPoolInfo(Model):
         else:
             utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)
 
-        supplyAPY = ((supplyRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
-        borrowAPY = ((borrowRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1)
+        supplyAPY = (supplyRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1
+        borrowAPY = (borrowRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 

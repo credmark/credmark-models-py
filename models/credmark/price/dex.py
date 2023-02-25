@@ -337,7 +337,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.1',
+                version='0.2',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -350,6 +350,10 @@ class PriceFromDexModel(Model):
 class PriceFromDexPreferModel(Model):
     """
     Return token's price from Dex with Chainlink as fallback
+
+    `price.quote` calls `chainlink`, `curve` then `price.dex-db-prefer`
+    `price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended`
+
     """
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:

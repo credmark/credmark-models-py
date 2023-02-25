@@ -36,7 +36,10 @@ class TestUniswap(CMFTest):
         self.run_model('uniswap-v3.get-weighted-price', {"symbol": "AAVE"})  # uniswap-v3.get-pool-info
 
         self.run_model('uniswap-v3.get-weighted-price', {"symbol": "MKR"})  # uniswap-v3.get-pool-info
-        self.run_model('uniswap-v3.get-weighted-price', {"symbol": "CMK"})  # uniswap-v3.get-pool-info
+
+        # No liquidity
+        # self.run_model('uniswap-v3.get-weighted-price', {"symbol": "CMK"})  # uniswap-v3.get-pool-info
+
         self.run_model('uniswap-v3.get-pools', {"symbol": "MKR"})
         # WETH/CMK pool: 0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3
         self.run_model('uniswap-v3.get-pool-info', {"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"})

@@ -53,7 +53,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
 
     if not math.isclose(native_amount, 0):
         native_token_price = _context.run_model(slug='price.quote',
-                                                input=dict(base=native_token),
+                                                input={'base': native_token},
                                                 return_type=PriceWithQuote).price
         native_token_return = TokenReturn(
             token_address=native_token.address,
@@ -83,7 +83,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     for tok_address, dfa in _df.groupby('token_address'):
         min_block_number = int(dfa.block_number.min())
 
-        tok = Token(tok_address).as_erc20()
+        tok = Token(tok_address).as_erc20(force=True)
 
         try:
             dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
@@ -109,7 +109,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
             tok.address.checksum in token_list or
                 tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
             then_pq = _context.run_model(slug='price.quote-maybe',
-                                         input=dict(base=tok),
+                                         input={'base': tok},
                                          return_type=Maybe[PriceWithQuote],
                                          block_number=min_block_number)
             if then_pq.is_just():
@@ -127,7 +127,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
 
             dd = datetime.now()
             pp = _context.run_model('price.quote-maybe-blocks',
-                                    input=dict(base=tok, block_numbers=block_numbers),
+                                    input={'base': tok, 'block_numbers': block_numbers},
                                     return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
 
             for r in pp.results:
@@ -155,7 +155,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
         if value is not None:
             if balance != 0:
                 current_price = _context.run_model(slug='price.quote',
-                                                   input=dict(base=tok),
+                                                   input={'base': tok},
                                                    return_type=PriceWithQuote).price
                 current_value = balance * current_price
             else:

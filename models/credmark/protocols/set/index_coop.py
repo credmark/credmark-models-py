@@ -86,7 +86,7 @@ def index_coop_revenue_issue(
 
     _start_dt = BlockNumber(_start_block).timestamp_datetime
     _end_dt = BlockNumber(_end_block).timestamp_datetime
-    period = (_end_dt - _start_dt)
+    period = _end_dt - _start_dt
     days_in_period = period.days
     seconds_in_period = period.seconds
     if seconds_in_period > 0:

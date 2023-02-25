@@ -62,7 +62,7 @@ class UniswapPoolVaR(Model):
             v3_info = self.context.run_model('uniswap-v3.get-pool-info',
                                              input=pool,
                                              return_type=UniswapV3PoolInfo)
-            scale_multiplier = (10 ** (v3_info.token0.decimals - v3_info.token1.decimals))
+            scale_multiplier = 10 ** (v3_info.token0.decimals - v3_info.token1.decimals)
             # p_0 = tick_price = token0 / token1
             p_0 = UNISWAP_TICK ** v3_info.current_tick * scale_multiplier
 

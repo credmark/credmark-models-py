@@ -53,7 +53,7 @@ class UniV2Pool:
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except ModelDataError:
-            self.token0 = self.token0.as_erc20()
+            self.token0 = self.token0.as_erc20(force=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
 
@@ -61,7 +61,7 @@ class UniV2Pool:
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except ModelDataError:
-            self.token1 = self.token1.as_erc20()
+            self.token1 = self.token1.as_erc20(force=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 

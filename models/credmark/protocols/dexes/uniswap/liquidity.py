@@ -272,7 +272,7 @@ def plot_liquidity_amount(context,
     token0 = Token(address=Address(token0_addr).checksum)
     token1 = Token(address=Address(token1_addr).checksum)
 
-    scale_multiplier = (10 ** (token0.decimals - token1.decimals))
+    scale_multiplier = 10 ** (token0.decimals - token1.decimals)
 
     def tick_to_price_with_scaling(tick, scale_multiplier=scale_multiplier):
         return UNISWAP_TICK ** tick * scale_multiplier

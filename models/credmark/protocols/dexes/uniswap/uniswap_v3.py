@@ -297,7 +297,7 @@ class UniswapV2LPId(Model):
         slot0 = pool.functions.slot0().call()
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
-        scale_multiplier = (10 ** (token0.decimals - token1.decimals))
+        scale_multiplier = 10 ** (token0.decimals - token1.decimals)
         _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
         _price_lower = 1 / (tick_to_price(position.tickLower)) / scale_multiplier
         _price_upper = 1 / (tick_to_price(position.tickUpper)) / scale_multiplier
@@ -345,11 +345,11 @@ class UniswapV2LPId(Model):
             fee_token1 = (feeGrowthGlobal1X128 - feeGrowthOutside1X128_lower -
                           feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
         elif current_tick < position.tickLower:
-            fee_token0 = (feeGrowthOutside0X128_lower - feeGrowthOutside0X128_upper - feeGrowthInside0LastX128)
-            fee_token1 = (feeGrowthOutside1X128_lower - feeGrowthOutside1X128_upper - feeGrowthInside1LastX128)
+            fee_token0 = feeGrowthOutside0X128_lower - feeGrowthOutside0X128_upper - feeGrowthInside0LastX128
+            fee_token1 = feeGrowthOutside1X128_lower - feeGrowthOutside1X128_upper - feeGrowthInside1LastX128
         elif current_tick > position.tickUpper:
-            fee_token0 = (feeGrowthOutside0X128_upper - feeGrowthOutside0X128_lower - feeGrowthInside0LastX128)
-            fee_token1 = (feeGrowthOutside1X128_upper - feeGrowthOutside1X128_lower - feeGrowthInside1LastX128)
+            fee_token0 = feeGrowthOutside0X128_upper - feeGrowthOutside0X128_lower - feeGrowthInside0LastX128
+            fee_token1 = feeGrowthOutside1X128_upper - feeGrowthOutside1X128_lower - feeGrowthInside1LastX128
         else:
             raise ModelRunError('{position.tickUpper=} ?= {current_tick=} ?= {position.tickLower=}')
 
@@ -411,8 +411,8 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
         token0 = Token(address=Address(token0_addr).checksum)
         token1 = Token(address=Address(token1_addr).checksum)
-        token0 = token0.as_erc20()
-        token1 = token1.as_erc20()
+        token0 = token0.as_erc20(force=True)
+        token1 = token1.as_erc20(force=True)
         token0_symbol = token0.symbol
         token1_symbol = token1.symbol
 
@@ -541,7 +541,7 @@ class UniswapV3GetPoolInfo(Model):
         virtual_x = token0.scaled(liquidity / sp)
         virtual_y = token1.scaled(liquidity * sp)
 
-        scale_multiplier = (10 ** (token0.decimals - token1.decimals))
+        scale_multiplier = 10 ** (token0.decimals - token1.decimals)
         tick_price0 = tick_to_price(current_tick) * scale_multiplier
         if math.isclose(0, tick_price0):
             tick_price1 = 0

@@ -28,11 +28,10 @@ class CurveFinanceHistoricalReserve(Model):
     def run(self, input: Contract) -> dict:
         res = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='curve-fi.pool-info',
-                window='5 days',
-                interval='1 days',
-                model_input=input),
+            {'model_slug': 'curve-fi.pool-info',
+             'window': '5 days',
+             'interval': '1 days',
+             'model_input': input},
             return_type=BlockSeries[CurveFiPoolInfo])
 
         if res.errors is not None:

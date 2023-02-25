@@ -102,13 +102,18 @@ class UniswapExchange(Model):
         uniswap_dai_v1_addr = Address(self.UNISWAP_DAI_V1_ADDRESS[self.context.network])
         exchange_contract = Contract(address=uniswap_dai_v1_addr)
 
-        # Prices
-        eth_amount = self.context.web3.toWei('1', 'Ether')
+        try:
+            to_wei = self.context.web3.to_wei  # type: ignore # pylint: disable=no-member
+        except AttributeError:
+            to_wei = self.context.web3.toWei  # type: ignore # pylint: disable=no-member
+
+            # Prices
+        eth_amount = to_wei('1', 'Ether')
 
         bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(eth_amount).call()
-        bid_price = self.context.web3.toWei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
+        bid_price = to_wei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
 
         offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(eth_amount).call()
-        offer_price = self.context.web3.toWei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
+        offer_price = to_wei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
 
         return {'value': (bid_price, offer_price, bid_daiAmount, offer_daiAmount)}

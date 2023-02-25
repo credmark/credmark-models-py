@@ -282,15 +282,15 @@ class AaveV2GetAccountSummaryHistorical(Model):
         """
 
         # 1. Fetch historical user account data
-        result_historical = self.context.run_model('historical.run-model',
-                                                   dict(
-                                                       model_slug='aave-v2.account-summary',
-                                                       window=input.window,
-                                                       interval=input.interval,
-                                                       model_input=input),
-                                                   return_type=BlockSeries[dict])
+        result_historical = self.context.run_model(
+            'historical.run-model',
+            {'model_slug': 'aave-v2.account-summary',
+             'window': input.window,
+             'interval': input.interval,
+             'model_input': input},
+            return_type=BlockSeries[dict])
 
-        result_historical_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_historical]
+        result_historical_format = [{'blockNumber': p.blockNumber, 'result': p.output} for p in result_historical]
 
         historical_blocks = set(p.blockNumber for p in result_historical)
 
@@ -350,7 +350,9 @@ class AaveV2GetAccountSummaryHistorical(Model):
                          "blockNumbers": blocks_to_run_simple},
                         return_type=MapBlocksOutput[dict])
 
-                    result_blocks_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_blocks]
+                    result_blocks_format = [
+                        {'blockNumber': p.blockNumber, 'result': p.output}
+                        for p in result_blocks]
 
         result_comb = sorted(result_historical_format + result_blocks_format,
                              key=lambda x: x['blockNumber'])  # type: ignore
