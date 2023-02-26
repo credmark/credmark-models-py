@@ -1,4 +1,4 @@
-# pylint: disable=too-many-function-args
+# pylint: disable=too-many-function-args, line-too-long
 
 import math
 import functools
@@ -401,8 +401,7 @@ class AccountsERC20TokenHistorical(Model):
                         continue
 
                     try:
-                        last_price = self.context.run_model(
-                            'price.dex-db-latest', input={'address': token_addr})
+                        last_price = self.context.run_model('price.dex-db-latest', input={'address': token_addr})
                         if input.quote.address != FiatCurrency(symbol='USD').address:
                             last_quote = self.context.run_model(
                                 'price.dex-db-latest', input={'address': input.quote.address})
@@ -418,9 +417,9 @@ class AccountsERC20TokenHistorical(Model):
                     blocks_in_prices = set(p['blockNumber'] for p in prices)
                     for blk_n, blk in enumerate(past_blocks):
                         if blk not in blocks_in_prices:
-                            # 500 blocks = 100 minutes
+                            # 7200 blocks = 1440 minutes = 24 hr = 1 day
                             blk_diff = blk - last_price_block
-                            if 0 < blk_diff < 500:
+                            if 0 < blk_diff < 7200:
                                 self.logger.info(
                                     f'Use last price for {token_addr} for '
                                     f'{blk} close to {last_price_block} ({blk_diff=})')
@@ -502,6 +501,8 @@ class AccountsERC20TokenHistoricalBalance(Model):
         historical_blocks = {}
         token_blocks = {}
         token_rows = {}
+        all_tokens = {}
+
         for n_historical, row in df_historical.iterrows():
             past_block_number = int(row['blockNumber'])  # type: ignore
             assets = []
@@ -527,13 +528,14 @@ class AccountsERC20TokenHistoricalBalance(Model):
             for n_row, token_bal_row in token_bal.iterrows():
                 if not math.isclose(token_bal_row['value'], 0):
                     token_bal_addr = token_bal_row['token_address']
-                    asset_token = Token(token_bal_addr).as_erc20(force=True)
+                    if all_tokens.get(token_bal_addr) is None:
+                        all_tokens[token_bal_addr] = Token(token_bal_addr).as_erc20(force=True)
                     try:
                         if _include_price:
                             assets.append(
                                 PositionWithPrice(
-                                    amount=asset_token.scaled(token_bal_row['value']),
-                                    asset=asset_token,
+                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    asset=all_tokens[token_bal_addr],
                                     fiat_quote=PriceWithQuote(
                                         price=0.0,
                                         quoteAddress=input.quote.address,
@@ -541,8 +543,8 @@ class AccountsERC20TokenHistoricalBalance(Model):
                         else:
                             assets.append(
                                 Position(
-                                    amount=asset_token.scaled(token_bal_row['value']),
-                                    asset=asset_token))
+                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    asset=all_tokens[token_bal_addr]))
 
                         if token_rows.get(token_bal_addr) is None:
                             token_blocks[token_bal_addr] = set([past_block_number])
