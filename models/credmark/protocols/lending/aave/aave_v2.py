@@ -14,7 +14,7 @@ from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_err
 from models.dtos.tvl import LendingPoolPortfolios
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
-from web3.exceptions import ABIFunctionNotFound, Web3ValidationError
+from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
 from web3 import Web3
 
 
@@ -233,8 +233,8 @@ class AaveV2GetProtocolDataProvider(Model):
                                                        )
         try:
             data_provider_address = lending_pool_provider.functions.getAddress("0x01").call()
-        except Web3ValidationError:
-            data_provider_address = lending_pool_provider.functions.getAddress(Web3.to_bytes(
+        except Exception:  # Web3ValidationError:
+            data_provider_address = lending_pool_provider.functions.getAddress(Web3.to_bytes(  # type: ignore  # pylint: disable=no-member
                 0x0100000000000000000000000000000000000000000000000000000000000000)).call()
         data_provider = Contract(data_provider_address)
         _ = data_provider.abi

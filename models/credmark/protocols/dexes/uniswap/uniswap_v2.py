@@ -535,6 +535,17 @@ class UniswapPoolPriceInfo(Model):
         token1 = Token(address=Address(pool.functions.token1().call()))
         token0 = token0.as_erc20(force=True)
         token1 = token1.as_erc20(force=True)
+
+        try:
+            token0_symbol = token0.symbol
+        except OverflowError:
+            token0_symbol = ''
+
+        try:
+            token1_symbol = token1.symbol
+        except OverflowError:
+            token1_symbol = ''
+
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
 
@@ -620,8 +631,8 @@ class UniswapPoolPriceInfo(Model):
                                         full_tick_liquidity1=full_tick_liquidity1,
                                         token0_address=token0.address,
                                         token1_address=token1.address,
-                                        token0_symbol=token0.symbol,
-                                        token1_symbol=token1.symbol,
+                                        token0_symbol=token0_symbol,
+                                        token1_symbol=token1_symbol,
                                         ref_price=ref_price,
                                         pool_address=input.address,
                                         tick_spacing=1)

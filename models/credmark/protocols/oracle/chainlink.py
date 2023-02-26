@@ -49,7 +49,7 @@ class ChainLinkPriceByENS(Model):
         try:
             ns = ENS.fromWeb3(self.context.web3)  # type: ignore # pylint: disable=no-member
         except AttributeError:
-            ns = ENS.from_web3(self.context.web3)
+            ns = ENS.from_web3(self.context.web3)  # type: ignore  # pylint: disable=no-member
 
         feed_address = ns.address(input.domain)
         if feed_address is None:

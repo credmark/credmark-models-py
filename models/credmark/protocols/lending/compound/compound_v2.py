@@ -168,7 +168,6 @@ class CompoundV2AllPoolsInfo(Model):
                           for m_input in model_inputs]
             return pool_infos
 
-        # pool_infos = _use_compose()
         pool_infos = _use_for()
 
         ret = Some[CompoundV2PoolInfo](some=pool_infos)
@@ -189,7 +188,8 @@ class CompoundV2AllPoolsValue(Model):
                                        input=EmptyInput(),
                                        return_type=Some[Address])
         model_slug = 'compound-v2.pool-value'
-        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools.some]
+        model_inputs = [Token(address=cTokenAddress)
+                        for cTokenAddress in pools.some]
 
         def _use_compose():
             all_pool_infos = self.context.run_model(
@@ -221,7 +221,8 @@ class CompoundV2AllPoolsValue(Model):
                 pool_values.append(pool_value)
             return pool_values
 
-        pool_infos = _use_compose()
+        # use_for() here, use_compose() would cause problem
+        pool_infos = _use_for()
 
         ret = Some[CompoundV2PoolValue](some=pool_infos)
         return ret
@@ -471,8 +472,8 @@ class CompoundV2GetPoolValue(Model):
                                            return_type=CompoundV2PoolInfo)
 
         # TODO: Investigate whether Compound's interest is counted into cToken amount.
-        tp = self.context.run_model(slug='price.quote',
-                                    input={'base': pool_info.token},
+        tp = self.context.run_model(slug='price.dex-db-prefer',
+                                    input=pool_info.token,
                                     return_type=PriceWithQuote)
 
         if tp.price is None or tp.src is None:
