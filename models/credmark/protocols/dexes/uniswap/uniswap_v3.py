@@ -27,7 +27,6 @@ from scipy.optimize import minimize
 from web3.exceptions import BadFunctionCallOutput
 from web3.exceptions import ContractLogicError
 
-
 np.seterr(all='raise')
 
 
@@ -409,18 +408,20 @@ class UniswapV3GetPoolInfo(Model):
 
         token0_addr = pool.functions.token0().call()
         token1_addr = pool.functions.token1().call()
-        token0 = Token(address=Address(token0_addr).checksum)
-        token1 = Token(address=Address(token1_addr).checksum)
-        token0 = token0.as_erc20(force=True)
-        token1 = token1.as_erc20(force=True)
+
         try:
+            token0 = Token(address=Address(token0_addr)).as_erc20(force=True)
             token0_symbol = token0.symbol
-        except OverflowError:
-            token0_symbol = ''
+        except (OverflowError, ContractLogicError):
+            token0 = Token(address=Address(token0_addr)).as_erc20()
+            token0_symbol = token0.symbol
+
         try:
+            token1 = Token(address=Address(token1_addr)).as_erc20(force=True)
             token1_symbol = token1.symbol
-        except OverflowError:
-            token1_symbol = ''
+        except (OverflowError, ContractLogicError):
+            token1 = Token(address=Address(token1_addr)).as_erc20()
+            token1_symbol = token1.symbol
 
         is_primary_pool = token0.address in primary_tokens and token1.address in primary_tokens
         if token0.address in primary_tokens:

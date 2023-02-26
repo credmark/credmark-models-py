@@ -24,7 +24,7 @@ from models.dtos.volume import (TokenTradingVolume, VolumeInput,
                                 VolumeInputHistorical)
 from models.tmp_abi_lookup import (CURVE_VYPER_POOL, UNISWAP_V2_POOL_ABI,
                                    UNISWAP_V3_POOL_ABI)
-from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput
+from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
 
 
 class UniswapV2PoolMeta:
@@ -164,12 +164,22 @@ class UniswapV2LPQuantity(Model):
         reserves = pool.functions.getReserves().call()
         lp_total_supply = pool.functions.totalSupply().call()
 
-        token0 = Token(address=Address(pool.functions.token0().call()))
-        token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20(force=True)
-        token1 = token1.as_erc20(force=True)
-        scaled_reserve0 = token0.scaled(reserves[0])
-        scaled_reserve1 = token1.scaled(reserves[1])
+        token0_addr = pool.functions.token0().call()
+        token1_addr = pool.functions.token1().call()
+
+        try:
+            token0 = Token(address=Address(token0_addr)).as_erc20(force=True)
+            scaled_reserve0 = token0.scaled(reserves[0])
+        except OverflowError:
+            token0 = Token(address=Address(token0_addr)).as_erc20()
+            scaled_reserve0 = token0.scaled(reserves[0])
+
+        try:
+            token1 = Token(address=Address(token1_addr)).as_erc20(force=True)
+            scaled_reserve1 = token1.scaled(reserves[1])
+        except OverflowError:
+            token1 = Token(address=Address(token1_addr)).as_erc20()
+            scaled_reserve1 = token1.scaled(reserves[1])
 
         if math.isclose(lp_balance, 0):
             return V2LPOutput(
@@ -531,20 +541,22 @@ class UniswapPoolPriceInfo(Model):
         if reserves == [0, 0, 0]:
             return Maybe[PoolPriceInfo].none()
 
-        token0 = Token(address=Address(pool.functions.token0().call()))
-        token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20(force=True)
-        token1 = token1.as_erc20(force=True)
+        token0_addr = pool.functions.token0().call()
+        token1_addr = pool.functions.token1().call()
 
         try:
+            token0 = Token(address=Address(token0_addr)).as_erc20(force=True)
             token0_symbol = token0.symbol
-        except OverflowError:
-            token0_symbol = ''
+        except (OverflowError, ContractLogicError):
+            token0 = Token(address=Address(token0_addr)).as_erc20()
+            token0_symbol = token0.symbol
 
         try:
+            token1 = Token(address=Address(token1_addr)).as_erc20(force=True)
             token1_symbol = token1.symbol
-        except OverflowError:
-            token1_symbol = ''
+        except (OverflowError, ContractLogicError):
+            token1 = Token(address=Address(token1_addr)).as_erc20()
+            token1_symbol = token1.symbol
 
         scaled_reserve0 = token0.scaled(reserves[0])
         scaled_reserve1 = token1.scaled(reserves[1])
