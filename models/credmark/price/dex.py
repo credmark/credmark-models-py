@@ -107,7 +107,7 @@ class PoolPriceAggregator(Model):
         all_pool_infos = input.some
 
         if len(all_pool_infos) == 0:
-            raise ModelRunError(f'No pool to aggregate for {input}')
+            raise ModelRunError(f'[{self.context.block_number}] No pool to aggregate for {input}')
 
         non_zero_pools = [
             ii.pool_address for ii in all_pool_infos
