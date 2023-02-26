@@ -24,18 +24,17 @@ from test_cmk import TestCMK
 from test_compose import TestCompose
 from test_compound import TestCompound
 from test_curve import TestCurve
-from test_fiat import TestFiat
 from test_dashboard import TestDashboard
 from test_example import TestExample
+from test_fiat import TestFiat
 from test_finance import TestFinance
+from test_index_coop import TestIndexCoop
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
-from test_index_coop import TestIndexCoop
-
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -97,6 +96,9 @@ if __name__ == '__main__':
 
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
+
+    # test-model -t bsc,polygon,aave,account,balancer,chainlink,cmk,compose,compound,curve,dashboard,example,fiat,finance
+    # test-model -t index,price,speed,sushiswap,token,tvl,uniswap
 
     all_tests_name = [o.__name__
                       for _n, o in locals().items()
