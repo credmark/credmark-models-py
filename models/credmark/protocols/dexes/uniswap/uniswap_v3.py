@@ -413,8 +413,14 @@ class UniswapV3GetPoolInfo(Model):
         token1 = Token(address=Address(token1_addr).checksum)
         token0 = token0.as_erc20(force=True)
         token1 = token1.as_erc20(force=True)
-        token0_symbol = token0.symbol
-        token1_symbol = token1.symbol
+        try:
+            token0_symbol = token0.symbol
+        except OverflowError:
+            token0_symbol = ''
+        try:
+            token1_symbol = token1.symbol
+        except OverflowError:
+            token1_symbol = ''
 
         is_primary_pool = token0.address in primary_tokens and token1.address in primary_tokens
         if token0.address in primary_tokens:

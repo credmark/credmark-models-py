@@ -253,7 +253,8 @@ class PriceQuote(Model):
                     price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
-                    raise ModelRunError(f'No price can be found for {input}')
+                    raise ModelRunError(
+                        f'[{self.context.block_number}] No price can be found for {input}')
         except ModelRunError:
             raise
             # cex_cross = PriceCexCross(self.context)
