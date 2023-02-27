@@ -358,7 +358,7 @@ class AccountsERC20TokenHistorical(Model):
 
             all_prices = []
             len_list = len(all_tokens)
-            chunk_size = int(1000 * 7 / len(all_blocks))
+            chunk_size = int(10 * 7 / len(all_blocks))
             range_start = 0
             for i in range(0, len_list, chunk_size):
                 rr = (range_start + i, min(len_list, range_start + i + chunk_size))
