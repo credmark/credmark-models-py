@@ -11,10 +11,11 @@ from credmark.cmf.types import (Address, Account, Contract, Contracts,
                                 PriceWithQuote, Some, Token)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.tokens.token import get_eip1967_proxy_err
+from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_err
 from models.dtos.tvl import LendingPoolPortfolios
 from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI
-from web3.exceptions import ABIFunctionNotFound
+from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
+from web3 import Web3
 
 
 class AaveDebtInfo(DTO):
@@ -230,7 +231,11 @@ class AaveV2GetProtocolDataProvider(Model):
                                                        return_type=Contract,
                                                        local=True,
                                                        )
-        data_provider_address = lending_pool_provider.functions.getAddress("0x01").call()
+        try:
+            data_provider_address = lending_pool_provider.functions.getAddress("0x01").call()
+        except Exception:  # Web3ValidationError:
+            data_provider_address = lending_pool_provider.functions.getAddress(Web3.to_bytes(  # type: ignore  # pylint: disable=no-member
+                0x0100000000000000000000000000000000000000000000000000000000000000)).call()
         data_provider = Contract(data_provider_address)
         _ = data_provider.abi
         return data_provider
@@ -295,7 +300,7 @@ class AaveV2GetOraclePrice(Model):
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
-                version="1.2",
+                version="1.3",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
@@ -308,6 +313,7 @@ class AaveV2GetLiability(Model):
                                                    input=EmptyInput(),
                                                    return_type=Contract,
                                                    local=True)
+
         aave_lending_pool = get_eip1967_proxy_err(self.context,
                                                   self.logger,
                                                   aave_lending_pool.address,
@@ -378,7 +384,8 @@ class AaveV2GetAssets(Model):
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
 
         model_slug = 'aave-v2.token-asset'
-        model_inputs = [Token(address=addr) for addr in aave_assets_address]
+        model_inputs = [Token(address=addr)
+                        for addr in aave_assets_address]
 
         def _use_compose():
             all_pool_infos_results = self.context.run_model(
@@ -394,10 +401,13 @@ class AaveV2GetAssets(Model):
                     aave_debts_infos.append(pool_result.output)
                 elif pool_result.error is not None:
                     self.logger.error(pool_result.error)
+                    if pool_result.error.message.startswith('aToken') and \
+                       pool_result.error.message.endswith('was not initialized'):
+                        continue
                     raise ModelRunError(
                         (f'Error with models({self.context.block_number}).' +
-                         f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
-                         pool_result.error.message))
+                            f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
+                            pool_result.error.message))
                 else:
                     raise ModelRunError('compose.map-inputs: output/error cannot be both None')
 
@@ -406,9 +416,14 @@ class AaveV2GetAssets(Model):
         def _use_for():
             aave_debts_infos = []
             for asset_n, asset in enumerate(model_inputs):
-                debt_info = self.context.run_model(
-                    model_slug, asset,
-                    return_type=AaveDebtInfo)
+                try:
+                    debt_info = self.context.run_model(
+                        model_slug, asset,
+                        return_type=AaveDebtInfo)
+                except ModelDataError as err:
+                    if err.data.message.startswith('aToken') and err.data.message.endswith('was not initialized'):  # pylint:disable=no-member
+                        continue
+                    raise
                 aave_debts_infos.append(debt_info)
                 self.logger.info(
                     f'[{self.slug}] asset '
@@ -487,6 +502,7 @@ class AaveV2GetTokenAsset(Model):
                                                    input=EmptyInput(),
                                                    return_type=Contract,
                                                    local=True)
+
         aave_lending_pool = get_eip1967_proxy_err(self.context,
                                                   self.logger,
                                                   aave_lending_pool.address,
@@ -515,7 +531,10 @@ class AaveV2GetTokenAsset(Model):
         # 10. interestRateStrategyAddress | address | address of interest rate strategy
         # 11. id | uint8 | the position in the list of active reserves |
 
-        aToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[7], True)
+        aToken = get_eip1967_proxy(self.context, self.logger, reservesData[7], True)
+        if aToken is None:
+            raise ModelDataError(f'aToken({reservesData[7]}) was not initialized')
+
         stableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[8], True)
         variableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[9], True)
         interestRateStrategyContract = Contract(address=reservesData[10])

@@ -86,7 +86,7 @@ class AccountVaR(Model):
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.8',
+                version='1.9',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -121,6 +121,9 @@ class VaRPortfolio(Model):
                 return_type=MapBlockTimeSeriesOutput[Some[PriceWithQuote]])
 
             price_lists = []
+            price_lists_skip = []
+
+            # TODO: add error handling, the same as _use_for()
             for tok_n, asset_addr in enumerate(assets_to_quote_list):
                 ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
                                                   ('src', lambda p, n=tok_n:p.some[n].src), ])
@@ -132,36 +135,44 @@ class VaRPortfolio(Model):
                                        src=ps['src'].to_list()[0])
 
                 price_lists.append(price_list)
-            return price_lists
+            return price_lists, price_lists_skip
 
         def _use_for():
             price_lists = []
+            price_lists_skip = []
             for asset_addr in assets_to_quote_list:
-                tok_hp = self.context.run_model(
-                    slug='price.quote-historical',
-                    input={'base': {'address': asset_addr},
-                           "interval": interval,
-                           "count": count,
-                           "exclusive": False},
-                    return_type=MapBlockTimeSeriesOutput[PriceWithQuote])
+                try:
+                    tok_hp = self.context.run_model(
+                        slug='price.quote-historical',
+                        input={'base': {'address': asset_addr},
+                               "interval": interval,
+                               "count": count,
+                               "exclusive": False},
+                        return_type=MapBlockTimeSeriesOutput[PriceWithQuote])
 
-                ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
-                                                  ('src', lambda p:p.src), ])
-                      .sort_values('blockNumber', ascending=False)
-                      .reset_index(drop=True))
+                    ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
+                                                      ('src', lambda p:p.src), ])
+                          .sort_values('blockNumber', ascending=False)
+                          .reset_index(drop=True))
 
-                price_list = PriceList(prices=ps['price'].to_list(),
-                                       tokenAddress=asset_addr,
-                                       src=ps['src'].to_list()[0])
+                    price_list = PriceList(prices=ps['price'].to_list(),
+                                           tokenAddress=asset_addr,
+                                           src=ps['src'].to_list()[0])
 
-                price_lists.append(price_list)
+                    price_lists.append(price_list)
+                except ModelRunError as _err:
+                    price_lists_skip.append(asset_addr)
 
-            return price_lists
+            return price_lists, price_lists_skip
 
-        price_lists = _use_for()
+        price_lists, price_lists_skip = _use_for()
+
+        portfolio_with_skip = Portfolio(
+            positions=[p for p in portfolio
+                       if p.asset.address not in price_lists_skip])
 
         var_input = VaRHistoricalInput(
-            portfolio=portfolio,
+            portfolio=portfolio_with_skip,
             priceLists=price_lists,
             interval=input.interval,
             confidence=input.confidence

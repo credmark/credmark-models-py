@@ -42,7 +42,8 @@ class _ExampleModelOutput(DTO):
 
         self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 
-    def _log(self, message: str):
+    @staticmethod
+    def _log(message: str):
         print(message, file=sys.stderr)
 
     def log(self, message: str):

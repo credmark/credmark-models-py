@@ -157,14 +157,12 @@ class AbracadabraGetTVLHistorical(Model):
 
         output = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='contrib.abracadabra-tvl',
-                model_input={},
-                model_return_type=AbracadabraOutput,
-                window=window,
-                interval=interval,
-                end_timestamp=ts_as_of_end_dt
-            ),
+            {'model_slug': 'contrib.abracadabra-tvl',
+             'model_input': {},
+             'model_return_type': AbracadabraOutput,
+             'window': window,
+             'interval': interval,
+             'end_timestamp': ts_as_of_end_dt},
             return_type=BlockSeries[AbracadabraOutput])
 
         return output

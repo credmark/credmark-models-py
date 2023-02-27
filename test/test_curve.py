@@ -4,6 +4,9 @@ from cmf_test import CMFTest
 
 
 class TestCurve(CMFTest):
+    def test_curve_gauge(self):
+        self.run_model('contrib.curve-fi-get-gauge-amounts', {'address': '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'})
+
     def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
 

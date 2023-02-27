@@ -1,6 +1,7 @@
-# pylint: disable=too-many-function-args
+# pylint: disable=too-many-function-args, line-too-long
 
 import math
+import functools
 from enum import Enum
 
 import numpy as np
@@ -9,16 +10,17 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.cmf.types import (Account, Accounts,
                                 Currency, FiatCurrency,
-                                NativePosition, NativeToken,
+                                Maybe, NativePosition, NativeToken,
                                 Portfolio, Position,
                                 PortfolioWithPrice, PositionWithPrice,
                                 PriceWithQuote,
-                                Records, Token, TokenPosition, BlockNumber)
+                                Records, Some, Token, TokenPosition, BlockNumber)
 from credmark.dto import DTOField, EmptyInput, cross_examples
 from models.dtos.historical import HistoricalDTO
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
 from models.credmark.ledger.transfers import get_token_transfer, get_native_transfer
 from web3.exceptions import ContractLogicError
+
 
 np.seterr(all='raise')
 
@@ -83,7 +85,7 @@ class AccountsReturnInput(Accounts):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.8',
+                version='0.9',
                 display_name='Accounts\' Token Return',
                 description='Accounts\' Token Return',
                 developer="Credmark",
@@ -150,7 +152,7 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 
 # TODO: NFT
 @Model.describe(slug='accounts.token-return-historical',
-                version='0.7',
+                version='0.8',
                 display_name='Accounts\' Token Return Historical',
                 description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
@@ -221,22 +223,53 @@ class AccountsTokenReturnHistorical(Model):
                              .groupby('token_address', as_index=False)['value']
                              .sum())
 
-            for _, token_bal_row in token_bal.iterrows():
-                if not math.isclose(token_bal_row['value'], 0):
-                    asset_token = Token(token_bal_row['token_address']).as_erc20()
-                    try_price = self.context.run_model('price.quote-maybe',
-                                                       input={'base': asset_token},
-                                                       block_number=_past_block_number)
-                    if try_price['just'] is None:
-                        continue
+            # Fetch many tokens' prices on one past block
+            def _use_model(_assets, _token_bal, _past_block_number):
+                non_zero_bal_tokens_dict = {token_bal_row['token_address']: token_bal_row['value']
+                                            for _, token_bal_row in _token_bal.iterrows()
+                                            if not math.isclose(token_bal_row['value'], 0)}
+                non_zero_bal_tokens_addrs = list(non_zero_bal_tokens_dict.keys())
 
+                pqs_maybe = self.context.run_model(
+                    slug='price.quote-multiple-maybe',
+                    input=Some(some=[{'base': addr} for addr in non_zero_bal_tokens_addrs]),
+                    return_type=Some[Maybe[PriceWithQuote]],
+                    block_number=_past_block_number
+                )
+
+                for p_maybe, (token_addr, token_value) in \
+                        zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
+                    asset_token = Token(token_addr).as_erc20(force=True)
+                    if p_maybe.just is None:
+                        continue
                     try:
-                        assets.append(
-                            Position(amount=asset_token.scaled(token_bal_row['value']),
+                        _assets.append(
+                            Position(amount=asset_token.scaled(token_value),
                                      asset=asset_token))
                     except (ModelDataError, ContractLogicError):
                         # NFT: ContractLogicError
                         continue
+
+            # Loop over every token and get its price on the past block.
+            def _use_for(_assets, _token_bal, _past_block_number):
+                for _, token_bal_row in _token_bal.iterrows():
+                    if not math.isclose(token_bal_row['value'], 0):
+                        asset_token = Token(token_bal_row['token_address']).as_erc20(force=True)
+                        try_price = self.context.run_model('price.quote-maybe',
+                                                           input={'base': asset_token},
+                                                           block_number=_past_block_number)
+                        if try_price['just'] is None:
+                            continue
+
+                        try:
+                            _assets.append(
+                                Position(amount=asset_token.scaled(token_bal_row['value']),
+                                         asset=asset_token))
+                        except (ModelDataError, ContractLogicError):
+                            # NFT: ContractLogicError
+                            continue
+
+            _use_model(assets, token_bal, _past_block_number)
 
             price_historical_result[n_historical].output = (
                 {"value": Portfolio(positions=assets)
@@ -258,17 +291,16 @@ class AccountHistoricalInput(Account, HistoricalDTO):
                 limit=10)}
 
 
-@Model.describe(
-    slug='account.token-historical',
-    version='0.5',
-    display_name='Account\'s Token Holding Historical',
-    description='Account\'s Token Holding Historical',
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['token'],
-    input=AccountHistoricalInput,
-    output=dict)
+@Model.describe(slug='account.token-historical',
+                version='0.5',
+                display_name='Account\'s Token Holding Historical',
+                description='Account\'s Token Holding Historical',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountHistoricalInput,
+                output=dict)
 class AccountERC20TokenHistorical(Model):
     def run(self, input: AccountHistoricalInput) -> dict:
         return self.context.run_model(
@@ -296,17 +328,16 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
         }
 
 
-@Model.describe(
-    slug='accounts.token-historical',
-    version='0.10',
-    display_name='Accounts\' Token Holding Historical',
-    description='Accounts\' Token Holding Historical',
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['token'],
-    input=AccountsHistoricalInput,
-    output=dict)
+@Model.describe(slug='accounts.token-historical',
+                version='0.11',
+                display_name='Accounts\' Token Holding Historical',
+                description='Accounts\' Token Holding Historical',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountsHistoricalInput,
+                output=dict)
 class AccountsERC20TokenHistorical(Model):
     def account_token_historical(self, input, do_wobble_price):
         _include_price = input.include_price
@@ -320,7 +351,32 @@ class AccountsERC20TokenHistorical(Model):
         price_historical_result = MapBlockTimeSeriesOutput[dict](**balance_result)
 
         if _include_price:
+            all_blocks = list(functools.reduce(lambda a, b: a | set(b),
+                                               token_blocks.values(),
+                                               set()))
+            all_tokens = list(token_blocks.keys())
+
+            all_prices = (self.context.run_model(
+                'price.dex-db-blocks-tokens',
+                input={'addresses': all_tokens, 'blocks': all_blocks})
+                ['results'])
+
+            all_prices_dict = {d['address']: d['results'] for d in all_prices}
+
+            if input.quote.address != FiatCurrency(symbol='USD').address:
+                quotes = (self.context.run_model(
+                    'price.dex-db-blocks',
+                    input={'address': input.quote.address, 'blocks': all_blocks})
+                    ['results'])
+                quotes = {q['blockNumber']: q['price'] for q in quotes}
+            else:
+                quotes = None
+
             for token_addr, past_blocks in token_blocks.items():
+                # pylint: disable=pointless-string-statement
+                """
+                # Use per-token-many-blocks model
+
                 prices = (self.context.run_model(
                     'price.dex-db-blocks',
                     input={'address': token_addr, 'blocks': list(past_blocks)})
@@ -328,24 +384,24 @@ class AccountsERC20TokenHistorical(Model):
 
                 if len(prices) == 0 and len(past_blocks) != 1:
                     continue
+                """
 
-                if input.quote.address != FiatCurrency(symbol='USD').address:
-                    quotes = (self.context.run_model(
-                        'price.dex-db-blocks',
-                        input={'address': input.quote.address, 'blocks': list(past_blocks)})
-                        ['results'])
+                prices = all_prices_dict.get(token_addr)
+                if prices is None or len(prices) == 0:
+                    continue
 
-                    if len(prices) <= len(quotes):
-                        for p, q in zip(prices, quotes):
-                            p['price'] /= q['price']
+                prices = [p for p in prices if p['blockNumber'] in past_blocks]
+
+                if quotes is not None:
+                    for p_idx, _ in enumerate(prices):
+                        prices[p_idx]['price'] /= quotes[prices[p_idx]['blockNumber']]
 
                 if len(prices) < len(past_blocks):
                     if not do_wobble_price:
                         continue
 
                     try:
-                        last_price = self.context.run_model(
-                            'price.dex-db-latest', input={'address': token_addr})
+                        last_price = self.context.run_model('price.dex-db-latest', input={'address': token_addr})
                         if input.quote.address != FiatCurrency(symbol='USD').address:
                             last_quote = self.context.run_model(
                                 'price.dex-db-latest', input={'address': input.quote.address})
@@ -361,9 +417,9 @@ class AccountsERC20TokenHistorical(Model):
                     blocks_in_prices = set(p['blockNumber'] for p in prices)
                     for blk_n, blk in enumerate(past_blocks):
                         if blk not in blocks_in_prices:
-                            # 500 blocks = 100 minutes
-                            blk_diff = (blk - last_price_block)
-                            if 0 < blk_diff < 500:
+                            # 7200 blocks = 1440 minutes = 24 hr = 1 day
+                            blk_diff = blk - last_price_block
+                            if 0 < blk_diff < 7200:
                                 self.logger.info(
                                     f'Use last price for {token_addr} for '
                                     f'{blk} close to {last_price_block} ({blk_diff=})')
@@ -404,17 +460,16 @@ class AccountsERC20TokenHistorical(Model):
         return self.account_token_historical(input, True)
 
 
-@Model.describe(
-    slug='accounts.token-historical-balance',
-    version='0.1',
-    display_name='Accounts\' Token Holding Historical',
-    description='Accounts\' Token Holding Historical',
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['token'],
-    input=AccountsHistoricalInput,
-    output=dict)
+@Model.describe(slug='accounts.token-historical-balance',
+                version='0.2',
+                display_name='Accounts\' Token Holding Historical',
+                description='Accounts\' Token Holding Historical',
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['token'],
+                input=AccountsHistoricalInput,
+                output=dict)
 class AccountsERC20TokenHistoricalBalance(Model):
     def run(self, input: AccountsHistoricalInput) -> dict:
         _include_price = input.include_price
@@ -446,6 +501,8 @@ class AccountsERC20TokenHistoricalBalance(Model):
         historical_blocks = {}
         token_blocks = {}
         token_rows = {}
+        all_tokens = {}
+
         for n_historical, row in df_historical.iterrows():
             past_block_number = int(row['blockNumber'])  # type: ignore
             assets = []
@@ -471,13 +528,14 @@ class AccountsERC20TokenHistoricalBalance(Model):
             for n_row, token_bal_row in token_bal.iterrows():
                 if not math.isclose(token_bal_row['value'], 0):
                     token_bal_addr = token_bal_row['token_address']
-                    asset_token = Token(token_bal_addr).as_erc20()
+                    if all_tokens.get(token_bal_addr) is None:
+                        all_tokens[token_bal_addr] = Token(token_bal_addr).as_erc20(force=True)
                     try:
                         if _include_price:
                             assets.append(
                                 PositionWithPrice(
-                                    amount=asset_token.scaled(token_bal_row['value']),
-                                    asset=asset_token,
+                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    asset=all_tokens[token_bal_addr],
                                     fiat_quote=PriceWithQuote(
                                         price=0.0,
                                         quoteAddress=input.quote.address,
@@ -485,8 +543,8 @@ class AccountsERC20TokenHistoricalBalance(Model):
                         else:
                             assets.append(
                                 Position(
-                                    amount=asset_token.scaled(token_bal_row['value']),
-                                    asset=asset_token))
+                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    asset=all_tokens[token_bal_addr]))
 
                         if token_rows.get(token_bal_addr) is None:
                             token_blocks[token_bal_addr] = set([past_block_number])
