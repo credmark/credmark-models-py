@@ -381,7 +381,7 @@ class UniswapV3GetPoolInfo(Model):
     # 200
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
-        # pylint:disable=locally-disabled, too-many-locals
+        # pylint:disable=locally-disabled, too-many-locals, too-many-statements
         primary_tokens = self.context.run_model('dex.ring0-tokens',
                                                 input=EmptyInput(),
                                                 return_type=Some[Address],
