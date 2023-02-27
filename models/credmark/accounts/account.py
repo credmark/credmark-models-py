@@ -356,10 +356,19 @@ class AccountsERC20TokenHistorical(Model):
                                                set()))
             all_tokens = list(token_blocks.keys())
 
-            all_prices = (self.context.run_model(
-                'price.dex-db-blocks-tokens',
-                input={'addresses': all_tokens, 'blocks': all_blocks})
-                ['results'])
+            all_prices = []
+            len_list = len(all_tokens)
+            chunk_size = int(1000 * 7 / len(all_blocks))
+            range_start = 0
+            for i in range(0, len_list, chunk_size):
+                rr = (range_start + i, min(len_list, range_start + i + chunk_size))
+                all_prices += (self.context.run_model(
+                    'price.dex-db-blocks-tokens',
+                    input={'addresses': all_tokens[rr[0]:rr[1]], 'blocks': all_blocks})
+                    ['results'])
+
+            if len(all_prices) != len(all_tokens):
+                raise ModelRunError('Prices results length is different from input list of tokens')
 
             all_prices_dict = {d['address']: d['results'] for d in all_prices}
 
