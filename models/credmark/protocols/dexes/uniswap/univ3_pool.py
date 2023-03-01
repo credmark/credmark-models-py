@@ -8,6 +8,7 @@ from datetime import datetime
 
 from typing import Optional
 
+import sys
 import numpy as np
 import pandas as pd
 from credmark.cmf.ipython import CmfInit, create_cmf_context
@@ -40,7 +41,7 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape))
+    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -198,7 +199,8 @@ class UniV3Pool:
 
         df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
         print((df_init_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0],
-               df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]))
+               df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]),
+              file=sys.stderr)
         return df_comb_evt
 
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):

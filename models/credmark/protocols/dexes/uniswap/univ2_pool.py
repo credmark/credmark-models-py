@@ -4,6 +4,7 @@ Uni V2 Pool
 
 # pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, unused-import
 
+import sys
 from typing import Optional
 
 from datetime import datetime
@@ -24,7 +25,7 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape))
+    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -174,7 +175,8 @@ class UniV2Pool:
 
         df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
         print(('Sync', df_sync_evt.shape[0], 'Swap', df_swap_evt.shape[0],
-               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]))
+               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]),
+              file=sys.stderr)
         return df_comb_evt
 
     def get_pool_price_info(self):
