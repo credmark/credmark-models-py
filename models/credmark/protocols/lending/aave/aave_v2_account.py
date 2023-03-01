@@ -147,16 +147,15 @@ class AaveV2GetAccountInfoAsset(Model):
         return token_info
 
 
-@Model.describe(
-    slug="aave-v2.account-info",
-    version="0.2",
-    display_name="Aave V2 user account info",
-    description="Aave V2 user balance (principal and interest) and debt",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Account,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-info",
+                version="0.3",
+                display_name="Aave V2 user account info",
+                description="Aave V2 user balance (principal and interest) and debt",
+                category="protocol",
+                subcategory="aave-v2",
+                input=Account,
+                output=dict,
+                )
 class AaveV2GetAccountInfo(Model):
     def run(self, input: Account) -> dict:
         protocolDataProvider = self.context.run_model(
@@ -198,7 +197,36 @@ class AaveV2GetAccountInfo(Model):
 
             return user_reserve_data
 
-        return {'accountAAVEInfo': _use_compose()}
+        def _get_net_apy(user_reserve_data):
+            balance_list = []
+            for reserve_token in user_reserve_data:
+                if reserve_token['currentATokenBalance'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
+                    balance_list.append({'amount': amount,
+                                         'APY': reserve_token['depositAPY']})
+                if reserve_token['currentStableDebt'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
+                    balance_list.append({'amount': -1 * amount,
+                                         'APY': reserve_token['stableBorrowAPY']})
+                if reserve_token['currentVariableDebt'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
+                    balance_list.append({'amount': -1 * amount,
+                                         'APY': reserve_token['variableBorrowAPY']})
+
+            net_worth = 0
+            for balance in balance_list:
+                net_worth += balance['amount']
+
+            # (deposit amount/net_worth)*APY - (debt amount/net_worth)*APY
+            net_apy = 0
+            for balance in balance_list:
+                net_apy += (balance['amount']/net_worth) * balance['APY']
+
+            return net_apy
+
+        user_reserve_data = _use_compose()
+        net_apy = _get_net_apy(user_reserve_data)
+        return {'accountAAVEInfo': user_reserve_data, 'netAPY': net_apy}
 
 
 @Model.describe(

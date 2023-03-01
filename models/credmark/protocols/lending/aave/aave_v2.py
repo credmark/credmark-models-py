@@ -156,7 +156,7 @@ class AaveV2GetLPIncentive(Model):
 
 
 @Model.describe(slug="aave-v2.get-staking-reward",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 - Get staking controller",
                 description="Aave V2 - Get staking controller",
                 category='protocol',
@@ -173,13 +173,26 @@ class AaveV2GetStakingIncentive(Model):
         balance_of_scaled = staked_aave.balance_of_scaled(input.address.checksum)
         total_reward = staked_aave.scaled(staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
 
+        rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
+            staked_aave.events.RewardsClaimed,
+            argument_filters={
+                'from': input.address.checksum},
+            from_block=0,
+            contract_address=staked_aave.address.checksum))
+
+        if rewards_claimed_df.empty:
+            rewards_claimed = 0.0
+        else:
+            rewards_claimed = staked_aave.scaled(rewards_claimed_df.amount.sum())
+
         # this does not include unclaimed rewards
         _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(input.address.checksum).call()
 
         return {
             'staked_aave_address': staked_aave.address.checksum,
             'balance_scaled': balance_of_scaled,
-            'reward_scaled': total_reward}
+            'reward_scaled': total_reward,
+            'total_rewards_claimed': rewards_claimed}
 
 
 """
