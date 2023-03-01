@@ -342,6 +342,7 @@ class AccountsERC20TokenHistorical(Model):
     def account_token_historical(self, input, do_wobble_price):
         _include_price = input.include_price
 
+        self.logger.info(f'[{self.slug}] fetching `accounts.token-historical-balance`')
         balance_result = self.context.run_model('accounts.token-historical-balance', input)
 
         historical_blocks = balance_result['historical_blocks']
@@ -362,6 +363,9 @@ class AccountsERC20TokenHistorical(Model):
             range_start = 0
             for i in range(0, len_list, chunk_size):
                 rr = (range_start + i, min(len_list, range_start + i + chunk_size))
+                self.logger.info('Fetching `price.dex-db-blocks-tokens` '
+                                 f'{rr[1]-rr[0]}*{len(all_blocks)}={(rr[1]-rr[0])*len(all_blocks)} '
+                                 f'for {i} in total {len_list}')
                 all_prices += (self.context.run_model(
                     'price.dex-db-blocks-tokens',
                     input={'addresses': all_tokens[rr[0]:rr[1]], 'blocks': all_blocks})
@@ -427,6 +431,7 @@ class AccountsERC20TokenHistorical(Model):
                     for blk_n, blk in enumerate(past_blocks):
                         if blk not in blocks_in_prices:
                             # 7200 blocks = 1440 minutes = 24 hr = 1 day
+                            self.logger.info(f'[{self.slug}] make up last price')
                             blk_diff = blk - last_price_block
                             if 0 < blk_diff < 7200:
                                 self.logger.info(
@@ -481,6 +486,7 @@ class AccountsERC20TokenHistorical(Model):
                 output=dict)
 class AccountsERC20TokenHistoricalBalance(Model):
     def run(self, input: AccountsHistoricalInput) -> dict:
+        self.logger.info(f'[{self.slug}] Fetching native token transfer')
         _include_price = input.include_price
 
         _native_token = NativeToken()
@@ -488,6 +494,7 @@ class AccountsERC20TokenHistoricalBalance(Model):
         # TODO: native token transaction (incomplete) and gas spending
         _df_native = get_native_transfer(self.context, input.to_address())
 
+        self.logger.info(f'[{self.slug}] Fetching ERC20 token transfer')
         # ERC-20 transaction
         df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
@@ -512,6 +519,7 @@ class AccountsERC20TokenHistoricalBalance(Model):
         token_rows = {}
         all_tokens = {}
 
+        self.logger.info(f'[{self.slug}] Producing account portfolio')
         for n_historical, row in df_historical.iterrows():
             past_block_number = int(row['blockNumber'])  # type: ignore
             assets = []
