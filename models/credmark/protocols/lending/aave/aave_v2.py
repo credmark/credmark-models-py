@@ -156,7 +156,7 @@ class AaveV2GetLPIncentive(Model):
 
 
 @Model.describe(slug="aave-v2.get-staking-reward",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 - Get staking controller",
                 description="Aave V2 - Get staking controller",
                 category='protocol',

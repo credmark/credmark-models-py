@@ -147,16 +147,15 @@ class AaveV2GetAccountInfoAsset(Model):
         return token_info
 
 
-@Model.describe(
-    slug="aave-v2.account-info",
-    version="0.2",
-    display_name="Aave V2 user account info",
-    description="Aave V2 user balance (principal and interest) and debt",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Account,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-info",
+                version="0.3",
+                display_name="Aave V2 user account info",
+                description="Aave V2 user balance (principal and interest) and debt",
+                category="protocol",
+                subcategory="aave-v2",
+                input=Account,
+                output=dict,
+                )
 class AaveV2GetAccountInfo(Model):
     def run(self, input: Account) -> dict:
         protocolDataProvider = self.context.run_model(
@@ -214,14 +213,14 @@ class AaveV2GetAccountInfo(Model):
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['variableBorrowAPY']})
 
-            networth = 0
+            net_worth = 0
             for balance in balance_list:
-                networth += balance['amount']
+                net_worth += balance['amount']
 
-            # (deposit amount/networth)*APY - (debt amount/networth)*APY
+            # (deposit amount/net_worth)*APY - (debt amount/net_worth)*APY
             net_apy = 0
             for balance in balance_list:
-                net_apy += (balance['amount']/networth) * balance['APY']
+                net_apy += (balance['amount']/net_worth) * balance['APY']
 
             return net_apy
 
