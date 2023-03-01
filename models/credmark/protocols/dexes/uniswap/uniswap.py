@@ -2,6 +2,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, PriceWithQuote, Token, Network
 from credmark.dto import EmptyInput
+from models.credmark.protocols.dexes.uniswap.constant import V3_QUOTER_ADDRESS, V3_SWAP_ROUTER_ADDRESS
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
@@ -13,10 +14,6 @@ from credmark.dto import EmptyInput
                 input=Token,
                 output=PriceWithQuote)
 class UniswapRouterPricePair(Model):
-    UNISWAP_V3_QUOTER_ADDRESS = {
-        Network.Mainnet: '0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6'
-    }
-
     def run(self, input: Token) -> PriceWithQuote:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
@@ -29,7 +26,7 @@ class UniswapRouterPricePair(Model):
         fee = 10000
         sqrtPriceLimitX96 = 0
 
-        uniswap_quoter_addr = self.UNISWAP_V3_QUOTER_ADDRESS[self.context.network]
+        uniswap_quoter_addr = V3_QUOTER_ADDRESS[self.context.network]
         uniswap_quoter = Contract(address=uniswap_quoter_addr)
 
         quote = uniswap_quoter.functions.quoteExactOutputSingle(
@@ -51,16 +48,12 @@ class UniswapRouterPricePair(Model):
                 input=EmptyInput,
                 output=Contract)
 class UniswapRouterPriceUsd(Model):
-    UNISWAP_V3_SWAP_ROUTER_ADDRESS = {
-        Network.Mainnet: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
-    }
-
     def run(self, _) -> Contract:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap,
          default to USDC/USDT/DAI and throw out outliers.
         """
-        uniswap_router_addr = self.UNISWAP_V3_SWAP_ROUTER_ADDRESS[self.context.network]
+        uniswap_router_addr = V3_SWAP_ROUTER_ADDRESS[self.context.network]
         cc = Contract(address=uniswap_router_addr)
         _ = cc.abi
         return cc
@@ -102,13 +95,18 @@ class UniswapExchange(Model):
         uniswap_dai_v1_addr = Address(self.UNISWAP_DAI_V1_ADDRESS[self.context.network])
         exchange_contract = Contract(address=uniswap_dai_v1_addr)
 
-        # Prices
-        eth_amount = self.context.web3.toWei('1', 'Ether')
+        try:
+            to_wei = self.context.web3.to_wei  # type: ignore # pylint: disable=no-member
+        except AttributeError:
+            to_wei = self.context.web3.toWei  # type: ignore # pylint: disable=no-member
+
+            # Prices
+        eth_amount = to_wei('1', 'Ether')
 
         bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(eth_amount).call()
-        bid_price = self.context.web3.toWei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
+        bid_price = to_wei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
 
         offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(eth_amount).call()
-        offer_price = self.context.web3.toWei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
+        offer_price = to_wei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
 
         return {'value': (bid_price, offer_price, bid_daiAmount, offer_daiAmount)}

@@ -46,7 +46,11 @@ class ENSDomainName(DTO):
                 output=Price)
 class ChainLinkPriceByENS(Model):
     def run(self, input: ENSDomainName) -> Price:
-        ns = ENS.fromWeb3(self.context.web3)
+        try:
+            ns = ENS.fromWeb3(self.context.web3)  # type: ignore # pylint: disable=no-member
+        except AttributeError:
+            ns = ENS.from_web3(self.context.web3)  # type: ignore  # pylint: disable=no-member
+
         feed_address = ns.address(input.domain)
         if feed_address is None:
             raise ModelRunError('Unable to resolve ENS domain name {input.domain}')

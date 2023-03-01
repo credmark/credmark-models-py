@@ -4,6 +4,7 @@ Uni V2 Pool
 
 # pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, unused-import
 
+import sys
 from typing import Optional
 
 from datetime import datetime
@@ -14,6 +15,8 @@ from credmark.cmf.model.errors import ModelDataError
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
+from web3.exceptions import ContractLogicError
+
 
 def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
     start_t = datetime.now()
@@ -22,7 +25,7 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape))
+    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -46,22 +49,22 @@ class UniV2Pool:
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
-        self.token0 = Token(address=Address(self.token0_addr).checksum)
-        self.token1 = Token(address=Address(self.token1_addr).checksum)
 
         try:
+            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20(force=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
-        except ModelDataError:
-            self.token0 = self.token0.as_erc20()
+        except (OverflowError, ModelDataError, ContractLogicError):
+            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20()
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
 
         try:
+            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20(force=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
-        except ModelDataError:
-            self.token1 = self.token1.as_erc20()
+        except (OverflowError, ModelDataError, ContractLogicError):
+            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20()
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 
@@ -172,7 +175,8 @@ class UniV2Pool:
 
         df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
         print(('Sync', df_sync_evt.shape[0], 'Swap', df_swap_evt.shape[0],
-               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]))
+               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]),
+              file=sys.stderr)
         return df_comb_evt
 
     def get_pool_price_info(self):

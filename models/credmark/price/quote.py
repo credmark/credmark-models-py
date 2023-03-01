@@ -78,14 +78,14 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple-maybe',
-                version='0.1',
+                version='0.2',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
                 input=Some[PriceInputWithPreference],
-                output=Some[PriceWithQuote],
+                output=Some[Maybe[PriceWithQuote]],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteMultipleMaybe(Model):
     def run(self, input: Some[PriceInputWithPreference]) -> Some[Maybe[PriceWithQuote]]:
@@ -115,7 +115,7 @@ class PriceQuoteMultipleMaybe(Model):
                       for m in input]
             return Some[Maybe[PriceWithQuote]](some=prices)
 
-        return _use_for()
+        return _use_compose()
 
 
 @Model.describe(slug='price.quote-multiple',
@@ -217,18 +217,17 @@ class PriceQuoteMaybe(Model):
         return Maybe.none()
 
 
-@Model.describe(
-    slug='price.quote',
-    version='1.11',
-    display_name=('Credmark Token Price with preference of cex or dex (default), '
-                  'fiat conversion for non-USD from Chainlink'),
-    description='Credmark Token Price from cex or dex',
-    developer='Credmark',
-    category='protocol',
-    tags=['token', 'price'],
-    input=PriceInputWithPreference,
-    output=PriceWithQuote,
-    errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.quote',
+                version='1.11',
+                display_name=('Credmark Token Price with preference of cex or dex (default), '
+                              'fiat conversion for non-USD from Chainlink'),
+                description='Credmark Token Price from cex or dex',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInputWithPreference,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
     def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
         pi = {"base": input.base.address, "quote": input.quote.address}
@@ -254,7 +253,8 @@ class PriceQuote(Model):
                     price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
-                    raise ModelRunError(f'No price can be found for {input}')
+                    raise ModelRunError(
+                        f'[{self.context.block_number}] No price can be found for {input}')
         except ModelRunError:
             raise
             # cex_cross = PriceCexCross(self.context)
@@ -470,16 +470,16 @@ class PriceCexCross(PriceCexModel, AllowDEX):
     """
 
 
-@Model.describe(
-    slug='price.dex-maybe',
-    version='0.2',
-    display_name='Credmark Token Price from Dex with Chainlink for fiat conversion [Maybe]',
-    description='Price from Dex with fiat conversion for non-USD [Maybe]',
-    developer='Credmark',
-    category='protocol',
-    tags=['token', 'price'],
-    input=PriceInput,
-    output=Maybe[PriceWithQuote])
+@Model.describe(slug='price.dex-maybe',
+                version='0.2',
+                display_name=('Credmark Token Price from Dex with '
+                              'Chainlink for fiat conversion [Maybe]'),
+                description='Price from Dex with fiat conversion for non-USD [Maybe]',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=Maybe[PriceWithQuote])
 class PriceDexMaybe(Model):
     """
     Return token's price in Maybe
@@ -493,17 +493,17 @@ class PriceDexMaybe(Model):
             return Maybe.none()
 
 
-@Model.describe(
-    slug='price.dex',
-    version='0.2',
-    display_name='Credmark Token Price from Dex with Chainlink for fiat conversion',
-    description='Price from Dex with fiat conversion for non-USD',
-    developer='Credmark',
-    category='protocol',
-    tags=['token', 'price'],
-    input=PriceInput,
-    output=PriceWithQuote,
-    errors=PRICE_DATA_ERROR_DESC)
+@Model.describe(slug='price.dex',
+                version='0.2',
+                display_name=('Credmark Token Price from Dex with '
+                              'Chainlink for fiat conversion'),
+                description='Price from Dex with fiat conversion for non-USD',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
 class PriceDex(Model, PriceCommon):
     """
     Return token's price from Dex with Chainlink for fiat conversion

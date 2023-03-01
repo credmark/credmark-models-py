@@ -10,7 +10,6 @@ from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurr
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
 SLOT_EIP1967 = hex(int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
@@ -265,7 +264,7 @@ class TokenTotalSupplyModel(Model):
 class TokenBalanceInput(Token):
     account: Address = \
         DTOField(
-            description=('Account address for which to fetch balance.'))
+            description='Account address for which to fetch balance.')
     quote: Currency = \
         DTOField(FiatCurrency(symbol='USD'),
                  description='Quote token address to count the value')

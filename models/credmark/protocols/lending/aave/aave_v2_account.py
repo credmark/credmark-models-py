@@ -128,10 +128,13 @@ class AaveV2GetAccountInfoAsset(Model):
                               .getReserveData(token_address).call())
         token_info['variableBorrowRate'] = token_reserve_data[4]
 
+        for key in ["variableBorrowRate", "stableBorrowRate", "liquidityRate"]:
+            token_info[key] = token_info[key]/ray
+
         # Calculate APY for deposit and borrow
-        deposit_APR = token_info['liquidityRate']/ray
-        variable_borrow_APR = token_info['variableBorrowRate']/ray
-        stable_borrow_APR = token_info['stableBorrowRate']/ray
+        deposit_APR = token_info['liquidityRate']
+        variable_borrow_APR = token_info['variableBorrowRate']
+        stable_borrow_APR = token_info['stableBorrowRate']
 
         deposit_APY = ((1 + (deposit_APR / seconds_per_year)) ** seconds_per_year) - 1
         variable_borrow_APY = ((1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
@@ -308,15 +311,15 @@ class AaveV2GetAccountSummaryHistorical(Model):
         """
 
         # 1. Fetch historical user account data
-        result_historical = self.context.run_model('historical.run-model',
-                                                   dict(
-                                                       model_slug='aave-v2.account-summary',
-                                                       window=input.window,
-                                                       interval=input.interval,
-                                                       model_input=input),
-                                                   return_type=BlockSeries[dict])
+        result_historical = self.context.run_model(
+            'historical.run-model',
+            {'model_slug': 'aave-v2.account-summary',
+             'window': input.window,
+             'interval': input.interval,
+             'model_input': input},
+            return_type=BlockSeries[dict])
 
-        result_historical_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_historical]
+        result_historical_format = [{'blockNumber': p.blockNumber, 'result': p.output} for p in result_historical]
 
         historical_blocks = set(p.blockNumber for p in result_historical)
 
@@ -376,7 +379,9 @@ class AaveV2GetAccountSummaryHistorical(Model):
                          "blockNumbers": blocks_to_run_simple},
                         return_type=MapBlocksOutput[dict])
 
-                    result_blocks_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_blocks]
+                    result_blocks_format = [
+                        {'blockNumber': p.blockNumber, 'result': p.output}
+                        for p in result_blocks]
 
         result_comb = sorted(result_historical_format + result_blocks_format,
                              key=lambda x: x['blockNumber'])  # type: ignore

@@ -274,21 +274,21 @@ class TestPrice(CMFTest):
                         token_input = {"symbol": token_addr}
 
                     self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "USD", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "USD"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "USD", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "USD"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "JPY", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "JPY"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "JPY", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "JPY"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "GBP", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "GBP"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "GBP", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "GBP"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "EUR", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "EUR"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "EUR", "prefer": prefer}}, block_number=block_number)  # __all__
+                        "symbol": "EUR"}, "prefer": prefer}, block_number=block_number)  # __all__
                     self.run_model(price_model, {"base": token_input, "quote": {
                         "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"},
                         "prefer": prefer}, block_number=block_number)  # __all__
