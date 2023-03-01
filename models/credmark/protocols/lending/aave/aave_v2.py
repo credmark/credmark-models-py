@@ -38,12 +38,6 @@ class AaveDebtInfo(DTO):
     totalLiquidity_qty: float
 
 
-# PriceOracle
-# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
-# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
-# getSourceOfAsset()
-# getFallbackOracle()
-
 @Model.describe(slug="aave-v2.get-lending-pool-providers-from-registry",
                 version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
@@ -195,15 +189,6 @@ class AaveV2GetStakingIncentive(Model):
             'total_rewards_claimed': rewards_claimed}
 
 
-"""
-# PriceOracle
-# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
-# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
-# getSourceOfAsset()
-# getFallbackOracle()
-"""
-
-
 @Model.describe(slug="aave-v2.get-lending-pool-provider",
                 version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
@@ -293,6 +278,14 @@ class AaveV2GetPriceOracle(Model):
         _ = price_oracle_contract.abi
         return price_oracle_contract
 
+
+"""
+# PriceOracle
+# getAssetPrice() Returns the price of the supported _asset in ETH wei units.
+# getAssetsPrices() Returns the price of the supported _asset in ETH wei units.
+# getSourceOfAsset()
+# getFallbackOracle()
+"""
 
 @Model.describe(slug="aave-v2.get-oracle-price",
                 version="1.3",

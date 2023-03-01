@@ -20,16 +20,15 @@ class AccountInfo4Reserve(Account):
     reserve: Token = DTOField(description='Reserve token')
 
 
-@Model.describe(
-    slug="aave-v2.account-info-reserve",
-    version="0.1",
-    display_name="Aave V2 user account info for one reserve token",
-    description="Aave V2 user balance (principal and interest) and debt",
-    category="protocol",
-    subcategory="aave-v2",
-    input=AccountInfo4Reserve,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-info-reserve",
+                version="0.1",
+                display_name="Aave V2 user account info for one reserve token",
+                description="Aave V2 user balance (principal and interest) and debt",
+                category="protocol",
+                subcategory="aave-v2",
+                input=AccountInfo4Reserve,
+                output=dict,
+                )
 class AaveV2GetAccountInfoAsset(Model):
     def run(self, input: AccountInfo4Reserve) -> dict:
         protocolDataProvider = self.context.run_model(
@@ -229,16 +228,15 @@ class AaveV2GetAccountInfo(Model):
         return {'accountAAVEInfo': user_reserve_data, 'netAPY': net_apy}
 
 
-@Model.describe(
-    slug="aave-v2.account-summary",
-    version="0.1",
-    display_name="Aave V2 user account summary",
-    description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Account,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-summary",
+                version="0.1",
+                display_name="Aave V2 user account summary",
+                description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
+                category="protocol",
+                subcategory="aave-v2",
+                input=Account,
+                output=dict,
+                )
 class AaveV2GetAccountSummary(Model):
     def run(self, input: Account) -> dict:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
@@ -275,8 +273,7 @@ class AccountAAVEHistorical(Account):
     interval: str
 
 
-@Model.describe(
-    slug="aave-v2.account-summary-historical",
+@Model.describe(slug="aave-v2.account-summary-historical",
     version="0.1",
     display_name="Aave V2 user account summary historical",
     description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
