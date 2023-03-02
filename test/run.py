@@ -17,6 +17,7 @@ from test_bsc import TestBSC
 from test_polygon import TestPolygon
 
 from test_aave import TestAAVE
+from test_arbitrum import TestArbitrum
 from test_account import TestAccount
 from test_balancer import TestBalancer
 from test_chainlink import TestChainlink
@@ -29,6 +30,7 @@ from test_example import TestExample
 from test_fiat import TestFiat
 from test_finance import TestFinance
 from test_index_coop import TestIndexCoop
+from test_optimism import TestOptimism
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
@@ -124,6 +126,9 @@ if __name__ == '__main__':
         CMFTest.fail_first = True
         sys.argv = sys.argv[:1]
         if args['tests'] != '__all__':
+            if len(all_tests_sel) == 0:
+                sys.exit()
+
             for test_name in (x.__name__ for x in all_tests_sel):
                 sys.argv.insert(len(sys.argv), test_name)
         unittest.main(failfast=True)
