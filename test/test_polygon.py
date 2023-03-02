@@ -15,5 +15,14 @@ class TestPolygon(CMFTest):
         self.run_model('price.oracle-chainlink',
                        {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb"}, block_number=last_block-1000, chain_id=137)
 
-        self.run_model('uniswap-v3.lp',
-                       {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"}, block_number=last_block-1000, chain_id=137)
+        # If there is no position, find another account with
+        # https://polygonscan.com/token/0xc36442b4a4522e871399cd717abdd847ab11fe88#readProxyContract
+        # totalSupply => position for a recent id (-100)
+        lp_pos = self.run_model_with_output(
+            'uniswap-v3.lp',
+            {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"}, block_number=last_block-1000, chain_id=137)
+
+        lp_pos_id = lp_pos['output']['positions'][0]['id']
+        print(f'Fetching Uniswap V3 NFT for {lp_pos_id}')
+        self.run_model('uniswap-v3.id',
+                       {"id": lp_pos_id}, block_number=last_block-1000, chain_id=137)
