@@ -45,7 +45,8 @@ class UniswapV3LiquidityHistorical(Model):
         try:
             _ = pool_contract.abi
         except ModelDataError:
-            pool_contract = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
+            pool_contract = Contract(address=input.address)
+            pool_contract.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         current_liquidity = pool_contract.functions.liquidity().call()
         slot0 = pool_contract.functions.slot0().call()
@@ -107,7 +108,8 @@ def plot_liquidity(context,
                    pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                    upper_range=1000,
                    lower_range=1000):
-    pool = Contract(address=pool_addr, abi=UNISWAP_V3_POOL_ABI)
+    pool = Contract(address=pool_addr)
+    pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
@@ -244,7 +246,8 @@ class UniswapV3AmountInTicks(Model):
         try:
             _ = pool_contract.abi
         except ModelDataError:
-            pool_contract = Contract(address=input.address, abi=UNISWAP_V3_POOL_ABI)
+            pool_contract = Contract(address=input.address)
+            pool_contract.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         token0_addr = pool_contract.functions.token0().call()
         token1_addr = pool_contract.functions.token1().call()
@@ -265,7 +268,8 @@ def plot_liquidity_amount(context,
                           pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                           upper_range: Optional[int] = 1000,
                           lower_range: Optional[int] = 1000):
-    pool = Contract(address=pool_addr, abi=UNISWAP_V3_POOL_ABI)
+    pool = Contract(address=pool_addr)
+    pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
     token0_addr = pool.functions.token0().call()
     token1_addr = pool.functions.token1().call()

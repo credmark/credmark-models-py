@@ -83,7 +83,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     for tok_address, dfa in _df.groupby('token_address'):
         min_block_number = int(dfa.block_number.min())
 
-        tok = Token(tok_address).as_erc20(force=True)
+        tok = Token(tok_address).as_erc20(set_loaded=True)
 
         try:
             dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))

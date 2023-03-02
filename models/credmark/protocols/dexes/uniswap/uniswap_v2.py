@@ -168,14 +168,14 @@ class UniswapV2LPQuantity(Model):
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(force=True)
+            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
             scaled_reserve0 = token0.scaled(reserves[0])
         except OverflowError:
             token0 = Token(address=Address(token0_addr)).as_erc20()
             scaled_reserve0 = token0.scaled(reserves[0])
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(force=True)
+            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
             scaled_reserve1 = token1.scaled(reserves[1])
         except OverflowError:
             token1 = Token(address=Address(token1_addr)).as_erc20()
@@ -318,8 +318,8 @@ class UniswapV2LPFeeHistory(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20(force=True)
-        token1 = token1.as_erc20(force=True)
+        token0 = token0.as_erc20(set_loaded=True)
+        token1 = token1.as_erc20(set_loaded=True)
 
         with self.context.ledger.TokenBalance as q:
             q_cols = [q.TRANSACTION_HASH,
@@ -448,8 +448,8 @@ class UniswapV2LPFee(Model):
 
         token0 = Token(address=Address(pool.functions.token0().call()))
         token1 = Token(address=Address(pool.functions.token1().call()))
-        token0 = token0.as_erc20(force=True)
-        token1 = token1.as_erc20(force=True)
+        token0 = token0.as_erc20(set_loaded=True)
+        token1 = token1.as_erc20(set_loaded=True)
 
         # Obtain the last 2 when the current block has mint/burn
         with self.context.ledger.TokenBalance as q:
@@ -529,7 +529,8 @@ class UniswapPoolPriceInfo(Model):
         try:
             _ = pool.abi
         except ModelDataError:
-            pool = Contract(address=input.address, abi=UNISWAP_V2_POOL_ABI)
+            pool = Contract(address=input.address)
+            pool.set_abi(abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         primary_tokens = self.context.run_model('dex.ring0-tokens',
                                                 input=EmptyInput(),
@@ -545,14 +546,14 @@ class UniswapPoolPriceInfo(Model):
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(force=True)
+            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
             token0_symbol = token0.symbol
         except (OverflowError, ContractLogicError):
             token0 = Token(address=Address(token0_addr)).as_erc20()
             token0_symbol = token0.symbol
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(force=True)
+            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
             token1_symbol = token1.symbol
         except (OverflowError, ContractLogicError):
             token1 = Token(address=Address(token1_addr)).as_erc20()
@@ -735,14 +736,15 @@ class UniswapV2PoolInfo(DTO):
                 output=UniswapV2PoolInfo)
 class UniswapGetPoolInfo(Model):
     def run(self, input: Contract) -> UniswapV2PoolInfo:
-        contract = input
+        pool = input
         try:
-            contract.abi
+            pool.abi
         except ModelDataError:
-            contract = Contract(address=input.address, abi=UNISWAP_V2_POOL_ABI)
+            pool = Contract(address=input.address)
+            pool.set_abi(abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
-        token0 = Token(address=contract.functions.token0().call())
-        token1 = Token(address=contract.functions.token1().call())
+        token0 = Token(address=pool.functions.token0().call())
+        token1 = Token(address=pool.functions.token1().call())
         # getReserves = contract.functions.getReserves().call()
 
         token0_balance = token0.balance_of_scaled(input.address.checksum)
@@ -971,11 +973,9 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             _ = pool.abi
         except ModelDataError:
             if input.pool_info_model == 'uniswap-v2.pool-tvl':
-                pool._loaded = True  # pylint:disable=protected-access
-                pool.set_abi(UNISWAP_V3_POOL_ABI)
+                pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
             elif input.pool_info_model == 'curve-fi.pool-tvl':
-                pool._loaded = True  # pylint:disable=protected-access
-                pool.set_abi(CURVE_VYPER_POOL)
+                pool.set_abi(CURVE_VYPER_POOL, set_loaded=True)
             else:
                 raise
 
