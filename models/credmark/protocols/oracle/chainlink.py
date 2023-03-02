@@ -74,8 +74,7 @@ class ChainLinkPriceByFeed(Model):
         try:
             feed_contract.abi
         except ModelEngineError:
-            feed_contract._loaded = True  # pylint:disable=protected-access
-            feed_contract.set_abi(CHAINLINK_AGG)
+            feed_contract.set_abi(CHAINLINK_AGG, set_loaded=True)
 
         (_roundId, answer,
             _startedAt, _updatedAt,

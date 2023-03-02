@@ -239,7 +239,7 @@ class AccountsTokenReturnHistorical(Model):
 
                 for p_maybe, (token_addr, token_value) in \
                         zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
-                    asset_token = Token(token_addr).as_erc20(force=True)
+                    asset_token = Token(token_addr).as_erc20(set_loaded=True)
                     if p_maybe.just is None:
                         continue
                     try:
@@ -254,7 +254,7 @@ class AccountsTokenReturnHistorical(Model):
             def _use_for(_assets, _token_bal, _past_block_number):
                 for _, token_bal_row in _token_bal.iterrows():
                     if not math.isclose(token_bal_row['value'], 0):
-                        asset_token = Token(token_bal_row['token_address']).as_erc20(force=True)
+                        asset_token = Token(token_bal_row['token_address']).as_erc20(set_loaded=True)
                         try_price = self.context.run_model('price.quote-maybe',
                                                            input={'base': asset_token},
                                                            block_number=_past_block_number)
@@ -546,7 +546,7 @@ class AccountsERC20TokenHistoricalBalance(Model):
                 if not math.isclose(token_bal_row['value'], 0):
                     token_bal_addr = token_bal_row['token_address']
                     if all_tokens.get(token_bal_addr) is None:
-                        all_tokens[token_bal_addr] = Token(token_bal_addr).as_erc20(force=True)
+                        all_tokens[token_bal_addr] = Token(token_bal_addr).as_erc20(set_loaded=True)
                     try:
                         if _include_price:
                             assets.append(

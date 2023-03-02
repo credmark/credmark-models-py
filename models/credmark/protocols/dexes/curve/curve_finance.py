@@ -140,7 +140,7 @@ class CurveFinancePoolInfoTokens(Model):
         for addr in addrs:
             tok_addr = Address(addr)
             if not tok_addr.is_null():
-                tok = Token(address=tok_addr.checksum).as_erc20(force=True)
+                tok = Token(address=tok_addr.checksum).as_erc20(set_loaded=True)
                 symbols_list.append(tok.symbol)
                 token_list.append(tok)
         return token_list, symbols_list
@@ -171,8 +171,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 _ = input.abi
             except ModelDataError:
-                input._loaded = True  # pylint:disable=protected-access
-                input.set_abi(CURVE_VYPER_POOL)
+                input.set_abi(CURVE_VYPER_POOL, set_loaded=True)
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(self.slug,
@@ -252,7 +251,7 @@ class CurveFinancePoolInfoTokens(Model):
                 try:
                     _ = lp_token.abi
                 except ModelDataError:
-                    lp_token = lp_token.as_erc20(force=True)
+                    lp_token = lp_token.as_erc20(set_loaded=True)
                 lp_token_name = lp_token.name
                 lp_token_addr = lp_token.address
 
@@ -475,8 +474,7 @@ class CurveFinanceAllGauges(Model):
             try:
                 _ = gauge_contract.abi
             except ModelDataError:
-                gauge_contract._loaded = True  # pylint:disable=protected-access
-                gauge_contract.set_abi(GAUGE_ABI_LP_TOKEN)
+                gauge_contract.set_abi(GAUGE_ABI_LP_TOKEN, set_loaded=True)
             try:
                 lp_token_addr = gauge_contract.functions.lp_token().call()
                 lp_tokens.append(Account(address=lp_token_addr))
@@ -538,7 +536,8 @@ class CurveFinanceGaugeRewardsCRV(Model):
 
 
 # gaugeAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
-# _gauge = Contract(address=gaugeAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+# _gauge = Contract(address=gaugeAddress.checksum)
+# _gauge.set_abi(CURVE_GAUGE_V1_ABI, set_loaded=True)
 
 
 class CurveGaugeInput(DTO):

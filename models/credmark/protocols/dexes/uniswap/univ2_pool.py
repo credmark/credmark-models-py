@@ -51,7 +51,7 @@ class UniV2Pool:
         self.token1_addr = self.pool.functions.token1().call().lower()
 
         try:
-            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20(force=True)
+            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20(set_loaded=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except (OverflowError, ModelDataError, ContractLogicError):
@@ -60,7 +60,7 @@ class UniV2Pool:
             self.token0_symbol = self.token0.symbol
 
         try:
-            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20(force=True)
+            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except (OverflowError, ModelDataError, ContractLogicError):

@@ -39,7 +39,8 @@ class UniswapPoolVaR(Model):
         try:
             _ = pool.abi
         except ModelDataError:
-            pool = Contract(address=input.pool.address, abi=UNISWAP_V3_POOL_ABI)
+            pool = Contract(address=input.pool.address)
+            pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         if not isinstance(pool.abi, list):
             raise ModelRunError('Pool abi can not be loaded.')
