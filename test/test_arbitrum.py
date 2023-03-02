@@ -12,6 +12,8 @@ class TestArbitrum(CMFTest):
 
         last_block = last_block_output['output']['blockNumber']
 
+        # V3 NFT Manager on Arbitrum
+        # https://arbiscan.io/address/0xc36442b4a4522e871399cd717abdd847ab11fe88#code
         self.run_model('uniswap-v3.id',
                        {"id": 350000}, block_number=last_block, chain_id=chain_id)
 
