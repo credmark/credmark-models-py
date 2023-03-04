@@ -116,8 +116,7 @@ class UniV3Pool:
             self.load(_pool_data)
 
     def __del__(self):
-        del self.token0
-        del self.token1
+        pass
 
     def save(self):
         return {'pool_tick': self.pool_tick, 'pool_sqrtPrice': self.pool_sqrtPrice, 'pool_liquidity': self.pool_liquidity, 'ticks': self.ticks,

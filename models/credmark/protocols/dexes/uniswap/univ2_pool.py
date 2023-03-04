@@ -99,8 +99,7 @@ class UniV2Pool:
             self.load(_pool_data)
 
     def __del__(self):
-        del self.token0
-        del self.token1
+        pass
 
     def save(self):
         return {'block_number': self.block_number, 'log_index': self.log_index,
