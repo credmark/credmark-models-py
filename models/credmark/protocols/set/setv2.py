@@ -45,7 +45,6 @@ def setv2_fee(_setv_module, _start_block, _end_block, _set_token_addr):
     """
     To calculate the AUM, we need to get all Mint/Burn events start from block = 0, i.e. _start_block = 0.
     Total supply number does not corresponds to it.
-
     """
 
     set_token_addr = Address(_set_token_addr).checksum
