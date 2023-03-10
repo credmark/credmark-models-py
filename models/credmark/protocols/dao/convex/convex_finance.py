@@ -48,8 +48,7 @@ def fix_crv_reward(crv_rewards):
     try:
         _ = crv_rewards.abi
     except ModelDataError:
-        crv_rewards._loaded = True  # pylint:disable=protected-access
-        crv_rewards.set_abi(CRV_REWARD)
+        crv_rewards.set_abi(CRV_REWARD, set_loaded=True)
     return crv_rewards
 
 

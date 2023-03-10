@@ -20,16 +20,15 @@ class AccountInfo4Reserve(Account):
     reserve: Token = DTOField(description='Reserve token')
 
 
-@Model.describe(
-    slug="aave-v2.account-info-reserve",
-    version="0.1",
-    display_name="Aave V2 user account info for one reserve token",
-    description="Aave V2 user balance (principal and interest) and debt",
-    category="protocol",
-    subcategory="aave-v2",
-    input=AccountInfo4Reserve,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-info-reserve",
+                version="0.1",
+                display_name="Aave V2 user account info for one reserve token",
+                description="Aave V2 user balance (principal and interest) and debt",
+                category="protocol",
+                subcategory="aave-v2",
+                input=AccountInfo4Reserve,
+                output=dict,
+                )
 class AaveV2GetAccountInfoAsset(Model):
     def run(self, input: AccountInfo4Reserve) -> dict:
         protocolDataProvider = self.context.run_model(
@@ -128,10 +127,13 @@ class AaveV2GetAccountInfoAsset(Model):
                               .getReserveData(token_address).call())
         token_info['variableBorrowRate'] = token_reserve_data[4]
 
+        for key in ["variableBorrowRate", "stableBorrowRate", "liquidityRate"]:
+            token_info[key] = token_info[key]/ray
+
         # Calculate APY for deposit and borrow
-        deposit_APR = token_info['liquidityRate']/ray
-        variable_borrow_APR = token_info['variableBorrowRate']/ray
-        stable_borrow_APR = token_info['stableBorrowRate']/ray
+        deposit_APR = token_info['liquidityRate']
+        variable_borrow_APR = token_info['variableBorrowRate']
+        stable_borrow_APR = token_info['stableBorrowRate']
 
         deposit_APY = ((1 + (deposit_APR / seconds_per_year)) ** seconds_per_year) - 1
         variable_borrow_APY = ((1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
@@ -144,16 +146,15 @@ class AaveV2GetAccountInfoAsset(Model):
         return token_info
 
 
-@Model.describe(
-    slug="aave-v2.account-info",
-    version="0.2",
-    display_name="Aave V2 user account info",
-    description="Aave V2 user balance (principal and interest) and debt",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Account,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-info",
+                version="0.3",
+                display_name="Aave V2 user account info",
+                description="Aave V2 user balance (principal and interest) and debt",
+                category="protocol",
+                subcategory="aave-v2",
+                input=Account,
+                output=dict,
+                )
 class AaveV2GetAccountInfo(Model):
     def run(self, input: Account) -> dict:
         protocolDataProvider = self.context.run_model(
@@ -195,19 +196,47 @@ class AaveV2GetAccountInfo(Model):
 
             return user_reserve_data
 
-        return {'accountAAVEInfo': _use_compose()}
+        def _get_net_apy(user_reserve_data):
+            balance_list = []
+            for reserve_token in user_reserve_data:
+                if reserve_token['currentATokenBalance'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
+                    balance_list.append({'amount': amount,
+                                         'APY': reserve_token['depositAPY']})
+                if reserve_token['currentStableDebt'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
+                    balance_list.append({'amount': -1 * amount,
+                                         'APY': reserve_token['stableBorrowAPY']})
+                if reserve_token['currentVariableDebt'] != 0:
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
+                    balance_list.append({'amount': -1 * amount,
+                                         'APY': reserve_token['variableBorrowAPY']})
+
+            net_worth = 0
+            for balance in balance_list:
+                net_worth += balance['amount']
+
+            # (deposit amount/net_worth)*APY - (debt amount/net_worth)*APY
+            net_apy = 0
+            for balance in balance_list:
+                net_apy += (balance['amount']/net_worth) * balance['APY']
+
+            return net_apy
+
+        user_reserve_data = _use_compose()
+        net_apy = _get_net_apy(user_reserve_data)
+        return {'accountAAVEInfo': user_reserve_data, 'netAPY': net_apy}
 
 
-@Model.describe(
-    slug="aave-v2.account-summary",
-    version="0.1",
-    display_name="Aave V2 user account summary",
-    description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Account,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.account-summary",
+                version="0.1",
+                display_name="Aave V2 user account summary",
+                description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
+                category="protocol",
+                subcategory="aave-v2",
+                input=Account,
+                output=dict,
+                )
 class AaveV2GetAccountSummary(Model):
     def run(self, input: Account) -> dict:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
@@ -244,8 +273,7 @@ class AccountAAVEHistorical(Account):
     interval: str
 
 
-@Model.describe(
-    slug="aave-v2.account-summary-historical",
+@Model.describe(slug="aave-v2.account-summary-historical",
     version="0.1",
     display_name="Aave V2 user account summary historical",
     description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
@@ -279,15 +307,15 @@ class AaveV2GetAccountSummaryHistorical(Model):
         """
 
         # 1. Fetch historical user account data
-        result_historical = self.context.run_model('historical.run-model',
-                                                   dict(
-                                                       model_slug='aave-v2.account-summary',
-                                                       window=input.window,
-                                                       interval=input.interval,
-                                                       model_input=input),
-                                                   return_type=BlockSeries[dict])
+        result_historical = self.context.run_model(
+            'historical.run-model',
+            {'model_slug': 'aave-v2.account-summary',
+             'window': input.window,
+             'interval': input.interval,
+             'model_input': input},
+            return_type=BlockSeries[dict])
 
-        result_historical_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_historical]
+        result_historical_format = [{'blockNumber': p.blockNumber, 'result': p.output} for p in result_historical]
 
         historical_blocks = set(p.blockNumber for p in result_historical)
 
@@ -347,7 +375,9 @@ class AaveV2GetAccountSummaryHistorical(Model):
                          "blockNumbers": blocks_to_run_simple},
                         return_type=MapBlocksOutput[dict])
 
-                    result_blocks_format = [dict(blockNumber=p.blockNumber, result=p.output) for p in result_blocks]
+                    result_blocks_format = [
+                        {'blockNumber': p.blockNumber, 'result': p.output}
+                        for p in result_blocks]
 
         result_comb = sorted(result_historical_format + result_blocks_format,
                              key=lambda x: x['blockNumber'])  # type: ignore

@@ -98,7 +98,9 @@ class GetBalancerAllPools(Model):
         contracts = []
         for _n, r in df.iterrows():
             pool_addr = r.evt_pooladdress
-            pool = Contract(address=pool_addr, abi=BALANCER_POOL_ABI)
+            pool = Contract(address=pool_addr)
+            pool.set_abi(BALANCER_POOL_ABI, set_loaded=True)
+
             try:
                 _pool_id = pool.functions.getPoolId().call()
                 # print(_n, pool_addr, pool._meta.contract_name, file=sys.stderr)  # pylint:disable=protected-access
@@ -157,7 +159,7 @@ class GetBalancerPoolPriceInfo(Model):
         pool_addr = input.address
         pool = Contract(address=pool_addr)
         _ = pool.abi
-        # pool = Contract(address=pool_addr, abi=BALANCER_POOL_ABI)
+        # pool.set_abi(BALANCER_POOL_ABI, set_loaded=True)
 
         pool_id = pool.functions.getPoolId().call()
         pool_info = self.BalancerPoolTokens(*vault.functions.getPoolTokens(pool_id).call())

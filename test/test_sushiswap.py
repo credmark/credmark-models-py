@@ -14,6 +14,8 @@ class TestSushiSwap(CMFTest):
         self.run_model('sushiswap.get-weighted-price', {"symbol": "DAI"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "AAVE"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "MKR"})
+        self.run_model('sushiswap.get-weighted-price', {"symbol": "CMK"})
+
         self.run_model('sushiswap.all-pools', {})
         self.run_model('sushiswap.get-pool', {"token0": {"symbol": "DAI"}, "token1": {"symbol": "WETH"}})
         # CMK_ADDRESS, sushiswap.get-v2-factory

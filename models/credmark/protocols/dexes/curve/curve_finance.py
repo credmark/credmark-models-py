@@ -124,7 +124,7 @@ class CurveFinanceAllPools(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.10",
+                version="1.11",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -140,8 +140,7 @@ class CurveFinancePoolInfoTokens(Model):
         for addr in addrs:
             tok_addr = Address(addr)
             if not tok_addr.is_null():
-                tok = Token(address=tok_addr.checksum)
-                tok = tok.as_erc20()
+                tok = Token(address=tok_addr.checksum).as_erc20(set_loaded=True)
                 symbols_list.append(tok.symbol)
                 token_list.append(tok)
         return token_list, symbols_list
@@ -172,8 +171,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 _ = input.abi
             except ModelDataError:
-                input._loaded = True  # pylint:disable=protected-access
-                input.set_abi(CURVE_VYPER_POOL)
+                input.set_abi(CURVE_VYPER_POOL, set_loaded=True)
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(self.slug,
@@ -253,7 +251,7 @@ class CurveFinancePoolInfoTokens(Model):
                 try:
                     _ = lp_token.abi
                 except ModelDataError:
-                    lp_token = lp_token.as_erc20()
+                    lp_token = lp_token.as_erc20(set_loaded=True)
                 lp_token_name = lp_token.name
                 lp_token_addr = lp_token.address
 
@@ -318,7 +316,7 @@ class CurveFinancePoolInfo(Model):
         try:
             virtual_price = pool_contract.functions.get_virtual_price().call()
         except Exception as _err:
-            virtual_price = (10**18)
+            virtual_price = 10**18
 
         try:
             pool_A = pool_contract.functions.A().call()
@@ -341,6 +339,7 @@ class CurveFinancePoolInfo(Model):
                       for g, lp in zip(gauges, gauges.lp_tokens)
                       if lp.address == pool_info.lp_token_addr]
             gauges_type = [0] * len(gauges)
+
         is_meta = registry.functions.is_meta(pool_contract.address.checksum).call()
 
         return CurveFiPoolInfo(**(pool_info.dict()),
@@ -475,8 +474,7 @@ class CurveFinanceAllGauges(Model):
             try:
                 _ = gauge_contract.abi
             except ModelDataError:
-                gauge_contract._loaded = True  # pylint:disable=protected-access
-                gauge_contract.set_abi(GAUGE_ABI_LP_TOKEN)
+                gauge_contract.set_abi(GAUGE_ABI_LP_TOKEN, set_loaded=True)
             try:
                 lp_token_addr = gauge_contract.functions.lp_token().call()
                 lp_tokens.append(Account(address=lp_token_addr))
@@ -519,7 +517,7 @@ class CurveFinanceGaugeRewardsCRV(Model):
         yields = []
 
         all_addrs = Accounts(**self.context.models.curve_fi.all_gauge_claim_addresses(input))
-        for addr in all_addrs.accounts:
+        for addr in all_addrs:
             if not addr.address:
                 raise ModelRunError(f'Input is invalid, {input}')
 
@@ -538,7 +536,8 @@ class CurveFinanceGaugeRewardsCRV(Model):
 
 
 # gaugeAddress = Address('0x72E158d38dbd50A483501c24f792bDAAA3e7D55C')
-# _gauge = Contract(address=gaugeAddress.checksum, abi=CURVE_GAUGE_V1_ABI)
+# _gauge = Contract(address=gaugeAddress.checksum)
+# _gauge.set_abi(CURVE_GAUGE_V1_ABI, set_loaded=True)
 
 
 class CurveGaugeInput(DTO):
@@ -575,12 +574,11 @@ class CurveFinanceAverageGaugeYield(Model):
 
         res = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                window='60 days',
-                interval='7 days',
-                model_input=input
-            ),
+            {'model_slug': 'curve-fi.get-gauge-stake-and-claimable-rewards',
+             'window': '60 days',
+             'interval': '7 days',
+             'model_input': input
+             },
             return_type=BlockSeries[dict])
 
         yields = []

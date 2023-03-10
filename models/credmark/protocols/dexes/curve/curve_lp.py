@@ -68,12 +68,10 @@ class CurveFinanceHistoricalLPDist(Model):
 
         res = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='curve-fi.lp-dist',
-                window='60 days',
-                interval='7 days',
-                model_input={'address': input.address}
-            ),
+            {'model_slug': 'curve-fi.lp-dist',
+             'window': '60 days',
+             'interval': '7 days',
+             'model_input': {'address': input.address}},
             return_type=BlockSeries[dict])
 
         info_i_want = []
@@ -103,12 +101,11 @@ class CurveFinanceReserveRatio(Model):
 
         res = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='curve-fi-pool-info',
-                window='365 days',
-                interval='7 days',
-                model_input=_pool_contract
-            ))
+            {'model_slug': 'curve-fi-pool-info',
+             'window': '365 days',
+             'interval': '7 days',
+             'model_input': _pool_contract
+             })
 
         info_i_want = []
         for r in res:

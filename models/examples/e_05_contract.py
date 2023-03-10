@@ -1,5 +1,3 @@
-import socket
-
 from credmark.cmf.model import EmptyInput, Model
 from credmark.cmf.types import Contract
 from requests.exceptions import ReadTimeout
@@ -54,37 +52,23 @@ class ExampleContract(Model):
                    "we can query \"VestingScheduleAdded\" events.")
 
         vesting_added_events = []
+        # Some Eth node does not support the newer eth_newFilter method
         try:
-            vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
+            # pylint:disable=locally-disabled,protected-access
+            event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi()
+
+            __data_filter_set, event_filter_params = construct_event_filter_params(
+                abi_codec=self.context.web3.codec,
+                event_abi=event_abi,
+                address=contract.address.checksum,
                 fromBlock=0,
                 toBlock=self.context.block_number
-            ).get_all_entries()
+            )
+            vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
+            vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
+                                    for s in vesting_added_events]
 
             output.log_io(input="""
-vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
-    fromBlock=0,
-    toBlock=self.context.block_number
-).get_all_entries()
-        """, output=vesting_added_events)
-
-        except (ValueError, socket.timeout, ReadTimeoutError, ReadTimeout):
-            # Some Eth node does not support the newer eth_newFilter method
-            try:
-                # pylint:disable=locally-disabled,protected-access
-                event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi()
-
-                __data_filter_set, event_filter_params = construct_event_filter_params(
-                    abi_codec=self.context.web3.codec,
-                    event_abi=event_abi,
-                    address=contract.address.checksum,
-                    fromBlock=0,
-                    toBlock=self.context.block_number
-                )
-                vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
-                vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
-                                        for s in vesting_added_events]
-
-                output.log_io(input="""
 event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi() # pylint:disable=locally-disabled,protected-access
 
 __data_filter_set, event_filter_params = construct_event_filter_params(
@@ -96,15 +80,15 @@ __data_filter_set, event_filter_params = construct_event_filter_params(
 )
 vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
 vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
-                        for s in vesting_added_events]
-                    """, output=vesting_added_events)
+                    for s in vesting_added_events]
+                """, output=vesting_added_events)
 
-                output.log("And to map the events to list of accounts")
-                output.log_io(input="[event['args']['account'] for event in vesting_added_events]",
-                              output=[event['args']['account'] for event in vesting_added_events])
-            except (ReadTimeoutError, ReadTimeout):
-                output.log_error('There was timeout error when reading logs for '
-                                 f'{contract.address}')
+            output.log("And to map the events to list of accounts")
+            output.log_io(input="[event['args']['account'] for event in vesting_added_events]",
+                          output=[event['args']['account'] for event in vesting_added_events])
+        except (ReadTimeoutError, ReadTimeout):
+            output.log_error('There was timeout error when reading logs for '
+                             f'{contract.address}')
 
         # Contract ledger queries
         with contract.ledger.functions.addVestingSchedule as q:

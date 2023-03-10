@@ -39,7 +39,8 @@ class UniswapPoolVaR(Model):
         try:
             _ = pool.abi
         except ModelDataError:
-            pool = Contract(address=input.pool.address, abi=UNISWAP_V3_POOL_ABI)
+            pool = Contract(address=input.pool.address)
+            pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         if not isinstance(pool.abi, list):
             raise ModelRunError('Pool abi can not be loaded.')
@@ -62,7 +63,7 @@ class UniswapPoolVaR(Model):
             v3_info = self.context.run_model('uniswap-v3.get-pool-info',
                                              input=pool,
                                              return_type=UniswapV3PoolInfo)
-            scale_multiplier = (10 ** (v3_info.token0.decimals - v3_info.token1.decimals))
+            scale_multiplier = 10 ** (v3_info.token0.decimals - v3_info.token1.decimals)
             # p_0 = tick_price = token0 / token1
             p_0 = UNISWAP_TICK ** v3_info.current_tick * scale_multiplier
 

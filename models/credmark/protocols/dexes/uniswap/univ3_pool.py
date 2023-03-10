@@ -8,6 +8,7 @@ from datetime import datetime
 
 from typing import Optional
 
+import sys
 import numpy as np
 import pandas as pd
 from credmark.cmf.ipython import CmfInit, create_cmf_context
@@ -16,8 +17,9 @@ from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO
 from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity
 from models.dtos.pool import PoolPriceInfoWithVolume
-
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+
+from web3.exceptions import ContractLogicError
 
 
 class Tick(DTO):
@@ -39,7 +41,7 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape))
+    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -63,22 +65,22 @@ class UniV3Pool:
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
-        self.token0 = Token(address=Address(self.token0_addr).checksum)
-        self.token1 = Token(address=Address(self.token1_addr).checksum)
 
         try:
+            self.token0 = Token(address=Address(self.token0_addr).checksum)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except ModelDataError:
-            self.token0 = self.token0.as_erc20()
+            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20(set_loaded=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
 
         try:
+            self.token1 = Token(address=Address(self.token1_addr).checksum)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except ModelDataError:
-            self.token1 = self.token1.as_erc20()
+            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 
@@ -114,8 +116,7 @@ class UniV3Pool:
             self.load(_pool_data)
 
     def __del__(self):
-        del self.token0
-        del self.token1
+        pass
 
     def save(self):
         return {'pool_tick': self.pool_tick, 'pool_sqrtPrice': self.pool_sqrtPrice, 'pool_liquidity': self.pool_liquidity, 'ticks': self.ticks,
@@ -197,7 +198,8 @@ class UniV3Pool:
 
         df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
         print((df_init_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0],
-               df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]))
+               df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]),
+              file=sys.stderr)
         return df_comb_evt
 
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):

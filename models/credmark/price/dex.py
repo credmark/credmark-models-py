@@ -107,7 +107,7 @@ class PoolPriceAggregator(Model):
         all_pool_infos = input.some
 
         if len(all_pool_infos) == 0:
-            raise ModelRunError(f'No pool to aggregate for {input}')
+            raise ModelRunError(f'[{self.context.block_number}] No pool to aggregate for {input}')
 
         non_zero_pools = [
             ii.pool_address for ii in all_pool_infos
@@ -356,6 +356,10 @@ class PriceFromDexModel(Model):
 class PriceFromDexPreferModel(Model):
     """
     Return token's price from Dex with Chainlink as fallback
+
+    `price.quote` calls `chainlink`, `curve` then `price.dex-db-prefer`
+    `price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended`
+
     """
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:

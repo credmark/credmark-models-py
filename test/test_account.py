@@ -148,6 +148,8 @@ class TestAccount(CMFTest):
                            accounts_input | {"window": "5 days", "interval": "1 days", 'quote': 'AAVE'})
             self.run_model('accounts.token-return-historical',
                            accounts_input | {"token_list": "cmf", "window": "5 days", "interval": "1 days"})
+            self.run_model('accounts.token-historical',
+                           accounts_input | {"window": "5 days", "interval": "1 days", "quote": "EUR"})
 
         # no price
         self.run_model(

@@ -17,6 +17,7 @@ from test_bsc import TestBSC
 from test_polygon import TestPolygon
 
 from test_aave import TestAAVE
+from test_arbitrum import TestArbitrum
 from test_account import TestAccount
 from test_balancer import TestBalancer
 from test_chainlink import TestChainlink
@@ -24,17 +25,18 @@ from test_cmk import TestCMK
 from test_compose import TestCompose
 from test_compound import TestCompound
 from test_curve import TestCurve
-from test_fiat import TestFiat
 from test_dashboard import TestDashboard
 from test_example import TestExample
+from test_fiat import TestFiat
 from test_finance import TestFinance
+from test_index_coop import TestIndexCoop
+from test_optimism import TestOptimism
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
-from test_index_coop import TestIndexCoop
 from test_tls import TestTLS
 
 
@@ -50,17 +52,19 @@ if __name__ == '__main__':
                               '- test(local gw)\n'
                               '- gw (official gateway only'))
     parser.add_argument('start_n', type=int, default=0,
-                        help=('case number to start'))
+                        help='case number to start')
     parser.add_argument('-b', '--block_number', type=int, default=14249443,
-                        help=('Block number to run'))
+                        help='Block number to run')
     parser.add_argument('-s', '--serial', action='store_true', default=False,
-                        help=('Run tests in serial'))
+                        help='Run tests in serial')
     parser.add_argument('-p', '--parallel_count', type=int, default=10,
-                        help=('Parallel count'))
+                        help='Parallel count')
     parser.add_argument('--api_url', type=str, default='http://localhost:8700',
-                        help=('API to use'))
+                        help='API to use')
     parser.add_argument('-t', '--tests', type=str, default='__all__',
-                        help=('test to run'))
+                        help='test to run')
+    parser.add_argument('-l', '--list', action='store_true', default=False,
+                        help='List runnable tests')
 
     args = vars(parser.parse_args())
     CMFTest.type = args['type']
@@ -97,18 +101,23 @@ if __name__ == '__main__':
     # token_price_deps='price.quote,price.quote,uniswap-v2.get-weighted-price,uniswap-v3.get-weighted-price,sushiswap.get-weighted-price,uniswap-v3.get-pool-info'
     # var_deps=finance.var-engine,finance.var-reference,price.quote,finance.get-one,${token_price_deps}
 
+    # test-model -t bsc,polygon,aave,account,balancer,chainlink,cmk,compose,compound,curve,dashboard,example,fiat,finance
+    # test-model -t index,price,speed,sushiswap,token,tvl,uniswap
+
     all_tests_name = [o.__name__
                       for _n, o in locals().items()
                       if inspect.isclass(o) and
-                      issubclass(o, CMFTest)
+                      issubclass(o, CMFTest) and o != CMFTest
                       ]
 
     print(f'All Tests: {all_tests_name}')
+    if args['list']:
+        sys.exit(0)
 
     all_tests_sel = [o for _n, o in locals().items()
                      if inspect.isclass(o) and
                      issubclass(o, CMFTest) and
-                     (args['tests'] == '__all__' or sum(o.__name__.endswith(t)
+                     (args['tests'] == '__all__' or sum(o.__name__.lower().endswith(t.lower())
                                                         for t in args['tests'].split(",")) == 1)]
 
     print(f'Run Tests: {all_tests_sel}')
@@ -119,9 +128,11 @@ if __name__ == '__main__':
         CMFTest.fail_first = True
         sys.argv = sys.argv[:1]
         if args['tests'] != '__all__':
-            tests_to_run = args['tests'].split(",")
-            for test_name in tests_to_run:
-                sys.argv.insert(len(sys.argv), f"Test{test_name}")
+            if len(all_tests_sel) == 0:
+                sys.exit()
+
+            for test_name in (x.__name__ for x in all_tests_sel):
+                sys.argv.insert(len(sys.argv), test_name)
         unittest.main(failfast=True)
     else:
         runner = unittest.TextTestRunner()
