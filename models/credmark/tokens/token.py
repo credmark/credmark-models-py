@@ -155,6 +155,10 @@ class TokenUnderlying(Model):
         if input.address == Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'):
             return Maybe(just=Token(symbol='USDT').address)
 
+        # stkAAVE
+        if input.address == Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5'):
+            return Maybe(just=Token(symbol='AAVE').address)
+
         return Maybe(just=None)
 
 
