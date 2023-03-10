@@ -1,12 +1,15 @@
 # pylint:disable=line-too-long
 
 import os
+import json
 from cmf_test import CMFTest
 
 
 class TestTLS(CMFTest):
     def test_select(self):
-        latest_block = self.run_model_with_output('rpc.get-latest-blocknumber', {})['output']['blockNumber']
+        block_number = 16795830
+
+        _latest_block = self.run_model_with_output('rpc.get-latest-blocknumber', {})['output']['blockNumber']
 
         # AAVE: 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         # UNI: 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
@@ -21,14 +24,20 @@ class TestTLS(CMFTest):
             '0x6b175474e89094c44da98b954eedeac495271d0f',  # DAI
         ]:
             tls_score = self.run_model_with_output(
-                'tls.score', {"address": addr}, block_number=latest_block)
+                'tls.score', {"address": addr}, block_number=block_number)
             print((addr, tls_score['output']['score'], tls_score['output']['items']))
 
     def test_batch(self):
+        block_number = 16795830
         # read the file from tmp/all_tokens.txt
         if os.path.exists('tmp/all_tokens.txt'):
             with open('tmp/all_tokens.txt', 'r') as f:
                 _addresses = f.read().splitlines()
+                for addr in _addresses:
+                    tls_score = self.run_model_with_output(
+                        'tls.score', {"address": addr}, block_number=block_number)
+                    with open(f'tmp/all_tokens_score/{addr}_{block_number}.txt', 'a') as f:
+                        f.write(json.dumps(tls_score['output']))
 
     def test(self):
         result = self.run_model_with_output(
