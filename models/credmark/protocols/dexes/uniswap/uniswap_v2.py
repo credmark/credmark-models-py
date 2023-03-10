@@ -297,7 +297,7 @@ def uniswap_v2_fee_sample_data():
     return _df_sample
 
 
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
                 version='1.0',
                 display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
@@ -857,7 +857,7 @@ def new_trading_volume(_tokens: List[Token]):
 
 
 @Model.describe(slug='dex.pool-volume-historical',
-                version='1.12',
+                version='1.13',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -897,6 +897,14 @@ class DexPoolSwapVolumeHistorical(Model):
             'token1_in': 0.0, 'token1_out': 0.0,
             'token0_price': 0, 'token1_price': 0.0}]
 
+        prev_block_numbers = [x for x in (self.context.block_number - c * interval for c in range(count, -1, -1))
+                              if x < last_block_number]
+
+        prev_results = {
+            r['block_number']: r
+            for r in self.context.run_model(
+                'pool.dex-db-blocks', {"address": input.address, 'blocks': prev_block_numbers})['results']}
+
         token0_in = 0
         token0_out = 0
         token1_in = 0
@@ -906,10 +914,9 @@ class DexPoolSwapVolumeHistorical(Model):
             prev_block_timestamp = int(BlockNumber(prev_block_number).timestamp)
 
             if prev_block_number < last_block_number:
-                try:
-                    curr_result = self.context.run_model(
-                        'pool.dex-db', {"address": input.address}, block_number=prev_block_number)
-                except ModelDataError as _err:
+                if prev_block_number in prev_results:
+                    curr_result = prev_results[prev_block_number]
+                else:
                     # When there was no data
                     curr_result = {
                         'token0_in': 0.0, 'token0_out': 0.0,
