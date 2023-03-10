@@ -1,6 +1,6 @@
 # pylint: disable=too-many-lines, bare-except, line-too-long, pointless-string-statement
 
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import timedelta
 from enum import Enum
 
@@ -32,7 +32,7 @@ class TLSItemImpact(str, Enum):
 
 
 class TLSItem(DTO):
-    name: str
+    name: Any
     impact: TLSItemImpact = DTOField(description=TLSItemImpact.explain())
 
     @classmethod
@@ -44,6 +44,8 @@ class TLSItem(DTO):
 
 
 class TLSOutput(Account):
+    name: Optional[str] = DTOField(description='Name of the token')
+    symbol: Optional[str] = DTOField(description='Symbol of the token')
     score: Optional[float] = DTOField(ge=0, le=10, description='Score')
     items: List[TLSItem] = DTOField(description='Score components')
 
@@ -51,6 +53,8 @@ class TLSOutput(Account):
         schema_extra = {
             'examples': [
                 {'address': '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+                 'name': 'Aave Token',
+                 'symbol': 'AAVE',
                  'score': 8.0,
                  'items': []}]
         }
@@ -82,7 +86,7 @@ aWETH
 
 @Model.describe(
     slug='tls.score',
-    version='0.54',
+    version='0.56',
     display_name='Score a token for its legitimacy',
     description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
     category='TLS',
@@ -91,8 +95,10 @@ aWETH
     output=TLSOutput
 )
 class TLSScore(Model):
-    def score(self, _address, _score, _items):
+    def score(self, _address, _name, _symbol, _score, _items):
         return TLSOutput(address=_address,
+                         name=_name,
+                         symbol=_symbol,
                          score=_score,
                          items=_items)
 
@@ -103,14 +109,14 @@ class TLSScore(Model):
         try:
             fiat_symbol = FiatCurrency(address=input.address).symbol
             items.append(TLSItem.create(f'Fiat currency code {fiat_symbol}', TLSItemImpact.STOP))
-            return self.score(input.address, None, items)
+            return self.score(input.address, None, None, None, items)
         except ModelDataError as _err:
             pass
 
         # 2. EOA or Account
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             items.append(TLSItem.create('Not an EOA', TLSItemImpact.STOP))
-            return self.score(input.address, None, items)
+            return self.score(input.address, None, None, None, items)
         else:
             items.append(TLSItem.create('EOA', TLSItemImpact.NEUTRAL))
 
@@ -144,15 +150,15 @@ class TLSScore(Model):
             items.append(TLSItem.create('Found ABI from EtherScan', TLSItemImpact.POSITIVE))
         except ModelDataError:
             items.append(TLSItem.create('No ABI from EtherScan', TLSItemImpact.STOP))
-            return self.score(input.address, None, items)
+            return self.score(input.address, None, None, None, items)
 
         # 3.2.2 Is it ERC-20 Token?
         try:
             token = Token(address=input.address)
             token_name = token.name
             token_symbol = token.symbol
-            token_decimals = token.decimals
-            token_total_supply = token.total_supply
+            _token_decimals = token.decimals
+            _token_total_supply = token.total_supply
             _ = token.functions.balanceOf
             _ = token.functions.transfer
             _ = token.functions.transferFrom
@@ -163,7 +169,7 @@ class TLSScore(Model):
             items.append(TLSItem.create('ERC20 Token', TLSItemImpact.NEUTRAL))
         except:
             items.append(TLSItem.create('Not an ERC20 Token', TLSItemImpact.STOP))
-            return self.score(input.address, None, items)
+            return self.score(input.address, None, None, None, items)
 
         # 4. AAVE collateral / debt tokens - Skip because AAVE may discretionary decide to frozen an asset.
 
@@ -171,7 +177,7 @@ class TLSScore(Model):
         # get liquidity data
         try:
             price = self.context.run_model('price.dex-db-prefer', input=token)
-            items.append(TLSItem.create(f'Has price from DEX: {price}', TLSItemImpact.POSITIVE))
+            items.append(TLSItem.create(['DEX price', price], TLSItemImpact.POSITIVE))
         except ModelDataError as err:
             if err.data.message.startswith('There is no liquidity in'):
                 items.append(TLSItem.create(err.data.message, TLSItemImpact.STOP))
@@ -192,7 +198,7 @@ class TLSScore(Model):
 
         if df_tx.empty:
             items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
-            return self.score(input.address, 3.0, items)
+            return self.score(input.address, token_name, token_symbol, 3.0, items)
 
         items.append(TLSItem.create(f'{df_tx.shape[0]} transfers during {tx_period}', TLSItemImpact.POSITIVE))
-        return self.score(input.address, 7, items)
+        return self.score(input.address, token_name, token_symbol, 7.0, items)
