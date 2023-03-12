@@ -29,6 +29,7 @@ from test_dashboard import TestDashboard
 from test_example import TestExample
 from test_fiat import TestFiat
 from test_finance import TestFinance
+from test_ipor import TestIPOR
 from test_index_coop import TestIndexCoop
 from test_optimism import TestOptimism
 from test_price import TestPrice
