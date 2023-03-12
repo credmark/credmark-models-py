@@ -8,6 +8,7 @@ from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts, Netwo
 
 from credmark.dto import DTO, EmptyInput, DTOField
 from eth_typing.evm import ChecksumAddress
+from eth_abi.abi import encode_abi
 
 
 @Model.describe(slug='ipor.get-oracle-and-calculator',
@@ -172,6 +173,7 @@ class IPORLpExchange(Model):
 
 # collateral, leverage, notional = collateral * leverage, asset, max_payoff, 2 * collateral.
 
+
 class IporSwapMemory(NamedTuple):
     id: int
     buyer: ChecksumAddress
@@ -185,16 +187,13 @@ class IporSwapMemory(NamedTuple):
     liquidationDepositAmount: int
     state: int
 
-    def abi_encode(self) -> bytes:
-        """
-        return eth_abi.abi.encode_abi(
+    def encode_abi(self) -> bytes:
+        return encode_abi(
             [
-                "(bytes32,uint64,(address[],uint256[][],(bytes32,uint256[],uint16[])[]),bytes,bool)"
+                "(uint256,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)"
             ],
             [tuple(self)],
         )
-        """
-        return bytes()
 
     def __iter__(self) -> Generator[Any, None, None]:
         yield self.id
