@@ -6,6 +6,9 @@ from cmf_test import CMFTest
 
 
 class TestTLS(CMFTest):
+    def __init__(self, methodName='runTest'):
+        super().__init__(methodName, request_timeout=26400)
+
     def test_select(self):
         block_number = 16795830
 
