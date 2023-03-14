@@ -61,7 +61,7 @@ class ChainLinkPriceByENS(Model):
 
 
 @Model.describe(slug='chainlink.price-by-feed',
-                version="1.3",
+                version="1.4",
                 display_name="Chainlink - Price by feed",
                 description="Input a Chainlink valid feed",
                 category='protocol',
@@ -84,9 +84,13 @@ class ChainLinkPriceByFeed(Model):
         version = feed_contract.functions.version().call()
 
         feed = input.address
-        if feed_contract.abi is not None:
-            if 'aggregator'.lower() in feed_contract.abi.functions:
+        if feed_contract.abi is not None and 'aggregator' in feed_contract.abi.functions:
+            try:
                 feed = feed_contract.functions.aggregator().call()
+            except Exception:
+                # Exception might occur when ABI is set manually
+                pass
+
         isFeedEnabled = None
 
         time_diff = self.context.block_number.timestamp - _updatedAt
