@@ -60,7 +60,7 @@ class PriceSource(str, Enum):
 
 
 class PriceInputWithPreference(PriceInput):
-    prefer: PriceSource = DTOField(PriceSource.DEX, description='Preferred source')
+    prefer: PriceSource = DTOField(PriceSource.CEX, description='Preferred source')
 
 
 class PriceHistoricalInput(PriceInputWithPreference, MapBlockTimeSeriesInput):
