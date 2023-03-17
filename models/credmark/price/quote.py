@@ -441,16 +441,15 @@ class PriceCex(PriceCexModel, NoDEX):
     """
 
 
-@Model.describe(
-    slug='price.cex-maybe',
-    version='0.1',
-    display_name='Credmark Token Price and fiat conversion from Chainlink [Maybe]',
-    description='Price and fiat conversion for non-USD from Chainlink [Maybe]',
-    developer='Credmark',
-    category='protocol',
-    tags=['token', 'price'],
-    input=PriceInput,
-    output=Maybe[PriceWithQuote])
+@Model.describe(slug='price.cex-maybe',
+                version='0.1',
+                display_name='Credmark Token Price and fiat conversion from Chainlink [Maybe]',
+                description='Price and fiat conversion for non-USD from Chainlink [Maybe]',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceInput,
+                output=Maybe[PriceWithQuote])
 class PriceCexMaybe(Model):
     """
     Return token's price in Maybe

@@ -314,11 +314,12 @@ class PriceFromDexModel(Model):
     """
     Return token's price
     """
+
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         addr_maybe = self.context.run_model('token.underlying-maybe',
-                                        input=input,
-                                        return_type=Maybe[Address],
-                                        local=True)
+                                            input=input,
+                                            return_type=Maybe[Address],
+                                            local=True)
         if addr_maybe.just is not None:
             input.address = addr_maybe.just
 
@@ -343,7 +344,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.2',
+                version='0.3',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -358,7 +359,7 @@ class PriceFromDexPreferModel(Model):
     Return token's price from Dex with Chainlink as fallback
 
     `price.quote` calls `chainlink`, `curve` then `price.dex-db-prefer`
-    `price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended`
+    `price.dex-db-prefer` calls `price.dex-db`, then `price.dex` (curve, uniswap v2 / v3 and sushiswap)
 
     """
 
@@ -370,8 +371,8 @@ class PriceFromDexPreferModel(Model):
         except (ModelDataError, ModelRunError) as err:
             if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
                 return self.context.run_model(
-                    'price.dex-blended',
-                    input=input,
+                    'price.dex',
+                    input={'base': input.address},
                     return_type=PriceWithQuote)
             raise
 

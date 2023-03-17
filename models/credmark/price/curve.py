@@ -92,8 +92,11 @@ class CurveFinancePrice(Model):
 
     CRV_LP = {
         Network.Mainnet: {
+            # Curve.fi DAI/USDC/USDT (3Crv)
             Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'),
+            # Curve.fi renBTC/wBTC/sBTC (crvRenWSB...)
             Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'),
+            # Curve.fi USD-BTC-ETH (crv3crypto)
             Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff'),
         }
     }
