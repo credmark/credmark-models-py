@@ -8,7 +8,7 @@ from enum import Enum
 import pandas as pd
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.model.errors import (ModelDataError, ModelRunError)
 from credmark.cmf.types import (Account, FiatCurrency, Address, Contract,
                                 Maybe, Token)
 from credmark.dto import (DTO, DTOField)
@@ -85,23 +85,27 @@ aWETH
 """
 
 
-@Model.describe(
-    slug='tls.score',
-    version='0.56',
-    display_name='Score a token for its legitimacy',
-    description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
-    category='TLS',
-    tags=['token'],
-    input=Token,
-    output=TLSOutput
-)
+@Model.describe(slug='tls.score',
+                version='0.65',
+                display_name='Score a token for its legitimacy',
+                description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
+                category='TLS',
+                tags=['token'],
+                input=Token,
+                output=TLSOutput
+                )
 class TLSScore(Model):
+    INFO = True
+
     def score(self, _address, _name, _symbol, _score, _items):
         return TLSOutput(address=_address,
                          name=_name,
                          symbol=_symbol,
                          score=_score,
                          items=_items)
+
+    def info(self, message):
+        self.logger.info(message)
 
     def run(self, input: Token) -> TLSOutput:
         items = []
@@ -114,6 +118,8 @@ class TLSScore(Model):
         except ModelDataError as _err:
             pass
 
+        self.info(f'[{input.address}] Running TLS model')
+
         # 2. EOA or Account
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             items.append(TLSItem.create('Not an EOA', TLSItemImpact.STOP))
@@ -121,23 +127,21 @@ class TLSScore(Model):
         else:
             items.append(TLSItem.create('EOA', TLSItemImpact.NEUTRAL))
 
+        self.info(f'[{input.address}] EOA account')
+
         # 3. ABI/Source code and ERC-20 check
         # 3.1 get token object
         try_eip1967_proxy = get_eip1967_proxy(self.context,
                                               self.logger,
                                               input.address,
                                               False)
+
         if try_eip1967_proxy is not None:
             contract = try_eip1967_proxy
         else:
-            addr_maybe = self.context.run_model('token.underlying-maybe',
-                                                input={'address': input.address},
-                                                return_type=Maybe[Address],
-                                                local=True)
-            if addr_maybe.just is not None:
-                return self.context.run_model(self.slug, input=input, return_type=TLSOutput)
-            else:
-                contract = Contract(address=input.address)
+            contract = Contract(address=input.address)
+
+        self.info(f'[{input.address}] Got contract object')
 
         # 3.2 check contract object is an ERC-20
         # 3.2.1 Get ABI inside the token object
@@ -177,17 +181,35 @@ class TLSScore(Model):
         # 5. Check DEX
         # get liquidity data
         try:
-            price = self.context.run_model('price.dex-db-prefer', input=token)
+            price = self.context.run_model('price.dex', input={'base': token})
             items.append(TLSItem.create(['DEX price', price], TLSItemImpact.POSITIVE))
         except ModelDataError as err:
-            if err.data.message.startswith('There is no liquidity in'):
-                items.append(TLSItem.create(err.data.message, TLSItemImpact.STOP))
+            if err.data.message.startswith('There is no liquidity'):
+                items.append(TLSItem.create(err.data.message, TLSItemImpact.NEGATIVE))
+            else:
+                raise
+        except ModelRunError as err:
+            if err.data.message.startswith(f'[{self.context.block_number}] No pool to aggregate for some='):
+                items.append(TLSItem.create('Not traded in DEX', TLSItemImpact.NEGATIVE))
             else:
                 raise
 
+        addr_maybe = self.context.run_model('token.underlying-maybe',
+                                            input={'address': input.address},
+                                            return_type=Maybe[Address],
+                                            local=True)
+
+        if addr_maybe.just is not None:
+            value_token_input = input.dict() | {'address': addr_maybe.just}
+            value_token_tls = self.context.run_model(self.slug, input=value_token_input, return_type=TLSOutput)
+            items.append(TLSItem.create(['DEX price is taken from the underlying',
+                         addr_maybe.just, value_token_tls], TLSItemImpact.NEUTRAL))
+        else:
+            value_token_tls = None
+
         # 4. Transfer records
         current_block_dt = self.context.block_number.timestamp_datetime
-        one_day_earlier = current_block_dt - timedelta(hours=12)
+        one_day_earlier = current_block_dt - timedelta(hours=24)
         one_day_earlier_block = self.context.block_number.from_timestamp(one_day_earlier)
 
         df_tx_fn = f'tmp/df_tx/df_tx_{input.address}_{one_day_earlier_block}_{self.context.block_number}.csv'
@@ -195,17 +217,32 @@ class TLSScore(Model):
         if os.path.isfile(df_tx_fn):
             df_tx = pd.read_pickle(df_tx_fn)
         else:
-            df_tx = pd.DataFrame(token.fetch_events(
-                token.events.Transfer,
-                from_block=one_day_earlier_block, to_block=self.context.block_number,
-                contract_address=token.address))
+            try:
+                df_tx = pd.DataFrame(token.fetch_events(
+                    token.events.Transfer,
+                    from_block=one_day_earlier_block, to_block=self.context.block_number,
+                    contract_address=token.address))
+            except ValueError:
+                df_tx = pd.DataFrame(token.fetch_events(
+                    token.events.Transfer,
+                    from_block=one_day_earlier_block, to_block=self.context.block_number,
+                    contract_address=token.address,
+                    argument_names=['from', 'to', 'value']))
             df_tx.to_pickle(df_tx_fn)
 
-        tx_period = f'during last 12h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
+        tx_period = f'during last 24h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
         if df_tx.empty:
             items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
+            if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 3.0:
+                items.append(TLSItem.create(['Score is overridden by the underlying',
+                                             3.0, value_token_tls.score], TLSItemImpact.NEUTRAL))
+                return self.score(input.address, token_name, token_symbol, value_token_tls.score, items)
             return self.score(input.address, token_name, token_symbol, 3.0, items)
 
         items.append(TLSItem.create(f'{df_tx.shape[0]} transfers during {tx_period}', TLSItemImpact.POSITIVE))
+        if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 7.0:
+            items.append(TLSItem.create(['Score is overridden by the underlying',
+                                         7.0, value_token_tls.score], TLSItemImpact.NEUTRAL))
+            return self.score(input.address, token_name, token_symbol, value_token_tls.score, items)
         return self.score(input.address, token_name, token_symbol, 7.0, items)

@@ -42,7 +42,7 @@ class TestTLS(CMFTest):
                     with open(f'tmp/all_tokens_score/{addr}_{block_number}.txt', 'a') as f:
                         f.write(json.dumps(tls_score['output']))
 
-    def test(self):
+    def test_sample(self):
         result = self.run_model_with_output(
             'tls.score', {"address": "0x0000000000000000000000000000000000000348"}, block_number=16583473)
         self.assertEqual(
@@ -107,8 +107,9 @@ class TestTLS(CMFTest):
                        {"name": "Not a proxy contract", "impact": "0"},
                        {"name": "Found ABI from EtherScan", "impact": "+"},
                        {"name": "ERC20 Token", "impact": "0"},
-                       {"name": "There is no liquidity in 1 pools for 0x0add679a421f63455372b57530e614b6cd77d2fe.", "impact": "!"},
+                       {"name": "There is no liquidity in 1 pools for 0x0add679a421f63455372b57530e614b6cd77d2fe.", "impact": "-"},
                        {"name": "No transfer during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)", "impact": "!"}]})
+        # {"name": "No transfer during during last 12h (16579888 to 16583473) or (2023-02-07 22:29:59+00:00 to 2023-02-08 10:29:59+00:00)", "impact": "!"}]})
 
         # AAVE 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         result = self.run_model_with_output(
@@ -130,3 +131,4 @@ class TestTLS(CMFTest):
                                          'quoteAddress': '0x0000000000000000000000000000000000000348'}], 'impact': '+'},
                  {'name': '974 transfers during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)', 'impact': '+'}]
              })
+        # {'name': '499 transfers during during last 12h (16579888 to 16583473) or (2023-02-07 22:29:59+00:00 to 2023-02-08 10:29:59+00:00)', 'impact': '+'}]

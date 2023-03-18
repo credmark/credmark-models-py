@@ -52,7 +52,7 @@ from models.credmark.protocols.set.setv2 import setv2_fee, SetV2ModulesOutput
 
 
 def index_coop_revenue_issue(
-        _logger, _prod_token, _setv2_mod,
+        _logger, _context, _prod_token, _setv2_mod,
         _start_block, _end_block,
         _use_last_price, _streaming_rate, _coop_rate, _mint_redeem_rate=0.0, _coop_mr_rate=0.0):
     """
@@ -65,20 +65,20 @@ def index_coop_revenue_issue(
     # test
 
     df_dpi = index_coop_revenue_issue('0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b',
-                                    setv2_BasicIssuanceModule, year, month, 0.0095, 0.7)
+                                    self.logger, self.context, setv2_BasicIssuanceModule, year, month, 0.0095, 0.7)
     df_mvi = index_coop_revenue_issue('0x72e364f2abdc788b7e918bc238b21f109cd634d7',
-                                    setv2_BasicIssuanceModule, year, month, 0.0095, 1.0)
+                                    self.logger, self.context, setv2_BasicIssuanceModule, year, month, 0.0095, 1.0)
     df_data = index_coop_revenue_issue('0x33d63ba1e57e54779f7ddaeaa7109349344cf5f1',
-                                    setv2_BasicIssuanceModule, year, month, 0.0095, 0.7)
+                                    self.logger, self.context, setv2_BasicIssuanceModule, year, month, 0.0095, 0.7)
     df_bed = index_coop_revenue_issue('0x2af1df3ab0ab157e1e2ad8f88a7d04fbea0c7dc6',
-                                    setv2_BasicIssuanceModule, year, month, 0.0025, 0.5)
+                                    self.logger, self.context, setv2_BasicIssuanceModule, year, month, 0.0025, 0.5)
     df_gmi = index_coop_revenue_issue('0x47110d43175f7f2c2425e7d15792acc5817eb44f',
-                                    setv2_BasicIssuanceModule, year, month, 0.0195, 0.6)
+                                    self.logger, self.context, setv2_BasicIssuanceModule, year, month, 0.0195, 0.6)
 
     df_eth2x = index_coop_revenue_issue('0xaa6e8127831c9de45ae56bb1b0d4d4da6e5665bd',
-                                        setv2_DebtIssuanceModule, year, month, 0.0195, 0.6, 0.001, 0.6)
+                                        self.logger, self.context, setv2_DebtIssuanceModule, year, month, 0.0195, 0.6, 0.001, 0.6)
     df_btc2x = index_coop_revenue_issue('0x0b498ff89709d3838a063f1dfa463091f9801c2b',
-                                        setv2_DebtIssuanceModule, year, month, 0.0195, 0.6, 0.001, 0.6)
+                                        self.logger, self.context, setv2_DebtIssuanceModule, year, month, 0.0195, 0.6, 0.001, 0.6)
     """
 
     token_addr = _prod_token.address
@@ -120,7 +120,8 @@ def index_coop_revenue_issue(
 
         if not _use_last_price:
             try:
-                price = _prod_token.models(block_number=blk_eod).price.dex_db_prefer()['price']
+                price = _context.run_model(
+                    'price.dex', input={'base': _prod_token.address}, block_number=blk_eod)['price']
             except (ModelDataError, ModelRunError):
                 try:
                     price = _prod_token.models(block_number=blk_eod).price.dex_db_ring3()['price']
@@ -162,7 +163,8 @@ def index_coop_revenue_issue(
 
     if _use_last_price:
         try:
-            end_price = _prod_token.models(block_number=_end_block).price.dex_db_prefer()['price']
+            end_price = _context.run_model(
+                'price.dex', input={'base': _prod_token.address}, block_number=_end_block)['price']
         except (ModelDataError, ModelRunError):
             end_price = 1
 
@@ -204,7 +206,7 @@ class IndexCoopFeeInput(IndexCoopFee):
 
 
 @Model.describe(slug='indexcoop.fee-month',
-                version='0.2',
+                version='0.3',
                 display_name='Index Coop Product - Streaming fee',
                 description='calculate fee collected from Index Coop\'s products, from AUM and Mint/Burn',
                 category='protocol',
@@ -249,7 +251,7 @@ class IndexCoopStreamingFeeInput(Contract):
 
 
 @Model.describe(slug='indexcoop.fee',
-                version='0.2',
+                version='0.4',
                 display_name='Index Coop Product - Streaming fee',
                 description='calculate fee collected from Index Coop\'s products, from AUM and Mint/Burn',
                 category='protocol',
@@ -287,6 +289,7 @@ class IndexCoopStreamingFee(Model):
 
         df_fee = index_coop_revenue_issue(
             self.logger,
+            self.context,
             prod_token,
             setv2_module,
             int(input.start_block),
