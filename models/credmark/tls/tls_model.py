@@ -44,6 +44,10 @@ class TLSItem(DTO):
         use_enum_values = True
 
 
+class TLSInput(Token):
+    tx_history_hours: int = DTOField(default=24, description='Transaction Historical Hours')
+
+
 class TLSOutput(Account):
     name: Optional[str] = DTOField(description='Name of the token')
     symbol: Optional[str] = DTOField(description='Symbol of the token')
@@ -86,18 +90,19 @@ aWETH
 
 
 @Model.describe(slug='tls.score',
-                version='0.65',
+                version='0.67',
                 display_name='Score a token for its legitimacy',
                 description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
                 category='TLS',
                 tags=['token'],
-                input=Token,
+                input=TLSInput,
                 output=TLSOutput
                 )
 class TLSScore(Model):
     INFO = True
 
-    def score(self, _address, _name, _symbol, _score, _items):
+    @staticmethod
+    def score(_address, _name, _symbol, _score, _items):
         return TLSOutput(address=_address,
                          name=_name,
                          symbol=_symbol,
@@ -108,14 +113,14 @@ class TLSScore(Model):
         self.logger.info(message)
 
     # pylint: disable=too-many-return-statements
-    def run(self, input: Token) -> TLSOutput:
+    def run(self, input: TLSInput) -> TLSOutput:
         items = []
 
         # 1. Currency code
         try:
             fiat_symbol = FiatCurrency(address=input.address).symbol
             items.append(TLSItem.create(f'Fiat currency code {fiat_symbol}', TLSItemImpact.STOP))
-            return self.score(input.address, None, None, None, items)
+            return self.__class__.score(input.address, None, None, None, items)
         except ModelDataError as _err:
             pass
 
@@ -124,7 +129,7 @@ class TLSScore(Model):
         # 2. EOA or Account
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             items.append(TLSItem.create('Not an EOA', TLSItemImpact.STOP))
-            return self.score(input.address, None, None, None, items)
+            return self.__class__.score(input.address, None, None, None, items)
         else:
             items.append(TLSItem.create('EOA', TLSItemImpact.NEUTRAL))
 
@@ -156,7 +161,7 @@ class TLSScore(Model):
             items.append(TLSItem.create('Found ABI from EtherScan', TLSItemImpact.POSITIVE))
         except ModelDataError:
             items.append(TLSItem.create('No ABI from EtherScan', TLSItemImpact.STOP))
-            return self.score(input.address, None, None, None, items)
+            return self.__class__.score(input.address, None, None, None, items)
 
         # 3.2.2 Is it ERC-20 Token?
         try:
@@ -175,7 +180,7 @@ class TLSScore(Model):
             items.append(TLSItem.create('ERC20 Token', TLSItemImpact.NEUTRAL))
         except:
             items.append(TLSItem.create('Not an ERC20 Token', TLSItemImpact.STOP))
-            return self.score(input.address, None, None, None, items)
+            return self.__class__.score(input.address, None, None, None, items)
 
         # 4. AAVE collateral / debt tokens - Skip because AAVE may discretionary decide to frozen an asset.
 
@@ -210,7 +215,7 @@ class TLSScore(Model):
 
         # 4. Transfer records
         current_block_dt = self.context.block_number.timestamp_datetime
-        one_day_earlier = current_block_dt - timedelta(hours=24)
+        one_day_earlier = current_block_dt - timedelta(hours=input.tx_history_hours)
         one_day_earlier_block = self.context.block_number.from_timestamp(one_day_earlier)
 
         df_tx_fn = f'tmp/df_tx/df_tx_{input.address}_{one_day_earlier_block}_{self.context.block_number}.csv'
@@ -231,19 +236,19 @@ class TLSScore(Model):
                     argument_names=['from', 'to', 'value']))
             df_tx.to_pickle(df_tx_fn)
 
-        tx_period = f'during last 24h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
+        tx_period = f'during last {input.tx_history_hours}h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
         if df_tx.empty:
             items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
             if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 3.0:
                 items.append(TLSItem.create(['Score is overridden by the underlying',
                                              3.0, value_token_tls.score], TLSItemImpact.NEUTRAL))
-                return self.score(input.address, token_name, token_symbol, value_token_tls.score, items)
-            return self.score(input.address, token_name, token_symbol, 3.0, items)
+                return self.__class__.score(input.address, token_name, token_symbol, value_token_tls.score, items)
+            return self.__class__.score(input.address, token_name, token_symbol, 3.0, items)
 
         items.append(TLSItem.create(f'{df_tx.shape[0]} transfers during {tx_period}', TLSItemImpact.POSITIVE))
         if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 7.0:
             items.append(TLSItem.create(['Score is overridden by the underlying',
                                          7.0, value_token_tls.score], TLSItemImpact.NEUTRAL))
-            return self.score(input.address, token_name, token_symbol, value_token_tls.score, items)
-        return self.score(input.address, token_name, token_symbol, 7.0, items)
+            return self.__class__.score(input.address, token_name, token_symbol, value_token_tls.score, items)
+        return self.__class__.score(input.address, token_name, token_symbol, 7.0, items)
