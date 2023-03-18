@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement
+# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement, line-too-long
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -362,7 +362,7 @@ class PriceFromDexPreferModel(Model):
 
     **`price.cex`** calls `chainlink` only.
     **'price.dex'** calls `price.dex-db-prefer` then calls `curve`
-        - `price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended` (uniswap v2 / v3 and sushiswap)
+    price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended` (uniswap v2 / v3 and sushiswap)
 
     """
 

@@ -107,6 +107,7 @@ class TLSScore(Model):
     def info(self, message):
         self.logger.info(message)
 
+    # pylint: disable=too-many-return-statements
     def run(self, input: Token) -> TLSOutput:
         items = []
 
