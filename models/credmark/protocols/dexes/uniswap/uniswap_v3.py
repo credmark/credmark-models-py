@@ -521,7 +521,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
         # 4. If SB-X: use SB to price
 
         if info.is_primary_pool:
-            if info.token0.address != weth_address and info.token1.address != weth_address:
+            if weth_address not in [info.token0.address, info.token1.address]:
                 ref_price_ring0 = self.context.run_model(
                     slug=input.ref_price_slug,
                     input=EmptyInput(),
