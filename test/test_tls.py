@@ -129,6 +129,60 @@ class TestTLS(CMFTest):
                  {'name': 'ERC20 Token', 'impact': '0'},
                  {'name': ['DEX price', {'src': 'sushiswap,uniswap-v2,uniswap-v3', 'price': 88.86499599495042,
                                          'quoteAddress': '0x0000000000000000000000000000000000000348'}], 'impact': '+'},
-                 {'name': '974 transfers during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)', 'impact': '+'}]
+                 {'name': '1105 transfers during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)', 'impact': '+'}]
              })
-        # {'name': '499 transfers during during last 12h (16579888 to 16583473) or (2023-02-07 22:29:59+00:00 to 2023-02-08 10:29:59+00:00)', 'impact': '+'}]
+        # 974
+
+        # aWETH 0x030bA81f1c18d280636F32af80b9AAd02Cf0854e
+        result = self.run_model_with_output(
+            'tls.score', {"address": "0x030bA81f1c18d280636F32af80b9AAd02Cf0854e"}, block_number=16583473)
+
+        print(result)
+        self.assertEqual(
+            result['output'],
+            {
+                "address": "0x030ba81f1c18d280636f32af80b9aad02cf0854e",
+                "name": "Aave interest bearing WETH",
+                "symbol": "aWETH",
+                "score": 7.0,
+                "items": [{"name": "EOA", "impact": "0"},
+                          {"name": "Proxy contract", "impact": "0"},
+                          {"name": "Found ABI from EtherScan", "impact": "+"},
+                          {"name": "ERC20 Token", "impact": "0"},
+                          {"name": [
+                              "DEX price",
+                              {
+                                  "src": "sushiswap,uniswap-v2,uniswap-v3",
+                                  "price": 1671.084302483969,
+                                  "quoteAddress": "0x0000000000000000000000000000000000000348"
+                              }
+                          ], "impact": "+"},
+                          {"name": [
+                              "DEX price is taken from the underlying",
+                              "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                              {
+                                  "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                  "name": "Wrapped Ether",
+                                  "symbol": "WETH",
+                                  "score": 7.0,
+                                  "items": [{"name": "EOA", "impact": "0"},
+                                            {"name": "Not a proxy contract", "impact": "0"},
+                                            {"name": "Found ABI from EtherScan", "impact": "+"},
+                                            {"name": "ERC20 Token", "impact": "0"},
+                                            {"name": [
+                                                "DEX price",
+                                                {
+                                                    "src": "sushiswap,uniswap-v2,uniswap-v3",
+                                                    "price": 1671.084302483969,
+                                                    "quoteAddress": "0x0000000000000000000000000000000000000348"
+                                                }
+                                            ],
+                                      "impact": "+"},
+                                      {"name": "300979 transfers during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)", "impact": "+"}
+                                  ]
+                              }
+                          ],
+                    "impact": "0"},
+                    {"name": "439 transfers during during last 24h (16576315 to 16583473) or (2023-02-07 10:29:59+00:00 to 2023-02-08 10:29:59+00:00)", "impact": "+"}
+                ]
+            },)

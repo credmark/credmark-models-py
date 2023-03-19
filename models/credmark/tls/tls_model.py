@@ -65,32 +65,8 @@ class TLSOutput(Account):
         }
 
 
-"""
-credmark-dev run tls.score -i '{"address":"0x0000000000000000000000000000000000000348"}' # fiat
-credmark-dev run tls.score -i '{"address":"0x0000000000000000000000000000000000000349"}' # not an EOA
-credmark-dev run tls.score -i '{"address":"0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B"}' # no ABI
-
-credmark-dev run tls.score -i '{"address":"0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B"}' # Unitroller
-
-credmark-dev run tls.score -i '{"address":"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}'
-
-# Proxy
-
-# cToken
-cETH
-0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5
-
-aWETH
-0x030bA81f1c18d280636F32af80b9AAd02Cf0854e
-
-# RASCAL INU
-0x8a3fd50433b28e47ea5f78dabd5749965e795ff6
-
-"""
-
-
 @Model.describe(slug='tls.score',
-                version='0.67',
+                version='0.69',
                 display_name='Score a token for its legitimacy',
                 description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
                 category='TLS',
@@ -207,6 +183,7 @@ class TLSScore(Model):
 
         if addr_maybe.just is not None:
             value_token_input = input.dict() | {'address': addr_maybe.just}
+            self.info(f'[{input.address}] Running TLS model for underlying token {addr_maybe.just}')
             value_token_tls = self.context.run_model(self.slug, input=value_token_input, return_type=TLSOutput)
             items.append(TLSItem.create(['DEX price is taken from the underlying',
                          addr_maybe.just, value_token_tls], TLSItemImpact.NEUTRAL))
@@ -218,7 +195,7 @@ class TLSScore(Model):
         one_day_earlier = current_block_dt - timedelta(hours=input.tx_history_hours)
         one_day_earlier_block = self.context.block_number.from_timestamp(one_day_earlier)
 
-        def _tx_no_cache():
+        def _tx_event():
             try:
                 df_tx = pd.DataFrame(token.fetch_events(
                     token.events.Transfer,
@@ -238,15 +215,26 @@ class TLSScore(Model):
             if os.path.isfile(df_tx_fn):
                 df_tx = pd.read_pickle(df_tx_fn)
             else:
-                df_tx = _tx_no_cache()
+                df_tx = _tx_event()
                 df_tx.to_pickle(df_tx_fn)
             return df_tx
 
-        df_tx = _tx_no_cache()
+        def _tx_ledger():
+            with self.context.ledger.TokenTransfer as q:
+                df_tx = q.select(aggregates=[(q.BLOCK_NUMBER.count_(), 'count')],
+                                 where=q.TOKEN_ADDRESS.eq(token.address.lower()).and_(q.BLOCK_NUMBER.ge(one_day_earlier_block))).to_dataframe()
+            return df_tx
+
+        # else
+        # df_tx = _tx_event()
+        # df_tx_count = df_tx.shape[0]
+
+        df_tx = _tx_ledger()
+        df_tx_count = df_tx['count'][0]
 
         tx_period = f'during last {input.tx_history_hours}h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
-        if df_tx.empty:
+        if df_tx_count == 0:
             items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
             if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 3.0:
                 items.append(TLSItem.create(['Score is overridden by the underlying',
@@ -254,7 +242,7 @@ class TLSScore(Model):
                 return self.__class__.score(input.address, token_name, token_symbol, value_token_tls.score, items)
             return self.__class__.score(input.address, token_name, token_symbol, 3.0, items)
 
-        items.append(TLSItem.create(f'{df_tx.shape[0]} transfers during {tx_period}', TLSItemImpact.POSITIVE))
+        items.append(TLSItem.create(f'{df_tx_count} transfers during {tx_period}', TLSItemImpact.POSITIVE))
         if value_token_tls is not None and value_token_tls.score is not None and value_token_tls.score < 7.0:
             items.append(TLSItem.create(['Score is overridden by the underlying',
                                          7.0, value_token_tls.score], TLSItemImpact.NEUTRAL))
