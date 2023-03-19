@@ -36,8 +36,10 @@ from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
 from test_token import TestToken
+from test_tls import TestTLS
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -91,8 +93,6 @@ if __name__ == '__main__':
         sys.exit()
 
     print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
-
-    CMFTest.test_main = import_module('credmark.cmf.credmark_dev')
 
     CMFTest.block_number = args["block_number"]
     CMFTest.start_n = args["start_n"]

@@ -36,9 +36,9 @@ def capture_output():
 
 
 class CMFTest(TestCase):
-    def __init__(self, methodName='runTest'):
+    def __init__(self, methodName='runTest', request_timeout: int = 6400):
         mod_model_api = import_module('credmark.cmf.engine.model_api')
-        mod_model_api.RUN_REQUEST_TIMEOUT = 6400  # type: ignore
+        mod_model_api.RUN_REQUEST_TIMEOUT = request_timeout  # type: ignore
         super().__init__(methodName)
 
     type: str = 'prod'
@@ -49,14 +49,19 @@ class CMFTest(TestCase):
     block_number: int = 0
     test_n: int = 0
     start_n: int = 0
-    test_main: ModuleType
+    test_main: ModuleType = import_module('credmark.cmf.credmark_dev')
     fail_first: bool = True
     skip_nonzero: bool = False
 
     def title(self, title):
         logging.info(f'\n{title}\n')
 
-    def run_model_with_output(self, model_slug, model_input, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
+    def run_model_with_output(self,
+                              model_slug,
+                              model_input,
+                              exit_code: Optional[int] = 0,
+                              block_number: Optional[int] = None,
+                              chain_id: int = 1):
         if self.type == 'test':
             cmd = 'python test/test.py'
         else:
@@ -178,7 +183,6 @@ class CMFTest(TestCase):
                     f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
                     f'I ran: {cmd_line}\n'
                     f'U run: {cmd_line_local}'))
-
 
         CMFTest.test_n += 1
 

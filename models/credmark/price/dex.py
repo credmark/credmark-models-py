@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement
+# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement, line-too-long
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -316,6 +316,13 @@ class PriceFromDexModel(Model):
     """
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
+        addr_maybe = self.context.run_model('token.underlying-maybe',
+                                            input=input,
+                                            return_type=Maybe[Address],
+                                            local=True)
+        if addr_maybe.just is not None:
+            input.address = addr_maybe.just
+
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo],
@@ -337,7 +344,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.2',
+                version='0.4',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -351,8 +358,11 @@ class PriceFromDexPreferModel(Model):
     """
     Return token's price from Dex with Chainlink as fallback
 
-    `price.quote` calls `chainlink`, `curve` then `price.dex-db-prefer`
-    `price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended`
+    **`price.quote`** calls `chainlink`, `curve` then `price.dex-db-prefer`
+
+    **`price.cex`** calls `chainlink` only.
+    **'price.dex'** calls `price.dex-db-prefer` then calls `curve`
+    price.dex-db-prefer` calls `price.dex-db`, then `price.dex-blended` (uniswap v2 / v3 and sushiswap)
 
     """
 
@@ -361,15 +371,14 @@ class PriceFromDexPreferModel(Model):
             price_dex = self.context.run_model('price.dex-db', input=input, local=True)
             if price_dex['liquidity'] > 1e-08:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
-        except ModelDataError as err:
-            if "No price for" in err.data.message:
+            raise ModelDataError(f'There is no liquidity for {input.address}.')
+        except (ModelDataError, ModelRunError) as err:
+            if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
                 return self.context.run_model(
                     'price.dex-blended',
-                    input=input,
+                    input={'address': input.address},
                     return_type=PriceWithQuote)
             raise
-
-        raise ModelDataError(f'There is no liquidity for {input.address}.')
 
 
 @Model.describe(slug='price.dex-blended-maybe',

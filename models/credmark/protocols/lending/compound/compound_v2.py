@@ -458,7 +458,7 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @Model.describe(slug="compound-v2.pool-value",
-                version="1.7",
+                version="1.8",
                 display_name="Compound V2 - value of a market",
                 description="Compound V2 - value of a market",
                 category='protocol',
@@ -472,8 +472,8 @@ class CompoundV2GetPoolValue(Model):
                                            return_type=CompoundV2PoolInfo)
 
         # TODO: Investigate whether Compound's interest is counted into cToken amount.
-        tp = self.context.run_model(slug='price.dex-db-prefer',
-                                    input=pool_info.token,
+        tp = self.context.run_model(slug='price.dex',
+                                    input={'base': pool_info.token},
                                     return_type=PriceWithQuote)
 
         if tp.price is None or tp.src is None:

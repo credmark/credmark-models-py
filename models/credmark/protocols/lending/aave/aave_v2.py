@@ -369,15 +369,15 @@ class AaveV2GetTokenLiability(Model):
         return Position(asset=aToken, amount=float(aToken.total_supply))
 
 
-@Model.describe(slug="aave-v2.lending-pool-assets",
-                version="1.5",
+@Model.describe(slug="aave-v2.assets",
+                version="0.2",
                 display_name="Aave V2 Lending Pool Assets",
                 description="Aave V2 assets for the main lending pool",
                 category='protocol',
                 subcategory='aave-v2',
-                output=Some[AaveDebtInfo])
+                output=Some[Address])
 class AaveV2GetAssets(Model):
-    def run(self, __input: EmptyInput) -> Some[AaveDebtInfo]:
+    def run(self, __input: EmptyInput) -> Some[Address]:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract,
@@ -388,6 +388,20 @@ class AaveV2GetAssets(Model):
                                                   True)
 
         aave_assets_address = aave_lending_pool.functions.getReservesList().call()
+        return Some[Address](some=aave_assets_address)
+
+
+@Model.describe(slug="aave-v2.lending-pool-assets",
+                version="1.6",
+                display_name="Aave V2 Lending Pool Assets Detail",
+                description="Aave V2 assets for the main lending pool",
+                category='protocol',
+                subcategory='aave-v2',
+                output=Some[AaveDebtInfo])
+class AaveV2GetAssetsDetail(Model):
+    def run(self, __input: EmptyInput) -> Some[AaveDebtInfo]:
+        aave_assets_address = self.context.run_model(
+            'aave-v2.assets', input=EmptyInput(), return_type=Some[Address]).some
 
         model_slug = 'aave-v2.token-asset'
         model_inputs = [Token(address=addr)

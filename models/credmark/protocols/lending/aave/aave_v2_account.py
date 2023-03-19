@@ -21,7 +21,7 @@ class AccountInfo4Reserve(Account):
 
 
 @Model.describe(slug="aave-v2.account-info-reserve",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 user account info for one reserve token",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
@@ -116,8 +116,8 @@ class AaveV2GetAccountInfoAsset(Model):
             else:
                 token_info[key] = value
 
-        pdb = self.context.models.price.dex_db_prefer(
-            address=token_address)
+        pdb = self.context.models.price.dex(
+            base=token_address)
         pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
         token_info["PriceWithQuote"] = pq.dict()
         token_info['ATokenReward'] = token_info['currentATokenBalance'] - atoken_tx
