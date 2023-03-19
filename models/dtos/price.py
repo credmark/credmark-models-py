@@ -90,6 +90,7 @@ class DexPriceTokensInput(Tokens, PriceWeight):
 
 class DexPricePoolInput(Contract, PriceWeight):
     price_slug: str
+    ref_price_slug: str
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):

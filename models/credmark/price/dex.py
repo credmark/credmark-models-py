@@ -164,7 +164,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -187,7 +187,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -202,7 +202,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -217,7 +217,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.8',
+                version='1.9',
                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 category='protocol',
@@ -232,7 +232,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='price.dex-pool',
-                version='0.4',
+                version='0.6',
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -300,7 +300,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.17',
+                version='1.18',
                 display_name='Credmark Token Price from Dex',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -344,7 +344,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.4',
+                version='0.5',
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -409,7 +409,7 @@ class PriceFromDexModelMaybe(Model):
 
 
 @Model.describe(slug='price.dex-blended-tokens',
-                version='0.2',
+                version='0.3',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',

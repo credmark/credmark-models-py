@@ -1,11 +1,11 @@
 # pylint:disable=invalid-name
 
 from collections import namedtuple
-from credmark.cmf.types import Network
+from credmark.cmf.types import Address, Network
 
 # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
 V2_FACTORY_ADDRESS = {
-    k: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
+    k: Address('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f')
     for k in
     [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
 
@@ -19,7 +19,7 @@ V3_POS_NFT = {
 }
 
 V3_FACTORY_ADDRESS = {
-    k: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    k: Address('0x1F98431c8aD98523631AE4a59f267346ea31F984')
     for k in [
         Network.Mainnet, Network.Polygon, Network.Optimism, Network.ArbitrumOne,
         Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan
