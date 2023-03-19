@@ -218,11 +218,7 @@ class TLSScore(Model):
         one_day_earlier = current_block_dt - timedelta(hours=input.tx_history_hours)
         one_day_earlier_block = self.context.block_number.from_timestamp(one_day_earlier)
 
-        df_tx_fn = f'tmp/df_tx/df_tx_{input.address}_{one_day_earlier_block}_{self.context.block_number}.csv'
-
-        if os.path.isfile(df_tx_fn):
-            df_tx = pd.read_pickle(df_tx_fn)
-        else:
+        def _tx_no_cache():
             try:
                 df_tx = pd.DataFrame(token.fetch_events(
                     token.events.Transfer,
@@ -234,7 +230,19 @@ class TLSScore(Model):
                     from_block=one_day_earlier_block, to_block=self.context.block_number,
                     contract_address=token.address,
                     argument_names=['from', 'to', 'value']))
-            df_tx.to_pickle(df_tx_fn)
+            return df_tx
+
+        def _tx_cache():
+            df_tx_fn = f'tmp/df_tx/df_tx_{input.address}_{one_day_earlier_block}_{self.context.block_number}.csv'
+
+            if os.path.isfile(df_tx_fn):
+                df_tx = pd.read_pickle(df_tx_fn)
+            else:
+                df_tx = _tx_no_cache()
+                df_tx.to_pickle(df_tx_fn)
+            return df_tx
+
+        df_tx = _tx_no_cache()
 
         tx_period = f'during last {input.tx_history_hours}h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
