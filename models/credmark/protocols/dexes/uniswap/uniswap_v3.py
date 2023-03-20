@@ -107,7 +107,7 @@ class UniswapV3GetPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.1',
+                version='0.3',
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
@@ -129,35 +129,35 @@ class UniswapV3GetRing0RefPrice(Model):
         for token0_address in ring0_tokens:
             for token1_address in ring0_tokens:
                 # Uniswap builds pools with token0 < token1
-                if token0_address.to_int() <= token1_address.to_int():
+                if token0_address.to_int() >= token1_address.to_int():
                     continue
-                token_pairs = [(token1_address, token0_address)]
+                token_pairs = [(token0_address, token1_address)]
                 pools = get_uniswap_v3_pools_by_pair(self.context, factory_addr, token_pairs)
 
-                # print((token1_address, token2_address, len(pools.contracts), pools))
                 pools_info = [self.context.run_model('uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
-                pools_info_sel = [[p[k] for k in ['tick_price0', 'one_tick_liquidity0',
-                                                  'tick_price1', 'one_tick_liquidity1']] for p in pools_info]
+                pools_info_sel = [[p.address,
+                                   *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
+                                  for p, pi in zip(pools.contracts, pools_info)]
 
                 pool_info = pd.DataFrame(data=pools_info_sel,
-                                         columns=['tick_price0', 'one_tick_liquidity0', 'tick_price1', 'one_tick_liquidity1'])
+                                         columns=['address', 'ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1'])
 
                 if pool_info.shape[0] > 1:
-                    ratio0 = (pool_info.tick_price0 * pool_info.one_tick_liquidity0 ** self.WEIGHT_POWER).sum() / \
+                    ratio0 = (pool_info.ratio_price0 * pool_info.one_tick_liquidity0 ** self.WEIGHT_POWER).sum() / \
                         (pool_info.one_tick_liquidity0 ** self.WEIGHT_POWER).sum()
-                    ratio1 = (pool_info.tick_price1 * pool_info.one_tick_liquidity1 ** self.WEIGHT_POWER).sum() / \
+                    ratio1 = (pool_info.ratio_price1 * pool_info.one_tick_liquidity1 ** self.WEIGHT_POWER).sum() / \
                         (pool_info.one_tick_liquidity1 ** self.WEIGHT_POWER).sum()
                 else:
-                    ratio0 = pool_info['tick_price0'][0]
-                    ratio1 = pool_info['tick_price1'][0]
+                    ratio0 = pool_info['ratio_price0'][0]
+                    ratio1 = pool_info['ratio_price1'][0]
 
-                ratios[(token1_address, token0_address)] = ratio1
                 ratios[(token0_address, token1_address)] = ratio0
+                ratios[(token1_address, token0_address)] = ratio1
 
         candidate_prices = []
         price_span = np.array([])
         for pivot_token in ring0_tokens:
-            candidate_price = np.array([ratios[(pivot_token, token)] if token !=
+            candidate_price = np.array([ratios[(token, pivot_token)] if token !=
                                         pivot_token else 1 for token in ring0_tokens])
             price_span = np.append(price_span, candidate_price.max() / candidate_price.min())
             candidate_prices.append(candidate_price / candidate_price.max())
@@ -491,7 +491,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.4',
+                version='1.5',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -581,7 +581,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.16',
+                version='1.17',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',

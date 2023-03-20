@@ -138,9 +138,9 @@ class UniswapV2PoolMeta:
         for token0_address in ring0_tokens:
             for token1_address in ring0_tokens:
                 # Uniswap builds pools with token0 < token1
-                if token0_address.to_int() <= token1_address.to_int():
+                if token0_address.to_int() >= token1_address.to_int():
                     continue
-                token_pairs = [(token1_address, token0_address)]
+                token_pairs = [(token0_address, token1_address)]
                 pools = UniswapV2PoolMeta.get_uniswap_pools_by_pair(_context, factory_addr, token_pairs)
 
                 # print((token1_address, token2_address, len(pools.contracts), pools))
@@ -158,13 +158,13 @@ class UniswapV2PoolMeta:
                     ratio0 = pool_info['tick_price0'][0]
                     ratio1 = pool_info['tick_price1'][0]
 
-                ratios[(token1_address, token0_address)] = ratio1
                 ratios[(token0_address, token1_address)] = ratio0
+                ratios[(token1_address, token0_address)] = ratio1
 
         candidate_prices = []
         price_span = np.array([])
         for pivot_token in ring0_tokens:
-            candidate_price = np.array([ratios[(pivot_token, token)] if token !=
+            candidate_price = np.array([ratios[(token, pivot_token)] if token !=
                                         pivot_token else 1 for token in ring0_tokens])
             price_span = np.append(price_span, candidate_price.max() / candidate_price.min())
             candidate_prices.append(candidate_price / candidate_price.max())
@@ -174,7 +174,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 Ring0 Reference Price',
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
@@ -366,7 +366,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.13',
+                version='1.14',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
