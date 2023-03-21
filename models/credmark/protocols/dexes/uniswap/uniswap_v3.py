@@ -157,8 +157,9 @@ class UniswapV3GetRing0RefPrice(Model):
         candidate_prices = []
         price_span = np.array([])
         for pivot_token in ring0_tokens:
-            candidate_price = np.array([ratios[(token, pivot_token)] if token !=
-                                        pivot_token else 1 for token in ring0_tokens])
+            candidate_price = np.array([ratios[(token, pivot_token)]
+                                        if token != pivot_token else 1.0
+                                        for token in ring0_tokens])
             price_span = np.append(price_span, candidate_price.max() / candidate_price.min())
             candidate_prices.append(candidate_price / candidate_price.max())
 

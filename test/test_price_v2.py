@@ -1,4 +1,4 @@
-# pylint:disable=line-too-long
+# pylint:disable=line-too-long, invalid-name
 
 import pandas as pd
 
@@ -22,6 +22,7 @@ if __name__ == '__main__':
     prod_context, _model_loader = create_cmf(prod_cmf_param)
 
     blocks = [16_802_605, 16_804_605, 16_811_605, 16_862_071, 16_402_605]
+    csv_str_list = []
     for block in blocks:
         df_result = pd.DataFrame(
             {'Token': ['USDC', 'DAI', 'USDT', 'WETH', 'AAVE'],
@@ -48,5 +49,14 @@ if __name__ == '__main__':
             df_result.loc[row_n, 'Current Diff (%)'] = (current - oracle) / oracle  # type: ignore
             df_result.loc[row_n, 'Updated Diff (%)'] = (updated - oracle) / oracle  # type: ignore
 
-        df_result.to_csv(f'../tmp/test_price_v2_{block}.csv')
+        df_result.reset_index(drop=False, inplace=True)
+        df_result.columns = [block, 'Token', 'Current', 'Updated', 'Oracle', 'Current Diff (%)', 'Updated Diff (%)']
+        csv_str_list.append(df_result.to_csv(index=False))
         print(f'Finished {block}')
+
+    f_out = 'tmp/price_test_v2.csv'
+    with open(f_out, 'w') as f:
+        for l in csv_str_list:
+            f.write(l)
+            f.write('\n')
+    print(f'Wrote to {f_out}')
