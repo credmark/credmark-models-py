@@ -1,3 +1,4 @@
+from typing import Optional
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import (Contract, Currency, FiatCurrency,
@@ -90,7 +91,7 @@ class DexPriceTokensInput(Tokens, PriceWeight):
 
 class DexPricePoolInput(Contract, PriceWeight):
     price_slug: str
-    ref_price_slug: str
+    ref_price_slug: Optional[str]
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):

@@ -162,16 +162,17 @@ class UniswapV2PoolMeta:
                 ratios[(token1_address, token0_address)] = ratio1
 
         candidate_prices = []
-        price_span = np.array([])
         for pivot_token in ring0_tokens:
             candidate_price = np.array([ratios[(token, pivot_token)]
                                         if token != pivot_token else 1
                                         for token in ring0_tokens])
-            price_span = np.append(price_span, candidate_price.max() / candidate_price.min())
-            candidate_prices.append(candidate_price / candidate_price.max())
+            candidate_prices.append(
+                ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),
+                 candidate_price / candidate_price.max()))
 
-        return dict(zip(ring0_tokens,
-                    candidate_prices[np.where(price_span == price_span.min())[0][0]]))
+        return dict(zip(
+            ring0_tokens,
+            sorted(candidate_prices, key=lambda x: x[0])[0][1]))
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
@@ -217,7 +218,7 @@ class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.13',
+                version='1.14',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -292,14 +293,15 @@ class UniswapPoolPriceInfo(Model):
         is_ring0_pool = token0.address in ring0_tokens and token1.address in ring0_tokens
 
         if is_ring0_pool:
-            ref_price_ring0 = self.context.run_model(
-                slug=input.ref_price_slug,
-                input=EmptyInput(),
-                return_type=dict)
-            # Use the reference price to scale the tick price. Note the cross-reference is used here.
-            # token0 = tick_price0 * token1 = tick_price0 * ref_price of token1
-            tick_price0 *= ref_price_ring0[token1.address]
-            tick_price1 *= ref_price_ring0[token0.address]
+            if input.ref_price_slug is not None:
+                ref_price_ring0 = self.context.run_model(
+                    slug=input.ref_price_slug,
+                    input=EmptyInput(),
+                    return_type=dict)
+                # Use the reference price to scale the tick price. Note the cross-reference is used here.
+                # token0 = tick_price0 * token1 = tick_price0 * ref_price of token1
+                tick_price0 *= ref_price_ring0[token1.address]
+                tick_price1 *= ref_price_ring0[token0.address]
         elif token0.address == weth_address and token1.address in ring0_tokens:
             ref_price = self.context.run_model(
                 slug=input.price_slug,
