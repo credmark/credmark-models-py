@@ -20,6 +20,7 @@ class TestCMK(CMFTest):
         self.run_model('cmk.get-vesting-accounts', {}, exit_code=exit_code_failed)
         self.run_model('cmk.vesting-events',
                        {"address": "0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"}, exit_code=exit_code_failed)
+
         self.run_model('cmk.get-vesting-info-by-account',
                        {"address": "0xd766ee3ab3952fe7846db899ce0139da06fbe459"}, exit_code=exit_code_failed)
         self.run_model('cmk.get-vesting-info-by-account',

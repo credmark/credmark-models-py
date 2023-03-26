@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement, line-too-long
+# pylint: disable=locally-disabled, unsupported-membership-test, pointless-string-statement, line-too-long, invalid-name
 import sys
 from abc import abstractmethod
 from typing import List, Tuple
@@ -111,29 +111,34 @@ class PoolPriceAggregator(Model):
 
         non_zero_pools = [
             ii.pool_address for ii in all_pool_infos
-            if (ii.one_tick_liquidity0 > 1e-8 and ii.one_tick_liquidity1 > 1e-8)]
+            if (ii.token0_address == input.address and ii.one_tick_liquidity0 > 1e-8) or
+               (ii.token1_address == input.address and ii.one_tick_liquidity1 > 1e-8)]
 
         zero_pools = [
             ii.pool_address for ii in all_pool_infos
-            if (ii.one_tick_liquidity0 < 1e-8 or ii.one_tick_liquidity1 < 1e-8)]
+            if (ii.token0_address == input.address and ii.one_tick_liquidity0 <= 1e-8) or
+               (ii.token1_address == input.address and ii.one_tick_liquidity1 <= 1e-8)]
 
-        df = (Some(some=input.some)
+        df = (input
               .to_dataframe()
               .assign(
-            price_t=lambda x: x.price0.where(x.token0_address == input.address,
-                                             x.price1) * x.ref_price,
-            tick_liquidity_t=lambda x: x.one_tick_liquidity0.where(
-                x.token0_address == input.address, x.one_tick_liquidity1))
+                  price_t=lambda x: x.price0.where(x.token0_address == input.address,
+                                                   x.price1) * x.ref_price,
+                  tick_liquidity_t=lambda x: x.one_tick_liquidity0.where(
+                      x.token0_address == input.address, x.one_tick_liquidity1),
+                  tick_liquidity_other=lambda x: x.one_tick_liquidity0.where(
+                      x.token0_address != input.address, x.one_tick_liquidity1))
               )
 
         price_src = (f'{",".join([x.split(".")[0] for x in df.src.unique()])}|'
                      f'Non-zero:{len(non_zero_pools)}|'
                      f'Zero:{len(zero_pools)}')
 
-        if len(zero_pools) == len(all_pool_infos):
-            # REPLACED with below
-            # return Price(price=df.price_t.min(), src=price_src)
-            raise ModelDataError(f'There is no liquidity in {len(zero_pools)} pools '
+        sum_of_liquidity_t = df.tick_liquidity_t.sum()
+        _sum_of_liquidity_other = df.tick_liquidity_other.sum()
+
+        if sum_of_liquidity_t <= 1e-8:
+            raise ModelDataError(f'There is no liquidity (<= 1e-8) in {len(zero_pools)} pools '
                                  f'for {input.address}.')
 
         if len(input.some) == 1:
@@ -142,9 +147,9 @@ class PoolPriceAggregator(Model):
         if input.debug:
             print(df, file=sys.stderr)
 
-        product_of_price_liquidity = (df.price_t * df.tick_liquidity_t ** input.weight_power).sum()
-        sum_of_liquidity = (df.tick_liquidity_t ** input.weight_power).sum()
-        price = product_of_price_liquidity / sum_of_liquidity
+        product_of_price_liquidity_power = (df.price_t * df.tick_liquidity_t ** input.weight_power).sum()
+        sum_of_liquidity_power = (df.tick_liquidity_t ** input.weight_power).sum()
+        price = product_of_price_liquidity_power / sum_of_liquidity_power
         return Price(price=price, src=f'{price_src}|{input.weight_power}')
 
 
@@ -164,7 +169,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -187,7 +192,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -202,7 +207,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -217,7 +222,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.9',
+                version='1.10',
                 display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 category='protocol',
@@ -300,7 +305,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.19',
+                version='1.21',
                 display_name='Credmark Token Price from Dex',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -316,31 +321,35 @@ class PriceFromDexModel(Model):
     """
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
-        addr_maybe = self.context.run_model('token.underlying-maybe',
-                                            input=input,
-                                            return_type=Maybe[Address],
-                                            local=True)
-        if addr_maybe.just is not None:
-            input.address = addr_maybe.just
+        try:
+            all_pool_infos = self.context.run_model('price.dex-pool',
+                                                    input=input,
+                                                    return_type=Some[PoolPriceInfo],
+                                                    local=True).some
 
-        all_pool_infos = self.context.run_model('price.dex-pool',
+            pool_aggregator_input = DexPoolAggregationInput(
+                **input.dict(),
+                some=all_pool_infos)
+
+            price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
+
+            # Above code replaced code below as a saving to a model call
+            # price = self.context.run_model('price.pool-aggregator',
+            #                              input=pool_aggregator_input,
+            #                              return_type=Price,
+            #                              local=True)
+
+            return PriceWithQuote.usd(**price.dict())
+        except (ModelDataError, ModelRunError) as _err:
+            addr_maybe = self.context.run_model('token.underlying-maybe',
                                                 input=input,
-                                                return_type=Some[PoolPriceInfo],
-                                                local=True).some
+                                                return_type=Maybe[Address],
+                                                local=True)
+            if addr_maybe.just is not None:
+                input.address = addr_maybe.just
+                return self.context.run_model(self.slug, input, return_type=PriceWithQuote)
 
-        pool_aggregator_input = DexPoolAggregationInput(
-            **input.dict(),
-            some=all_pool_infos)
-
-        price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
-
-        # Above code replaces code below as a saving to a model call
-        # price = self.context.run_model('price.pool-aggregator',
-        #                              input=pool_aggregator_input,
-        #                              return_type=Price,
-        #                              local=True)
-
-        return PriceWithQuote.usd(**price.dict())
+            raise
 
 
 @Model.describe(slug='price.dex-db-prefer',
@@ -369,7 +378,7 @@ class PriceFromDexPreferModel(Model):
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         try:
             price_dex = self.context.run_model('price.dex-db', input=input, local=True)
-            if price_dex['liquidity'] > 1e-08:
+            if price_dex['liquidity'] > 1e-8:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
             raise ModelDataError(f'There is no liquidity for {input.address}.')
         except (ModelDataError, ModelRunError) as err:
