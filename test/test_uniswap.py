@@ -64,7 +64,13 @@ class TestUniswap(CMFTest):
 
         self.run_model("uniswap-v2.get-pool-price-info",
                        {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
-                        "price_slug": "uniswap-v2.get-weighted-price"})
+                        "price_slug": "uniswap-v2.get-weighted-price",
+                        "ref_price_slug": "uniswap-v2.get-ring0-ref-price"})
+
+        self.run_model("uniswap-v2.get-pool-price-info",
+                       {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                        "price_slug": "uniswap-v2.get-weighted-price",
+                        "ref_price_slug": None})
 
         # pool Swap events
         # if "--api_url=http://localhost:8700" in self.post_flag:
