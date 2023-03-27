@@ -1,19 +1,47 @@
-# pylint:disable=unused-import, line-too-long
+# pylint:disable=unused-import, line-too-long, protected-access
 
+from collections import namedtuple
+from typing import NamedTuple, Union
 import numpy as np
 import pandas as pd
 
+
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, EmptyInput, DTOField
 from credmark.cmf.model.errors import (
-    ModelDataError, ModelRunError, create_instance_from_error_dict)
+    ModelDataError, ModelEngineError, ModelRunError, create_instance_from_error_dict)
 from credmark.cmf.types import (Account, Address, Contract, Contracts,
                                 MapBlocksOutput, NativeToken, Network, Portfolio, Position,
                                 PriceWithQuote, Some, Token)
 from credmark.cmf.types.compose import (MapInputsOutput)
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy_err
+from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, AAVE_LENDING_POOL_PROXY, AAVE_LENDING_POOL
+
+
+class AAVEUserReserveData(NamedTuple):
+    currentATokenBalance: Union[int, float]
+    currentStableDebt: Union[int, float]
+    currentVariableDebt: Union[int, float]
+    principalStableDebt: Union[int, float]
+    scaledVariableDebt: Union[int, float]
+    stableBorrowRate: Union[int, float]
+    liquidityRate: Union[int, float]
+    stableRateLastUpdated: Union[int, float]
+    usageAsCollateralEnabled: bool
+
+    def normalize(self):
+        return self.__class__(
+            currentATokenBalance=self.currentATokenBalance / 1e18,
+            currentStableDebt=self.currentStableDebt / 1e18,
+            currentVariableDebt=self.currentVariableDebt / 1e18,
+            principalStableDebt=self.principalStableDebt / 1e18,
+            scaledVariableDebt=self.scaledVariableDebt / 1e18,
+            stableBorrowRate=self.stableBorrowRate / 1e27,
+            liquidityRate=self.liquidityRate / 1e27,
+            stableRateLastUpdated=self.stableRateLastUpdated,
+            usageAsCollateralEnabled=self.usageAsCollateralEnabled,
+        )
 
 
 class AccountInfo4Reserve(Account):
@@ -36,7 +64,7 @@ class AaveV2GetAccountInfoAsset(Model):
             input=EmptyInput(),
             return_type=Contract,
             local=True,
-        )
+        ).set_abi(AAVE_DATA_PROVIDER, set_loaded=True)
 
         keys_need_to_be_scaled = [
             "currentATokenBalance",
@@ -71,6 +99,8 @@ class AaveV2GetAccountInfoAsset(Model):
                                        self.logger,
                                        aToken_addresses[0],
                                        True)
+
+        aToken = Token(aToken_addresses[0]).as_erc20(set_loaded=True)
 
         # Fetch aToken transfer for an account
         _minted = pd.DataFrame(aToken.fetch_events(
@@ -274,15 +304,15 @@ class AccountAAVEHistorical(Account):
 
 
 @Model.describe(slug="aave-v2.account-summary-historical",
-    version="0.1",
-    display_name="Aave V2 user account summary historical",
-    description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
-                 "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
-    category="protocol",
-    subcategory="aave-v2",
-    input=AccountAAVEHistorical,
-    output=dict,
-)
+                version="0.1",
+                display_name="Aave V2 user account summary historical",
+                description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
+                             "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
+                category="protocol",
+                subcategory="aave-v2",
+                input=AccountAAVEHistorical,
+                output=dict,
+                )
 class AaveV2GetAccountSummaryHistorical(Model):
     def run(self, input: AccountAAVEHistorical) -> dict:
         """
