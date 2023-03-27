@@ -275,6 +275,14 @@ CHAINLINK_OVERRIDE_FEED = {
             'quote': {'symbol': 'USD'}}
     },
     Network.Polygon: {
+        # WETH / USD
+        Address('0x7ceb23fd6bc0add59e62ac25578270cff1b9f619'):
+        {'feed': {'address': '0xf9680d99d6c9589e2a93a78a04a279e509205945'},
+            'quote': {'symbol': 'USD'}},
+        # ETH / USD
+        Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
+        {'feed': {'address': '0xf9680d99d6c9589e2a93a78a04a279e509205945'},
+            'quote': {'symbol': 'USD'}},
         # 1INCH / USD
         Address('0x9c2c5fd7b07e95ee044ddeba0e97a665f142394f'):
         {'feed': {'address': '0x443c5116cdf663eb387e72c688d276e702135c87'},
@@ -338,7 +346,7 @@ CHAINLINK_OVERRIDE_FEED = {
         # DPI / ETH
         Address('0x85955046df4668e1dd369d2de9f3aeb98dd2a369'):
         {'feed': {'address': '0xc70aaf9092de3a4e5000956e672cdf5e996b4610'},
-            'quote': {'symbol': 'ETH'}},
+            'quote': {'symbol': 'WETH'}},
         # ENJ / USD
         Address('0x7ec26842f195c852fa843bb9f6d8b583a274a157'):
         {'feed': {'address': '0x440a341bbc9fa86aa60a195e2409a547e48d4c0c'},
@@ -383,6 +391,10 @@ CHAINLINK_OVERRIDE_FEED = {
         Address('0xb0897686c545045afc77cf20ec7a532e3120e0f1'):
         {'feed': {'address': '0xd9ffdb71ebe7496cc440152d43986aae0ab76665'},
             'quote': {'symbol': 'USD'}},
+        # LINK with mapper (used by Uniswap) / USD
+        Address('0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39'):
+        {'feed': {'address': '0xd9ffdb71ebe7496cc440152d43986aae0ab76665'},
+            'quote': {'symbol': 'USD'}},
         # LPT / USD
         Address('0x3962f4a0a0051dcce0be73a7e09cef5756736712'):
         {'feed': {'address': '0xbaaf11ceda1d1ca9cf01748f8196653c9656a400'},
@@ -393,6 +405,10 @@ CHAINLINK_OVERRIDE_FEED = {
             'quote': {'symbol': 'USD'}},
         # MATIC / USD
         Address('0x0000000000000000000000000000000000001010'):
+        {'feed': {'address': '0xab594600376ec9fd91f8e885dadf0ce036862de0'},
+            'quote': {'symbol': 'USD'}},
+        # WMATIC / USD
+        Address('0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'):
         {'feed': {'address': '0xab594600376ec9fd91f8e885dadf0ce036862de0'},
             'quote': {'symbol': 'USD'}},
         # MFT / USD
