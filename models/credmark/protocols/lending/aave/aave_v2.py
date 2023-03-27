@@ -13,7 +13,7 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_err
 from models.dtos.tvl import LendingPoolPortfolios
-from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI, AAVE_LENDING_POOL_PROVIDER, AAVE_DATA_PROVIDER, AAVE_LENDING_POOL_PROXY, AAVE_LENDING_POOL
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI, AAVE_LENDING_POOL_PROVIDER, AAVE_DATA_PROVIDER
 from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
 from web3 import Web3
 

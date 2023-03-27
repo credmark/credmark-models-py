@@ -3,8 +3,10 @@
 import pandas as pd
 
 from credmark.cmf.types import Contract
+from credmark.cmf.model.errors import ModelDataError
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_LENDING_POOL_PROXY, AAVE_LENDING_POOL
+
 
 def get_aave_lender(context, start_block, end_block, query_filter=''):
     """
@@ -22,6 +24,8 @@ def get_aave_lender(context, start_block, end_block, query_filter=''):
             return df_aave_deposit.query(query_filter).user.unique()
 
         return df_aave_deposit
+
+    raise ModelDataError('Lending pool contract shall be a proxy contract')
 
 
 def get_lending_pool(context):
