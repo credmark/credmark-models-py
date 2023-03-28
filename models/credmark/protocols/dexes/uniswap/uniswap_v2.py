@@ -169,15 +169,16 @@ class UniswapV2PoolMeta:
                 valid_tokens.add(token0_address)
                 valid_tokens.add(token1_address)
 
-        breakpoint()
-
         valid_tokens_list = list(valid_tokens)
-        for token0_address, token1_address in missing_relations:
-            assert len(ring0_tokens) == 3
-            other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
-            ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
-                ratios[(other_token, token1_address)]
-            ratios[(token1_address, token0_address)] = 1 / ratios[(token0_address, token1_address)]
+        if len(valid_tokens_list) == len(ring0_tokens):
+            try:
+                assert len(ring0_tokens) == 3
+            except AssertionError:
+                raise ModelDataError('Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+            for token0_address, token1_address in missing_relations:
+                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
+                ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
+                    ratios[(other_token, token1_address)]
 
         candidate_prices = []
         for pivot_token in valid_tokens_list:
@@ -188,13 +189,15 @@ class UniswapV2PoolMeta:
                 ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),
                  candidate_price / candidate_price.max()))
 
+        ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
+
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1]))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
-                version='0.4',
+                version='0.5',
                 display_name='Uniswap v2 Ring0 Reference Price',
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',

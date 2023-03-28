@@ -10,19 +10,16 @@ class ConvexPoolInput(DTO):
     reward: Address
 
 
-@Model.describe(
-    slug="contrib.curve-convex-yield",
-    display_name="APR for Convex pool",
-    description=(
-        "base, crv, cvx apr for convex pool"
-    ),
-    input=ConvexPoolInput,
-    version="1.1",
-    developer="megaflare14",
-    category="protocol",
-    subcategory="curve",
-    output=dict,
-)
+@Model.describe(slug="contrib.curve-convex-yield",
+                display_name="APR for Convex pool",
+                description="base, crv, cvx apr for convex pool",
+                input=ConvexPoolInput,
+                version="1.1",
+                developer="megaflare14",
+                category="protocol",
+                subcategory="curve",
+                output=dict,
+                )
 class ConvexPoolApr(Model):
     # This is a re-implementation of the convex subgraph from:
     # https://github.com/convex-community/convex-subgraph/blob/e9c5cdfae055802af99b545739d9cf67a2a4c2cd/subgraphs/curve-pools/src/services/pools.ts#L253

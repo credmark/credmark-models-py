@@ -15,9 +15,12 @@ class TestExample(CMFTest):
                        {"address": "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46"})
 
         self.title('Example')
+
         self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
+
         self.run_model('example.model', {})
         self.run_model('example.model-run', {})
+
         self.run_model('example.contract', {})
 
         self.run_model('example.data-error-1', {}, exit_code=3)
