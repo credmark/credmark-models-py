@@ -107,7 +107,7 @@ class UniswapV3GetPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.3',
+                version='0.5',
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
@@ -126,6 +126,8 @@ class UniswapV3GetRing0RefPrice(Model):
                                               local=True).some
 
         ratios = {}
+        valid_tokens = set()
+        missing_relations = []
         for token0_address in ring0_tokens:
             for token1_address in ring0_tokens:
                 # Uniswap builds pools with token0 < token1
@@ -133,6 +135,10 @@ class UniswapV3GetRing0RefPrice(Model):
                     continue
                 token_pairs = [(token0_address, token1_address)]
                 pools = get_uniswap_v3_pools_by_pair(self.context, factory_addr, token_pairs)
+
+                if len(pools.contracts) == 0:
+                    missing_relations.extend([(token0_address, token1_address), (token1_address, token0_address)])
+                    continue
 
                 pools_info = [self.context.run_model('uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
                 pools_info_sel = [[p.address,
@@ -153,19 +159,35 @@ class UniswapV3GetRing0RefPrice(Model):
 
                 ratios[(token0_address, token1_address)] = ratio0
                 ratios[(token1_address, token0_address)] = ratio1
+                valid_tokens.add(token0_address)
+                valid_tokens.add(token1_address)
+
+        valid_tokens_list = list(valid_tokens)
+        if len(valid_tokens_list) == len(ring0_tokens):
+            try:
+                assert len(ring0_tokens) == 3
+            except AssertionError:
+                raise ModelDataError('Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+
+            for token0_address, token1_address in missing_relations:
+                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
+                ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
+                    ratios[(other_token, token1_address)]
 
         candidate_prices = []
-        for pivot_token in ring0_tokens:
+        for pivot_token in valid_tokens_list:
             candidate_price = np.array([ratios[(token, pivot_token)]
-                                        if token != pivot_token else 1.0
-                                        for token in ring0_tokens])
+                                        if token != pivot_token else 1
+                                        for token in valid_tokens_list])
             candidate_prices.append(
                 ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),
                  candidate_price / candidate_price.max()))
 
+        ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
+
         return dict(zip(
-            ring0_tokens,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1]))
+            valid_tokens_list,
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',

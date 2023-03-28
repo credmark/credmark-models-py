@@ -57,7 +57,7 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='sushiswap.get-ring0-ref-price',
-                version='0.1',
+                version='0.5',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',

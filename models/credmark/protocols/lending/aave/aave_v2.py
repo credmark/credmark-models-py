@@ -265,7 +265,8 @@ class AaveV2GetLendingPool(Model):
                                                        input=EmptyInput(),
                                                        return_type=Contract,
                                                        local=True)
-        return Contract(address=lending_pool_provider)
+        lending_pool_address = lending_pool_provider.functions.getLendingPool().call()
+        return Contract(address=lending_pool_address)
 
 
 @Model.describe(slug="aave-v2.get-price-oracle",
