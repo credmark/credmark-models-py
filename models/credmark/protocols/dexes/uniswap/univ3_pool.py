@@ -59,7 +59,7 @@ class UniV3Pool:
 
     def __init__(self, pool_addr: Address, _pool_data: Optional[dict] = None):
         self.pool = Contract(address=pool_addr)
-        self.pool.set_abi(UNISWAP_V3_POOL_ABI)
+        self.pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
 

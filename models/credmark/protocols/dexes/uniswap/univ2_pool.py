@@ -43,7 +43,7 @@ class UniV2Pool:
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
         self.pool = Contract(address=pool_addr)
-        self.pool.set_abi(UNISWAP_V2_POOL_ABI)
+        self.pool.set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True)
         self.protocol = _protocol
         self.tick_spacing = 1
 
