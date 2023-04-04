@@ -48,7 +48,7 @@ class TestExample(CMFTest):
         self.run_model('example.historical-block', {})
 
         self.title('Ledger Examples')
-        self.run_model('example.ledger-token-transfers', {"address": "0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"})
+        self.run_model('example.ledger-token-transfers', {})
         self.run_model('example.ledger-transactions', {})
         self.run_model('example.ledger-receipts', {})
         self.run_model('example.ledger-traces', {})

@@ -1,6 +1,6 @@
 from typing import Union
 
-from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS, from_iso8601_str
+from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract
@@ -68,6 +68,7 @@ class xCmkDeploymentTime(Model):  # pylint: disable=invalid-name
                 limit=1)
 
             rows = result.data
-            timestamp = from_iso8601_str(rows[0].get(txn.BLOCK_TIMESTAMP)) if len(rows) else None
+            timestamp = txn.field('').from_iso8601_str(
+                rows[0].get(txn.BLOCK_TIMESTAMP)) if len(rows) else None
 
         return xCmkDeploymentTimeOutput(timestamp=timestamp)

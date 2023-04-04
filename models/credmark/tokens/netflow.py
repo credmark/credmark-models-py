@@ -276,6 +276,8 @@ class TokenVolumeSegmentBlock(Model):
                             .and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0'))),
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
+
+                from_iso8601_str = t.field('').from_iso8601_str
         else:
             input_token = input.token
             with self.context.ledger.TokenTransfer.as_('t') as t,\
@@ -308,6 +310,16 @@ class TokenVolumeSegmentBlock(Model):
                             .and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0'))),
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
+
+                from_iso8601_str = t.field('').from_iso8601_str
+
+        df['from_block'] = df['from_block'].astype('int')
+        df['to_block'] = df['to_block'].astype('int')
+        df['inflow'] = df['inflow'].astype('float64')
+        df['outflow'] = df['outflow'].astype('float64')
+
+        df['from_timestamp'] = df['from_timestamp'].apply(from_iso8601_str)
+        df['to_timestamp'] = df['to_timestamp'].apply(from_iso8601_str)
 
         df = df.fillna(0)
         netflows = []
