@@ -94,7 +94,8 @@ class UniswapFee(Model):
                            .and_(q.FROM_ADDRESS.eq(uni_pool_addr)
                                  .or_(q.TO_ADDRESS.eq(uni_pool_addr)).parentheses_())),
                     order_by=q.BLOCK_NUMBER,
-                    offset=offset
+                    offset=offset,
+                    bigint_cols=[q.BLOCK_NUMBER],
                 ).to_dataframe()
 
                 if df_tt.shape[0] > 0:

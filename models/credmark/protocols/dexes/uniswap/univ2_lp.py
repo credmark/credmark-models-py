@@ -358,7 +358,7 @@ class UniswapV2LPFee(Model):
                         .and_(q.TOKEN_ADDRESS.eq(pool.address))
                        ),
                 group_by=[q.BLOCK_NUMBER],
-                bigint_cols=['sum_transaction_value'],
+                bigint_cols=['sum_transaction_value', 'block_number'],
                 limit=2
             ).to_dataframe()
 
