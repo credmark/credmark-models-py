@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, no-member
+# pylint: disable=locally-disabled, unused-import, no-member, line-too-long
 from typing import List
 
 import requests
@@ -162,38 +162,106 @@ class TokenUnderlying(Model):
         return Maybe(just=None)
 
 
-@Model.describe(
-    slug="token.info",
-    version="1.1",
-    display_name="Token Information",
-    developer="Credmark",
-    category='protocol',
-    tags=['token'],
-    input=Token,
-    output=Token
-)
+@Model.describe(slug="token.info",
+                version="1.2",
+                display_name="Token Information",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=Token
+                )
 class TokenInfoModel(Model):
     """
     Return token's information
     """
 
     def run(self, input: Token) -> Token:
-        return input.info
+        token_info = input.info
+        if token_info.deployed_block_number is None:
+            # pylint:disable=protected-access
+            token_info._meta.deployed_block_number = self.context.run_model(
+                'token.deployment', input)['deployed_block_number']
+        return token_info
+
+
+@Model.describe(slug="token.deployment",
+                version="0.1",
+                display_name="Token Information - deployment",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=dict)
+class TokenInfoDeployment(Model):
+    """
+    Return token's information on deployment
+    """
+
+    code_by_block = {}
+
+    def binary_search(self, low, high, contract_address):
+        # Check base case
+        if high >= low:
+            mid = (high + low)//2
+            if high == low:
+                return low
+
+            if self.code_by_block.get(hex(mid)) is None:
+                try_get_code = self.context.web3.eth.get_code(contract_address, hex(mid)).hex()
+                self.code_by_block[hex(mid)] = try_get_code
+            else:
+                try_get_code = self.code_by_block[hex(mid)]
+            if try_get_code != '0x':
+                return self.binary_search(low, mid, contract_address)
+            elif try_get_code == '0x':
+                return self.binary_search(mid+1, high, contract_address)
+            else:
+                return -1
+        else:
+            return -1
+
+    def run(self, input: Token) -> dict:
+        if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
+            raise ModelDataError(f'{input.address} is not an EOA account')
+
+        res = self.binary_search(0, int(self.context.block_number), input.address.checksum)
+        if res == -1:
+            raise ModelDataError(f'Can not find deployment information for {input.address}')
+
+        block = self.context.web3.eth.get_block(res)
+        txs = block['transactions'] if 'transactions' in block else []
+        deployer = None
+        for tx in txs:
+            receipt = self.context.web3.eth.get_transaction_receipt(tx.hex())  # type: ignore
+            if receipt['contractAddress'] == input.address:
+                deployer = receipt['from']
+                break
+            for log in receipt['logs']:
+                if log['address'] == input.address:
+                    deployer = receipt['from']
+                    break
+
+        if input.proxy_for is not None:
+            proxy_deployer = self.context.run_model('token.deployment', input.proxy_for)
+            return {'deployed_block_number': res, 'deployer': deployer, 'proxy_deployer': proxy_deployer}
+
+        return {'deployed_block_number': res, 'deployer': deployer}
 
 
 class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
 
 
-@Model.describe(slug="token.logo",
-                version="1.2",
-                display_name="Token Logo",
-                developer="Credmark",
-                category='protocol',
-                tags=['token'],
-                input=Token,
-                output=TokenLogoOutput
-                )
+@ Model.describe(slug="token.logo",
+                 version="1.2",
+                 display_name="Token Logo",
+                 developer="Credmark",
+                 category='protocol',
+                 tags=['token'],
+                 input=Token,
+                 output=TokenLogoOutput
+                 )
 class TokenLogoModel(Model):
     """
     Return token's logo
