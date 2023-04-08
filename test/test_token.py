@@ -153,9 +153,15 @@ class TestToken(CMFTest):
 
         self.run_model("token.holders", {"symbol": "CMK"})
         self.run_model("token.swap-pools", {"symbol": "CMK"})
+
         self.run_model("token.info", {"symbol": "CMK"})
         self.run_model("token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
         self.run_model("token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
+        self.run_model("token.info", {"symbol": "MKR"})
+
+        self.run_model("token.deployment", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
+        self.run_model("token.deployment", {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})  # MKR
+        self.run_model("token.deployment", {"symbol": "USDC"})
 
         # WETH-DAI pool: https://analytics.sushi.com/pairs/0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
         self.run_model("token.swap-pool-volume", {"address": "0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"})
