@@ -28,3 +28,10 @@ class TestCompose(CMFTest):
 
         self.run_model('price.quote-historical-multiple',
                        {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": True})
+
+        self.run_model('series.block-window-interval',
+                       {"modelSlug": "token.balance",
+                        "modelInput": {
+                            "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                            "account": "0x55FE002aefF02F77364de339a1292923A15844B8"
+                        }, "window": 20000, "interval": 10000})
