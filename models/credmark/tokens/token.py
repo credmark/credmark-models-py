@@ -5,7 +5,7 @@ import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurrency, Maybe,
+from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Currency, FiatCurrency, Maybe,
                                 NativeToken, Network, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
@@ -185,13 +185,17 @@ class TokenInfoModel(Model):
         return token_info
 
 
+class TokenDeploymentInput(Contract):
+    ignore_proxy: bool = DTOField(False, description='Ignore proxy')
+
+
 @Model.describe(slug="token.deployment",
                 version="0.1",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
                 tags=['token'],
-                input=Token,
+                input=TokenDeploymentInput,
                 output=dict)
 class TokenInfoDeployment(Model):
     """
@@ -221,7 +225,7 @@ class TokenInfoDeployment(Model):
         else:
             return -1
 
-    def run(self, input: Token) -> dict:
+    def run(self, input: TokenDeploymentInput) -> dict:
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             raise ModelDataError(f'{input.address} is not an EOA account')
 
@@ -242,9 +246,10 @@ class TokenInfoDeployment(Model):
                     deployer = receipt['from']
                     break
 
-        if input.proxy_for is not None:
-            proxy_deployer = self.context.run_model('token.deployment', input.proxy_for)
-            return {'deployed_block_number': res, 'deployer': deployer, 'proxy_deployer': proxy_deployer}
+        if not input.ignore_proxy:
+            if input.proxy_for is not None:
+                proxy_deployer = self.context.run_model('token.deployment', input.proxy_for)
+                return {'deployed_block_number': res, 'deployer': deployer, 'proxy_deployer': proxy_deployer}
 
         return {'deployed_block_number': res, 'deployer': deployer}
 
