@@ -91,27 +91,28 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                              f'{contract.address}')
 
         # Contract ledger queries
-        with contract.ledger.functions.addVestingSchedule as q:
-            output.log("You can query ledger data for contract function calls")
-            output.log_io(
-                input="""
-with contract.ledger.functions.addVestingSchedule as q:
-    q.select(columns=[
-                q.BLOCK_NUMBER,
-                q.FN_ACCOUNT,
-                q.FN_ALLOCATION
-             ],
-             order_by=q.BLOCK_NUMBER.asc(),
-             limit=5)
-""",
-                output=q.select(
-                    columns=[
-                        q.BLOCK_NUMBER,
-                        q.FN_ACCOUNT,
-                        q.FN_ALLOCATION
-                    ],
-                    order_by=q.BLOCK_NUMBER,
-                    limit=5))
+        if False:
+            with contract.ledger.functions.addVestingSchedule as q:
+                output.log("You can query ledger data for contract function calls")
+                output.log_io(
+                    input="""
+    with contract.ledger.functions.addVestingSchedule as q:
+        q.select(columns=[
+                    q.BLOCK_NUMBER,
+                    q.FN_ACCOUNT,
+                    q.FN_ALLOCATION
+                ],
+                order_by=q.BLOCK_NUMBER.asc(),
+                limit=5)
+    """,
+                    output=q.select(
+                        columns=[
+                            q.BLOCK_NUMBER,
+                            q.FN_ACCOUNT,
+                            q.FN_ALLOCATION
+                        ],
+                        order_by=q.BLOCK_NUMBER,
+                        limit=5))
 
         output.log("You can query ledger data for contract events")
         with contract.ledger.events.VestingScheduleAdded as q:
