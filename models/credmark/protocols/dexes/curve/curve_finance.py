@@ -270,7 +270,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.26",
+                version="1.27",
                 display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -290,18 +290,11 @@ class CurveFinancePoolInfo(Model):
             token_prices = []
             for tok in pool_info.tokens:
                 token_price = self.context.run_model(
-                    'price.quote-maybe',
+                    'price.dex-maybe',
                     {'base': tok},
                     return_type=Maybe[PriceWithQuote])
                 token_prices.append(token_price.get_just(PriceWithQuote.usd()))
             return token_prices
-
-        def _use_compose() -> List[PriceWithQuote]:
-            token_prices = self.context.run_model(
-                'price.quote-multiple-maybe',
-                input={'some': [{'base': tok} for tok in pool_info.tokens]},
-                return_type=Some[Maybe[PriceWithQuote]]).some
-            return [p.get_just(PriceWithQuote.usd()) for p in token_prices]
 
         token_prices = _use_for()
 
