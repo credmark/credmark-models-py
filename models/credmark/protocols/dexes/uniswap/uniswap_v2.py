@@ -524,7 +524,7 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
