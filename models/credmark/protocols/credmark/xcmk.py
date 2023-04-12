@@ -3,7 +3,7 @@ from typing import Union
 from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract
+from credmark.cmf.types import Address, BlockNumber, Contract
 from credmark.dto import DTO
 
 
@@ -62,13 +62,18 @@ class xCmkDeploymentTime(Model):  # pylint: disable=invalid-name
         # get minimum block with to=staked_credmark
         with self.context.ledger.Transaction as txn:
             result = txn.select(
-                columns=[txn.BLOCK_TIMESTAMP],
+                aggregates=[(txn.BLOCK_NUMBER.max_(), 'max_block_number')],
                 where=txn.TO_ADDRESS.eq(Address(STAKED_CREDMARK_ADDRESS)),
-                order_by=txn.BLOCK_TIMESTAMP.asc(),
-                limit=1)
+                bigint_cols=['max_block_number'],
+            )
 
+            # from_iso8601_str = txn.field('').from_iso8601_str
+            # timestamp = from_iso8601_str(rows[0].get(txn.BLOCK_TIMESTAMP)) if len(rows) else None
             rows = result.data
-            timestamp = txn.field('').from_iso8601_str(
-                rows[0].get(txn.BLOCK_TIMESTAMP)) if len(rows) else None
+            try_block_number = rows[0].get('max_block_number')
+            if try_block_number is not None:
+                timestamp = BlockNumber(int(try_block_number)).timestamp
+            else:
+                timestamp = None
 
         return xCmkDeploymentTimeOutput(timestamp=timestamp)

@@ -66,7 +66,7 @@ class TLSOutput(Account):
 
 
 @Model.describe(slug='tls.score',
-                version='0.69',
+                version='0.71',
                 display_name='Score a token for its legitimacy',
                 description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
                 category='TLS',
@@ -232,7 +232,7 @@ class TLSScore(Model):
         # df_tx_count = df_tx.shape[0]
 
         df_tx = _tx_ledger()
-        tx_count = df_tx['tx_count'][0]
+        tx_count = int(df_tx['tx_count'][0])
 
         tx_period = f'during last {input.tx_history_hours}h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
