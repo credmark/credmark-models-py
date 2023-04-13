@@ -49,11 +49,23 @@ class AccountValue(Model):
         def zero_price():
             return PriceWithQuote.usd(price=0.0, src='Cannot find price')
 
-        for pos in portfolio:
-            price = self.context.run_model(
-                'price.dex-maybe',
-                input={'base': pos.asset, 'quote': input.quote},
-                return_type=Maybe[PriceWithQuote]).get_just(zero_price())
+        prices = self.context.run_model(
+            'price.multiple-maybe',
+            {'slug': 'price.dex-maybe',
+                'some': [{'base': pos.asset, 'quote': input.quote} for pos in portfolio]},
+            return_type=Some[Maybe[PriceWithQuote]])
+
+        # For sequential
+        # prices = portfolio
+
+        for pos, price_maybe in zip(portfolio, prices):
+            # For sequential
+            # price = self.context.run_model(
+            #    'price.dex-maybe',
+            #    input={'base': pos.asset, 'quote': input.quote},
+            #    return_type=Maybe[PriceWithQuote]).get_just(zero_price())
+
+            price = price_maybe.get_just(zero_price())
 
             pos_value = pos.amount * price.price
             values.append({
