@@ -30,7 +30,7 @@ class TestCompose(CMFTest):
                        {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": True})
 
         self.run_model('price.multiple-maybe',
-                      {"slug": "price.dex-maybe", "some": [{"base": "USDC"}, {"base": "AAVE", "quote": "JPY"}]})
+                       {"slug": "price.dex-maybe", "some": [{"base": "USDC"}, {"base": "AAVE", "quote": "JPY"}]})
 
         self.run_model('series.block-window-interval',
                        {"modelSlug": "token.balance",
@@ -38,3 +38,13 @@ class TestCompose(CMFTest):
                             "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
                             "account": "0x55FE002aefF02F77364de339a1292923A15844B8"
                         }, "window": 20000, "interval": 10000})
+
+        self.run_model(
+            'historical.run-model',
+            {"model_slug": "token.holders-count", "model_input": {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"},
+                "window": "242772 second", "interval": "42000 second"})
+
+        self.run_model(
+            'series.block-window-interval',
+            {"modelSlug": "token.holders-count",
+             "modelInput": {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"}, "window": 20000, "interval": 10000})

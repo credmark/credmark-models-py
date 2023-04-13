@@ -463,12 +463,12 @@ class TokenHoldersCount(Model):
     def run(self, input: Token) -> TokenHoldersCountOutput:
         with self.context.ledger.TokenBalance as q:
             df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'balance'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.field('balance').dquote().desc(),
-                having=q.field('balance').dquote().gt(0),
+                order_by=q.TRANSACTION_VALUE.as_numeric().sum_().desc(),
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
                 limit=1,
             ).to_dataframe()
 
