@@ -66,7 +66,7 @@ class TLSOutput(Account):
 
 
 @Model.describe(slug='tls.score',
-                version='0.71',
+                version='0.72',
                 display_name='Score a token for its legitimacy',
                 description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
                 category='TLS',
@@ -238,14 +238,14 @@ class TLSScore(Model):
 
         if tx_count == 0:
             items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
-            if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score <= 3.0:
+            if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score < 3.0:
                 items.append(TLSItem.create(['Score is overridden by the underlying', 3.0, underlying_token_tls.score],
                                             TLSItemImpact.NEUTRAL))
                 return self.__class__.score(input.address, token_name, token_symbol, underlying_token_tls.score, items)
             return self.__class__.score(input.address, token_name, token_symbol, 3.0, items)
 
         items.append(TLSItem.create(f'{tx_count} transfers during {tx_period}', TLSItemImpact.POSITIVE))
-        if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score <= 7.0:
+        if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score < 7.0:
             items.append(TLSItem.create(['Score is overridden by the underlying', 7.0, underlying_token_tls.score],
                                         TLSItemImpact.NEUTRAL))
             return self.__class__.score(input.address, token_name, token_symbol, underlying_token_tls.score, items)
