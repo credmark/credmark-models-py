@@ -12,7 +12,8 @@ from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
                                         MapInputsOutput)
 from models.dtos.price import (PRICE_DATA_ERROR_DESC,
                                PriceHistoricalInput, PriceHistoricalInputs,
-                               PriceInput, PriceInputWithPreference)
+                               PriceInput, PriceInputWithPreference,
+                               PriceMultipleInput)
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -90,6 +91,47 @@ class PriceQuoteHistorical(Model):
 class PriceQuoteMultipleMaybe(Model):
     def run(self, input: Some[PriceInputWithPreference]) -> Some[Maybe[PriceWithQuote]]:
         price_slug = 'price.quote-maybe'
+
+        def _use_compose():
+            token_prices_run = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': price_slug, 'modelInputs': input.some},
+                return_type=MapInputsOutput[PriceInputWithPreference, Maybe[PriceWithQuote]])
+
+            prices = []
+            for p in token_prices_run:
+                if p.output is not None:
+                    prices.append(p.output)
+                elif p.error is not None:
+                    self.logger.error(p.error)
+                    raise create_instance_from_error_dict(p.error.dict())
+                else:
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
+
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        def _use_for():
+            prices = [self.context.run_model(price_slug, input=m, return_type=Maybe[PriceWithQuote])
+                      for m in input]
+            return Some[Maybe[PriceWithQuote]](some=prices)
+
+        return _use_compose()
+
+
+@Model.describe(slug='price.multiple-maybe',
+                version='0.1',
+                display_name='Token Price - Quoted',
+                description='Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=PriceMultipleInput,
+                output=Some[Maybe[PriceWithQuote]],
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceMultipleMaybeWithSlug(Model):
+    def run(self, input: PriceMultipleInput) -> Some[Maybe[PriceWithQuote]]:
+        price_slug = input.slug
 
         def _use_compose():
             token_prices_run = self.context.run_model(
