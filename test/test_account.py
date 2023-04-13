@@ -38,6 +38,10 @@ class TestAccount(CMFTest):
         self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
 
+        self.run_model('accounts.token-transfer',
+                       {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"],
+                        "limit": 10})
+
         # Keep this out to avoid hitting size limit: "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"
         self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5",
@@ -50,11 +54,12 @@ class TestAccount(CMFTest):
 
         self.run_model('account.portfolio', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})
 
-        self.run_model('account.portfolio-aggregate',
+        self.run_model('accounts.portfolio',
                        {"accounts": [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]})
 
-        self.run_model('account.portfolio-aggregate', {"accounts": [{"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"}, {
-                       "address": "0xAE5B61a270e77F41b99965B171e20DFA8642E0Ea"}]})
+        self.run_model('accounts.portfolio',
+                       {"accounts": [{"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"},
+                                     {"address": "0xAE5B61a270e77F41b99965B171e20DFA8642E0Ea"}]})
 
         self.run_model('account.portfolio', {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"})
         self.run_model('accounts.portfolio',

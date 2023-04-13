@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import pandas as pd
 
 from credmark.cmf.model import Model
@@ -23,7 +23,9 @@ class AccountWithToken(Account, Tokens):
             'examples': cross_examples(
                 Tokens.Config.schema_extra['examples'],
                 Account.Config.schema_extra['examples'],
+                [{}, {'limit': None}],
                 limit=10)}
+    limit: Optional[int] = DTOField(None, description='limit to the number of records')
 
 
 class AccountsWithToken(Accounts, Tokens):
@@ -32,7 +34,9 @@ class AccountsWithToken(Accounts, Tokens):
             'examples': cross_examples(
                 Tokens.Config.schema_extra['examples'],
                 Accounts.Config.schema_extra['examples'],
+                [{}, {'limit': None}],
                 limit=10)}
+    limit: Optional[int] = DTOField(None, description='limit to the number of records')
 
 
 @Model.describe(slug='account.token-transfer',
@@ -51,7 +55,8 @@ class AccountERC20Token(Model):
             'accounts.token-transfer',
             input=input.to_accounts().dict() |
             {"tokens": input.tokens,
-             "startBlock": input.startBlock},
+             "startBlock": input.startBlock,
+             'limit': input.limit},
             return_type=Records)
 
 
@@ -75,13 +80,15 @@ class AccountsERC20Token(Model):
                                       input.to_address(),
                                       input.tokens,
                                       input.startBlock,
-                                      fix_int=False)
+                                      fix_int=False,
+                                      limit=input.limit)
         return Records.from_dataframe(df_erc20, fix_int_columns=['value'])
 
 
 def get_token_transfer(_context, _accounts: List[Address],
                        _tokens: List[Address], start_block: int,
-                       fix_int=True) -> pd.DataFrame:
+                       fix_int=True,
+                       limit=None) -> pd.DataFrame:
     def _use_ledger():
         with _context.ledger.TokenTransfer as q:
             transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
@@ -129,13 +136,19 @@ def get_token_transfer(_context, _accounts: List[Address],
 
         result = (pd.DataFrame(model_result)
                   .assign(block_number=lambda x: x.block_number.apply(int))
-                  .rename(columns={'transaction_value': 'value'}))
+                  .rename(columns={'transaction_value': 'value'})
+                  .reset_index(drop=True))
         return result
 
     if fix_int:
         return fix_transfer(_use_model())
 
-    return _use_model()
+    result = _use_model()
+
+    if limit is not None:
+        result = result.iloc[:limit]
+
+    return result
 
 
 def get_native_transfer(_context, _accounts: List[Address], fix_int=True) -> pd.DataFrame:

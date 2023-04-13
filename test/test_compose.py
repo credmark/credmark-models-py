@@ -29,6 +29,9 @@ class TestCompose(CMFTest):
         self.run_model('price.quote-historical-multiple',
                        {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 20, "exclusive": True})
 
+        self.run_model('price.multiple-maybe',
+                      {"slug": "price.dex-maybe", "some": [{"base": "USDC"}, {"base": "AAVE", "quote": "JPY"}]})
+
         self.run_model('series.block-window-interval',
                        {"modelSlug": "token.balance",
                         "modelInput": {
