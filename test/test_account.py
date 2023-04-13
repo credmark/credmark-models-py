@@ -38,6 +38,10 @@ class TestAccount(CMFTest):
         self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"]})
 
+        self.run_model('accounts.token-transfer',
+                       {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5", "0x109B3C39d675A2FF16354E116d080B94d238a7c9"],
+                        "limit": 10})
+
         # Keep this out to avoid hitting size limit: "0x195e8cd1cca12fd18643000c6d4e21b766d92a10"
         self.run_model('accounts.token-transfer',
                        {"accounts": ["0x9c5083dd4838e120dbeac44c052179692aa5dac5",
