@@ -608,22 +608,6 @@ class AccountPortfolio(Model):
             return_type=Portfolio)
 
 
-@Model.describe(
-    slug="account.portfolio-aggregate",
-    version="0.3",
-    display_name="(DEPRECATED) use accounts.portfolio",
-    description="All of the token holdings for an account",
-    developer="Credmark",
-    category='account',
-    subcategory='position',
-    tags=['portfolio'],
-    input=Accounts,
-    output=Portfolio)
-class AccountsPortfolioAggregate(Model):
-    def run(self, input: Accounts) -> Portfolio:
-        return self.context.run_model('accounts.portfolio', input=input, return_type=Portfolio)
-
-
 @Model.describe(slug="accounts.portfolio",
                 version="0.6",
                 display_name="Accounts\' Token Holding as a Portfolio",
