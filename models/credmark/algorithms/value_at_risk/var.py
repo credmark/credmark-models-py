@@ -1,8 +1,9 @@
+from typing import Optional
 import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, Currency, Maybe, Portfolio,
+from credmark.cmf.types import (Account, Accounts, BlockNumber, Currency, Maybe, Portfolio,
                                 PriceList, PriceWithQuote, Some, Token,
                                 TokenPosition)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
@@ -17,25 +18,31 @@ from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 np.seterr(all='raise')
 
 
-class AccountValueInput(Accounts):
-    quote: Currency = DTOField(Currency("USD", description='Quote currency for the value'))
+class AccountsValueInput(Accounts):
+    quote: Currency = DTOField(Currency("USD"), description='Quote currency for the value')
+    timestamp: Optional[int] = DTOField(None, description='block timestamp to query')
 
 
-@Model.describe(
-    slug="account.value",
-    version="0.1",
-    display_name="Value for an account",
-    description="Value for an account",
-    developer="Credmark",
-    category='financial',
-    input=AccountValueInput,
-    output=dict)
+@Model.describe(slug="accounts.value",
+                version="0.1",
+                display_name="Value for an account",
+                description="Value for an account",
+                developer="Credmark",
+                category='financial',
+                input=AccountsValueInput,
+                output=dict)
 class AccountValue(Model):
-    def run(self, input: AccountValueInput) -> dict:
-        portfolio = self.context.run_model('account.portfolio-aggregate',
+    def run(self, input: AccountsValueInput) -> dict:
+        if input.timestamp is not None:
+            block_number = BlockNumber.from_timestamp(input.timestamp)
+            return self.context.run_model(
+                self.slug,
+                AccountsValueInput(accounts=input.accounts, quote=input.quote, timestamp=None),
+                block_number=block_number)
+
+        portfolio = self.context.run_model('accounts.portfolio',
                                            Accounts(accounts=input.accounts),
                                            return_type=Portfolio)
-
         values = []
         total_value = 0
 
@@ -44,7 +51,7 @@ class AccountValue(Model):
 
         for pos in portfolio:
             price = self.context.run_model(
-                'price.quote-maybe',
+                'price.dex-maybe',
                 input={'base': pos.asset, 'quote': input.quote},
                 return_type=Maybe[PriceWithQuote]).get_just(zero_price())
 
