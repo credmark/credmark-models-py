@@ -357,7 +357,7 @@ class UniswapV3GetPoolInfo(Model):
         # tick = log(p_current) / log(1.0001)
         p_current = tick_to_price(current_tick)
 
-        # Let's say currentTick is 5 , then liquidity profile looks like this:
+        # Let's say currentTick is 5, then liquidity profile looks like this:
         #             2  -> Liquidity = Liquidity at tick3  - LiquidityNet at tick2
         #             3  -> Liquidity = Liquidity at tick4  - LiquidityNet at tick3
         #             4  -> Liquidity = Liquidity at tick5  - LiquidityNet at tick4
