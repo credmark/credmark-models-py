@@ -74,7 +74,7 @@ class ExampleLedgerTransactions(Model):
         with self.context.ledger.Transaction as txn:
             ledger_output = txn.select(
                 columns=[txn.HASH],
-                where=txn.BLOCK_TIMESTAMP.eq(self.context.block_number.timestamp),
+                where=txn.BLOCK_TIMESTAMP.eq(txn.field(self.context.block_number.timestamp).to_timestamp()),
                 limit=10,
                 order_by=txn.GAS)
 
@@ -115,7 +115,9 @@ class ExampleLedgerAggregates(Model):
             ledger_output = txn.select(
                 aggregates=[(txn.GAS.min_(), 'min_gas'),
                             (txn.GAS.max_(), 'max_gas'),
-                            (txn.GAS.avg_(), 'avg_gas')])
+                            (txn.GAS.avg_(), 'avg_gas')],
+                where=txn.BLOCK_NUMBER.gt(self.context.block_number - 10000),
+                bigint_cols=['min_gas', 'max_gas', 'avg_gas'])
 
         output = ExampleLedgerOutput(
             title="7c. Example - Ledger Aggregates",
@@ -132,10 +134,11 @@ class ExampleLedgerAggregates(Model):
         output.log_io(input="""
 with self.context.ledger.Transaction as txn:
     ledger_output = txn.select(
-        aggregates=[(txn.GAS.min_(), 'min_gas'),
-                    (txn.GAS.max_(), 'max_gas'),
-                    (txn.GAS.avg_(), 'avg_gas')])
-
+                aggregates=[(txn.GAS.min_(), 'min_gas'),
+                            (txn.GAS.max_(), 'max_gas'),
+                            (txn.GAS.avg_(), 'avg_gas')],
+                where=txn.BLOCK_NUMBER.gt(self.context.block_number - 10000),
+                bigint_cols=['min_gas', 'max_gas', 'avg_gas'])
 """,
                       output=ledger_output)
 
@@ -204,8 +207,7 @@ class ExampleLedgerTokenTransfers(Model):
                 where=ttf.FROM_ADDRESS.eq(CMK_ADDRESS).or_(
                     ttf.TO_ADDRESS.eq(CMK_ADDRESS)
                 ),
-                order_by=ttf.BLOCK_NUMBER.desc(),
-                limit=10)
+                order_by=ttf.BLOCK_NUMBER.desc())
 
         output = ExampleLedgerOutput(
             title="7e. Example - Ledger Token transfers",
@@ -231,6 +233,14 @@ with self.context.ledger.TokenTransfer as ttf:
         limit=10)
 """,
                       output=ledger_output)
+
+        with self.context.ledger.TokenBalance as tb:
+            ledger_output = tb.select(
+                columns=tb.columns,
+                where=tb.FROM_ADDRESS.eq(CMK_ADDRESS).or_(
+                    tb.TO_ADDRESS.eq(CMK_ADDRESS)
+                ),
+                order_by=tb.BLOCK_NUMBER.desc())
 
         return output
 

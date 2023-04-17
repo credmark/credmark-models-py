@@ -27,6 +27,7 @@ class RedactedVotiumCashflow(Model):
                 q.FROM_ADDRESS.eq(votium_claim_address)))
 
         for transfer in transfers:
+            transfer['block_number'] = int(transfer['block_number'])
             token = Token(address=transfer['token_address'])
             try:
                 transfer['price'] = self.context.run_model(
@@ -39,7 +40,8 @@ class RedactedVotiumCashflow(Model):
                 transfer['price'] = 0
             transfer['value_usd'] = transfer['price'] * \
                 float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(transfer['block_number']).timestamp_datetime)
+            transfer['block_time'] = str(BlockNumber(transfer['block_number'])
+                                         .timestamp_datetime)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()
 
@@ -72,6 +74,7 @@ class RedactedConvexCashflow(Model):
 
         token_prices = {}
         for transfer in transfers:
+            transfer['block_number'] = int(transfer['block_number'])
             token_address = transfer['token_address']
             block_number = transfer['block_number']
             if token_address in token_prices and block_number not in token_prices[token_address]:

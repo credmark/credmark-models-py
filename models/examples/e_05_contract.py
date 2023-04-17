@@ -1,5 +1,7 @@
-from credmark.cmf.model import EmptyInput, Model
+# pylint: disable=line-too-long
+from credmark.cmf.model import Model
 from credmark.cmf.types import Contract
+from credmark.dto import DTO, DTOField
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 from web3._utils.events import get_event_data
@@ -8,18 +10,21 @@ from web3._utils.filters import construct_event_filter_params
 from .dtos import ExampleModelOutput
 
 
-@Model.describe(
-    slug='example.contract',
-    version='1.4',
-    display_name='Example - Contract',
-    description='This model gives examples of the functionality available on the Contract class',
-    developer='Credmark',
-    category='example',
-    tags=['contract'],
-    input=EmptyInput,
-    output=ExampleModelOutput)
+class ExampleContractInput(DTO):
+    disable_function_ledger: bool = DTOField(False, description="Disable function ledger queries")
+
+
+@Model.describe(slug='example.contract',
+                version='1.4',
+                display_name='Example - Contract',
+                description='This model gives examples of the functionality available on the Contract class',
+                developer='Credmark',
+                category='example',
+                tags=['contract'],
+                input=ExampleContractInput,
+                output=ExampleModelOutput)
 class ExampleContract(Model):
-    def run(self, _) -> ExampleModelOutput:
+    def run(self, input: ExampleContractInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",
             description="This model gives examples of the functionality available on the "
@@ -91,27 +96,28 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                              f'{contract.address}')
 
         # Contract ledger queries
-        with contract.ledger.functions.addVestingSchedule as q:
-            output.log("You can query ledger data for contract function calls")
-            output.log_io(
-                input="""
-with contract.ledger.functions.addVestingSchedule as q:
-    q.select(columns=[
-                q.BLOCK_NUMBER,
-                q.FN_ACCOUNT,
-                q.FN_ALLOCATION
-             ],
-             order_by=q.BLOCK_NUMBER.asc(),
-             limit=5)
-""",
-                output=q.select(
-                    columns=[
-                        q.BLOCK_NUMBER,
-                        q.FN_ACCOUNT,
-                        q.FN_ALLOCATION
-                    ],
-                    order_by=q.BLOCK_NUMBER,
-                    limit=5))
+        if not input.disable_function_ledger:
+            with contract.ledger.functions.addVestingSchedule as q:
+                output.log("You can query ledger data for contract function calls")
+                output.log_io(
+                    input="""
+    with contract.ledger.functions.addVestingSchedule as q:
+        q.select(columns=[
+                    q.BLOCK_NUMBER,
+                    q.FN_ACCOUNT,
+                    q.FN_ALLOCATION
+                ],
+                order_by=q.BLOCK_NUMBER.asc(),
+                limit=5)
+    """,
+                    output=q.select(
+                        columns=[
+                            q.BLOCK_NUMBER,
+                            q.FN_ACCOUNT,
+                            q.FN_ALLOCATION
+                        ],
+                        order_by=q.BLOCK_NUMBER,
+                        limit=5))
 
         output.log("You can query ledger data for contract events")
         with contract.ledger.events.VestingScheduleAdded as q:

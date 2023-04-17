@@ -83,16 +83,18 @@ class TokenVolumeBlock(Model):
             input_token = native_token
             with self.context.ledger.Transaction as q:
                 df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
-                              where=q.BLOCK_NUMBER.gt(old_block)).to_dataframe()
+                              where=q.BLOCK_NUMBER.gt(old_block),
+                              bigint_cols=['sum_value'],).to_dataframe()
         else:
             input_token = input.token
             with self.context.ledger.TokenTransfer as q:
                 df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
                               where=(q.TOKEN_ADDRESS.eq(token_address)
                                      .and_(q.BLOCK_NUMBER.gt(old_block))),
+                              bigint_cols=['sum_value'],
                               ).to_dataframe()
 
-        vol = df.sum_value.sum()
+        vol = df['sum_value'][0]
         vol_scaled = input_token.scaled(vol)
         price_last = None
         value_last = None
@@ -208,7 +210,7 @@ class TokenVolumeSegmentBlock(Model):
                         (s.TIMESTAMP, 'from_timestamp'),
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
-                        (t.VALUE.sum_(), 'sum_value')
+                        (t.VALUE.as_numeric().sum_(), 'sum_value')
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
@@ -217,8 +219,11 @@ class TokenVolumeSegmentBlock(Model):
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
                     having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
                         block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
-                    order_by=s.NUMBER.asc()
+                    order_by=s.NUMBER.asc(),
+                    bigint_cols=['from_block', 'to_block', 'sum_value']
                 ).to_dataframe()
+
+                from_iso8601_str = t.field('').from_iso8601_str
         else:
             input_token = input.token
             with self.context.ledger.TokenTransfer.as_('t') as t,\
@@ -231,7 +236,7 @@ class TokenVolumeSegmentBlock(Model):
                         (s.TIMESTAMP, 'from_timestamp'),
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
-                        (t.VALUE.sum_(), 'sum_value')
+                        (t.VALUE.as_numeric().sum_(), 'sum_value')
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
@@ -241,10 +246,15 @@ class TokenVolumeSegmentBlock(Model):
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
                     having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
                         block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
-                    order_by=s.NUMBER.asc()
+                    order_by=s.NUMBER.asc(),
+                    bigint_cols=['from_block', 'to_block', 'sum_value']
                 ).to_dataframe()
 
-        df[['sum_value']] = df[['sum_value']].fillna(0)
+                from_iso8601_str = t.field('').from_iso8601_str
+
+        df['from_timestamp'] = df['from_timestamp'].apply(from_iso8601_str)
+        df['to_timestamp'] = df['to_timestamp'].apply(from_iso8601_str)
+
         volumes = []
         for _, r in df.iterrows():
             vol = r['sum_value']

@@ -13,7 +13,7 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
 from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_err
 from models.dtos.tvl import LendingPoolPortfolios
-from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI, AAVE_LENDING_POOL_PROVIDER, AAVE_DATA_PROVIDER
+from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI, AAVE_LENDING_POOL_PROVIDER, AAVE_DATA_PROVIDER, AAVE_ATOKEN
 from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
 from web3 import Web3
 
@@ -511,7 +511,7 @@ class AaveV2GetLiabilityInPortfolios(Model):
 
 
 @Model.describe(slug="aave-v2.token-asset",
-                version="1.3",
+                version="1.4",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 category='protocol',
@@ -565,6 +565,10 @@ class AaveV2GetTokenAsset(Model):
         aToken = get_eip1967_proxy(self.context, self.logger, reservesData[7], True)
         if aToken is None:
             raise ModelDataError(f'aToken({reservesData[7]}) was not initialized')
+
+        aToken.set_abi(AAVE_ATOKEN, set_loaded=True)
+        if aToken.proxy_for is not None and aToken.proxy_for._meta.proxy_implementation is not None:
+            aToken._meta.proxy_implementation.set_abi(AAVE_ATOKEN, set_loaded=True)
 
         stableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[8], True)
         variableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[9], True)

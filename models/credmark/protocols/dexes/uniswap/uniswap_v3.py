@@ -208,16 +208,18 @@ class UniswapV3GetPoolsLedger(Model):
         with factory.ledger.events.PoolCreated as q:
             tp = token_pairs_fee[0]
             eq_conds = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
-                         .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+                         .and_(q.EVT_FEE.as_bigint().in_(tp[2])).parentheses_())
+
             for tp in token_pairs_fee[1:]:
                 new_eq = (q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1]))
-                           .and_(q.EVT_FEE.in_(tp[2])).parentheses_())
+                           .and_(q.EVT_FEE.as_bigint().in_(tp[2])).parentheses_())
                 eq_conds = eq_conds.or_(new_eq)
 
             df_ts = []
             offset = 0
             while True:
                 df_tt = q.select(columns=[q.EVT_POOL, q.BLOCK_NUMBER],
+                                 aggregates=[(q.EVT_FEE.as_bigint(), q.EVT_FEE)],
                                  where=eq_conds,
                                  order_by=q.BLOCK_NUMBER,
                                  limit=5000,

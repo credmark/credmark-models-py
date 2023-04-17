@@ -291,6 +291,7 @@ class UniswapV2LPFeeHistory(Model):
 
             return df_combined
 
+        # _df = _use_ledger()
         _df = _use_events()
 
         if _df.empty:
@@ -351,12 +352,13 @@ class UniswapV2LPFee(Model):
         # Obtain the last 2 when the current block has mint/burn
         with self.context.ledger.TokenBalance as q:
             _df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'sum_transaction_value')],
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'sum_transaction_value')],
                 order_by=q.BLOCK_NUMBER.desc(),
                 where=(q.ADDRESS.eq(lp)
                         .and_(q.TOKEN_ADDRESS.eq(pool.address))
                        ),
                 group_by=[q.BLOCK_NUMBER],
+                bigint_cols=['sum_transaction_value', 'block_number'],
                 limit=2
             ).to_dataframe()
 

@@ -85,6 +85,8 @@ class TestToken(CMFTest):
             "token.holders",
             {"address": "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B", "top_n": 20})
 
+        self.run_model('token.holders-count', {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})
+
     def test_transaction(self):
         self.run_model(
             "token.transaction",
@@ -158,6 +160,12 @@ class TestToken(CMFTest):
         self.run_model("token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
         self.run_model("token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
         self.run_model("token.info", {"symbol": "MKR"})
+
+        self.run_model('token.total-supply', {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"})
+
+        self.run_model('token.balance',
+                       {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                        "account": "0x55FE002aefF02F77364de339a1292923A15844B8"})
 
         self.run_model("token.deployment", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
         self.run_model("token.deployment", {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})  # MKR
