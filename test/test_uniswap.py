@@ -43,6 +43,7 @@ class TestUniswap(CMFTest):
         self.run_model("uniswap-v3.get-pools", {"symbol": "MKR"})
         # WETH/CMK pool: 0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3
         self.run_model("uniswap-v3.get-pool-info", {"address": "0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3"})
+        self.run_model("uniswap-v3.get-pool-info-token-price", {"symbol": "MKR"})
 
         self.run_model("uniswap-v2.get-pool-info-token-price",
                        {"address": "0x853d955acef822db058eb8505911ed77f175b99e"}, block_number=15048685)
