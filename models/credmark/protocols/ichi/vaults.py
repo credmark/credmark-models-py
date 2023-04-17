@@ -1,4 +1,5 @@
 # pylint: disable= line-too-long
+import math
 import pandas as pd
 from requests.exceptions import HTTPError
 
@@ -84,7 +85,7 @@ class IchiVaults(Model):
 
     def run(self, input: EmptyInput) -> dict:
         vault_factory = Contract(self.VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
-
+        
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated, from_block=0))
@@ -163,10 +164,17 @@ class IchiVaultInfo(Model):
         _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
         # print(f'{tick_price0, ratio_price0=}')
 
-        token0_chainlink_price = self.context.run_model(
-            'price.oracle-chainlink', {'base': token0.address.checksum})['price']
-        token1_chainlink_price = self.context.run_model(
-            'price.oracle-chainlink', {'base': token1.address.checksum})['price']
+        try:
+            token0_chainlink_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': token0.address.checksum})['price']
+        except ModelRunError:
+            token0_chainlink_price = math.nan
+
+        try:
+            token1_chainlink_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': token1.address.checksum})['price']
+        except ModelRunError:
+            token1_chainlink_price = math.nan
 
         # value of ichi vault token at a block
         total_supply = vault_ichi.total_supply_scaled
