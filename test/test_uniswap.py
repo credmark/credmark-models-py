@@ -80,6 +80,8 @@ class TestUniswap(CMFTest):
 
         self.run_model("uniswap-v3.get-all-pools", {})
 
+        self.run_model("uniswap-v3.get-pools-ledger", {"symbol":"MKR"})
+
     def test_lp(self):
         self.run_model("uniswap-v2.lp-pos", {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp_balance": 10000})
 
