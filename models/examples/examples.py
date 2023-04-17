@@ -36,7 +36,7 @@ class AllExample(Model):
             'example.ledger-transactions',
             'example.ledger-aggregates',
             'example.ledger-receipts',
-            # 'example.ledger-token-transfers',
+            'example.ledger-token-transfers',
             'example.ledger-tokens',
             'example.ledger-logs',
             'example.ledger-contracts',

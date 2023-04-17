@@ -415,14 +415,15 @@ class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> TokenHoldersOutput:
         with self.context.ledger.TokenBalance as q:
             df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'balance'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
                 order_by=q.field('balance').dquote().desc(),
-                having=q.field('balance').dquote().gt(0),
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
                 limit=input.limit,
-                offset=input.offset
+                offset=input.offset,
+                bigint_cols=['balance', 'total_holders']
             ).to_dataframe()
 
             token_price_maybe = Maybe[PriceWithQuote](**self.context.models.price.quote_maybe({
@@ -435,14 +436,15 @@ class TokenHolders(Model):
             if total_holders is None:
                 total_holders = 0
 
-            return TokenHoldersOutput(price=token_price,
-                                      holders=[TokenHolder(
-                                          address=Address(row['address']),
-                                          balance=row['balance'],
-                                          balance_scaled=input.scaled(row['balance']),
-                                          value=token_price.price * input.scaled(row['balance']))
-                                          for _, row in df.iterrows()],
-                                      total_holders=total_holders)
+            return TokenHoldersOutput(
+                price=token_price,
+                holders=[TokenHolder(
+                    address=Address(row['address']),
+                    balance=row['balance'],
+                    balance_scaled=input.scaled(row['balance']),
+                    value=token_price.price * input.scaled(row['balance']))
+                    for _, row in df.iterrows()],
+                total_holders=total_holders)
 
 
 class TokenHoldersCountOutput(DTO):
@@ -461,12 +463,12 @@ class TokenHoldersCount(Model):
     def run(self, input: Token) -> TokenHoldersCountOutput:
         with self.context.ledger.TokenBalance as q:
             df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'balance'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.field('balance').dquote().desc(),
-                having=q.field('balance').dquote().gt(0),
+                order_by=q.TRANSACTION_VALUE.as_numeric().sum_().desc(),
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
                 limit=1,
             ).to_dataframe()
 

@@ -16,12 +16,8 @@ class TestExample(CMFTest):
 
         self.title('Example')
 
-        self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
-
         self.run_model('example.model', {})
         self.run_model('example.model-run', {})
-
-        self.run_model('example.contract', {})
 
         self.run_model('example.data-error-1', {}, exit_code=3)
         self.run_model('example.data-error-2', {}, exit_code=3)
@@ -48,7 +44,7 @@ class TestExample(CMFTest):
         self.run_model('example.historical-block', {})
 
         self.title('Ledger Examples')
-        self.run_model('example.ledger-token-transfers', {"address": "0x3812D217bB3A0B43aa16985A616A4e0c6A17C65F"})
+        self.run_model('example.ledger-token-transfers', {})
         self.run_model('example.ledger-transactions', {})
         self.run_model('example.ledger-receipts', {})
         self.run_model('example.ledger-traces', {})
@@ -69,6 +65,9 @@ class TestExample(CMFTest):
         self.run_model('contrib.neilz-redacted-convex-cashflow', {}, block_number=15086281)
 
         self.run_model('contrib.uniswap-fee', {"interval": 500}, block_number=15211790)
+
+        self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
+        self.run_model('example.contract', {})
 
     def test_convex_apr(self):
         test_cases = [{

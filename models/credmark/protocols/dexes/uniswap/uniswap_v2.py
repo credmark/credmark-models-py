@@ -469,7 +469,7 @@ class UniswapV2PoolInfo(DTO):
 
 
 @Model.describe(slug="uniswap-v2.get-pool-info",
-                version="1.8",
+                version="1.9",
                 display_name="Uniswap/Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
                 category='protocol',
@@ -494,10 +494,15 @@ class UniswapGetPoolInfo(Model):
         # token0_reserve = token0.scaled(getReserves[0])
         # token1_reserve = token1.scaled(getReserves[1])
 
-        prices = self.context.run_model(
-            'price.quote-multiple',
-            input={'some': [{'base': token0}, {'base': token1}]},
-            return_type=Some[PriceWithQuote]).some
+        prices = []
+        prices.append(self.context.run_model(
+            'price.dex-maybe',
+            input={'base': token0},
+            return_type=Maybe[PriceWithQuote]).just)
+        prices.append(self.context.run_model(
+            'price.dex-maybe',
+            input={'base': token1},
+            return_type=Maybe[PriceWithQuote]).just)
 
         value0 = prices[0].price * token0_balance
         value1 = prices[1].price * token1_balance
@@ -519,7 +524,7 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',

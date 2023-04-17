@@ -206,13 +206,14 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                          for field in event_swap_args] +
                         [(f'sum((sign({q[field]})-1) / 2 * {q[field]})', f'sum_neg_{q[field]}')
                          for field in event_swap_args] +
-                        [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
+                        [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval})',
                             'interval_n')] +
                         [(q.BLOCK_NUMBER.func_(func), f'{func}_block_number')
                          for func in ['min', 'max', 'count']]),
                     where=q.BLOCK_NUMBER.gt(self.context.block_number - input.interval * input.count).and_(
                         q.BLOCK_NUMBER.le(self.context.block_number)),
-                    group_by=['"interval_n"']
+                    group_by=['"interval_n"'],
+                    bigint_cols=[f'{func}_block_number' for func in ['min', 'max', 'count']]
                 ).to_dataframe())
 
             if len(df_all_swaps) == 0:
@@ -254,9 +255,9 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                     with pool.ledger.events.TokenExchange as q:
                         df_all_swap_1 = (q.select(
                             aggregates=(
-                                [(q[field].as_integer().sum_(), q[field])
+                                [(q[field].as_numeric().sum_(), q[field])
                                  for field in ['EVT_TOKENS_SOLD', 'EVT_TOKENS_BOUGHT']] +
-                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
+                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval})',
                                   'interval_n')] +
                                 [(f'{func}({q.BLOCK_NUMBER})', f'{func}_block_number')
                                  for func in ['min', 'max', 'count']]),
@@ -264,7 +265,8 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                                 q.BLOCK_NUMBER.le(self.context.block_number)),
                             group_by=['"interval_n"',
                                       q.EVT_SOLD_ID,
-                                      q.EVT_BOUGHT_ID])
+                                      q.EVT_BOUGHT_ID],
+                            bigint_cols=[f'{func}_block_number' for func in ['min', 'max', 'count']])
                             .to_dataframe())
                 except ModelDataError:
                     pass
@@ -278,9 +280,9 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                     with pool.ledger.events.TokenExchangeUnderlying as q:
                         df_all_swap_2 = (q.select(
                             aggregates=(
-                                [(q[field].as_integer().sum_().str(), f'{q[field]}')
+                                [(q[field].as_numeric().sum_().str(), f'{q[field]}')
                                     for field in ['EVT_TOKENS_SOLD', 'EVT_TOKENS_BOUGHT']] +
-                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval}, 0)',
+                                [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval})',
                                     'interval_n')] +
                                 [(q.BLOCK_NUMBER.func_(func), f'{func}_block_number')
                                     for func in ['min', 'max', 'count']]),
@@ -288,7 +290,8 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                                 q.BLOCK_NUMBER.le(self.context.block_number)),
                             group_by=['"interval_n"',
                                       q.EVT_SOLD_ID,
-                                      q.EVT_BOUGHT_ID])
+                                      q.EVT_BOUGHT_ID],
+                            bigint_cols=[f'{func}_block_number' for func in ['min', 'max', 'count']])
                             .to_dataframe())
                 except ModelDataError:
                     pass

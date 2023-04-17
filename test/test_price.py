@@ -137,13 +137,13 @@ class TestPrice(CMFTest):
 
     def test_currency_dto(self):
         self.title('Price - Currency DTO')
-        for prefer in ['cex', 'dex']:
-            self.run_model('price.quote', {"base": "CMK", "prefer": prefer})
-            self.run_model('price.quote', {"base": "EUR", "prefer": prefer})
-            self.run_model('price.quote', {"base": "EUR", "quote": "JPY", "prefer": prefer})
-            self.run_model('price.quote', {"base": "ETH", "quote": "JPY", "prefer": prefer})
-            self.run_model('price.quote', {"base": "AAVE", "quote": "ETH", "prefer": prefer})
-            self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e", "prefer": prefer})
+        for _prefer in ['cex', 'dex']:
+            self.run_model('price.quote', {"base": "CMK", "prefer": _prefer})
+            self.run_model('price.quote', {"base": "EUR", "prefer": _prefer})
+            self.run_model('price.quote', {"base": "EUR", "quote": "JPY", "prefer": _prefer})
+            self.run_model('price.quote', {"base": "ETH", "quote": "JPY", "prefer": _prefer})
+            self.run_model('price.quote', {"base": "AAVE", "quote": "ETH", "prefer": _prefer})
+            self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e", "prefer": _prefer})
 
     def test_historical(self):
         self.title('Price - Historical')
@@ -194,11 +194,11 @@ class TestPrice(CMFTest):
                        '0x76eb2fe28b36b3ee97f3adae0c69606eedb2a37c',
                        '0x48759f220ed983db51fa7a8c0d2aab8f3ce4166a']
 
-        for token_addr in token_addrs:
+        for _token_addr in token_addrs:
             if token_addr.startswith('0x'):
-                token_input = {"address": token_addr}
+                token_input = {"address": _token_addr}
             else:
-                token_input = {"symbol": token_addr}
+                token_input = {"symbol": _token_addr}
 
             self.run_model('price.dex-curve-fi-maybe', token_input,
                            block_number=block_number)  # __all__ # price.dex-curve-fi
@@ -233,87 +233,91 @@ class TestPrice(CMFTest):
         self.run_model('price.dex-db-prefer', {"symbol": "AAVE"})
         self.run_model('price.dex-db-prefer', {"symbol": "AAVE"}, block_number=15981401)
 
-    def test_chainlink(self):
-        self.title('Price - Chainlink Oracle')
-        block_number = 15000108
+    CHAINLINK_FIAT_TOKENS = [
+        'WBTC',
+        'BTC',
+        'USD',
+        'ETH',
+        'CNY',
+        'USDC',
+        'GBP',
+        '0x85f138bfEE4ef8e540890CFb48F620571d67Eda3',
+        '0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750',
+        '0xD31a59c85aE9D8edEFeC411D448f90841571b89c',
+        '0xB8c77482e45F1F44dE1745F52C74426C631bDD52',
+        '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+        '0xD31a59c85aE9D8edEFeC411D448f90841571b89c',
+        '0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E',
+        '0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5',
+        '0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5',
+        '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
+        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+        '0x383518188C0C6d7730D91b2c03a03C837814a899']
 
-        # 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E ilv
-        # 0x383518188C0C6d7730D91b2c03a03C837814a899 ohm-eth.data.eth
-        # 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5 ohmv2-eth.data.eth
-        # 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B tribe-eth.data.eth
-        # 0xFEEf77d3f69374f66429C91d732A244f074bdf74 price-curve
 
-        tokens = ['WBTC',
-                  'BTC',
-                  'USD',
-                  'ETH',
-                  'CNY',
-                  'USDC',
-                  'GBP',
-                  '0x85f138bfEE4ef8e540890CFb48F620571d67Eda3',
-                  '0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750',
-                  '0xD31a59c85aE9D8edEFeC411D448f90841571b89c',
-                  '0xB8c77482e45F1F44dE1745F52C74426C631bDD52',
-                  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-                  '0xD31a59c85aE9D8edEFeC411D448f90841571b89c',
-                  '0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E',
-                  '0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5',
-                  '0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5',
-                  '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
-                  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-                  '0x383518188C0C6d7730D91b2c03a03C837814a899']
+def test_chainlink(self, _token_addr: str, _price_model: str, _prefer: str):
+    self.title('Price - Chainlink Oracle')
+    block_number = 15000108
 
-        models = ['price.quote', 'price.oracle-chainlink']
+    # 0x767FE9EDC9E0dF98E07454847909b5E959D7ca0E ilv
+    # 0x383518188C0C6d7730D91b2c03a03C837814a899 ohm-eth.data.eth
+    # 0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5 ohmv2-eth.data.eth
+    # 0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B tribe-eth.data.eth
+    # 0xFEEf77d3f69374f66429C91d732A244f074bdf74 price-curve
+    if _token_addr.startswith('0x'):
+        token_input = {"address": _token_addr}
+    else:
+        token_input = {"symbol": _token_addr}
 
-        for price_model in models:
-            for token_addr in tokens:
-                for prefer in ['cex', 'dex']:
-                    if token_addr.startswith('0x'):
-                        token_input = {"address": token_addr}
-                    else:
-                        token_input = {"symbol": token_addr}
+    self.run_model(_price_model, {"base": token_input, "quote": {
+        "symbol": "USD"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"quote": token_input, "base": {
+        "symbol": "USD"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"base": token_input, "quote": {
+        "symbol": "JPY"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"quote": token_input, "base": {
+        "symbol": "JPY"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"base": token_input, "quote": {
+        "symbol": "GBP"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"quote": token_input, "base": {
+        "symbol": "GBP"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"base": token_input, "quote": {
+        "symbol": "EUR"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"quote": token_input, "base": {
+        "symbol": "EUR"}, "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"base": token_input, "quote": {
+        "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"},
+        "prefer": _prefer}, block_number=block_number)
+    self.run_model(_price_model, {"quote": token_input, "base": {
+        "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"},
+        "prefer": _prefer}, block_number=block_number)
 
-                    self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "USD"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "USD"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "JPY"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "JPY"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "GBP"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "GBP"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"base": token_input, "quote": {
-                        "symbol": "EUR"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"quote": token_input, "base": {
-                        "symbol": "EUR"}, "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"base": token_input, "quote": {
-                        "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"},
-                        "prefer": prefer}, block_number=block_number)  # __all__
-                    self.run_model(price_model, {"quote": token_input, "base": {
-                        "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"},
-                        "prefer": prefer}, block_number=block_number)  # __all__
+
+for price_model in ['price.quote', 'price.oracle-chainlink']:
+    for n, token_addr in enumerate(TestPrice.CHAINLINK_FIAT_TOKENS):
+        for prefer in ['cex', 'dex']:
+            setattr(TestPrice, f'test_price_fiat_chainlink_{n+1}',
+                    lambda self, token_addr=token_addr, price_model=price_model, prefer=prefer:
+                    test_chainlink(self, _token_addr=token_addr, _price_model=price_model, _prefer=prefer))
 
 
 def run_test_price_mix(self, tok):
     block_number = 15000108
-    for prefer in ['cex', 'dex']:
+    for _prefer in ['cex', 'dex']:
         if prefer == 'dex' and tok not in TestPrice.CEX_ONLY_TOKENS:
             self.run_model('price.quote',
-                           {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": prefer},
+                           {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": _prefer},
                            block_number=block_number)
             self.run_model('price.quote',
-                           {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": prefer},
+                           {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": _prefer},
                            block_number=block_number)
 
         if prefer == 'cex':
             self.run_model('price.quote',
-                           {"quote": {"address": tok}, "base": {"symbol": "USD"}, "prefer": prefer},
+                           {"quote": {"address": tok}, "base": {"symbol": "USD"}, "prefer": _prefer},
                            block_number=block_number)
             self.run_model('price.quote',
-                           {"quote": {"address": tok}, "base": {"symbol": "EUR"}, "prefer": prefer},
+                           {"quote": {"address": tok}, "base": {"symbol": "EUR"}, "prefer": _prefer},
                            block_number=block_number)
 
     self.run_model('price.oracle-chainlink', {"base": {"address": tok},

@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long
 from typing import List, Optional
 import pandas as pd
 
@@ -85,10 +86,12 @@ class AccountsERC20Token(Model):
         return Records.from_dataframe(df_erc20, fix_int_columns=['value'])
 
 
-def get_token_transfer(_context, _accounts: List[Address],
-                       _tokens: List[Address], start_block: int,
-                       fix_int=True,
-                       limit=None) -> pd.DataFrame:
+def get_token_transfer(_context,
+                       _accounts: List[Address],
+                       _tokens: List[Address],
+                       start_block: int,
+                       fix_int: bool = True,
+                       limit: Optional[int] = None) -> pd.DataFrame:
     def _use_ledger():
         with _context.ledger.TokenTransfer as q:
             transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
@@ -136,7 +139,7 @@ def get_token_transfer(_context, _accounts: List[Address],
 
         result = (pd.DataFrame(model_result)
                   .assign(block_number=lambda x: x.block_number.apply(int))
-                  .rename(columns={'transaction_value': 'value'})
+                  .rename(columns={'transaction_value': 'value'} | ({"limit": limit} if limit is not None else {}))
                   .reset_index(drop=True))
         return result
 
@@ -145,13 +148,13 @@ def get_token_transfer(_context, _accounts: List[Address],
 
     result = _use_model()
 
-    if limit is not None:
-        result = result.iloc[:limit]
-
     return result
 
 
-def get_native_transfer(_context, _accounts: List[Address], fix_int=True) -> pd.DataFrame:
+def get_native_transfer(_context,
+                        _accounts: List[Address],
+                        fix_int: bool = True,
+                        limit: Optional[int] = None) -> pd.DataFrame:
     native_token_addr = NativeToken().address
 
     def _use_ledger():
@@ -195,7 +198,7 @@ def get_native_transfer(_context, _accounts: List[Address], fix_int=True) -> pd.
             {'accounts': _accounts}))
             .assign(block_number=lambda x: x.block_number.apply(int),
                     token_address=native_token_addr)
-            .rename(columns={'transaction_value': 'value'}))
+            .rename(columns={'transaction_value': 'value'} | ({"limit": limit} if limit is not None else {})))
         return result
 
     if fix_int:

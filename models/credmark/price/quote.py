@@ -153,8 +153,12 @@ class PriceMultipleMaybeWithSlug(Model):
             return Some[Maybe[PriceWithQuote]](some=prices)
 
         def _use_for():
-            prices = [self.context.run_model(price_slug, input=m, return_type=Maybe[PriceWithQuote])
-                      for m in input]
+            prices = [
+                self.context.run_model(
+                    price_slug,
+                    input=m,
+                    return_type=Maybe[PriceWithQuote])
+                for m in input.some]
             return Some[Maybe[PriceWithQuote]](some=prices)
 
         return _use_compose()

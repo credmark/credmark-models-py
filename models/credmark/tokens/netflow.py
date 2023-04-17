@@ -271,11 +271,14 @@ class TokenVolumeSegmentBlock(Model):
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
+                    where=s.NUMBER.gt(block_start).and_(s.NUMBER.le(block_end)),
                     having=(s.NUMBER.ge(block_start)
                             .and_(s.NUMBER.lt(block_end)
                             .and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0'))),
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
+
+                from_iso8601_str = t.field('').from_iso8601_str
         else:
             input_token = input.token
             with self.context.ledger.TokenTransfer.as_('t') as t,\
@@ -303,11 +306,21 @@ class TokenVolumeSegmentBlock(Model):
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
-                    having=(s.NUMBER.ge(block_start)
-                            .and_(s.NUMBER.lt(block_end)
-                            .and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0'))),
+                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(block_end)),
+                    having=f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0',
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
+
+                from_iso8601_str = t.field('').from_iso8601_str
+
+        df['from_block'] = df['from_block'].astype('int')
+        df['to_block'] = df['to_block'].astype('int')
+        df['inflow'] = df['inflow'].astype('float64')
+        df['outflow'] = df['outflow'].astype('float64')
+        df['netflow'] = df['netflow'].astype('float64')
+
+        df['from_timestamp'] = df['from_timestamp'].apply(from_iso8601_str)
+        df['to_timestamp'] = df['to_timestamp'].apply(from_iso8601_str)
 
         df = df.fillna(0)
         netflows = []
@@ -362,14 +375,14 @@ class TokenNetflowSegmentWindowInput(TokenNetflowWindowInput):
     n: int = DTOField(2, ge=1, description='Number of interval to count')
 
 
-@Model.describe(slug='token.netflow-segment-window',
-                version='1.4',
-                display_name='Token netflow by segment in window',
-                description='The current Credmark supported netflow algorithm',
-                category='protocol',
-                tags=['token'],
-                input=TokenNetflowSegmentWindowInput,
-                output=TokenNetflowSegmentOutput)
+@ Model.describe(slug='token.netflow-segment-window',
+                 version='1.4',
+                 display_name='Token netflow by segment in window',
+                 description='The current Credmark supported netflow algorithm',
+                 category='protocol',
+                 tags=['token'],
+                 input=TokenNetflowSegmentWindowInput,
+                 output=TokenNetflowSegmentOutput)
 class TokenNetflowSegmentWindow(Model):
     def run(self, input: TokenNetflowSegmentWindowInput) -> TokenNetflowSegmentOutput:
         window_in_seconds = self.context.historical.to_seconds(input.window)
