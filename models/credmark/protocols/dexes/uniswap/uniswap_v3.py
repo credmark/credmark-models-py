@@ -77,8 +77,8 @@ def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -
         for fee in V3_POOL_FEES:
             pool = uniswap_factory.functions.getPool(*token_pair, fee).call()
             if not Address(pool).is_null():
-                cc = Contract(address=pool)
-                cc.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+                cc = Contract(address=pool).set_abi(
+                    abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
                 try:
                     _ = cc.abi
                 except BlockNumberOutOfRangeError:
@@ -134,13 +134,16 @@ class UniswapV3GetRing0RefPrice(Model):
                 if token0_address.to_int() >= token1_address.to_int():
                     continue
                 token_pairs = [(token0_address, token1_address)]
-                pools = get_uniswap_v3_pools_by_pair(self.context, factory_addr, token_pairs)
+                pools = get_uniswap_v3_pools_by_pair(
+                    self.context, factory_addr, token_pairs)
 
                 if len(pools.contracts) == 0:
-                    missing_relations.extend([(token0_address, token1_address), (token1_address, token0_address)])
+                    missing_relations.extend(
+                        [(token0_address, token1_address), (token1_address, token0_address)])
                     continue
 
-                pools_info = [self.context.run_model('uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
+                pools_info = [self.context.run_model(
+                    'uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
                 pools_info_sel = [[p.address,
                                    *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
                                   for p, pi in zip(pools.contracts, pools_info)]
@@ -167,10 +170,12 @@ class UniswapV3GetRing0RefPrice(Model):
             try:
                 assert len(ring0_tokens) == 3
             except AssertionError:
-                raise ModelDataError('Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+                raise ModelDataError(
+                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens')
 
             for token0_address, token1_address in missing_relations:
-                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
+                other_token = list(set(ring0_tokens) -
+                                   {token0_address, token1_address})[0]
                 ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
                     ratios[(other_token, token1_address)]
 
@@ -219,7 +224,8 @@ class UniswapV3GetPoolsLedger(Model):
             offset = 0
             while True:
                 df_tt = q.select(columns=[q.EVT_POOL, q.BLOCK_NUMBER],
-                                 aggregates=[(q.EVT_FEE.as_bigint(), q.EVT_FEE)],
+                                 aggregates=[
+                                     (q.EVT_FEE.as_bigint(), q.EVT_FEE)],
                                  where=eq_conds,
                                  order_by=q.BLOCK_NUMBER,
                                  limit=5000,
@@ -300,8 +306,8 @@ class UniswapV3GetPoolInfo(Model):
         try:
             _ = input.abi
         except ModelDataError:
-            input = Contract(address=input.address)
-            input.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
+            input = Contract(address=input.address).set_abi(
+                UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         pool = input
 
@@ -318,14 +324,16 @@ class UniswapV3GetPoolInfo(Model):
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
+            token0 = Token(address=Address(token0_addr)
+                           ).as_erc20(set_loaded=True)
             token0_symbol = token0.symbol
         except (OverflowError, ContractLogicError):
             token0 = Token(address=Address(token0_addr)).as_erc20()
             token0_symbol = token0.symbol
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
+            token1 = Token(address=Address(token1_addr)
+                           ).as_erc20(set_loaded=True)
             token1_symbol = token1.symbol
         except (OverflowError, ContractLogicError):
             token1 = Token(address=Address(token1_addr)).as_erc20()
@@ -410,7 +418,8 @@ class UniswapV3GetPoolInfo(Model):
         #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
         #    float(liquidity * liquidity))
 
-        ratio_left = (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa)
+        ratio_left = (in_tick_amount0 + liquidity / sb) * \
+            (in_tick_amount1 + liquidity * sa)
         ratio_right = float(liquidity * liquidity)
 
         try:
@@ -424,11 +433,13 @@ class UniswapV3GetPoolInfo(Model):
 
         # Liquidity in 1 tick
         if current_tick == tick_bottom:
-            __tick1_amount0, tick1_amount1 = out_of_range(liquidity-_liquidityNet, sp, sa_p)
+            __tick1_amount0, tick1_amount1 = out_of_range(
+                liquidity-_liquidityNet, sp, sa_p)
             tick1_amount0, __tick1_amount1 = in_range(liquidity, sb_p, sp, sp)
         elif current_tick == tick_top:
             __tick1_amount0, tick1_amount1 = in_range(liquidity, sp, sa_p, sp)
-            tick1_amount0, __tick1_amount1 = out_of_range(liquidity+_liquidityNet, sb_p, sp)
+            tick1_amount0, __tick1_amount1 = out_of_range(
+                liquidity+_liquidityNet, sb_p, sp)
         else:
             tick1_amount0, tick1_amount1 = in_range(liquidity, sb_p, sa_p, sp)
             # equivalent to
@@ -466,7 +477,8 @@ class UniswapV3GetPoolInfo(Model):
         _tick_price_bottom0 = tick_to_price(tick_bottom) * scale_multiplier
         _tick_price_top0 = tick_to_price(tick_top) * scale_multiplier
 
-        ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
+        ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / \
+            (2 ** 192) * scale_multiplier
         try:
             ratio_price1 = 1/ratio_price0
         except (FloatingPointError, ZeroDivisionError):
@@ -648,7 +660,8 @@ class UniswapV3GetTokenPoolInfo(Model):
                          f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
                          p.error.message))
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return infos
 
         def _use_for(local):

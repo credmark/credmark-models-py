@@ -41,7 +41,8 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape), file=sys.stderr)
+    print((event_name, 'node', pool.address, _from_block,
+          _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -58,8 +59,8 @@ class UniV3Pool:
     """
 
     def __init__(self, pool_addr: Address, _pool_data: Optional[dict] = None):
-        self.pool = Contract(address=pool_addr)
-        self.pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
+        self.pool = Contract(address=pool_addr).set_abi(
+            UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
 
@@ -71,7 +72,8 @@ class UniV3Pool:
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except ModelDataError:
-            self.token0 = Token(address=Address(self.token0_addr).checksum).as_erc20(set_loaded=True)
+            self.token0 = Token(address=Address(
+                self.token0_addr).checksum).as_erc20(set_loaded=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
 
@@ -80,7 +82,8 @@ class UniV3Pool:
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except ModelDataError:
-            self.token1 = Token(address=Address(self.token1_addr).checksum).as_erc20(set_loaded=True)
+            self.token1 = Token(address=Address(
+                self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 
@@ -146,7 +149,8 @@ class UniV3Pool:
         self.pool_tick = _pool_data['pool_tick']
         self.pool_sqrtPrice = _pool_data['pool_sqrtPrice']
         self.pool_liquidity = _pool_data['pool_liquidity']
-        self.ticks = {int(float(k)): Tick(**v) for k, v in _pool_data['ticks'].items()}
+        self.ticks = {int(float(k)): Tick(**v)
+                      for k, v in _pool_data['ticks'].items()}
         self.block_number = _pool_data['block_number']
         self.log_index = _pool_data['log_index']
 
@@ -185,10 +189,14 @@ class UniV3Pool:
                                       to_block, pool.abi.events.Collect.args)
         df_collect_prot_evt = fetch_events(pool, pool.events.CollectProtocol,
                                            'CollectProtocol', from_block, to_block, pool.abi.events.CollectProtocol.args)
-        df_flash_evt = fetch_events(pool, pool.events.Flash, 'Flash', from_block, to_block, pool.abi.events.Flash.args)
-        df_mint_evt = fetch_events(pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
-        df_burn_evt = fetch_events(pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
-        df_swap_evt = fetch_events(pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
+        df_flash_evt = fetch_events(
+            pool, pool.events.Flash, 'Flash', from_block, to_block, pool.abi.events.Flash.args)
+        df_mint_evt = fetch_events(
+            pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
+        df_burn_evt = fetch_events(
+            pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
+        df_swap_evt = fetch_events(
+            pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
 
         df_comb_evt = pd.concat([df_init_evt, df_mint_evt, df_burn_evt, df_swap_evt,
                                 df_collect_evt, df_collect_prot_evt, df_flash_evt])
@@ -196,7 +204,8 @@ class UniV3Pool:
         if df_comb_evt.empty:
             return df_comb_evt
 
-        df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
+        df_comb_evt = df_comb_evt.sort_values(
+            ['blockNumber', 'logIndex']).reset_index(drop=True)
         print((df_init_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0],
                df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]),
               file=sys.stderr)
@@ -205,7 +214,8 @@ class UniV3Pool:
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):
         num = sqrtPrice96 * sqrtPrice96
         denom = 2 ** 192
-        price0 = num / denom * 10 ** (self.token0_decimals - self.token1_decimals)
+        price0 = num / denom * \
+            10 ** (self.token0_decimals - self.token1_decimals)
         try:
             price1 = 1 / price0
         except (FloatingPointError, ZeroDivisionError):
@@ -226,7 +236,8 @@ class UniV3Pool:
             self.token0, self.token1,
             self.pool_liquidity, _liquidityNet)
 
-        ratio_price0, ratio_price1 = self.sqrtPriceX96toTokenPrices(self.pool_sqrtPrice)
+        ratio_price0, ratio_price1 = self.sqrtPriceX96toTokenPrices(
+            self.pool_sqrtPrice)
 
         # if np.isclose(one_tick_liquidity0_adj, 0) or np.isclose(one_tick_liquidity1_adj, 0):
         #    ratio_price0 = 0
@@ -312,8 +323,10 @@ class UniV3Pool:
         self.token0_reserve += amount0
         self.token1_reserve += amount1
 
-        lowerTick = self.ticks.get(tickLower, Tick(liquidityGross=0, liquidityNet=0))
-        upperTick = self.ticks.get(tickUpper, Tick(liquidityGross=0, liquidityNet=0))
+        lowerTick = self.ticks.get(tickLower, Tick(
+            liquidityGross=0, liquidityNet=0))
+        upperTick = self.ticks.get(tickUpper, Tick(
+            liquidityGross=0, liquidityNet=0))
 
         lowerTick.liquidityGross = lowerTick.liquidityGross + amount
         lowerTick.liquidityNet = lowerTick.liquidityNet + amount
@@ -362,9 +375,11 @@ class UniV3Pool:
         self.pool_sqrtPrice = event_row['sqrtPriceX96']
 
         self.token0_in += 0 if event_row['amount0'] < 0 else event_row['amount0']
-        self.token0_out += -event_row['amount0'] if event_row['amount0'] < 0 else 0
+        self.token0_out += - \
+            event_row['amount0'] if event_row['amount0'] < 0 else 0
         self.token1_in += 0 if event_row['amount1'] < 0 else event_row['amount1']
-        self.token1_out += -event_row['amount1'] if event_row['amount1'] < 0 else 0
+        self.token1_out += - \
+            event_row['amount1'] if event_row['amount1'] < 0 else 0
 
         self.token0_reserve += event_row['amount0']
         self.token1_reserve += event_row['amount1']

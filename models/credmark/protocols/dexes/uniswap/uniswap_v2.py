@@ -58,9 +58,11 @@ class UniswapV2PoolMeta:
 
         with factory.ledger.events.PairCreated as q:
             tp = token_pairs[0]
-            eq_conds = q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1])).parentheses_()
+            eq_conds = q.EVT_TOKEN0.eq(tp[0]).and_(
+                q.EVT_TOKEN1.eq(tp[1])).parentheses_()
             for tp in token_pairs[1:]:
-                new_eq = q.EVT_TOKEN0.eq(tp[0]).and_(q.EVT_TOKEN1.eq(tp[1])).parentheses_()
+                new_eq = q.EVT_TOKEN0.eq(tp[0]).and_(
+                    q.EVT_TOKEN1.eq(tp[1])).parentheses_()
                 eq_conds = eq_conds.or_(new_eq)
 
             df_ts = []
@@ -88,8 +90,8 @@ class UniswapV2PoolMeta:
 
     @staticmethod
     def get_uniswap_pool_info(_context, pool_addr: Address) -> Tuple[float, float, float, float]:
-        pool = Contract(address=pool_addr)
-        pool.set_abi(abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
+        pool = Contract(address=pool_addr).set_abi(
+            abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         reserves = pool.functions.getReserves().call()
 
@@ -100,12 +102,14 @@ class UniswapV2PoolMeta:
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
+            token0 = Token(address=Address(token0_addr)
+                           ).as_erc20(set_loaded=True)
         except (OverflowError, ContractLogicError):
             token0 = Token(address=Address(token0_addr)).as_erc20()
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
+            token1 = Token(address=Address(token1_addr)
+                           ).as_erc20(set_loaded=True)
         except (OverflowError, ContractLogicError):
             token1 = Token(address=Address(token1_addr)).as_erc20()
 
@@ -120,7 +124,8 @@ class UniswapV2PoolMeta:
             tick_price1 = 0
 
         full_tick_liquidity0 = scaled_reserve0
-        one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
+        one_tick_liquidity0 = np.abs(
+            1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
 
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
@@ -143,23 +148,28 @@ class UniswapV2PoolMeta:
                 if token0_address.to_int() >= token1_address.to_int():
                     continue
                 token_pairs = [(token0_address, token1_address)]
-                pools = UniswapV2PoolMeta.get_uniswap_pools_by_pair(_context, factory_addr, token_pairs)
+                pools = UniswapV2PoolMeta.get_uniswap_pools_by_pair(
+                    _context, factory_addr, token_pairs)
 
                 if len(pools.contracts) == 0:
-                    missing_relations.extend([(token0_address, token1_address), (token1_address, token0_address)])
+                    missing_relations.extend(
+                        [(token0_address, token1_address), (token1_address, token0_address)])
                     continue
 
                 # print((token1_address, token2_address, len(pools.contracts), pools))
                 pool_info = pd.DataFrame(
-                    data=[UniswapV2PoolMeta.get_uniswap_pool_info(_context, c.address) for c in pools.contracts],
+                    data=[UniswapV2PoolMeta.get_uniswap_pool_info(
+                        _context, c.address) for c in pools.contracts],
                     columns=['tick_price0', 'one_tick_liquidity0',
                              'tick_price1', 'one_tick_liquidity1'])
 
                 if pool_info.shape[0] > 1:
                     ratio0 = (pool_info.tick_price0 * pool_info.one_tick_liquidity0 ** UniswapV2PoolMeta.WEIGHT_POWER).sum() / \
-                        (pool_info.one_tick_liquidity0 ** UniswapV2PoolMeta.WEIGHT_POWER).sum()
+                        (pool_info.one_tick_liquidity0 **
+                         UniswapV2PoolMeta.WEIGHT_POWER).sum()
                     ratio1 = (pool_info.tick_price1 * pool_info.one_tick_liquidity1 ** UniswapV2PoolMeta.WEIGHT_POWER).sum() / \
-                        (pool_info.one_tick_liquidity1 ** UniswapV2PoolMeta.WEIGHT_POWER).sum()
+                        (pool_info.one_tick_liquidity1 **
+                         UniswapV2PoolMeta.WEIGHT_POWER).sum()
                 else:
                     ratio0 = pool_info['tick_price0'][0]
                     ratio1 = pool_info['tick_price1'][0]
@@ -174,9 +184,11 @@ class UniswapV2PoolMeta:
             try:
                 assert len(ring0_tokens) == 3
             except AssertionError:
-                raise ModelDataError('Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+                raise ModelDataError(
+                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens')
             for token0_address, token1_address in missing_relations:
-                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
+                other_token = list(set(ring0_tokens) -
+                                   {token0_address, token1_address})[0]
                 ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
                     ratios[(other_token, token1_address)]
 
@@ -256,8 +268,8 @@ class UniswapPoolPriceInfo(Model):
         try:
             _ = pool.abi
         except ModelDataError:
-            pool = Contract(address=input.address)
-            pool.set_abi(abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
+            pool = Contract(address=input.address).set_abi(
+                abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         ring0_tokens = self.context.run_model('dex.ring0-tokens',
                                               input=EmptyInput(),
@@ -273,14 +285,16 @@ class UniswapPoolPriceInfo(Model):
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
+            token0 = Token(address=Address(token0_addr)
+                           ).as_erc20(set_loaded=True)
             token0_symbol = token0.symbol
         except (OverflowError, ContractLogicError):
             token0 = Token(address=Address(token0_addr)).as_erc20()
             token0_symbol = token0.symbol
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
+            token1 = Token(address=Address(token1_addr)
+                           ).as_erc20(set_loaded=True)
             token1_symbol = token1.symbol
         except (OverflowError, ContractLogicError):
             token1 = Token(address=Address(token1_addr)).as_erc20()
@@ -299,7 +313,8 @@ class UniswapPoolPriceInfo(Model):
             tick_price1 = 0
 
         full_tick_liquidity0 = scaled_reserve0
-        one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
+        one_tick_liquidity0 = np.abs(
+            1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
 
         full_tick_liquidity1 = scaled_reserve1
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
@@ -431,7 +446,8 @@ class UniswapV2GetTokenPriceInfo(Model):
                          f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
                          p.error.message))
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return infos
 
         def _use_for(local):
@@ -482,8 +498,8 @@ class UniswapGetPoolInfo(Model):
         try:
             pool.abi
         except ModelDataError:
-            pool = Contract(address=input.address)
-            pool.set_abi(abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
+            pool = Contract(address=input.address).set_abi(
+                abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         token0 = Token(address=pool.functions.token0().call())
         token1 = Token(address=pool.functions.token1().call())

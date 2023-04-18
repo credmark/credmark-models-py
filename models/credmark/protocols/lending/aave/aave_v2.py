@@ -60,7 +60,8 @@ class AaveV2GetLendingPoolProviders(Model):
     }
 
     def run(self, _) -> Contracts:
-        addr = Address(self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.network])
+        addr = Address(
+            self.LENDING_POOL_ADDRESS_PROVIDER_REGISTRY[self.context.network])
         address_provider_registry = Contract(address=addr)
         address_providers = address_provider_registry.functions.getAddressesProvidersList().call()
         all_providers = []
@@ -90,7 +91,8 @@ class AaveV2GetIncentiveController(Model):
     }
 
     def run(self, _) -> Contract:
-        addr = Address(self.LENDING_POOL_INCENTIVE_CONTROLLER[self.context.network])
+        addr = Address(
+            self.LENDING_POOL_INCENTIVE_CONTROLLER[self.context.network])
         return Contract(address=addr)
 
 
@@ -118,7 +120,8 @@ class AaveV2GetLPIncentive(Model):
             'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
 
         # _accrued_rewards shall match with accrued amount from event log
-        _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(input.address).call()
+        _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(
+            input.address).call()
 
         # data provider gets the reserve tokens and find asset for that reserve token
         _data_provider = self.context.run_model(
@@ -167,8 +170,10 @@ class AaveV2GetStakingIncentive(Model):
 
     def run(self, input: Account) -> dict:
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
-        balance_of_scaled = staked_aave.balance_of_scaled(input.address.checksum)
-        total_reward = staked_aave.scaled(staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
+        balance_of_scaled = staked_aave.balance_of_scaled(
+            input.address.checksum)
+        total_reward = staked_aave.scaled(
+            staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
 
         rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
             staked_aave.events.RewardsClaimed,
@@ -180,10 +185,12 @@ class AaveV2GetStakingIncentive(Model):
         if rewards_claimed_df.empty:
             rewards_claimed = 0.0
         else:
-            rewards_claimed = staked_aave.scaled(rewards_claimed_df.amount.sum())
+            rewards_claimed = staked_aave.scaled(
+                rewards_claimed_df.amount.sum())
 
         # this does not include unclaimed rewards
-        _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(input.address.checksum).call()
+        _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
+            input.address.checksum).call()
 
         return {
             'staked_aave_address': staked_aave.address.checksum,
@@ -214,8 +221,8 @@ class AaveV2GetAddressProvider(Model):
     }
 
     def run(self, _) -> Contract:
-        cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.network])
-        cc.set_abi(AAVE_LENDING_POOL_PROVIDER, set_loaded=True)
+        cc = Contract(address=self.LENDING_POOL_ADDRESS_PROVIDER[self.context.network]).set_abi(
+            AAVE_LENDING_POOL_PROVIDER, set_loaded=True)
         _ = cc.abi
         return cc
 
@@ -239,15 +246,17 @@ class AaveV2GetProtocolDataProvider(Model):
         try:
             _ = lending_pool_provider.abi
         except ModelEngineError:
-            lending_pool_provider.set_abi(AAVE_LENDING_POOL_PROVIDER, set_loaded=True)
+            lending_pool_provider.set_abi(
+                AAVE_LENDING_POOL_PROVIDER, set_loaded=True)
 
         try:
-            data_provider_address = lending_pool_provider.functions.getAddress("0x01").call()
+            data_provider_address = lending_pool_provider.functions.getAddress(
+                "0x01").call()
         except Exception:  # Web3ValidationError:
             data_provider_address = lending_pool_provider.functions.getAddress(Web3.to_bytes(  # type: ignore  # pylint: disable=no-member
                 0x0100000000000000000000000000000000000000000000000000000000000000)).call()
-        data_provider = Contract(data_provider_address)
-        data_provider.set_abi(AAVE_DATA_PROVIDER, set_loaded=True)
+        data_provider = Contract(data_provider_address).set_abi(
+            AAVE_DATA_PROVIDER, set_loaded=True)
         return data_provider
 
 
@@ -308,7 +317,8 @@ class AaveV2GetPriceOracle(Model):
                 output=PriceWithQuote)
 class AaveV2GetOraclePrice(Model):
     def run(self, input: Token) -> PriceWithQuote:
-        oracle = Contract(**self.context.models(local=True).aave_v2.get_price_oracle())
+        oracle = Contract(
+            **self.context.models(local=True).aave_v2.get_price_oracle())
         price = oracle.functions.getAssetPrice(input.address).call()
         source = oracle.functions.getSourceOfAsset(input.address).call()
         native_token = NativeToken()
@@ -343,7 +353,9 @@ class AaveV2GetLiability(Model):
             modelInputs=[Token(address=asset) for asset in aave_assets],
             return_type=MapInputsOutput[Token, Position])
 
-        positions = [res.output for res in map_results.results if res.error is None]  # type: ignore
+        # type: ignore
+        positions = [
+            res.output for res in map_results.results if res.error is None]
         assert len(positions) == len(aave_assets)
         return Portfolio(positions=positions)
 
@@ -368,14 +380,17 @@ class AaveV2GetTokenLiability(Model):
                                                   aave_lending_pool.address,
                                                   True)
 
-        reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
+        reservesData = aave_lending_pool.functions.getReserveData(
+            input.address).call()
         # self.logger.info(f'info {reservesData}, {reservesData[7]}')
 
-        aToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[7], True)
+        aToken = get_eip1967_proxy_err(
+            self.context, self.logger, reservesData[7], True)
         try:
             aToken.total_supply
         except ModelDataError:
-            self.logger.error(f"total supply cannot be None for {aToken.address}")
+            self.logger.error(
+                f"total supply cannot be None for {aToken.address}")
             raise
         return Position(asset=aToken, amount=float(aToken.total_supply))
 
@@ -440,7 +455,8 @@ class AaveV2GetAssetsDetail(Model):
                             f'{model_slug.replace("-","_")}(input={model_inputs[pool_n]}). ' +
                             pool_result.error.message))
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
 
             return aave_debts_infos
 
@@ -491,9 +507,12 @@ class AaveV2GetLiabilityInPortfolios(Model):
                               f'{dbt.totalLiquidity_qty=} '
                               f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
 
-            positions_net.append(Position(amount=dbt.totalLiquidity_qty, asset=dbt.token))
-            positions_supply.append(Position(amount=dbt.totalSupply_qty, asset=dbt.token))
-            positions_debt.append(Position(amount=dbt.totalDebt_qty, asset=dbt.token))
+            positions_net.append(
+                Position(amount=dbt.totalLiquidity_qty, asset=dbt.token))
+            positions_supply.append(
+                Position(amount=dbt.totalSupply_qty, asset=dbt.token))
+            positions_debt.append(
+                Position(amount=dbt.totalDebt_qty, asset=dbt.token))
             prices[dbt.token.address] = dbt.token_price
             supply_value += dbt.totalSupply_qty * dbt.token_price.price
             debt_value += dbt.totalDebt_qty * dbt.token_price.price
@@ -539,7 +558,8 @@ class AaveV2GetTokenAsset(Model):
                                                   aave_lending_pool.address,
                                                   True)
 
-        reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
+        reservesData = aave_lending_pool.functions.getReserveData(
+            input.address).call()
 
         # reservesData
         # | Name | Type | Description |
@@ -562,16 +582,21 @@ class AaveV2GetTokenAsset(Model):
         # 10. interestRateStrategyAddress | address | address of interest rate strategy
         # 11. id | uint8 | the position in the list of active reserves |
 
-        aToken = get_eip1967_proxy(self.context, self.logger, reservesData[7], True)
+        aToken = get_eip1967_proxy(
+            self.context, self.logger, reservesData[7], True)
         if aToken is None:
-            raise ModelDataError(f'aToken({reservesData[7]}) was not initialized')
+            raise ModelDataError(
+                f'aToken({reservesData[7]}) was not initialized')
 
         aToken.set_abi(AAVE_ATOKEN, set_loaded=True)
         if aToken.proxy_for is not None and aToken.proxy_for._meta.proxy_implementation is not None:
-            aToken._meta.proxy_implementation.set_abi(AAVE_ATOKEN, set_loaded=True)
+            aToken._meta.proxy_implementation.set_abi(
+                AAVE_ATOKEN, set_loaded=True)
 
-        stableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[8], True)
-        variableDebtToken = get_eip1967_proxy_err(self.context, self.logger, reservesData[9], True)
+        stableDebtToken = get_eip1967_proxy_err(
+            self.context, self.logger, reservesData[8], True)
+        variableDebtToken = get_eip1967_proxy_err(
+            self.context, self.logger, reservesData[9], True)
         interestRateStrategyContract = Contract(address=reservesData[10])
 
         currentLiquidityRate = reservesData[3] / 1e27
@@ -597,11 +622,13 @@ class AaveV2GetTokenAsset(Model):
          _totalStableDebt,
          _avgStableRate,
          _timestampLastUpdate) = supplyData
-        totalStablePrincipleDebt = stableDebtToken.scaled(totalStablePrincipleDebt)
+        totalStablePrincipleDebt = stableDebtToken.scaled(
+            totalStablePrincipleDebt)
 
         totalSupply = aToken.scaled(aToken.total_supply)
         totalStableDebt = stableDebtToken.scaled(stableDebtToken.total_supply)
-        totalVariableDebt = variableDebtToken.scaled(variableDebtToken.total_supply)
+        totalVariableDebt = variableDebtToken.scaled(
+            variableDebtToken.total_supply)
         totalInterest = totalStableDebt - totalStablePrincipleDebt
 
         if totalStableDebt is not None and totalVariableDebt is not None:

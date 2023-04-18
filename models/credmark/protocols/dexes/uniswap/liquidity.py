@@ -18,14 +18,19 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
 
 
 class V3PoolLiquidityByTicksInput(Contract):
-    min_tick: int = DTOField(UNISWAP_V3_MIN_TICK, description='(Optional) minimal tick to search')
-    max_tick: int = DTOField(UNISWAP_V3_MAX_TICK, description='(Optional) maximum tick to search')
+    min_tick: int = DTOField(
+        UNISWAP_V3_MIN_TICK, description='(Optional) minimal tick to search')
+    max_tick: int = DTOField(
+        UNISWAP_V3_MAX_TICK, description='(Optional) maximum tick to search')
 
 
 class V3PoolLiquidityByTicksOutput(DTO):
-    liquidity: Dict[int, int] = DTOField(description='Liquidity mapped to ticks')
-    change_on_tick: Dict[int, int] = DTOField(description='Liquidity change on every tick')
-    liquidity_pos_on_tick: Dict[int, int] = DTOField(description='Liquidity position on every tick')
+    liquidity: Dict[int, int] = DTOField(
+        description='Liquidity mapped to ticks')
+    change_on_tick: Dict[int, int] = DTOField(
+        description='Liquidity change on every tick')
+    liquidity_pos_on_tick: Dict[int, int] = DTOField(
+        description='Liquidity position on every tick')
     current_tick: int
     tick_spacing: int
 
@@ -45,8 +50,8 @@ class UniswapV3LiquidityHistorical(Model):
         try:
             _ = pool_contract.abi
         except ModelDataError:
-            pool_contract = Contract(address=input.address)
-            pool_contract.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+            pool_contract = Contract(address=input.address).set_abi(
+                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         current_liquidity = pool_contract.functions.liquidity().call()
         slot0 = pool_contract.functions.slot0().call()
@@ -108,8 +113,8 @@ def plot_liquidity(context,
                    pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                    upper_range=1000,
                    lower_range=1000):
-    pool = Contract(address=pool_addr)
-    pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+    pool = Contract(address=pool_addr).set_abi(
+        abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
@@ -161,15 +166,18 @@ def get_amount_in_ticks(logger,
 
     tick_spacing = pool_contract.functions.tickSpacing().call()
 
-    current_range_bottom_tick = floor(current_tick / tick_spacing) * tick_spacing
+    current_range_bottom_tick = floor(
+        current_tick / tick_spacing) * tick_spacing
     current_price = tick_to_price(current_tick)
 
     liquidity = 0
 
     token_amounts = []
 
-    min_tick = min_tick if len(change_on_tick.keys()) == 0 else min(change_on_tick.keys())
-    max_tick = max_tick if len(change_on_tick.keys()) == 0 else max(change_on_tick.keys())
+    min_tick = min_tick if len(
+        change_on_tick.keys()) == 0 else min(change_on_tick.keys())
+    max_tick = max_tick if len(
+        change_on_tick.keys()) == 0 else max(change_on_tick.keys())
 
     for tick in range(min_tick, max_tick, tick_spacing):
         liquidity += change_on_tick.get(tick, 0)
@@ -193,13 +201,15 @@ def get_amount_in_ticks(logger,
             amount1 = int(liquidity * (sp - sa))
 
             token_amounts.append((tick, amount0, amount1, liquidity))
-            logger.info(f"{amount0:.2f} {token0} and {amount1:.2f} {token1} remaining in the current tick range")
+            logger.info(
+                f"{amount0:.2f} {token0} and {amount1:.2f} {token1} remaining in the current tick range")
         else:
             token_amounts.append((tick, amount0, amount1, liquidity))
             if should_print_tick:
                 adjusted_amount0 = amount0 / (10 ** decimals0)
                 adjusted_amount1 = amount1 / (10 ** decimals1)
-                logger.info(f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
+                logger.info(
+                    f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
 
         tick += tick_spacing
 
@@ -209,7 +219,8 @@ def get_amount_in_ticks(logger,
     token1_dec = 10**decimals1
 
     df_pool = (
-        pd.DataFrame(token_amounts, columns=['tick', 'token0', 'token1', 'liquidity'])
+        pd.DataFrame(token_amounts, columns=[
+                     'tick', 'token0', 'token1', 'liquidity'])
         .assign(token0_locked=lambda x: x.token0,
                 token1_locked=lambda x: x.token1)
         .assign(token0_locked=lambda x, t=current_range_bottom_tick: x.token0_locked.where(x.tick >= t, 0),
@@ -246,8 +257,8 @@ class UniswapV3AmountInTicks(Model):
         try:
             _ = pool_contract.abi
         except ModelDataError:
-            pool_contract = Contract(address=input.address)
-            pool_contract.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+            pool_contract = Contract(address=input.address).set_abi(
+                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         token0_addr = pool_contract.functions.token0().call()
         token1_addr = pool_contract.functions.token1().call()
@@ -268,8 +279,8 @@ def plot_liquidity_amount(context,
                           pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                           upper_range: Optional[int] = 1000,
                           lower_range: Optional[int] = 1000):
-    pool = Contract(address=pool_addr)
-    pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+    pool = Contract(address=pool_addr).set_abi(
+        abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
     token0_addr = pool.functions.token0().call()
     token1_addr = pool.functions.token1().call()
