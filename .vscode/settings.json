@@ -3,7 +3,10 @@
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
-  "python.formatting.autopep8Args": ["--max-line-length", "120"],
+  "python.formatting.autopep8Args": [
+    "--max-line-length",
+    "120"
+  ],
   "python.linting.pylintEnabled": true,
   "python.linting.lintOnSave": true,
   "python.linting.enabled": true,
@@ -35,6 +38,7 @@
     "celo",
     "chainlink",
     "CMK's",
+    "codespaces",
     "COLLATERIZATION",
     "colnames",
     "concurrencytest",
@@ -51,6 +55,7 @@
     "dataframe",
     "degen",
     "DEGENBOX",
+    "devcontainers",
     "disp",
     "dquote",
     "dtos",
@@ -68,6 +73,7 @@
     "indexcoop",
     "Initializable",
     "iost",
+    "ipython",
     "isin",
     "iterrows",
     "keccak",
@@ -121,6 +127,7 @@
     "TIMELOCK",
     "timerangestr",
     "tokenexchange",
+    "toolsai",
     "totalc",
     "tracebacklimit",
     "uncategorized",
@@ -144,5 +151,9 @@
     "YFII",
     "yvcrv",
     "yvst"
-  ]
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.autopep8"
+  },
+  "python.formatting.provider": "none"
 }

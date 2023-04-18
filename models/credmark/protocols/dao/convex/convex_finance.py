@@ -48,7 +48,8 @@ def fix_crv_reward(crv_rewards):
     try:
         _ = crv_rewards.abi
     except ModelDataError:
-        crv_rewards.set_abi(CRV_REWARD, set_loaded=True)
+        crv_rewards = Contract(crv_rewards.address).set_abi(
+            CRV_REWARD, set_loaded=True)
     return crv_rewards
 
 
@@ -74,7 +75,8 @@ class ConvexFinanceAllPools(Model):
             crv_reward_contract = Contract(address=crv_rewards)
             crv_reward_contract = fix_crv_reward(crv_reward_contract)
             pool_info = ConvexPoolInfo(lp_token=Token(address=lp_token),
-                                       deposit_token=Token(address=deposit_token),
+                                       deposit_token=Token(
+                                           address=deposit_token),
                                        gauge=Contract(address=gauge),
                                        crv_rewards=crv_reward_contract,
                                        stash=Contract(address=stash),
@@ -111,9 +113,12 @@ class ConvexFinanceEarning(Model):
         for pp in all_pools:
             pp.crv_rewards = fix_crv_reward(pp.crv_rewards)
 
-            balance = pp.crv_rewards.functions.balanceOf(input.address.checksum).call()
-            earned = pp.crv_rewards.functions.earned(input.address.checksum).call()
-            rewards = pp.crv_rewards.functions.rewards(input.address.checksum).call()
+            balance = pp.crv_rewards.functions.balanceOf(
+                input.address.checksum).call()
+            earned = pp.crv_rewards.functions.earned(
+                input.address.checksum).call()
+            rewards = pp.crv_rewards.functions.rewards(
+                input.address.checksum).call()
             reward_token = pp.crv_rewards.functions.rewardToken().call()
             # NOTE: pp.crv_rewards.functions.stakingToken() == deposit_token
             user_reward_per_token_paid = (pp.crv_rewards.functions

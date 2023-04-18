@@ -1,6 +1,7 @@
 # pylint:disable=too-many-arguments
 
-import pandas as pd
+import numpy as np
+import numpy.typing as npt
 from abc import abstractmethod
 from datetime import datetime
 from typing import Any, Generator, Optional
@@ -56,7 +57,7 @@ class Tradeable:
                         tag: str,
                         tag_scenario: str,
                         mkt: Market,
-                        mkt_scenarios: Market) -> pd.Series:
+                        mkt_scenarios: Market) -> npt.NDArray:
         ...
 
 
@@ -100,7 +101,7 @@ class TokenTradeable(Tradeable):
                         tag: str,
                         tag_scenario: str,
                         mkt: Market,
-                        mkt_scenarios: Market) -> pd.Series:
+                        mkt_scenarios: Market) -> npt.NDArray:
         """
         Value scenario
         """
@@ -111,4 +112,4 @@ class TokenTradeable(Tradeable):
         for scen in scenarios:
             new_pnl = self.value(block_number, tag, mkt, lambda x, scen=scen: x * scen)
             scen_pnl.append(new_pnl)
-        return pd.Series(scen_pnl) - base_pnl
+        return np.array(scen_pnl) - base_pnl

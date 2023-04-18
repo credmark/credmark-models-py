@@ -4,7 +4,7 @@
     "cpus": 4
   },
   "waitFor": "onCreateCommand",
-  "updateContentCommand": "python3 -m pip install -e .",
+  "updateContentCommand": "python3 -m pip install -e . -r requirements-dev.txt",
   "postCreateCommand": "",
   "customizations": {
     "codespaces": {

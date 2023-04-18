@@ -55,7 +55,8 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
     tokenBalance = divUp((invariant*invariant+c), (invariant+b))
     for i in range(255):
         prevTokenBalance = tokenBalance
-        tokenBalance = divUp((mulUp(tokenBalance, tokenBalance) + c), ((tokenBalance*Decimal(2))+b-invariant))
+        tokenBalance = divUp((mulUp(tokenBalance, tokenBalance) + c),
+                             ((tokenBalance*Decimal(2))+b-invariant))
         if tokenBalance > prevTokenBalance:
             if tokenBalance-prevTokenBalance <= 1/1e18:
                 break
@@ -73,10 +74,12 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
                 input=EmptyInput,
                 output=Contracts)
 class GetBalancerAllPools(Model):
-    VAULT_ADDR = {Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
+    VAULT_ADDR = {
+        Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
 
     def run(self, _) -> Contracts:
-        vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
+        vault = Contract(address=Address(
+            self.VAULT_ADDR[self.context.network]).checksum)
         with vault.ledger.events.PoolRegistered as q:
             df_ts = []
             offset = 0
@@ -98,8 +101,8 @@ class GetBalancerAllPools(Model):
         contracts = []
         for _n, r in df.iterrows():
             pool_addr = r.evt_pooladdress
-            pool = Contract(address=pool_addr)
-            pool.set_abi(BALANCER_POOL_ABI, set_loaded=True)
+            pool = Contract(address=pool_addr).set_abi(
+                BALANCER_POOL_ABI, set_loaded=True)
 
             try:
                 _pool_id = pool.functions.getPoolId().call()
@@ -144,7 +147,8 @@ class GetBalancerAllPoolInfo(Model):
                 input=Contract,
                 output=BalancerPoolPriceInfo)
 class GetBalancerPoolPriceInfo(Model):
-    VAULT_ADDR = {Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
+    VAULT_ADDR = {
+        Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
 
     class BalancerPoolTokens(NamedTuple):
         tokens_addr: List[Address]
@@ -154,7 +158,8 @@ class GetBalancerPoolPriceInfo(Model):
     def run(self, input: Contract) -> BalancerPoolPriceInfo:
         # https://metavision-labs.gitbook.io/balancerv2cad/code-and-instructions/balancer_py_edition/stablemath.py
         # https://token-engineering-balancer.gitbook.io/balancer-simulations/additional-code-and-instructions/arbitrage-agent
-        vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
+        vault = Contract(address=Address(
+            self.VAULT_ADDR[self.context.network]).checksum)
 
         pool_addr = input.address
         pool = Contract(address=pool_addr)
@@ -162,7 +167,8 @@ class GetBalancerPoolPriceInfo(Model):
         # pool.set_abi(BALANCER_POOL_ABI, set_loaded=True)
 
         pool_id = pool.functions.getPoolId().call()
-        pool_info = self.BalancerPoolTokens(*vault.functions.getPoolTokens(pool_id).call())
+        pool_info = self.BalancerPoolTokens(
+            *vault.functions.getPoolTokens(pool_id).call())
         tokens = [Token(address=addr) for addr in pool_info.tokens_addr]
 
         if pool._meta.contract_name == 'MetaStablePool':  # pylint:disable=protected-access
@@ -210,7 +216,8 @@ class GetBalancerPoolPriceInfo(Model):
                     token1 = tokens[t1]
                     scaled_balance0 = token1.scaled(pool_info.balances[t0])
                     scaled_balance1 = token1.scaled(pool_info.balances[t1])
-                    ratio01 = scaled_balance1 / weights[t1] / scaled_balance0 * weights[t0]
+                    ratio01 = scaled_balance1 / \
+                        weights[t1] / scaled_balance0 * weights[t0]
                     liquidity0 = (np.abs((np.power(1.001, - weights[t1] / weights[t0] / 2) - 1))
                                   * scaled_balance0)
                     liquidity1 = ((np.power(1.001, 1 - weights[t1] / weights[t0] / 2) - 1)

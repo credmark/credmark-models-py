@@ -39,8 +39,8 @@ class UniswapPoolVaR(Model):
         try:
             _ = pool.abi
         except ModelDataError:
-            pool = Contract(address=input.pool.address)
-            pool.set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+            pool = Contract(address=input.pool.address).set_abi(
+                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         if not isinstance(pool.abi, list):
             raise ModelRunError('Pool abi can not be loaded.')
@@ -63,11 +63,13 @@ class UniswapPoolVaR(Model):
             v3_info = self.context.run_model('uniswap-v3.get-pool-info',
                                              input=pool,
                                              return_type=UniswapV3PoolInfo)
-            scale_multiplier = 10 ** (v3_info.token0.decimals - v3_info.token1.decimals)
+            scale_multiplier = 10 ** (v3_info.token0.decimals -
+                                      v3_info.token1.decimals)
             # p_0 = tick_price = token0 / token1
             p_0 = UNISWAP_TICK ** v3_info.current_tick * scale_multiplier
 
-        t_unit, count = self.context.historical.parse_timerangestr(input.window)
+        t_unit, count = self.context.historical.parse_timerangestr(
+            input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         token_hp = self.context.run_model(
@@ -121,7 +123,8 @@ class UniswapPoolVaR(Model):
         # For portfolio PnL vector, we need to match either
         # ratio_0_over_1 with Token1's price change, or
         # ratio_1_over_0 with Token1's price change.
-        portfolio_pnl_vector = (1 + ratio_change_0_over_1) / 2 * token1_change - 1
+        portfolio_pnl_vector = (
+            1 + ratio_change_0_over_1) / 2 * token1_change - 1
 
         # Impermanent loss
         # If we change the order of token0 and token1 to obtain the ratio,
@@ -137,7 +140,8 @@ class UniswapPoolVaR(Model):
         # ratio_change[1] = 1000
 
         # V2
-        impermanent_loss_vector_v2 = 2*np.sqrt(ratio_change)/(1+ratio_change) - 1
+        impermanent_loss_vector_v2 = 2 * \
+            np.sqrt(ratio_change)/(1+ratio_change) - 1
 
         # V3
         p_a = (1-input.lower_range) * p_0
@@ -187,7 +191,8 @@ class UniswapPoolVaR(Model):
         # plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
-        total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermanent_loss_vector) - 1
+        total_pnl_vector = (1 + portfolio_pnl_vector) * \
+            (1 + impermanent_loss_vector) - 1
         total_pnl_without_il_vector = portfolio_pnl_vector
         total_pnl_il_vector = impermanent_loss_vector
 
@@ -206,14 +211,17 @@ class UniswapPoolVaR(Model):
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = DexVaR(
             var=var_result_without_il.var,
-            scenarios=historical_days.loc[var_result_without_il.unsorted_index].to_list(),
-            ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(),
+            scenarios=historical_days.loc[var_result_without_il.unsorted_index].to_list(
+            ),
+            ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(
+            ),
             weights=var_result_without_il.weights)
 
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = DexVaR(
             var=var_result_il.var,
-            scenarios=historical_days.loc[var_result_il.unsorted_index].to_list(),
+            scenarios=historical_days.loc[var_result_il.unsorted_index].to_list(
+            ),
             ppl=total_pnl_il_vector[var_result_il.unsorted_index].tolist(),
             weights=var_result_il.weights)
 
