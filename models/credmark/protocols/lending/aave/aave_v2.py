@@ -590,8 +590,7 @@ class AaveV2GetTokenAsset(Model):
 
         aToken.set_abi(AAVE_ATOKEN, set_loaded=True)
         if aToken.proxy_for is not None and aToken.proxy_for._meta.proxy_implementation is not None:
-            aToken._meta.proxy_implementation.set_abi(
-                AAVE_ATOKEN, set_loaded=True)
+            aToken.proxy_for._meta.proxy_implementation.set_abi(AAVE_ATOKEN, set_loaded=True)
 
         stableDebtToken = get_eip1967_proxy_err(
             self.context, self.logger, reservesData[8], True)
