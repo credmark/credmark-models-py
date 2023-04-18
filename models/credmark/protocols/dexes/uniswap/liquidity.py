@@ -174,10 +174,12 @@ def get_amount_in_ticks(logger,
 
     token_amounts = []
 
-    min_tick = min_tick if len(
-        change_on_tick.keys()) == 0 else min(change_on_tick.keys())
-    max_tick = max_tick if len(
-        change_on_tick.keys()) == 0 else max(change_on_tick.keys())
+    min_tick = (min_tick
+                if len(change_on_tick.keys()) == 0
+                else min(change_on_tick.keys()))
+    max_tick = (max_tick
+                if len(change_on_tick.keys()) == 0
+                else max(change_on_tick.keys()))
 
     for tick in range(min_tick, max_tick, tick_spacing):
         liquidity += change_on_tick.get(tick, 0)
@@ -219,8 +221,9 @@ def get_amount_in_ticks(logger,
     token1_dec = 10**decimals1
 
     df_pool = (
-        pd.DataFrame(token_amounts, columns=[
-                     'tick', 'token0', 'token1', 'liquidity'])
+        pd.DataFrame(
+            token_amounts,
+            columns=['tick', 'token0', 'token1', 'liquidity'])
         .assign(token0_locked=lambda x: x.token0,
                 token1_locked=lambda x: x.token1)
         .assign(token0_locked=lambda x, t=current_range_bottom_tick: x.token0_locked.where(x.tick >= t, 0),
@@ -232,8 +235,8 @@ def get_amount_in_ticks(logger,
         .assign(token0_locked_scaled=lambda x, dec=token0_dec: x.token0_locked / dec,
                 token1_locked_scaled=lambda x, dec=token1_dec: x.token1_locked / dec,
                 token0_locked_prop=lambda x, bal=token0_bal: x.token0_locked / bal,
-                token1_locked_prop=lambda x, bal=token1_bal: x.token1_locked / bal)
-    )
+                token1_locked_prop=lambda x, bal=token1_bal: x.token1_locked / bal))
+
     return df_pool
 
 

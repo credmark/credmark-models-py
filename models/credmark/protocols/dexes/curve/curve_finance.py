@@ -180,18 +180,18 @@ class CurveFinancePoolInfoTokens(Model):
                     CURVE_VYPER_POOL, set_loaded=True)
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
-                return self.context.run_model(self.slug,
-                                              input=Contract(
-                                                  address=Address(minter_addr)),
-                                              return_type=CurveFiPoolInfoToken)
+                return self.context.run_model(
+                    self.slug,
+                    input=Contract(address=Address(minter_addr)),
+                    return_type=CurveFiPoolInfoToken)
             try:
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
                 if not Address(pool_addr).is_null():
-                    return self.context.run_model(self.slug,
-                                                  input=Contract(
-                                                      address=Address(pool_addr)),
-                                                  return_type=CurveFiPoolInfoToken)
+                    return self.context.run_model(
+                        self.slug,
+                        input=Contract(address=Address(pool_addr)),
+                        return_type=CurveFiPoolInfoToken)
             except Exception as _err:
                 pass
 
