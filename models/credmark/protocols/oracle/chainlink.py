@@ -26,7 +26,8 @@ class ChainLinkFeedRegistry(Model):
     }
 
     def run(self, _) -> Contract:
-        registry = Contract(address=self.CHAINLINK_REGISTRY[self.context.network])
+        registry = Contract(
+            address=self.CHAINLINK_REGISTRY[self.context.network])
         _ = registry.abi
         return registry
 
@@ -47,13 +48,16 @@ class ENSDomainName(DTO):
 class ChainLinkPriceByENS(Model):
     def run(self, input: ENSDomainName) -> Price:
         try:
-            ns = ENS.fromWeb3(self.context.web3)  # type: ignore # pylint: disable=no-member
+            # type: ignore # pylint: disable=no-member
+            ns = ENS.fromWeb3(self.context.web3)
         except AttributeError:
-            ns = ENS.from_web3(self.context.web3)  # type: ignore  # pylint: disable=no-member
+            # type: ignore  # pylint: disable=no-member
+            ns = ENS.from_web3(self.context.web3)
 
         feed_address = ns.address(input.domain)
         if feed_address is None:
-            raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
+            raise ModelRunError(
+                'Unable to resolve ENS domain name {input.domain}')
         return self.context.run_model('chainlink.price-by-feed',
                                       input={'address': feed_address},
                                       return_type=Price,
@@ -74,7 +78,8 @@ class ChainLinkPriceByFeed(Model):
         try:
             feed_contract.abi
         except ModelEngineError:
-            feed_contract.set_abi(CHAINLINK_AGG, set_loaded=True)
+            feed_contract = feed_contract.set_abi(
+                CHAINLINK_AGG, set_loaded=True)
 
         (_roundId, answer,
             _startedAt, _updatedAt,
@@ -148,15 +153,19 @@ class ChainLinkPriceByRegistry(Model):
                                           local=True)
         try:
             sys.tracebacklimit = 0
-            feed = registry.functions.getFeed(base_address, quote_address).call()
+            feed = registry.functions.getFeed(
+                base_address, quote_address).call()
             (_roundId, answer,
                 _startedAt, _updatedAt,
                 _answeredInRound) = (registry.functions
                                      .latestRoundData(base_address, quote_address)
                                      .call())
-            decimals = registry.functions.decimals(base_address, quote_address).call()
-            description = registry.functions.description(base_address, quote_address).call()
-            version = registry.functions.version(base_address, quote_address).call()
+            decimals = registry.functions.decimals(
+                base_address, quote_address).call()
+            description = registry.functions.description(
+                base_address, quote_address).call()
+            version = registry.functions.version(
+                base_address, quote_address).call()
             isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
             time_diff = self.context.block_number.timestamp - _updatedAt
@@ -167,8 +176,10 @@ class ChainLinkPriceByRegistry(Model):
                                   quoteAddress=quote_address)
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                self.logger.debug(f'No feed found for {base_address}/{quote_address}')
-                raise ModelRunError(f'No feed found for {base_address}/{quote_address}') from err
+                self.logger.debug(
+                    f'No feed found for {base_address}/{quote_address}')
+                raise ModelRunError(
+                    f'No feed found for {base_address}/{quote_address}') from err
             raise err
         finally:
             del sys.tracebacklimit
