@@ -72,6 +72,9 @@ class GetBlock(Model):
             return -1, -1
 
     def run(self, input: BlockInput) -> BlockOutput:
+        if self.context.block_number != 0:
+            return self.context.run_model(self.slug, input, block_number=0, return_type=BlockOutput)
+
         start_time = self.context.run_model(
             'chain.get-block-timestamp', input={'block_number': 0})
         end_time = self.context.run_model(
