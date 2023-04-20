@@ -1,6 +1,4 @@
-import sys
 from credmark.cmf.model import Model
-from credmark.cmf.types import BlockNumber
 from credmark.dto import DTO, EmptyInput
 
 
