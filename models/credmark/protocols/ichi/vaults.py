@@ -46,7 +46,8 @@ class IchiVaultTokens(Model):
         result = {}
         for token_addr in self.ICHI_POLYGON_COINS:
             tok = Token(token_addr).as_erc20(set_loaded=True)
-            result[Address(token_addr).checksum] = (tok.symbol, tok.name, tok.decimals)
+            result[Address(token_addr).checksum] = (
+                tok.symbol, tok.name, tok.decimals)
         return result
 
 
@@ -84,8 +85,9 @@ class IchiVaults(Model):
     ]
 
     def run(self, input: EmptyInput) -> dict:
-        vault_factory = Contract(self.VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
-        
+        vault_factory = Contract(self.VAULT_FACTORY).set_abi(
+            ICHI_VAULT_FACTORY, set_loaded=True)
+
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated, from_block=0))
@@ -97,8 +99,10 @@ class IchiVaults(Model):
         vault_info = {}
         for _n_vault, vault_addr in enumerate(ichi_vaults):
             vault = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
-            token0 = Token(vault.functions.token0().call()).as_erc20(set_loaded=True)
-            token1 = Token(vault.functions.token1().call()).as_erc20(set_loaded=True)
+            token0 = Token(vault.functions.token0().call()
+                           ).as_erc20(set_loaded=True)
+            token1 = Token(vault.functions.token1().call()
+                           ).as_erc20(set_loaded=True)
 
             vault_info[vault_addr] = {
                 'owner': vault.functions.owner().call(),
@@ -131,12 +135,15 @@ class IchiVaultInfo(Model):
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
-        vault_pool = Contract(vault_pool_addr).set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
+        vault_pool = Contract(vault_pool_addr).set_abi(
+            UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         _affiliate = Address(vault_ichi.functions.affiliate().call())
         ichi_vault_factory_addr = vault_ichi.functions.ichiVaultFactory().call()
-        ichi_vault_factory = Contract(ichi_vault_factory_addr).set_abi(abi=ICHI_VAULT_FACTORY, set_loaded=True)
-        _fee_recipient = Address(ichi_vault_factory.functions.feeRecipient().call())
+        ichi_vault_factory = Contract(ichi_vault_factory_addr).set_abi(
+            abi=ICHI_VAULT_FACTORY, set_loaded=True)
+        _fee_recipient = Address(
+            ichi_vault_factory.functions.feeRecipient().call())
         _baseFee = ichi_vault_factory.functions.baseFee().call()
         _baseFeeSplit = ichi_vault_factory.functions.baseFeeSplit().call()
 
@@ -148,7 +155,8 @@ class IchiVaultInfo(Model):
         allow_token0 = vault_ichi.functions.allowToken0().call()
         allow_token1 = vault_ichi.functions.allowToken1().call()
 
-        assert not (allow_token0 and allow_token1) and (allow_token0 or allow_token1)
+        assert not (allow_token0 and allow_token1) and (
+            allow_token0 or allow_token1)
 
         # (vault_addr, vault_pool, affiliate, fee_recipient, allow_token0, allow_token1, baseFee / 1e18, baseFeeSplit / 1e18)
 
@@ -161,7 +169,8 @@ class IchiVaultInfo(Model):
         sqrtPriceX96 = vault_pool.functions.slot0().call()[0]
 
         _tick_price0 = tick_to_price(current_tick) * scale_multiplier
-        _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
+        _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / \
+            (2 ** 192) * scale_multiplier
         # print(f'{tick_price0, ratio_price0=}')
 
         try:
@@ -177,7 +186,8 @@ class IchiVaultInfo(Model):
             token1_chainlink_price = math.nan
 
         # value of ichi vault token at a block
-        total_supply = vault_ichi.total_supply_scaled
+        total_supply = vault_ichi.total_supply
+        total_supply_scaled = vault_ichi.total_supply_scaled
         token0_amount, token1_amount = vault_ichi.functions.getTotalAmounts().call()
         token0_amount = token0.scaled(token0_amount)
         token1_amount = token1.scaled(token1_amount)
@@ -198,12 +208,13 @@ class IchiVaultInfo(Model):
             'token0_amount': token0_amount,
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token,
-            'total_supply': total_supply,
-            'vault_token_ratio': total_amount_in_token / total_supply,
+            'total_supply_scaled': total_supply_scaled,
+            'vault_token_ratio': total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply,
             'pool_price0': _tick_price0,
+            'ratio_price0': _ratio_price0,
             'token0_price_chainlink': token0_chainlink_price,
             'token1_price_chainlink': token1_chainlink_price,
-            'vault_token_value_chainlink': (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply,
+            'vault_token_value_chainlink': (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled,
         }
 
         # (token0_amount * context.run_model('price.oracle-chainlink', {'base': token0.address.checksum})['price'] + token1_amount * context.run_model('price.oracle-chainlink', {'base': token1.address.checksum})['price']) / total_supply
