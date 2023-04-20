@@ -87,24 +87,18 @@ class IchiVaults(Model):
     ]
 
     def run(self, _: EmptyInput) -> dict:
-        import sys
-
         vault_factory = Contract(self.VAULT_FACTORY).set_abi(
             ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated, from_block=0, to_block=self.context.block_number))
-            print('1', file=sys.stderr)
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
                 "address": self.VAULT_FACTORY, "ignore_proxy": True})
             # 25_697_834
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated, from_block=deployed_info['deployed_block_number'], by_range=10_000))
-            print('2', file=sys.stderr)
-
-        print(vault_created, file=sys.stderr)
 
         ichi_vaults = vault_created.ichiVault.to_list()
         vault_info = {}
