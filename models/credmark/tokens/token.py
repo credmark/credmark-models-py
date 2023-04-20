@@ -1,13 +1,12 @@
 # pylint: disable=locally-disabled, unused-import, no-member, line-too-long
 
-import json
-from typing import List
+from typing import List, Optional
 
 import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
-from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Currency, FiatCurrency, Maybe,
+from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract, Contracts, Currency, FiatCurrency, Maybe,
                                 NativeToken, Network, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
@@ -198,14 +197,24 @@ class TokenDeploymentInput(Contract):
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
+class TokenDeploymentOutput(DTO):
+    deployed_block_number: BlockNumber = DTOField(
+        description='Block number of deployment')
+    deployed_block_timestamp: Optional[int] = DTOField(
+        description='Timestamp of deployment')
+    deployer: Address = DTOField(description='Deployer address')
+    proxy_deployer: Optional[dict] = DTOField(
+        description='Proxy deployment')
+
+
 @Model.describe(slug="token.deployment",
-                version="0.1",
+                version="0.2",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
                 tags=['token'],
                 input=TokenDeploymentInput,
-                output=dict)
+                output=TokenDeploymentOutput)
 class TokenInfoDeployment(Model):
     """
     Return token's information on deployment
@@ -235,7 +244,7 @@ class TokenInfoDeployment(Model):
         else:
             return -1
 
-    def run(self, input: TokenDeploymentInput) -> dict:
+    def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
         prev_run = self.context.run_model(
             'model.latest-usage',
             {'slug': self.slug, 'version': self.version, 'input': json_dumps(self.context.__dict__['original_input'])})
@@ -273,9 +282,17 @@ class TokenInfoDeployment(Model):
             if input.proxy_for is not None:
                 proxy_deployer = self.context.run_model(
                     'token.deployment', input.proxy_for)
-                return {'deployed_block_number': res, 'deployer': deployer, 'proxy_deployer': proxy_deployer}
+                return TokenDeploymentOutput(
+                    deployed_block_number=BlockNumber(res),
+                    deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
+                    deployer=Address(str(deployer)),
+                    proxy_deployer=proxy_deployer)
 
-        return {'deployed_block_number': res, 'deployer': deployer}
+        return TokenDeploymentOutput(
+            deployed_block_number=BlockNumber(res),
+            deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
+            deployer=Address(str(deployer)),
+            proxy_deployer=None)
 
 
 class TokenLogoOutput(DTO):
