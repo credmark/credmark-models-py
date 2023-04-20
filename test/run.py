@@ -29,6 +29,7 @@ from test_dashboard import TestDashboard
 from test_example import TestExample
 from test_fiat import TestFiat
 from test_finance import TestFinance
+from test_ichi import TestICHI
 from test_ipor import TestIPOR
 from test_index_coop import TestIndexCoop
 from test_optimism import TestOptimism
@@ -92,7 +93,8 @@ if __name__ == '__main__':
         print(f'Unknown test type {args["type"]}')
         sys.exit()
 
-    print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
+    print(
+        f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
 
     CMFTest.block_number = args["block_number"]
     CMFTest.start_n = args["start_n"]
@@ -121,7 +123,8 @@ if __name__ == '__main__':
 
     print(f'Run Tests: {all_tests_sel}')
 
-    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(testCaseClass=x) for x in all_tests_sel])
+    suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(
+        testCaseClass=x) for x in all_tests_sel])
 
     if args['serial']:
         CMFTest.fail_first = True
@@ -136,5 +139,6 @@ if __name__ == '__main__':
     else:
         runner = unittest.TextTestRunner()
         CMFTest.fail_first = False
-        concurrent_suite = ConcurrentTestSuite(suites, fork_for_tests(parallel_count))
+        concurrent_suite = ConcurrentTestSuite(
+            suites, fork_for_tests(parallel_count))
         runner.run(concurrent_suite)
