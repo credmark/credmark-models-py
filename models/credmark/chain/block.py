@@ -1,5 +1,4 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import BlockNumber
 from credmark.dto import DTO, EmptyInput
 
 
@@ -20,7 +19,9 @@ class TimestampOutput(DTO):
                 output=TimestampOutput)
 class GetBlockTimestamp(Model):
     def run(self, input: TimestampInput) -> TimestampOutput:
-        return TimestampOutput(timestamp=BlockNumber(input.block_number).timestamp)
+        block_timestamp = self.context.web3.eth.get_block(
+            input.block_number)['timestamp']  # type: ignore
+        return TimestampOutput(timestamp=block_timestamp)
 
 
 class LatestBlock(DTO):
