@@ -240,7 +240,7 @@ class TokenInfoDeployment(Model):
             'model.latest-usage',
             {'slug': self.slug, 'version': self.version, 'input': json_dumps(self.context.__dict__['original_input'])})
 
-        if prev_run['blockNumber'] is not None and int(prev_run['blockNumber']) <= self.context.block_number:
+        if 'blockNumber' in prev_run and prev_run['blockNumber'] is not None and int(prev_run['blockNumber']) <= self.context.block_number and prev_run['result'] is not None:
             try:
                 return prev_run['result']
             except ModelDataError:
