@@ -4,7 +4,8 @@ from collections import namedtuple
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, Contract, Contracts, Network, Token, )
+from credmark.cmf.types import (
+    Address, BlockNumber, Contract, Contracts, Network, Token, )
 
 from credmark.dto import DTO, EmptyInput, DTOField
 from eth_typing.evm import ChecksumAddress
@@ -79,7 +80,8 @@ class IPORIndex(Model):
 
         for asset_symbol in assets:
             asset = Token(symbol=asset_symbol)
-            is_asset_supported = oracle.functions.isAssetSupported(asset.address.checksum).call()
+            is_asset_supported = oracle.functions.isAssetSupported(
+                asset.address.checksum).call()
             assert is_asset_supported, \
                 f'Asset {asset_symbol} is not supported by IPOR on {self.context.block_number}'
 
@@ -87,7 +89,8 @@ class IPORIndex(Model):
             index = IPORIndexValue(
                 *(oracle.functions.getIndex(asset.address.checksum).call()))._asdict()
 
-            ipor_current = calculator.functions.calculateIpor(asset.address.checksum).call()
+            ipor_current = calculator.functions.calculateIpor(
+                asset.address.checksum).call()
 
             # We need ibtPrice_current from getAccruedIndex() or calculateAccruedIbtPrice(). Both are the same.
             # oracle.functions.getAccruedIndex(self.context.block_number.timestamp, asset).call()
@@ -100,7 +103,8 @@ class IPORIndex(Model):
             index['exponentialWeightedMovingVariance_scaled'] = index['exponentialWeightedMovingVariance'] / 1e18
 
             index['blockTimestampDifference'] = \
-                self.context.block_number.timestamp - index['lastUpdateTimestamp']
+                self.context.block_number.timestamp - \
+                index['lastUpdateTimestamp']
             index['index_current'] = ipor_current
             index['index_current_scaled'] = ipor_current / 1e18
             index['ibtPrice_current'] = ibtPrice_current
@@ -219,7 +223,7 @@ class IPORSwapInput(DTO):
 @Model.describe(slug='ipor.get-swap',
                 version='0.1',
                 display_name='IPOR LP token exchange rate',
-                description='The ratio between LP Token exchange rate and the underlying assets',
+                description='Calculate the fair price of an IPOR swap',
                 category='protocol',
                 subcategory='ipor',
                 input=IPORSwapInput,
@@ -228,9 +232,12 @@ class IPORSwap(Model):
     IPOR_MILTONS = {
         Network.Mainnet: [
             (999_999_999, [
-                '0xEd7d74AA7eB1f12F83dA36DFaC1de2257b4e7523',  # AMM (Milton) DAI
-                '0x137000352B4ed784e8fa8815d225c713AB2e7Dc9',  # AMM (Milton) USDC
-                '0x28BC58e600eF718B9E97d294098abecb8c96b687',  # AMM (Milton) USDT
+                # AMM (Milton) DAI
+                '0xEd7d74AA7eB1f12F83dA36DFaC1de2257b4e7523',
+                # AMM (Milton) USDC
+                '0x137000352B4ed784e8fa8815d225c713AB2e7Dc9',
+                # AMM (Milton) USDT
+                '0x28BC58e600eF718B9E97d294098abecb8c96b687',
             ])
         ]
     }
@@ -313,7 +320,8 @@ class IPORSwap(Model):
             if self.context.block_number <= last_block_number:
                 break
         if miltons is None:
-            raise ModelRunError(f'No IPOR milton found for {input.asset} for {self.context.block_number}')
+            raise ModelRunError(
+                f'No IPOR milton found for {input.asset} for {self.context.block_number}')
 
         milton_addr = None
         for milton_address in miltons:
@@ -336,7 +344,8 @@ class IPORSwap(Model):
             milton = Contract(milton_addr)
             spreadPayFixed, spreadReceiveFixed = milton.functions.calculateSpread().call()
             oracle = Contract(milton.functions.getIporOracle().call())
-            ipor_index = IPORIndexValue(*oracle.functions.getIndex(input.asset.checksum).call())
+            ipor_index = IPORIndexValue(
+                *oracle.functions.getIndex(input.asset.checksum).call())
             ibtPrice_current = oracle.functions.calculateAccruedIbtPrice(
                 asset.address.checksum, BlockNumber(prev_block_number).timestamp).call()
             self.context.web3.eth.default_block = default_block
@@ -353,12 +362,14 @@ class IPORSwap(Model):
             ipor_index_for_asset = self.context.run_model(
                 'ipor.get-index', block_number=prev_block_number)[asset.address]
             ibtPrice_current = ipor_index_for_asset['ibtPrice_current']
-            ipor_index = IPORIndexValue(**{f: ipor_index_for_asset[f] for f in IPORIndexValue._fields})
+            ipor_index = IPORIndexValue(
+                **{f: ipor_index_for_asset[f] for f in IPORIndexValue._fields})
             return spreadPayFixed, spreadReceiveFixed, ipor_index, ibtPrice_current
 
         milton = Contract(milton_addr)
         oracle = Contract(milton.functions.getIporOracle().call())
-        ipor_index_current = IPORIndexValue(*oracle.functions.getIndex(input.asset.checksum).call())
+        ipor_index_current = IPORIndexValue(
+            *oracle.functions.getIndex(input.asset.checksum).call())
         spreadPayFixed_current, spreadReceiveFixed_current = milton.functions.calculateSpread().call()
 
         spreadPayFixed, spreadReceiveFixed, ipor_index, ibtPrice_current = _use_call(
@@ -374,7 +385,8 @@ class IPORSwap(Model):
             idsIndex=0,
             collateral=input.notional * int(1e18),
             notional=input.notional * int(1e18) * input.leverage,
-            ibtQuantity=input.notional * int(1e18) * 10 * int(1e18) // ibtPrice_current,
+            ibtQuantity=input.notional *
+            int(1e18) * 10 * int(1e18) // ibtPrice_current,
             fixedInterestRate=int(ipor_index.indexValue) + int(spreadPayFixed),
             liquidationDepositAmount=25000000000000000000,
             state=1
@@ -388,17 +400,21 @@ class IPORSwap(Model):
             idsIndex=0,
             collateral=input.notional * int(1e18),
             notional=input.notional * int(1e18) * input.leverage,
-            ibtQuantity=input.notional * int(1e18) * 10 * int(1e18) // ibtPrice_current,
-            fixedInterestRate=int(ipor_index.indexValue) + int(spreadReceiveFixed),
+            ibtQuantity=input.notional *
+            int(1e18) * 10 * int(1e18) // ibtPrice_current,
+            fixedInterestRate=int(ipor_index.indexValue) +
+            int(spreadReceiveFixed),
             liquidationDepositAmount=25000000000000000000,
             state=1
         )
 
-        payFixedPayoff = milton.functions.calculatePayoffPayFixed(tuple(swap3)).call()
+        payFixedPayoff = milton.functions.calculatePayoffPayFixed(
+            tuple(swap3)).call()
         self.logger.info(
             f'Pay Fixed {swap3.fixedInterestRate}, Receive Floating (then {ipor_index.indexValue}, now {ipor_index_current.indexValue}) = {payFixedPayoff}')
 
-        receiveFixedPayoff = milton.functions.calculatePayoffReceiveFixed(tuple(swap4)).call()
+        receiveFixedPayoff = milton.functions.calculatePayoffReceiveFixed(
+            tuple(swap4)).call()
         self.logger.info(
             f'Receive Fixed {swap3.fixedInterestRate}, Pay Floating (then {ipor_index.indexValue}, now {ipor_index_current.indexValue}) = {receiveFixedPayoff}')
 
