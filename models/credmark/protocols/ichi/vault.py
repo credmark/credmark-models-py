@@ -1,4 +1,5 @@
-# pylint: disable= line-too-long
+# pylint: disable= line-too-long, unused-import
+
 import math
 import pandas as pd
 from requests.exceptions import HTTPError
@@ -13,7 +14,8 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
     tick_to_price, in_range, out_of_range)
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
 
-# https://app.ichi.org/vault?token=',
+# ICHI Vault
+# https://app.ichi.org/vault?token={}',
 
 
 @Model.describe(slug='ichi.vault-tokens',
@@ -52,7 +54,7 @@ class IchiVaultTokens(Model):
 
 
 @Model.describe(slug='ichi.vaults',
-                version='0.1',
+                version='0.3',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
@@ -84,16 +86,25 @@ class IchiVaults(Model):
         '0x21e6910A769d10ef4236107493406a9788C758a3'   # TRADE-USDT', TRADE
     ]
 
-    def run(self, input: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> dict:
+        import sys
+
         vault_factory = Contract(self.VAULT_FACTORY).set_abi(
             ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
-                vault_factory.events.ICHIVaultCreated, from_block=0))
+                vault_factory.events.ICHIVaultCreated, from_block=0, to_block=self.context.block_number))
+            print('1', file=sys.stderr)
         except HTTPError:
+            deployed_info = self.context.run_model('token.deployment', {
+                "address": self.VAULT_FACTORY, "ignore_proxy": True})
+            # 25_697_834
             vault_created = pd.DataFrame(vault_factory.fetch_events(
-                vault_factory.events.ICHIVaultCreated, from_block=25_697_834, by_range=10_000))
+                vault_factory.events.ICHIVaultCreated, from_block=deployed_info['deployed_block_number'], by_range=10_000))
+            print('2', file=sys.stderr)
+
+        print(vault_created, file=sys.stderr)
 
         ichi_vaults = vault_created.ichiVault.to_list()
         vault_info = {}
@@ -114,23 +125,88 @@ class IchiVaults(Model):
                 'total_supply_scaled': vault.total_supply_scaled,
             }
 
-        # assert len(set(self.ICHI_POLYGON_VAULTS)) == len(set(vault_created.ichiVault))
-        # context.run_model('token.deployment', {'address': '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'})
+        assert len(set(self.ICHI_POLYGON_VAULTS)) <= len(
+            set(vault_created.ichiVault))
         return vault_info
 
 
-# credmark-dev run ichi.vaults  -c 137 -j
-# credmark-dev run ichi.vault-info -i '{"address":"0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"}' -c 137 -j -b
-
-@ Model.describe(slug='ichi.vault-info',
-                 version='0.1',
-                 display_name='',
-                 description='The Uniswap v3 pools that support a token contract',
-                 category='protocol',
-                 subcategory='ichi',
-                 input=Contract,
-                 output=dict)
+@Model.describe(slug='ichi.vault-info',
+                version='0.1',
+                display_name='ICHI vault info',
+                description='Get the value of vault token for an ICHI vault',
+                category='protocol',
+                subcategory='ichi',
+                input=Contract,
+                output=dict)
 class IchiVaultInfo(Model):
+    def run(self, input: Contract) -> dict:
+        vault_addr = input.address
+        vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
+        vault_pool_addr = Address(vault_ichi.functions.pool().call())
+        vault_pool = Contract(vault_pool_addr).set_abi(
+            UNISWAP_V3_POOL_ABI, set_loaded=True)
+
+        token0_addr = Address(vault_ichi.functions.token0().call())
+        token1_addr = Address(vault_ichi.functions.token1().call())
+        token0 = Token(token0_addr).as_erc20(set_loaded=True)
+        token1 = Token(token1_addr).as_erc20(set_loaded=True)
+
+        allow_token0 = vault_ichi.functions.allowToken0().call()
+        allow_token1 = vault_ichi.functions.allowToken1().call()
+
+        assert not (allow_token0 and allow_token1) and (
+            allow_token0 or allow_token1)
+
+        scale_multiplier = 10 ** (token0.decimals - token1.decimals)
+
+        current_tick = vault_ichi.functions.currentTick().call()
+        sqrtPriceX96 = vault_pool.functions.slot0().call()[0]
+
+        _tick_price0 = tick_to_price(current_tick) * scale_multiplier
+        _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / \
+            (2 ** 192) * scale_multiplier
+
+        # value of ichi vault token at a block
+        total_supply = vault_ichi.total_supply
+        total_supply_scaled = vault_ichi.total_supply_scaled
+        token0_amount, token1_amount = vault_ichi.functions.getTotalAmounts().call()
+        token0_amount = token0.scaled(token0_amount)
+        token1_amount = token1.scaled(token1_amount)
+
+        if allow_token0:
+            token1_in_token0_amount = token1_amount / _tick_price0
+            total_amount_in_token = token0_amount + token1_in_token0_amount
+        else:
+            token0_in_token1_amount = token0_amount * _tick_price0
+            total_amount_in_token = token1_amount + token0_in_token1_amount
+
+        return {
+            'token0': token0.address.checksum,
+            'token1': token1.address.checksum,
+            'token0_symbol': token0.symbol,
+            'token1_symbol': token1.symbol,
+            'allowed_token': 0 if allow_token0 else 1,
+            'token0_amount': token0_amount,
+            'token1_amount': token1_amount,
+            'total_amount_in_token': total_amount_in_token,
+            'total_supply_scaled': total_supply_scaled,
+            'vault_token_ratio': total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply,
+            'token0_amount_ratio': token0_amount / total_supply_scaled,
+            'token1_amount_ratio': token1_amount / total_supply_scaled,
+            'pool_price0': _tick_price0,
+            'ratio_price0': _ratio_price0,
+        }
+
+
+@Model.describe(slug='ichi.vault-info-full',
+                version='0.1',
+                display_name='ICHI vault info (full)',
+                description='Get the vault info from ICHI vault',
+                category='protocol',
+                subcategory='ichi',
+                input=Contract,
+                output=dict)
+class IchiVaultInfoFull(Model):
     def run(self, input: Contract) -> dict:
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
@@ -216,5 +292,3 @@ class IchiVaultInfo(Model):
             'token1_price_chainlink': token1_chainlink_price,
             'vault_token_value_chainlink': (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled,
         }
-
-        # (token0_amount * context.run_model('price.oracle-chainlink', {'base': token0.address.checksum})['price'] + token1_amount * context.run_model('price.oracle-chainlink', {'base': token1.address.checksum})['price']) / total_supply

@@ -1,4 +1,6 @@
 # pylint: disable=locally-disabled, unused-import, no-member, line-too-long
+
+import json
 from typing import List
 
 import requests
@@ -10,9 +12,12 @@ from credmark.cmf.types import (Accounts, Address, Contract, Contracts, Currency
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+from credmark.dto.encoder import json_dumps
 from web3 import Web3
 
-SLOT_EIP1967 = hex(int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
+
+SLOT_EIP1967 = hex(
+    int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
 
 
 def get_eip1967_proxy(context, logger, address, verbose):
@@ -35,7 +40,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
-    proxy_address = Address(context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
+    proxy_address = Address(
+        context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
     if not proxy_address.is_null():
         token_implementation = Token(address=proxy_address)
         # TODO: Work around before we can load proxy in the past based on block number.
@@ -54,7 +60,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
         token._meta.proxy_implementation = token_implementation
     else:
         if verbose:
-            logger.info(f'Unable to retrieve proxy implementation for {address}')
+            logger.info(
+                f'Unable to retrieve proxy implementation for {address}')
         return None
     return token
 
@@ -62,7 +69,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
 def get_eip1967_proxy_err(context, logger, address, verbose):
     res = get_eip1967_proxy(context, logger, address, verbose)
     if res is None:
-        raise ModelInputError(f'Unable to retrieve proxy implementation for {address}')
+        raise ModelInputError(
+            f'Unable to retrieve proxy implementation for {address}')
     return res
 
 
@@ -93,7 +101,8 @@ class TokenUnderlying(Model):
 
     def run(self, input: Token) -> Maybe[Address]:
         # pylint: disable=too-many-return-statements)
-        try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
+        try_eip1967 = get_eip1967_proxy(
+            self.context, self.logger, input.address, False)
         if try_eip1967 is not None:
             input = try_eip1967
         if input.abi is not None:
@@ -212,7 +221,8 @@ class TokenInfoDeployment(Model):
                 return low
 
             if self.code_by_block.get(hex(mid)) is None:
-                try_get_code = self.context.web3.eth.get_code(contract_address, hex(mid)).hex()
+                try_get_code = self.context.web3.eth.get_code(
+                    contract_address, hex(mid)).hex()
                 self.code_by_block[hex(mid)] = try_get_code
             else:
                 try_get_code = self.code_by_block[hex(mid)]
@@ -226,18 +236,31 @@ class TokenInfoDeployment(Model):
             return -1
 
     def run(self, input: TokenDeploymentInput) -> dict:
+        prev_run = self.context.run_model(
+            'model.latest-usage',
+            {'slug': self.slug, 'version': self.version, 'input': json_dumps(self.context.__dict__['original_input'])})
+
+        if prev_run['blockNumber'] is not None and int(prev_run['blockNumber']) <= self.context.block_number:
+            try:
+                return prev_run['result']
+            except ModelDataError:
+                pass
+
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             raise ModelDataError(f'{input.address} is not an EOA account')
 
-        res = self.binary_search(0, int(self.context.block_number), input.address.checksum)
+        res = self.binary_search(
+            0, int(self.context.block_number), input.address.checksum)
         if res == -1:
-            raise ModelDataError(f'Can not find deployment information for {input.address}')
+            raise ModelDataError(
+                f'Can not find deployment information for {input.address}')
 
         block = self.context.web3.eth.get_block(res)
         txs = block['transactions'] if 'transactions' in block else []
         deployer = None
         for tx in txs:
-            receipt = self.context.web3.eth.get_transaction_receipt(tx.hex())  # type: ignore
+            receipt = self.context.web3.eth.get_transaction_receipt(
+                tx.hex())  # type: ignore
             if receipt['contractAddress'] == input.address:
                 deployer = receipt['from']
                 break
@@ -248,7 +271,8 @@ class TokenInfoDeployment(Model):
 
         if not input.ignore_proxy:
             if input.proxy_for is not None:
-                proxy_deployer = self.context.run_model('token.deployment', input.proxy_for)
+                proxy_deployer = self.context.run_model(
+                    'token.deployment', input.proxy_for)
                 return {'deployed_block_number': res, 'deployer': deployer, 'proxy_deployer': proxy_deployer}
 
         return {'deployed_block_number': res, 'deployer': deployer}
@@ -258,15 +282,15 @@ class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
 
 
-@ Model.describe(slug="token.logo",
-                 version="1.2",
-                 display_name="Token Logo",
-                 developer="Credmark",
-                 category='protocol',
-                 tags=['token'],
-                 input=Token,
-                 output=TokenLogoOutput
-                 )
+@Model.describe(slug="token.logo",
+                version="1.2",
+                display_name="Token Logo",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=TokenLogoOutput
+                )
 class TokenLogoModel(Model):
     """
     Return token's logo
@@ -315,7 +339,8 @@ class TokenLogoModel(Model):
 
 class TokenTotalSupplyOutput(DTO):
     total_supply: int = DTOField(description="Total supply of token")
-    total_supply_scaled: float = DTOField(description="Total supply scaled to token decimals")
+    total_supply_scaled: float = DTOField(
+        description="Total supply scaled to token decimals")
 
 
 @Model.describe(slug="token.total-supply",
@@ -349,7 +374,8 @@ class TokenBalanceInput(Token):
 
 class TokenBalanceOutput(DTO):
     balance: int = DTOField(description="Balance of account")
-    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    balance_scaled: float = DTOField(
+        description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
     price: Price = DTOField(description="Token price")
 
@@ -384,25 +410,27 @@ class TokenBalanceModel(Model):
 
 
 class TokenHolderInput(Token):
-    limit: int = DTOField(100, gt=0, description="Limit the number of holders that are returned")
-    offset: int = \
-        DTOField(0, ge=0,
-                 description="Omit a specified number of holders from beginning of result set")
-    quote: Currency = \
-        DTOField(FiatCurrency(symbol='USD'),
-                 description='Quote token address to count the value')
+    limit: int = DTOField(100,
+                          gt=0, description="Limit the number of holders that are returned")
+    offset: int = DTOField(0,
+                           ge=0,
+                           description="Omit a specified number of holders from beginning of result set")
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Quote token address to count the value')
 
 
 class TokenHolder(DTO):
     address: Address = DTOField(description="Address of holder")
     balance: int = DTOField(description="Balance of account")
-    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    balance_scaled: float = DTOField(
+        description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
 
 
 class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
     price: PriceWithQuote = DTOField(description="Token price")
-    holders: List[TokenHolder] = DTOField(default=[], description='List of holders')
+    holders: List[TokenHolder] = DTOField(
+        default=[], description='List of holders')
     total_holders: int = DTOField(description='Total number of holders')
 
     _iterator: str = PrivateAttr('positions')
@@ -514,9 +542,12 @@ class TokenNumberHolders(Model):
 class TokenSwapPools(Model):
     def run(self, input: Token) -> Contracts:
         response = Contracts(contracts=[])
-        response.contracts.extend(Contracts(**self.context.models.uniswap_v3.get_pools(input)))
-        response.contracts.extend(Contracts(**self.context.models.uniswap_v2.get_pools(input)))
-        response.contracts.extend(Contracts(**self.context.models.sushiswap.get_pools(input)))
+        response.contracts.extend(
+            Contracts(**self.context.models.uniswap_v3.get_pools(input)))
+        response.contracts.extend(
+            Contracts(**self.context.models.uniswap_v2.get_pools(input)))
+        response.contracts.extend(
+            Contracts(**self.context.models.sushiswap.get_pools(input)))
         return response
 
 
@@ -554,12 +585,14 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = PriceWithQuote(**self.context.models.price.quote({'base': input.token}))
+        token_price = PriceWithQuote(
+            **self.context.models.price.quote({'base': input.token}))
         if token_price is None:
             raise ModelRunError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
-                bal = response.token.functions.balanceOf(account.address).call()
+                bal = response.token.functions.balanceOf(
+                    account.address).call()
                 c.amountScaled += response.token.scaled(bal)
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
@@ -568,7 +601,8 @@ class TokenCirculatingSupply(Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled - sum(c.amountScaled for c in response.categories)
+            amountScaled=total_supply_scaled -
+            sum(c.amountScaled for c in response.categories)
         ))
         response.circulatingSupplyScaled = sum(
             c.amountScaled for c in response.categories if c.circulating)
