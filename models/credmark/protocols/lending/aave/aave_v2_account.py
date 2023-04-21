@@ -9,7 +9,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.dto import DTO, EmptyInput, DTOField
 from credmark.cmf.model.errors import (
-    ModelDataError, ModelEngineError, ModelRunError, create_instance_from_error_dict)
+    ModelDataError, ModelRunError, create_instance_from_error_dict)
 from credmark.cmf.types import (Account, Address, Contract, Contracts,
                                 MapBlocksOutput, NativeToken, Network, Portfolio, Position,
                                 PriceWithQuote, Some, Token)
