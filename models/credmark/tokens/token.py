@@ -157,7 +157,8 @@ class TokenUnderlying(Model):
             return underlying_proxy
 
         if input.address in self.address_to_symbol.get(self.context.chain_id, {}):
-            token = Token(symbol=self.address_to_symbol[self.context.chain_id][input.address])
+            token = Token(
+                symbol=self.address_to_symbol[self.context.chain_id][input.address])
             return Maybe(just=token.address)
 
         return Maybe(just=None)
@@ -195,13 +196,13 @@ class TokenDeploymentOutput(DTO):
         description='Block number of deployment')
     deployed_block_timestamp: Optional[int] = DTOField(
         description='Timestamp of deployment')
-    deployer: Address = DTOField(description='Deployer address')
+    deployer: Optional[Address] = DTOField(description='Deployer address')
     proxy_deployer: Optional[dict] = DTOField(
         description='Proxy deployment')
 
 
 @Model.describe(slug="token.deployment",
-                version="0.2",
+                version="0.3",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -271,7 +272,8 @@ class TokenInfoDeployment(Model):
                     deployer = receipt['from']
                     break
 
-        if not input.ignore_proxy:
+        # TODO: remove when we have loaded ABI for non-mainnet chains
+        if self.context.chain_id == Network.Mainnet and not input.ignore_proxy:
             if input.proxy_for is not None:
                 proxy_deployer = self.context.run_model(
                     'token.deployment', input.proxy_for)
@@ -284,7 +286,7 @@ class TokenInfoDeployment(Model):
         return TokenDeploymentOutput(
             deployed_block_number=BlockNumber(res),
             deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
-            deployer=Address(str(deployer)),
+            deployer=Address(str(deployer)) if deployer is not None else None,
             proxy_deployer=None)
 
 
