@@ -98,7 +98,12 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> Maybe[Address]:
+    def get_underlying_proxy(self, input: Token):
+        try:
+            input.abi
+        except Exception:
+            return None
+
         # pylint: disable=too-many-return-statements)
         try_eip1967 = get_eip1967_proxy(
             self.context, self.logger, input.address, False)
@@ -121,51 +126,40 @@ class TokenUnderlying(Model):
             if 'underlyingAssetAddress' in abi_functions:
                 return Maybe(just=input.functions.underlyingAssetAddress().call())
 
-        # TODO: iearn DAI
-        if input.address == Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'):
-            return Maybe(just=Token(symbol='DAI').address)
+        return None
 
-        if input.address == Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'):
-            return Maybe(just=Token(symbol='DAI').address)
+    address_to_symbol = {
+        int(Network.Mainnet): {
+            # TODO: iearn DAI
+            Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'): 'DAI',
+            Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'): 'DAI',
+            # TODO: iearn USDC
+            Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'): 'USDC',
+            Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'): 'USDC',
+            Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'): 'USDT',
+            Address('0x83f798e925bcd4017eb265844fddabb448f1707d'): 'USDT',
+            Address('0x73a052500105205d34daf004eab301916da8190f'): 'TUSD',
+            Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'): 'BUSD',
+            Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'): 'LINK',
+            Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'): 'LINK',
+            # TODO: ycDAI
+            Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'): 'DAI',
+            Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'): 'USDC',
+            Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'): 'USDT',
+            # stkAAVE
+            Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5'): 'AAVE',
+        }
+    }
 
-        # TODO: iearn USDC
-        if input.address == Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'):
-            return Maybe(just=Token(symbol='USDC').address)
+    def run(self, input: Token) -> Maybe[Address]:
+        underlying_proxy = self.get_underlying_proxy(input)
+        if underlying_proxy is not None:
+            return underlying_proxy
 
-        if input.address == Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'):
-            return Maybe(just=Token(symbol='USDC').address)
-
-        if input.address == Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'):
-            return Maybe(just=Token(symbol='USDT').address)
-
-        if input.address == Address('0x83f798e925bcd4017eb265844fddabb448f1707d'):
-            return Maybe(just=Token(symbol='USDT').address)
-
-        if input.address == Address('0x73a052500105205d34daf004eab301916da8190f'):
-            return Maybe(just=Token(symbol='TUSD').address)
-
-        if input.address == Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'):
-            return Maybe(just=Token(symbol='BUSD').address)
-
-        if input.address == Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'):
-            return Maybe(just=Token(symbol='LINK').address)
-
-        if input.address == Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'):
-            return Maybe(just=Token(symbol='LINK').address)
-
-        # TODO: ycDAI
-        if input.address == Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'):
-            return Maybe(just=Token(symbol='DAI').address)
-
-        if input.address == Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'):
-            return Maybe(just=Token(symbol='USDC').address)
-
-        if input.address == Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'):
-            return Maybe(just=Token(symbol='USDT').address)
-
-        # stkAAVE
-        if input.address == Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5'):
-            return Maybe(just=Token(symbol='AAVE').address)
+        if input.address in self.address_to_symbol.get(self.context.chain_id, {}):
+            token = Token(
+                symbol=self.address_to_symbol[self.context.chain_id][input.address])
+            return Maybe(just=token.address)
 
         return Maybe(just=None)
 
@@ -193,7 +187,7 @@ class TokenInfoModel(Model):
         return token_info
 
 
-class TokenDeploymentInput(Contract):
+class TokenDeploymentInput(Token):
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
@@ -202,13 +196,13 @@ class TokenDeploymentOutput(DTO):
         description='Block number of deployment')
     deployed_block_timestamp: Optional[int] = DTOField(
         description='Timestamp of deployment')
-    deployer: Address = DTOField(description='Deployer address')
+    deployer: Optional[Address] = DTOField(description='Deployer address')
     proxy_deployer: Optional[dict] = DTOField(
         description='Proxy deployment')
 
 
 @Model.describe(slug="token.deployment",
-                version="0.2",
+                version="0.3",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -278,7 +272,8 @@ class TokenInfoDeployment(Model):
                     deployer = receipt['from']
                     break
 
-        if not input.ignore_proxy:
+        # TODO: remove when we have loaded ABI for non-mainnet chains
+        if self.context.chain_id == Network.Mainnet and not input.ignore_proxy:
             if input.proxy_for is not None:
                 proxy_deployer = self.context.run_model(
                     'token.deployment', input.proxy_for)
@@ -291,7 +286,7 @@ class TokenInfoDeployment(Model):
         return TokenDeploymentOutput(
             deployed_block_number=BlockNumber(res),
             deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
-            deployer=Address(str(deployer)),
+            deployer=Address(str(deployer)) if deployer is not None else None,
             proxy_deployer=None)
 
 

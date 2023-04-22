@@ -1,7 +1,8 @@
 import sys
+from typing import Any, cast
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelEngineError
+from credmark.cmf.model.errors import ModelRunError, ModelDataError, ModelEngineError
 from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
@@ -52,7 +53,7 @@ class ChainLinkPriceByENS(Model):
             ns = ENS.fromWeb3(self.context.web3)
         except AttributeError:
             # type: ignore  # pylint: disable=no-member
-            ns = ENS.from_web3(self.context.web3)
+            ns = cast(Any, ENS).from_web3(self.context.web3)
 
         feed_address = ns.address(input.domain)
         if feed_address is None:
@@ -76,8 +77,8 @@ class ChainLinkPriceByFeed(Model):
     def run(self, input: Contract) -> Price:
         feed_contract = input
         try:
-            feed_contract.abi
-        except ModelEngineError:
+            _ = feed_contract.abi
+        except (ModelDataError, ModelEngineError):
             feed_contract = feed_contract.set_abi(
                 CHAINLINK_AGG, set_loaded=True)
 

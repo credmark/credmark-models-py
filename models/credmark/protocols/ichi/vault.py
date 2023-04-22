@@ -1,6 +1,7 @@
 # pylint: disable= line-too-long, unused-import
 
 import math
+import numpy_financial as npf
 import pandas as pd
 from requests.exceptions import HTTPError
 

@@ -337,11 +337,11 @@ class PriceCommon:
 
     @staticmethod
     def is_native(context, token):
-        return token.address in __class__.WRAP_TOKEN[context.network]
+        return token.address in __class__.WRAP_TOKEN.get(context.network, {})
 
     @staticmethod
     def wrap_token(context, token):
-        new_token = __class__.WRAP_TOKEN[context.network].get(token.address, None)
+        new_token = __class__.WRAP_TOKEN.get(context.network, {}).get(token.address, None)
         if new_token is not None:
             return Currency(**new_token)
         return token
@@ -351,10 +351,10 @@ class PriceCommon:
         if __class__.is_native(context, token):
             return token
 
-        if token.address in __class__.EXCEPTION_TOKEN[context.network]:
+        if token.address in __class__.EXCEPTION_TOKEN.get(context.network, {}):
             return token
 
-        new_token = __class__.UNWRAP_TOKEN[context.network].get(token.symbol, None)
+        new_token = __class__.UNWRAP_TOKEN.get(context.network, {}).get(token.symbol, None)
         if new_token is not None:
             if Token(token.symbol).address == token.address:
                 return Currency(new_token)

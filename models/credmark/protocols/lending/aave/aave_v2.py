@@ -2,10 +2,10 @@
 
 import pandas as pd
 
-from typing import Optional
+from typing import Optional, cast
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError, ModelRunError, ModelEngineError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Account, Contract, Contracts,
                                 NativeToken, Network, Portfolio, Position,
                                 PriceWithQuote, Some, Token)
@@ -245,7 +245,7 @@ class AaveV2GetProtocolDataProvider(Model):
 
         try:
             _ = lending_pool_provider.abi
-        except ModelEngineError:
+        except ModelDataError:
             lending_pool_provider.set_abi(
                 AAVE_LENDING_POOL_PROVIDER, set_loaded=True)
 
@@ -353,9 +353,9 @@ class AaveV2GetLiability(Model):
             modelInputs=[Token(address=asset) for asset in aave_assets],
             return_type=MapInputsOutput[Token, Position])
 
-        # type: ignore
-        positions = [
-            res.output for res in map_results.results if res.error is None]
+        map_results = cast(MapInputsOutput[Token, Position], map_results)
+        positions = [res.output for res in map_results.results
+                     if res.error is None and res.output is not None]
         assert len(positions) == len(aave_assets)
         return Portfolio(positions=positions)
 
