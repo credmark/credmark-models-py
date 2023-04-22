@@ -287,3 +287,69 @@ class IchiVaultInfoFull(Model):
             'token1_price_chainlink': token1_chainlink_price,
             'vault_token_value_chainlink': (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled,
         }
+
+
+@Model.describe(slug='ichi.vault-performance',
+                version='0.1',
+                display_name='ICHI vault performance',
+                description='Get the vault performance from ICHI vault',
+                category='protocol',
+                subcategory='ichi',
+                input=Contract,
+                output=dict)
+class IchiVaultPerformance(Model):
+    def run(self, input: Contract) -> dict:
+        vault_addr = input.address
+        vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
+        vault_pool_addr = Address(vault_ichi.functions.pool().call())
+
+        for vault_addr in IchiVaults.ICHI_POLYGON_VAULTS:
+            deployment = self.context.run_model(
+                'token.deployment', {'address': vault_addr, 'ignore_proxy': True})
+
+            timestamp = self.context.run_model(
+                'chain.get-block-timestamp', {'block_number': 39530789})
+            block_30d = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 30})
+            block_60d = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 60})
+
+            block_1w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7})
+            block_2w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 2})
+            block_3w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 3})
+            block_4w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 4})
+            block_5w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 5})
+            block_6w = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 6})
+
+            vault_addr = Address('0x9ff3C1390300918B40714fD464A39699dDd9Fe00')
+            vault_info = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
+            vault_info_30d = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_30d['block_number'])
+            # To find the first deposit
+            vault_info_60d = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=deployment['deployed_block_number']+90_000)
+
+            vault_info_1w = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_1w['block_number'])
+            vault_info_2w = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_2w['block_number'])
+            vault_info_3w = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_3w['block_number'])
+            vault_info_4w = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_4w['block_number'])
+            vault_info_5w = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=block_5w['block_number'])
+
+            return {
+                'irr_30d':                     npf.irr([-vault_info_30d['vault_token_ratio'],
+                                                        vault_info['vault_token_ratio']]) * 12,
+                'irr_1w':               npf.irr([-vault_info_5w['vault_token_ratio'], 0, 0,
+                                                 0, 0, vault_info['vault_token_ratio']]) * 52,
+            }
