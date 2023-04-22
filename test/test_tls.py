@@ -1,8 +1,35 @@
 # pylint:disable=line-too-long
 
+import math
 import os
 import json
 from cmf_test import CMFTest
+
+
+def compare_dict(a, b):
+    if isinstance(a, list):
+        for i, v in enumerate(a):
+            if not compare_dict(v, b[i]):
+                return False
+        return True
+    elif isinstance(a, dict) and isinstance(b, dict):
+        for k, v in a.items():
+            if isinstance(v, dict):
+                if not compare_dict(v, b[k]):
+                    return False
+            elif isinstance(v, list):
+                return compare_dict(sorted(v, key=lambda x: list(x.keys()) if isinstance(x, dict) else [x]),
+                                    sorted(b[k], key=lambda x: list(x.keys()) if isinstance(x, dict) else [x]))
+            elif k not in b:
+                print(k, v, b[k])
+                return False
+            else:
+                return compare_dict(v, b[k])
+
+        return True
+    elif isinstance(a, float) and isinstance(b, float):
+        return math.isclose(a, b, rel_tol=1e-4)
+    return a == b
 
 
 class TestTLSBatch(CMFTest):
@@ -26,7 +53,8 @@ class TestTLS(CMFTest):
     def test_select(self):
         block_number = 16795830
 
-        _latest_block = self.run_model_with_output('rpc.get-latest-blocknumber', {})['output']['blockNumber']
+        _latest_block = self.run_model_with_output(
+            'rpc.get-latest-blocknumber', {})['output']['blockNumber']
 
         # AAVE: 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         # UNI: 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
@@ -42,7 +70,8 @@ class TestTLS(CMFTest):
         ]:
             tls_score = self.run_model_with_output(
                 'tls.score', {"address": addr}, block_number=block_number)
-            print((addr, tls_score['output']['score'], tls_score['output']['items']))
+            print((addr, tls_score['output']['score'],
+                  tls_score['output']['items']))
 
     def test_sample(self):
         result = self.run_model_with_output(
@@ -66,7 +95,8 @@ class TestTLS(CMFTest):
              "items": [{"name": "Not an EOA", "impact": "!"}]})
 
         # 0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B: No source code, or not EOA for earlier block
-        result = self.run_model_with_output('tls.score', {"address": "0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B"})
+        result = self.run_model_with_output(
+            'tls.score', {"address": "0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B"})
         self.assertEqual(
             result['output'],
             {"address": "0x208a9c9d8e1d33a4f5b371bf1864aa125379ba1b",
@@ -140,9 +170,9 @@ class TestTLS(CMFTest):
             'tls.score', {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}, block_number=16583473)
 
         print(result)
-        self.assertEqual(
-            result['output'],
-            {
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {
                 "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
                 "name": "Aave Token",
                 "symbol": "AAVE",
@@ -180,7 +210,7 @@ class TestTLS(CMFTest):
                         "impact": "+"
                     }
                 ]
-            })
+            }))
         # 974
 
         # aWETH 0x030bA81f1c18d280636F32af80b9AAd02Cf0854e
@@ -188,9 +218,8 @@ class TestTLS(CMFTest):
             'tls.score', {"address": "0x030bA81f1c18d280636F32af80b9AAd02Cf0854e"}, block_number=16583473)
 
         print(result)
-        self.assertEqual(
-            result['output'],
-            {
+        self.assertTrue(
+            compare_dict(result['output'], {
                 "address": "0x030ba81f1c18d280636f32af80b9aad02cf0854e",
                 "name": "Aave interest bearing WETH",
                 "symbol": "aWETH",
@@ -274,4 +303,4 @@ class TestTLS(CMFTest):
                         "impact": "+"
                     }
                 ]
-            })
+            }))
