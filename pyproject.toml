@@ -21,7 +21,6 @@ XlsxWriter = ">=3.0.3"
 beautifulsoup4 = ">=4.10.0"
 pyarrow = ">=7.0.0"
 networkx = ">=2.8.4"
-numpy_financial = ">=1.0.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "1.6.0"
