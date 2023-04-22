@@ -187,7 +187,7 @@ class TokenInfoModel(Model):
         return token_info
 
 
-class TokenDeploymentInput(Contract):
+class TokenDeploymentInput(Token):
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
