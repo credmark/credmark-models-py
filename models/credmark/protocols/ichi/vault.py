@@ -64,7 +64,7 @@ class IchiVaultTokens(Model):
 # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
 
 @Model.describe(slug='ichi.vaults',
-                version='0.4',
+                version='0.5',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
@@ -103,7 +103,7 @@ class IchiVaults(Model):
             prev_result = latest_run['result']
         else:
             from_block = 0
-            prev_result = {}
+            prev_result = {'vaults': {}}
 
         if from_block == self.context.block_number:
             return prev_result
@@ -119,6 +119,7 @@ class IchiVaults(Model):
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
                 "address": self.VAULT_FACTORY, "ignore_proxy": True})
+            self.logger.info('Use by_range=10_000')
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated,
                 from_block=max(
@@ -139,7 +140,8 @@ class IchiVaults(Model):
             token1 = Token(vault.functions.token1().call()
                            ).as_erc20(set_loaded=True)
 
-            vault_info[vault_addr] = {
+            vault_info['vaults'][vault_addr] = {  # type: ignore
+                'vault_addr': vault_addr,
                 'owner': vault.functions.owner().call(),
                 'pool': vault.functions.pool().call(),
                 'token0_symbol': token0.symbol,
@@ -381,9 +383,16 @@ class IchiVaultFirstDeposit(Model):
                 df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
                     vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000))
             except ValueError:
-                df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
-                    vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=1_000))
-
+                try:
+                    df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                        vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=1_000))
+                except ValueError:
+                    try:
+                        df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                            vault_ichi.events.Transfer, from_block=deployed_info['deployed_block_number'], by_range=10_000))
+                    except ValueError as err:
+                        raise ValueError(
+                            f'Can not fetch events for {vault_ichi.address}') from err
         return IchiVaultFirstDepositOutput(
             first_deposit_block_number=(
                 None if df_first_deposit.empty
@@ -509,7 +518,7 @@ class IchiVaultPerformance(Model):
                 output=dict)
 class IchiVaultsPerformance(Model):
     def run(self, input: PerformanceInput) -> dict:
-        vaults_all = self.context.run_model('ichi.vaults')
+        vaults_all = self.context.run_model('ichi.vaults')['vaults']
 
         def _use_for():
             result = {}
