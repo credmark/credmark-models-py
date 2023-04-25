@@ -11,7 +11,7 @@ from requests.exceptions import HTTPError
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput, DTOField, DTO
 from credmark.dto.encoder import json_dumps
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict
 from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
                                 Some, Token)
 
@@ -152,7 +152,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.1',
+                version='0.2',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -161,16 +161,23 @@ class IchiVaults(Model):
                 output=dict)
 class IchiVaultInfo(Model):
     def run(self, input: Contract) -> dict:
+        latest_run = get_latest_run(self.context, self.slug, self.version)
+        if latest_run is not None:
+            prev_block = int(latest_run['blockNumber'])
+            prev_result = latest_run['result']
+            if prev_block == self.context.block_number:
+                return prev_result
+        else:
+            prev_block = None
+            prev_result = {}
+
+        # prev_block = None
+
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
         vault_pool = Contract(vault_pool_addr).set_abi(
             UNISWAP_V3_POOL_ABI, set_loaded=True)
-
-        token0_addr = Address(vault_ichi.functions.token0().call())
-        token1_addr = Address(vault_ichi.functions.token1().call())
-        token0 = Token(token0_addr).as_erc20(set_loaded=True)
-        token1 = Token(token1_addr).as_erc20(set_loaded=True)
 
         allow_token0 = vault_ichi.functions.allowToken0().call()
         allow_token1 = vault_ichi.functions.allowToken1().call()
@@ -178,7 +185,26 @@ class IchiVaultInfo(Model):
         assert not (allow_token0 and allow_token1) and (
             allow_token0 or allow_token1)
 
-        scale_multiplier = 10 ** (token0.decimals - token1.decimals)
+        if prev_block is None:
+            token0_addr = Address(vault_ichi.functions.token0().call())
+            token1_addr = Address(vault_ichi.functions.token1().call())
+            token0 = Token(token0_addr).as_erc20(set_loaded=True)
+            token1 = Token(token1_addr).as_erc20(set_loaded=True)
+            token0_decimals = token0.decimals
+            token1_decimals = token1.decimals
+            token0_address_checksum = token0.address.checksum
+            token1_address_checksum = token1.address.checksum
+            token0_symbol = token0.symbol
+            token1_symbol = token1.symbol
+        else:
+            token0_decimals = prev_result['token0_decimals']
+            token1_decimals = prev_result['token1_decimals']
+            token0_address_checksum = prev_result['token0']
+            token1_address_checksum = prev_result['token1']
+            token0_symbol = prev_result['token0_symbol']
+            token1_symbol = prev_result['token1_symbol']
+
+        scale_multiplier = 10 ** (token0_decimals - token1_decimals)
 
         current_tick = vault_ichi.functions.currentTick().call()
         sqrtPriceX96 = vault_pool.functions.slot0().call()[0]
@@ -191,8 +217,8 @@ class IchiVaultInfo(Model):
         total_supply = vault_ichi.total_supply
         total_supply_scaled = vault_ichi.total_supply_scaled
         token0_amount, token1_amount = vault_ichi.functions.getTotalAmounts().call()
-        token0_amount = token0.scaled(token0_amount)
-        token1_amount = token1.scaled(token1_amount)
+        token0_amount = token0_amount / (10 ** token0_decimals)
+        token1_amount = token1_amount / (10 ** token1_decimals)
 
         if allow_token0:
             token1_in_token0_amount = token1_amount / _tick_price0
@@ -202,16 +228,18 @@ class IchiVaultInfo(Model):
             total_amount_in_token = token1_amount + token0_in_token1_amount
 
         return {
-            'token0': token0.address.checksum,
-            'token1': token1.address.checksum,
-            'token0_symbol': token0.symbol,
-            'token1_symbol': token1.symbol,
+            'token0': token0_address_checksum,
+            'token1': token1_address_checksum,
+            'token0_decimals': token0_decimals,
+            'token1_decimals': token1_decimals,
+            'token0_symbol': token0_symbol,
+            'token1_symbol': token1_symbol,
             'allowed_token': 0 if allow_token0 else 1,
             'token0_amount': token0_amount,
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply,
+            'vault_token_ratio': total_amount_in_token * 10 ** (token0_decimals if allow_token0 else token1_decimals) / total_supply,
             'token0_amount_ratio': token0_amount / total_supply_scaled,
             'token1_amount_ratio': token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
@@ -384,7 +412,7 @@ class IchiVaultPerformance(Model):
         _cagr_annualized = np.power(vault_info_current['vault_token_ratio'] /
                                     vault_info_past['vault_token_ratio'], 365 / days) - 1
 
-        # print((days, _cagr_from_irr, _cagr_annualized))
+        self.logger.info((days, _cagr_from_irr, _cagr_annualized))
         return _cagr_from_irr
 
     def run(self, input: VaultPerformanceInput) -> dict:
@@ -492,28 +520,16 @@ class IchiVaultsPerformance(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'ichi.vault-performance',
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Some[dict]]])
+                return_type=MapInputsOutput[VaultPerformanceInput, dict])
 
             all_vault_infos = {}
-            for vault_n, (model_input, vault_result) in enumerate(zip(model_inputs, all_vault_infos_results)):
+            for model_input, vault_result in zip(model_inputs, all_vault_infos_results):
                 if vault_result.output is not None:
-                    for pool_result in vault_result.output:
-                        if pool_result.output is not None:
-                            all_vault_infos[model_input['address']
-                                            ] = pool_result.output
-                        elif pool_result.error is not None:
-                            self.logger.error(pool_result.error)
-                            raise ModelRunError(
-                                (f'Error with models({self.context.block_number}).' +
-                                 f'{model_inputs[vault_n]["modelSlug"].replace("-","_")}' +
-                                 f'({pool_result.input}). ' +
-                                 pool_result.error.message))
+                    all_vault_infos[model_input['address']] = vault_result
                 elif vault_result.error is not None:
                     self.logger.error(vault_result.error)
-                    raise ModelRunError(
-                        (f'Error with models({self.context.block_number}).' +
-                         f'{model_inputs[vault_n]}. ' +
-                         vault_result.error.message))
+                    raise create_instance_from_error_dict(
+                        vault_result.error.dict())
                 else:
                     raise ModelRunError(
                         'compose.map-inputs: output/error cannot be both None')
