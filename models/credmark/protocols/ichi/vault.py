@@ -64,7 +64,7 @@ class IchiVaultTokens(Model):
 # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
 
 @Model.describe(slug='ichi.vaults',
-                version='0.5',
+                version='0.6',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
@@ -141,7 +141,7 @@ class IchiVaults(Model):
                            ).as_erc20(set_loaded=True)
 
             vault_info['vaults'][vault_addr] = {  # type: ignore
-                'vault_addr': vault_addr,
+                'vault': vault_addr,
                 'owner': vault.functions.owner().call(),
                 'pool': vault.functions.pool().call(),
                 'token0_symbol': token0.symbol,
@@ -353,12 +353,14 @@ class IchiVaultInfoFull(Model):
 class IchiVaultFirstDepositOutput(DTO):
     first_deposit_block_number: Optional[int] = DTOField(
         description='First deposit block number')
+    first_deposit_block_timestamp: Optional[int] = DTOField(
+        description='First deposit block timestamp')
     prev_block: Optional[int] = DTOField(
         None, description='Result from previous block number')
 
 
 @Model.describe(slug='ichi.vault-first-deposit',
-                version='0.2',
+                version='0.3',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -390,13 +392,25 @@ class IchiVaultFirstDeposit(Model):
                     try:
                         df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
                             vault_ichi.events.Transfer, from_block=deployed_info['deployed_block_number'], by_range=10_000))
-                    except ValueError as err:
-                        raise ValueError(
-                            f'Can not fetch events for {vault_ichi.address}') from err
+                    except ValueError:
+                        try:
+                            df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                                vault_ichi.events.Transfer, from_block=deployed_info['deployed_block_number'], by_range=1_000))
+                        except ValueError as err:
+                            raise ValueError(
+                                f'Can not fetch events for {vault_ichi.address} from {deployed_info["deployed_block_number"]}') from err
+
+        first_deposit_block_number = (
+            None if df_first_deposit.empty
+            else int(df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber']))
+        first_deposit_block_timestamp = (
+            None
+            if first_deposit_block_number is None
+            else self.context.web3.eth.get_block(first_deposit_block_number).get('timestamp', None))
+
         return IchiVaultFirstDepositOutput(
-            first_deposit_block_number=(
-                None if df_first_deposit.empty
-                else df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber']),
+            first_deposit_block_number=first_deposit_block_number,
+            first_deposit_block_timestamp=first_deposit_block_timestamp,
             prev_block=None)
 
 
@@ -408,11 +422,11 @@ class PerformanceInput(DTO):
 class VaultPerformanceInput(Contract, PerformanceInput):
     pass
 
-# credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30,60]}' -c 137 --api_url=http://localhost:8700 -j
+# credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.5',
+                version='0.9',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -421,14 +435,62 @@ class VaultPerformanceInput(Contract, PerformanceInput):
                 output=dict)
 class IchiVaultPerformance(Model):
     def calc_irr(self, vault_info_past, vault_info_current, days):
-        irr = npf.irr([-vault_info_past['vault_token_ratio'],
-                       vault_info_current['vault_token_ratio']])
+        past_value, current_value = \
+            vault_info_past['vault_token_ratio'], vault_info_current['vault_token_ratio']
+
+        irr = npf.irr([-past_value, current_value])
 
         _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
-        _cagr_annualized = np.power(vault_info_current['vault_token_ratio'] /
-                                    vault_info_past['vault_token_ratio'], 365 / days) - 1
+        _cagr_annualized = np.power(current_value / past_value, 365 / days) - 1
 
-        self.logger.info((days, _cagr_from_irr, _cagr_annualized))
+        self.logger.info(('irr', days, _cagr_from_irr, _cagr_annualized))
+        return _cagr_from_irr
+
+    def calc_irr_hold(self, vault_info_past, vault_info_current, days):
+        p1, p2 = 0.5, 0.5
+
+        past_value = p1 + p2
+        if vault_info_current['allowed_token'] == 0:
+            current_value = p1 + p2 * \
+                vault_info_past['ratio_price0'] / \
+                vault_info_current['ratio_price0']
+        else:
+            current_value = p1 / \
+                vault_info_past['ratio_price0'] * \
+                vault_info_current['ratio_price0'] + p2
+
+        irr = npf.irr([-past_value, current_value])
+        _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
+        _cagr_annualized = np.power(current_value / past_value, 365 / days) - 1
+        self.logger.info(('irr_hold', days, _cagr_from_irr,
+                         _cagr_annualized, past_value, current_value,
+                         vault_info_past['ratio_price0'], vault_info_current['ratio_price0']))
+        return _cagr_from_irr
+
+    def calc_irr_uniswap(self, vault_info_past, vault_info_current, days):
+        if vault_info_current['allowed_token'] == 0:
+            token0_amount, token1_amount = 0.5, \
+                0.5 * vault_info_past['ratio_price0']
+            liquidity = token0_amount * token1_amount
+            token0_amount_new = np.sqrt(
+                liquidity / vault_info_current['ratio_price0'])
+            past_value = 1
+            current_value = token0_amount_new * 2
+        else:
+            token0_amount, token1_amount = \
+                0.5 / vault_info_past['ratio_price0'], 0.5
+            liquidity = token0_amount * token1_amount
+            token1_amount_new = np.sqrt(
+                liquidity * vault_info_current['ratio_price0'])
+            past_value = 1
+            current_value = token1_amount_new * 2
+
+        irr = npf.irr([-past_value, current_value])
+        _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
+        _cagr_annualized = np.power(current_value / past_value, 365 / days) - 1
+        self.logger.info(('irr_uniswap', days, _cagr_from_irr,
+                         _cagr_annualized, past_value, current_value,
+                         vault_info_past['ratio_price0'], vault_info_current['ratio_price0']))
         return _cagr_from_irr
 
     def run(self, input: VaultPerformanceInput) -> dict:
@@ -446,6 +508,7 @@ class IchiVaultPerformance(Model):
         first_deposit = self.context.run_model(
             'ichi.vault-first-deposit', {'address': vault_addr}, return_type=IchiVaultFirstDepositOutput)
         first_deposit_block_number = first_deposit.first_deposit_block_number
+        first_deposit_block_timestamp = first_deposit.first_deposit_block_timestamp
 
         result = {
             'vault': vault_addr,
@@ -453,11 +516,15 @@ class IchiVaultPerformance(Model):
             'token1': vault_info_current['token1'],
             'token0_symbol': vault_info_current['token0_symbol'],
             'token1_symbol': vault_info_current['token1_symbol'],
+            'allowed_token': vault_info_current['allowed_token'],
             'deployed_block_number': deployed_block_number,
             'deployed_block_timestamp': deployed_block_timestamp,
             'first_deposit_block_number': first_deposit_block_number,
+            'first_deposit_block_timestamp': first_deposit_block_timestamp,
             'days_since_first_deposit': None,
-            'irr_since_first_deposit': None,
+            'irr': None,
+            'irr_hold': None,
+            'irr_uniswap': None,
             'performance': {},
             'vault_token_ratio': {},
         }
@@ -474,8 +541,13 @@ class IchiVaultPerformance(Model):
         days_from_first_deposit = (
             self.context.block_number.timestamp - first_deposit_block_timestamp) / (60 * 60 * 24)
         result['days_since_first_deposit'] = days_from_first_deposit
-        result['irr_since_first_deposit'] = self.calc_irr(
+        result['irr'] = self.calc_irr(
             vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+        result['irr_hold'] = self.calc_irr_hold(
+            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+        result['irr_uniswap'] = self.calc_irr_uniswap(
+            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+
         result['vault_token_ratio'][0] = vault_info_current['vault_token_ratio']
         result['vault_token_ratio'][days_from_first_deposit] = vault_info_fist_deposit['vault_token_ratio']
 
@@ -509,7 +581,7 @@ class IchiVaultPerformance(Model):
 # credmark-dev run ichi.vaults-performance -i '{"time_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.1',
+                version='0.3',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -521,12 +593,12 @@ class IchiVaultsPerformance(Model):
         vaults_all = self.context.run_model('ichi.vaults')['vaults']
 
         def _use_for():
-            result = {}
+            result = []
             # Change to a compose model to run
             for vault_addr in vaults_all.keys():
-                result[vault_addr] = self.context.run_model(
-                    'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon})
-                print((vault_addr, result[vault_addr]), file=sys.stderr)
+                result.append(self.context.run_model(
+                    'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon}))
+                self.logger.info((vault_addr, result[vault_addr]))
             return result
 
         def _use_compose():
@@ -538,10 +610,10 @@ class IchiVaultsPerformance(Model):
                        'modelInputs': model_inputs},
                 return_type=MapInputsOutput[VaultPerformanceInput, dict])
 
-            all_vault_infos = {}
-            for model_input, vault_result in zip(model_inputs, all_vault_infos_results):
+            all_vault_infos = []
+            for _model_input, vault_result in zip(model_inputs, all_vault_infos_results):
                 if vault_result.output is not None:
-                    all_vault_infos[model_input['address']] = vault_result
+                    all_vault_infos.append(vault_result.output)
                 elif vault_result.error is not None:
                     self.logger.error(vault_result.error)
                     raise create_instance_from_error_dict(
@@ -552,4 +624,4 @@ class IchiVaultsPerformance(Model):
             return all_vault_infos
 
         results = _use_compose()
-        return results
+        return {'data': results}
