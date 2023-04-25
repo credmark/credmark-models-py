@@ -18,8 +18,10 @@ class TestToken(CMFTest):
         self.run_model("token.overall-volume-window",
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "window": "24 hours"})
 
-        self.run_model("token.overall-volume-block", {"symbol": "ETH", "block_number": -100})
-        self.run_model("token.overall-volume-block", {"symbol": "AAVE", "block_number": -100})
+        self.run_model("token.overall-volume-block",
+                       {"symbol": "ETH", "block_number": -100})
+        self.run_model("token.overall-volume-block",
+                       {"symbol": "AAVE", "block_number": -100})
         self.run_model("token.overall-volume-block",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "block_number": -100})
         self.run_model("token.overall-volume-block",
@@ -36,7 +38,8 @@ class TestToken(CMFTest):
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "block_number": -100})
         self.run_model("token.volume-segment-block",
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "block_number": -100, "n": 3})
-        self.run_model("token.volume-segment-block", {"symbol": "AAVE", "block_number": -100, "n": 3})
+        self.run_model("token.volume-segment-block",
+                       {"symbol": "AAVE", "block_number": -100, "n": 3})
 
         self.run_model("token.volume-segment-window",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "2 hours"})
@@ -45,7 +48,8 @@ class TestToken(CMFTest):
 
         self.run_model("token.volume-segment-window",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "2 hours", "n": 2})
-        self.run_model("token.volume-segment-window", {"symbol": "AAVE", "window": "2 hours", "n": 3})
+        self.run_model("token.volume-segment-window",
+                       {"symbol": "AAVE", "window": "2 hours", "n": 3})
         self.run_model("token.volume-segment-window",
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "window": "2 hours", "n": 3})
 
@@ -85,7 +89,27 @@ class TestToken(CMFTest):
             "token.holders",
             {"address": "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B", "top_n": 20})
 
-        self.run_model('token.holders-count', {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})
+        # cbETH's first transfer is at block 14160141, created at 14133762
+        # query at earlier blocks should return 0
+        def _get_first_tx(context, addr):
+            with context.ledger.TokenTransfer as tt:
+                df = tt.select(tt.columns,
+                               where=tt.TOKEN_ADDRESS.eq(addr),
+                               order_by=tt.BLOCK_NUMBER.asc(), limit=1)
+                return df.iloc[0]['block_number'] if not df.empty else -1
+        # _get_first_tx(context, '0xbe9895146f7af43049ca1c1ae358b0541ea49704')
+        self.run_model(
+            "token.holders-count",
+            {"address": "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704"}, block_number=14130667)
+
+        # USDC first transfer is at block , created at 6082465
+        # _get_first_tx(context, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
+        self.run_model(
+            "token.holders-count",
+            {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}, block_number=6083000)
+
+        self.run_model('token.holders-count',
+                       {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})
 
     def test_transaction(self):
         self.run_model(
@@ -98,7 +122,8 @@ class TestToken(CMFTest):
 
     def test_account(self):
         self.title("Account Examples")
-        self.run_model("account.portfolio", {"address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"})
+        self.run_model("account.portfolio", {
+                       "address": "0xCE017A1dcE5A15668C4299263019c017154ACE17"})
 
         # Working but taking long time.
         # Test account 1: 0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0
@@ -109,45 +134,74 @@ class TestToken(CMFTest):
         self.title("Token Examples")
 
         # UniswapV3 pool USDC-WETH 0x7bea39867e4169dbe237d55c8242a8f2fcdcc387
-        self.run_model("uniswap-v3.get-pool-info", {"address": "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"})
+        self.run_model("uniswap-v3.get-pool-info",
+                       {"address": "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"})
 
         # token.underlying-maybe,price.oracle-chainlink-maybe,price.oracle-chainlink
-        self.run_model("price.dex", {"base": {"symbol": "WETH"}})  # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"symbol": "CMK"}})  # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"symbol": "AAVE"}})  # ${token_price_deps}
+        # ${token_price_deps}
+        self.run_model("price.dex", {"base": {"symbol": "WETH"}})
+        # ${token_price_deps}
+        self.run_model("price.dex", {"base": {"symbol": "CMK"}})
+        # ${token_price_deps}
+        self.run_model("price.dex", {"base": {"symbol": "AAVE"}})
 
         # AAVE: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9
         # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}})
-        self.run_model("price.dex", {"base": {"symbol": "USDC"}})  # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"symbol": "MKR"}})  # ${token_price_deps}
+        self.run_model("price.dex", {
+                       "base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}})
+        # ${token_price_deps}
+        self.run_model("price.dex", {"base": {"symbol": "USDC"}})
+        # ${token_price_deps}
+        self.run_model("price.dex", {"base": {"symbol": "MKR"}})
 
         # Ampleforth: 0xd46ba6d942050d489dbd938a2c909a5d5039a161
         # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}})
+        self.run_model("price.dex", {
+                       "base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}})
         # RenFil token: 0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5
         # ${token_price_deps}
-        self.run_model("price.dex", {"base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}})
+        self.run_model("price.dex", {
+                       "base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}})
 
-        self.run_model("price.quote", {"base": {"symbol": "WETH"}, "prefer": "dex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "CMK"}, "prefer": "dex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "AAVE"}, "prefer": "dex"})  # ${token_price_deps}
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "WETH"}, "prefer": "dex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "CMK"}, "prefer": "dex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "AAVE"}, "prefer": "dex"})
         self.run_model("price.quote", {
                        "base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}, "prefer": "dex"})
-        self.run_model("price.quote", {"base": {"symbol": "USDC"}, "prefer": "dex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "MKR"}, "prefer": "dex"})  # ${token_price_deps}
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "USDC"}, "prefer": "dex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "MKR"}, "prefer": "dex"})
         self.run_model("price.quote", {
                        "base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}, "prefer": "dex"})
         self.run_model("price.quote", {
                        "base": {"address": "0xD5147bc8e386d91Cc5DBE72099DAC6C9b99276F5"}, "prefer": "dex"})
 
-        self.run_model("price.quote", {"base": {"symbol": "WETH"}, "prefer": "cex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "CMK"}, "prefer": "cex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "AAVE"}, "prefer": "cex"})  # ${token_price_deps}
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "WETH"}, "prefer": "cex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "CMK"}, "prefer": "cex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "AAVE"}, "prefer": "cex"})
         self.run_model("price.quote", {
                        "base": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}, "prefer": "cex"})
-        self.run_model("price.quote", {"base": {"symbol": "USDC"}, "prefer": "cex"})  # ${token_price_deps}
-        self.run_model("price.quote", {"base": {"symbol": "MKR"}, "prefer": "cex"})  # ${token_price_deps}
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "USDC"}, "prefer": "cex"})
+        # ${token_price_deps}
+        self.run_model("price.quote", {
+                       "base": {"symbol": "MKR"}, "prefer": "cex"})
         self.run_model("price.quote", {
                        "base": {"address": "0xd46ba6d942050d489dbd938a2c909a5d5039a161"}, "prefer": "cex"})
         self.run_model("price.quote", {
@@ -157,22 +211,28 @@ class TestToken(CMFTest):
         self.run_model("token.swap-pools", {"symbol": "CMK"})
 
         self.run_model("token.info", {"symbol": "CMK"})
-        self.run_model("token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
-        self.run_model("token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
+        self.run_model(
+            "token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
+        self.run_model(
+            "token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
         self.run_model("token.info", {"symbol": "MKR"})
 
-        self.run_model('token.total-supply', {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"})
+        self.run_model('token.total-supply',
+                       {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"})
 
         self.run_model('token.balance',
                        {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
                         "account": "0x55FE002aefF02F77364de339a1292923A15844B8"})
 
-        self.run_model("token.deployment", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
-        self.run_model("token.deployment", {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})  # MKR
+        self.run_model("token.deployment", {
+                       "address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
+        self.run_model("token.deployment", {
+                       "address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})  # MKR
         self.run_model("token.deployment", {"symbol": "USDC"})
 
         # WETH-DAI pool: https://analytics.sushi.com/pairs/0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f
-        self.run_model("token.swap-pool-volume", {"address": "0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"})
+        self.run_model("token.swap-pool-volume",
+                       {"address": "0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"})
 
         # UniSwap V3 factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984
         self.run_model("token.categorized-supply", {"categories": [{"accounts": {"accounts": [

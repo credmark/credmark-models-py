@@ -11,7 +11,7 @@ from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract, Contra
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from credmark.dto.encoder import json_dumps
+from models.utils.model_run import get_latest_run
 from web3 import Web3
 
 
@@ -239,15 +239,9 @@ class TokenInfoDeployment(Model):
             return -1
 
     def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
-        prev_run = self.context.run_model(
-            'model.latest-usage',
-            {'slug': self.slug, 'version': self.version, 'input': json_dumps(self.context.__dict__['original_input'])})
-
-        if 'blockNumber' in prev_run and prev_run['blockNumber'] is not None and int(prev_run['blockNumber']) <= self.context.block_number and prev_run['result'] is not None:
-            try:
-                return prev_run['result']
-            except ModelDataError:
-                pass
+        latest_run = get_latest_run(self.context, self.slug, self.version)
+        if latest_run is not None:
+            return latest_run['result']
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             raise ModelDataError(f'{input.address} is not an EOA account')
@@ -497,7 +491,7 @@ class TokenHoldersCountOutput(DTO):
 
 
 @Model.describe(slug='token.holders-count',
-                version='1.0',
+                version='1.1',
                 display_name='Token Holders count',
                 description='Total number of holders of a Token',
                 category='protocol',
@@ -517,9 +511,12 @@ class TokenHoldersCount(Model):
                 limit=1,
             ).to_dataframe()
 
-            total_holders = df['total_holders'].values[0]
-            if total_holders is None:
+            if df.empty:
                 total_holders = 0
+            else:
+                total_holders = df['total_holders'].values[0]
+                if total_holders is None:
+                    total_holders = 0
 
             return TokenHoldersCountOutput(count=total_holders)
 

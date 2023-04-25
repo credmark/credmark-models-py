@@ -88,9 +88,11 @@ class GetBlock(Model):
         # We bound, to ensure logarithmic time even when guesses aren't great
         k = min(max(k, 0.05), 0.95)
         # We get the expected block number from K
-        expected_block_number = round(start_block + k * (end_block - start_block))
+        expected_block_number = round(
+            start_block + k * (end_block - start_block))
         # Make sure to make some progress
-        expected_block_number = min(max(expected_block_number, start_block + 1), end_block - 1)
+        expected_block_number = min(
+            max(expected_block_number, start_block + 1), end_block - 1)
 
         # Get the actual timestamp for that block
         expected_block = self.get_block(expected_block_number)
@@ -140,7 +142,10 @@ class LatestBlock(DTO):
                 output=LatestBlock)
 class GetLatestBlock(Model):
     def run(self, _) -> LatestBlock:
+        original_default_block = self.context.web3.eth.default_block
+        self.context.web3.eth.default_block = 'latest'
         block = self.context.web3.eth.get_block("latest")
         block_number = block.number  # type: ignore
         block_timestamp = block.timestamp  # type: ignore
+        self.context.web3.eth.default_block = original_default_block
         return LatestBlock(blockNumber=block_number, timestamp=block_timestamp)
