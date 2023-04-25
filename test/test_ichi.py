@@ -24,9 +24,31 @@ class TestICHI(CMFTest):
 
         print(f'{deployed_info["output"]["deployed_block_number"]=}')
 
+        # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
+
         self.run_model('ichi.vaults', {},
                        block_number=last_block, chain_id=137)
 
         self.run_model(
             'ichi.vault-info', {"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"},
+            block_number=last_block, chain_id=137)
+
+        self.run_model(
+            'ichi.vault-info-full', {
+                "address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"},
+            block_number=last_block, chain_id=137)
+
+        # credmark-dev run ichi.vault-first-deposit -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' --api_url http://localhost:8700 -c 137 -j
+        # credmark-dev run ichi.vault-first-deposit -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137 -j
+
+        self.run_model(
+            'ichi.vault-first-deposit', {
+                "address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"},
+            block_number=last_block, chain_id=137)
+
+        # credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30,60]}' -c 137 --api_url=http://localhost:8700 -j
+        self.run_model(
+            'ichi.vault-performance',
+            {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974",
+                "time_horizon": [7, 30, 60, 90]},
             block_number=last_block, chain_id=137)

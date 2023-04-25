@@ -1,18 +1,21 @@
-# pylint: disable= line-too-long, unused-import
-
+# pylint: disable= line-too-long, unused-import, no-self-use
 import math
 import numpy_financial as npf
+from typing import List, Optional
+import numpy as np
 import pandas as pd
 from requests.exceptions import HTTPError
 
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
+from credmark.dto import EmptyInput, DTOField, DTO
+from credmark.dto.encoder import json_dumps
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Price,
+from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
                                 Some, Token)
 
 from models.credmark.protocols.dexes.uniswap.univ3_math import (
     tick_to_price, in_range, out_of_range)
+from models.utils.model_run import get_latest_run
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
 
 # ICHI Vault
@@ -54,6 +57,8 @@ class IchiVaultTokens(Model):
         return result
 
 
+# credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
+
 @Model.describe(slug='ichi.vaults',
                 version='0.3',
                 display_name='',
@@ -88,21 +93,40 @@ class IchiVaults(Model):
     ]
 
     def run(self, _: EmptyInput) -> dict:
+        latest_run = get_latest_run(self)
+        if latest_run is not None:
+            from_block = int(latest_run['blockNumber'])
+            prev_result = latest_run['result']
+        else:
+            from_block = 0
+            prev_result = {}
+
+        if from_block == self.context.block_number:
+            return prev_result
+
         vault_factory = Contract(self.VAULT_FACTORY).set_abi(
             ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
-                vault_factory.events.ICHIVaultCreated, from_block=0, to_block=self.context.block_number))
+                vault_factory.events.ICHIVaultCreated,
+                from_block=max(from_block + 1, 0),
+                to_block=self.context.block_number))
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
                 "address": self.VAULT_FACTORY, "ignore_proxy": True})
-            # 25_697_834
             vault_created = pd.DataFrame(vault_factory.fetch_events(
-                vault_factory.events.ICHIVaultCreated, from_block=deployed_info['deployed_block_number'], by_range=10_000))
+                vault_factory.events.ICHIVaultCreated,
+                from_block=max(
+                    from_block + 1, deployed_info['deployed_block_number']),
+                by_range=10_000))
+            # 25_697_834 for vault_factory
+
+        vault_info = prev_result | {}
+        if vault_created.empty:
+            return vault_info
 
         ichi_vaults = vault_created.ichiVault.to_list()
-        vault_info = {}
         for _n_vault, vault_addr in enumerate(ichi_vaults):
             vault = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
             token0 = Token(vault.functions.token0().call()
@@ -120,8 +144,6 @@ class IchiVaults(Model):
                 'total_supply_scaled': vault.total_supply_scaled,
             }
 
-        assert len(set(self.ICHI_POLYGON_VAULTS)) <= len(
-            set(vault_created.ichiVault))
         return vault_info
 
 
@@ -289,67 +311,168 @@ class IchiVaultInfoFull(Model):
         }
 
 
-@Model.describe(slug='ichi.vault-performance',
+# credmark-dev run ichi.vault-first-deposit -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' --api_url http://localhost:8700 -c 137 -j
+# credmark-dev run ichi.vault-first-deposit -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137 -j
+
+class IchiVaultFirstDepositOutput(DTO):
+    first_deposit_block_number: Optional[int] = DTOField(
+        description='First deposit block number')
+
+
+@Model.describe(slug='ichi.vault-first-deposit',
                 version='0.1',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
                 subcategory='ichi',
                 input=Contract,
-                output=dict)
-class IchiVaultPerformance(Model):
-    def run(self, input: Contract) -> dict:
+                output=IchiVaultFirstDepositOutput)
+class IchiVaultFirstDeposit(Model):
+    def run(self, input: Contract) -> IchiVaultFirstDepositOutput:
+        latest_run = get_latest_run(self)
+        if latest_run is not None:
+            return latest_run['result']
+
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
-        vault_pool_addr = Address(vault_ichi.functions.pool().call())
+        try:
+            first_deposit = vault_ichi.fetch_events(
+                vault_ichi.events.Deposit, from_block=0)
+        except HTTPError:
+            deployed_info = self.context.run_model('token.deployment', {
+                "address": input.address, "ignore_proxy": True})
+            first_deposit = vault_ichi.fetch_events(
+                vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000)
 
-        for vault_addr in IchiVaults.ICHI_POLYGON_VAULTS:
-            deployment = self.context.run_model(
-                'token.deployment', {'address': vault_addr, 'ignore_proxy': True})
+        df_first_deposit = pd.DataFrame(first_deposit)
 
-            timestamp = self.context.run_model(
-                'chain.get-block-timestamp', {'block_number': 39530789})
-            block_30d = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 30})
-            block_60d = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 60})
+        return IchiVaultFirstDepositOutput(
+            first_deposit_block_number=None
+            if df_first_deposit.empty
+            else df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber'])
 
-            block_1w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7})
-            block_2w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 2})
-            block_3w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 3})
-            block_4w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 4})
-            block_5w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 5})
-            block_6w = self.context.run_model(
-                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * 7 * 6})
 
-            vault_addr = Address('0x9ff3C1390300918B40714fD464A39699dDd9Fe00')
-            vault_info = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
-            vault_info_30d = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_30d['block_number'])
-            # To find the first deposit
-            vault_info_60d = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=deployment['deployed_block_number']+90_000)
+class PerformanceInput(DTO):
+    time_horizon: List[int] = DTOField(
+        description='Time horizon in days')
 
-            vault_info_1w = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_1w['block_number'])
-            vault_info_2w = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_2w['block_number'])
-            vault_info_3w = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_3w['block_number'])
-            vault_info_4w = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_4w['block_number'])
-            vault_info_5w = self.context.run_model(
-                'ichi.vault-info', {"address": vault_addr}, block_number=block_5w['block_number'])
 
-            return {
-                'irr_30d':                     npf.irr([-vault_info_30d['vault_token_ratio'],
-                                                        vault_info['vault_token_ratio']]) * 12,
-                'irr_1w':               npf.irr([-vault_info_5w['vault_token_ratio'], 0, 0,
-                                                 0, 0, vault_info['vault_token_ratio']]) * 52,
-            }
+class VaultPerformanceInput(Contract, PerformanceInput):
+    pass
+
+# credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30,60]}' -c 137 --api_url=http://localhost:8700 -j
+
+
+@Model.describe(slug='ichi.vault-performance',
+                version='0.5',
+                display_name='ICHI vault performance',
+                description='Get the vault performance from ICHI vault',
+                category='protocol',
+                subcategory='ichi',
+                input=VaultPerformanceInput,
+                output=dict)
+class IchiVaultPerformance(Model):
+    def calc_irr(self, vault_info_past, vault_info_current, days):
+        irr = npf.irr([-vault_info_past['vault_token_ratio'],
+                       vault_info_current['vault_token_ratio']])
+
+        _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
+        _cagr_annualized = np.power(vault_info_current['vault_token_ratio'] /
+                                    vault_info_past['vault_token_ratio'], 365 / days) - 1
+
+        # print((days, _cagr_from_irr, _cagr_annualized))
+        return _cagr_from_irr
+
+    def run(self, input: VaultPerformanceInput) -> dict:
+        vault_addr = input.address
+        # _vault_pool_addr = Address(vault_ichi.functions.pool().call())
+
+        deployment = self.context.run_model(
+            'token.deployment', {'address': vault_addr, 'ignore_proxy': True})
+
+        deployed_block_number = deployment['deployed_block_number']
+        deployed_block_timestamp = deployment['deployed_block_timestamp']
+
+        vault_info_current = self.context.run_model(
+            'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
+        first_deposit = self.context.run_model(
+            'ichi.vault-first-deposit', {'address': vault_addr}, return_type=IchiVaultFirstDepositOutput)
+        first_deposit_block_number = first_deposit.first_deposit_block_number
+
+        result = {
+            'vault': vault_addr,
+            'token0': vault_info_current['token0'],
+            'token1': vault_info_current['token1'],
+            'token0_symbol': vault_info_current['token0_symbol'],
+            'token1_symbol': vault_info_current['token1_symbol'],
+            'deployed_block_number': deployed_block_number,
+            'deployed_block_timestamp': deployed_block_timestamp,
+            'first_deposit_block_number': first_deposit_block_number,
+            'days_since_first_deposit': None,
+            'irr_since_first_deposit': None,
+            'performance': {},
+            'vault_token_ratio': {},
+        }
+
+        if first_deposit_block_number is None:
+            result['performance'] = {day: None for day in input.time_horizon}
+            return result
+
+        vault_info_fist_deposit = self.context.run_model(
+            'ichi.vault-info', {"address": vault_addr}, block_number=first_deposit_block_number)
+
+        first_deposit_block_timestamp = BlockNumber(
+            first_deposit_block_number).timestamp
+        days_from_first_deposit = (
+            self.context.block_number.timestamp - first_deposit_block_timestamp) / (60 * 60 * 24)
+        result['days_since_first_deposit'] = days_from_first_deposit
+        result['irr_since_first_deposit'] = self.calc_irr(
+            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+        result['vault_token_ratio'][0] = vault_info_current['vault_token_ratio']
+        result['vault_token_ratio'][days_from_first_deposit] = vault_info_fist_deposit['vault_token_ratio']
+
+        for days in input.time_horizon:
+            block_past_day = self.context.run_model(
+                'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * days})
+
+            block_past = block_past_day['block_number']
+            if block_past > first_deposit_block_number:
+                vault_info_past = self.context.run_model(
+                    'ichi.vault-info', {"address": vault_addr}, block_number=block_past)
+            else:
+                result['performance'][days] = None
+                result['vault_token_ratio'][days] = None
+                continue
+
+            # print(days, vault_info_past['vault_token_ratio'],
+            #      vault_info_current['vault_token_ratio'])
+
+            result['vault_token_ratio'][days] = vault_info_past['vault_token_ratio']
+
+            result['performance'][days] = self.calc_irr(
+                vault_info_past, vault_info_current, days)
+
+        return result
+
+
+# credmark-dev run ichi.vaults-performance -i '{"time_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
+
+@Model.describe(slug='ichi.vaults-performance',
+                version='0.1',
+                display_name='ICHI vaults performance on a chain',
+                description='Get the vault performance from ICHI vault',
+                category='protocol',
+                subcategory='ichi',
+                input=PerformanceInput,
+                output=dict)
+class IchiVaultsPerformance(Model):
+    def run(self, input: PerformanceInput) -> dict:
+        vaults_all = self.context.run_model('ichi.vaults')
+
+        result = {}
+        for vault_addr in vaults_all.keys():
+            result[vault_addr] = self.context.run_model(
+                'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon})
+            print((vault_addr, result[vault_addr]))
+
+        return result
