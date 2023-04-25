@@ -390,9 +390,13 @@ class IchiVaultFirstDeposit(Model):
                     try:
                         df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
                             vault_ichi.events.Transfer, from_block=deployed_info['deployed_block_number'], by_range=10_000))
-                    except ValueError as err:
-                        raise ValueError(
-                            f'Can not fetch events for {vault_ichi.address}') from err
+                    except ValueError:
+                        try:
+                            df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                                vault_ichi.events.Transfer, from_block=deployed_info['deployed_block_number'], by_range=1_000))
+                        except ValueError as err:
+                            raise ValueError(
+                                f'Can not fetch events for {vault_ichi.address} from {deployed_info["deployed_block_number"]}') from err
         return IchiVaultFirstDepositOutput(
             first_deposit_block_number=(
                 None if df_first_deposit.empty
