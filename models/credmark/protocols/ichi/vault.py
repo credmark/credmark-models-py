@@ -64,7 +64,7 @@ class IchiVaultTokens(Model):
 # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
 
 @Model.describe(slug='ichi.vaults',
-                version='0.3',
+                version='0.4',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
@@ -122,11 +122,12 @@ class IchiVaults(Model):
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated,
                 from_block=max(
-                    from_block + 1, deployed_info['deployed_block_number']),
+                    from_block + 1,
+                    deployed_info['deployed_block_number']),
                 by_range=10_000))
             # 25_697_834 for vault_factory
 
-        vault_info = prev_result | {}
+        vault_info = prev_result | {'prev_block': from_block}
         if vault_created.empty:
             return vault_info
 
@@ -152,7 +153,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.2',
+                version='0.3',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -244,6 +245,7 @@ class IchiVaultInfo(Model):
             'token1_amount_ratio': token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
+            'prev_block': prev_block,
         }
 
 
@@ -349,10 +351,12 @@ class IchiVaultInfoFull(Model):
 class IchiVaultFirstDepositOutput(DTO):
     first_deposit_block_number: Optional[int] = DTOField(
         description='First deposit block number')
+    prev_block: Optional[int] = DTOField(
+        None, description='Result from previous block number')
 
 
 @Model.describe(slug='ichi.vault-first-deposit',
-                version='0.1',
+                version='0.2',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -363,7 +367,7 @@ class IchiVaultFirstDeposit(Model):
     def run(self, input: Contract) -> IchiVaultFirstDepositOutput:
         latest_run = get_latest_run(self.context, self.slug, self.version)
         if latest_run is not None:
-            return latest_run['result']
+            return latest_run['result'] | {'prev_block': latest_run['block_number']}
 
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
@@ -373,13 +377,18 @@ class IchiVaultFirstDeposit(Model):
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
                 "address": input.address, "ignore_proxy": True})
-            df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
-                vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000))
+            try:
+                df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                    vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000))
+            except HTTPError:
+                df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                    vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=1_000))
 
         return IchiVaultFirstDepositOutput(
-            first_deposit_block_number=None
-            if df_first_deposit.empty
-            else df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber'])
+            first_deposit_block_number=(
+                None if df_first_deposit.empty
+                else df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber']),
+            prev_block=None)
 
 
 class PerformanceInput(DTO):
