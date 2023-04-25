@@ -7,7 +7,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
                                        ModelRunError)
 from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract, Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Network, Price, PriceWithQuote,
+                                NativeToken, Network, NetworkDict, Price, PriceWithQuote,
                                 Token)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
@@ -288,8 +288,56 @@ class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
 
 
+logos = {
+    "trustwallet_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanchec",
+        Network.Fantom: "fantom"
+    }),
+    "uniswap_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanchec",
+        Network.Fantom: "fantom"
+    }),
+    "sushiswap_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanche",
+        Network.Fantom: "fantom"
+    }),
+    "sushiswap_logos": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanche",
+        Network.Fantom: "fantom"
+    }),
+    "curve_assets": NetworkDict(str, {
+        Network.Mainnet: "assets",
+        Network.Polygon: "assets-polygon",
+        Network.Optimism: "assets-optimism",
+        Network.ArbitrumOne: "assets-arbitrum",
+        Network.Avalanche: "assets-avalanche",
+        Network.Fantom: "assets-fantom"
+    })
+}
+
+
 @Model.describe(slug="token.logo",
-                version="1.2",
+                version="2.0",
                 display_name="Token Logo",
                 developer="Credmark",
                 category='protocol',
@@ -303,35 +351,44 @@ class TokenLogoModel(Model):
     """
 
     def run(self, input: Token) -> TokenLogoOutput:
-        if self.context.chain_id != Network.Mainnet:
-            raise ModelDataError(message="Logos are only available for ethereum mainnet",
-                                 code=ModelDataError.Codes.NO_DATA)
-
         if self.context.block_number != 0:
             return self.context.run_model(self.slug,
                                           input,
                                           block_number=0,
                                           return_type=TokenLogoOutput)
 
+        network = self.context.network
+
+        try_urls = []
         # Handle native token
         if input.address == NativeToken().address:
-            return TokenLogoOutput(
-                logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
-                "/blockchains/ethereum/info/logo.png"
-            )
+            try_urls.append("https://raw.githubusercontent.com/trustwallet/assets/master"
+                f"/blockchains/{logos['trustwallet_assets'][network]}/info/logo.png")
 
-        try_urls = [
-            ("https://raw.githubusercontent.com/trustwallet/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/uniswap/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/sushiswap/logos/main"
-             f"/network/ethereum/{input.address.checksum}.jpg"),
-            ("https://raw.githubusercontent.com/sushiswap/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/curvefi/curve-assets/main"
-             f"/images/assets/{input.address}.png")
-        ]
+        if self.context.network in logos['trustwallet_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/trustwallet/assets/master"
+                             f"/blockchains/{logos['trustwallet_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['uniswap_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/uniswap/assets/master"
+                             f"/blockchains/{logos['uniswap_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['sushiswap_logos']:
+            try_urls.append(("https://raw.githubusercontent.com/sushiswap/list/master/logos/token-logos"
+                             f"/network/{logos['sushiswap_logos'][network]}"
+                             f"/{input.address.checksum}.jpg"))
+
+        if self.context.network in logos['sushiswap_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/sushiswap/assets/master"
+                             f"/blockchains/{logos['sushiswap_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['curve_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/curvefi/curve-assets/main"
+                             f"/images/{logos['curve_assets'][network]}"
+                             f"/{input.address}.png"))
 
         for url in try_urls:
             # Return the first URL that exists
