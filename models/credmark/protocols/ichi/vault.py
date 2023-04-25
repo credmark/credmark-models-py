@@ -171,6 +171,8 @@ class IchiVaultInfo(Model):
             prev_block = None
             prev_result = {}
 
+        # prev_block = None
+
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
