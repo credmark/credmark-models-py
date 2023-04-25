@@ -363,7 +363,7 @@ class TokenLogoModel(Model):
         # Handle native token
         if input.address == NativeToken().address:
             try_urls.append("https://raw.githubusercontent.com/trustwallet/assets/master"
-                f"/blockchains/{logos['trustwallet_assets'][network]}/info/logo.png")
+                            f"/blockchains/{logos['trustwallet_assets'][network]}/info/logo.png")
 
         if self.context.network in logos['trustwallet_assets']:
             try_urls.append(("https://raw.githubusercontent.com/trustwallet/assets/master"
@@ -564,8 +564,7 @@ class TokenHoldersCount(Model):
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
                 order_by=q.TRANSACTION_VALUE.as_numeric().sum_().desc(),
-                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
-                limit=1,
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0)
             ).to_dataframe()
 
             if df.empty:

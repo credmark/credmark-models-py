@@ -3,6 +3,8 @@ import math
 import numpy_financial as npf
 from typing import List, Optional
 import numpy as np
+import sys
+
 import pandas as pd
 from requests.exceptions import HTTPError
 
@@ -12,6 +14,8 @@ from credmark.dto.encoder import json_dumps
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
                                 Some, Token)
+
+from credmark.cmf.types.compose import MapInputsOutput
 
 from models.credmark.protocols.dexes.uniswap.univ3_math import (
     tick_to_price, in_range, out_of_range)
@@ -354,7 +358,7 @@ class IchiVaultFirstDeposit(Model):
 
 class PerformanceInput(DTO):
     time_horizon: List[int] = DTOField(
-        description='Time horizon in days')
+        [], description='Time horizon in days')
 
 
 class VaultPerformanceInput(Contract, PerformanceInput):
@@ -431,6 +435,9 @@ class IchiVaultPerformance(Model):
         result['vault_token_ratio'][0] = vault_info_current['vault_token_ratio']
         result['vault_token_ratio'][days_from_first_deposit] = vault_info_fist_deposit['vault_token_ratio']
 
+        # if we hold: 50:50
+        # if we uniswap v3
+
         for days in input.time_horizon:
             block_past_day = self.context.run_model(
                 'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * days})
@@ -469,10 +476,48 @@ class IchiVaultsPerformance(Model):
     def run(self, input: PerformanceInput) -> dict:
         vaults_all = self.context.run_model('ichi.vaults')
 
-        result = {}
-        for vault_addr in vaults_all.keys():
-            result[vault_addr] = self.context.run_model(
-                'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon})
-            print((vault_addr, result[vault_addr]))
+        def _use_for():
+            result = {}
+            # Change to a compose model to run
+            for vault_addr in vaults_all.keys():
+                result[vault_addr] = self.context.run_model(
+                    'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon})
+                print((vault_addr, result[vault_addr]), file=sys.stderr)
+            return result
 
-        return result
+        def _use_compose():
+            model_inputs = [{"address": vault_addr, "time_horizon": input.time_horizon}
+                            for vault_addr in vaults_all.keys()]
+            all_vault_infos_results = self.context.run_model(
+                slug='compose.map-inputs',
+                input={'modelSlug': 'ichi.vault-performance',
+                       'modelInputs': model_inputs},
+                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Some[dict]]])
+
+            all_vault_infos = {}
+            for vault_n, (model_input, vault_result) in enumerate(zip(model_inputs, all_vault_infos_results)):
+                if vault_result.output is not None:
+                    for pool_result in vault_result.output:
+                        if pool_result.output is not None:
+                            all_vault_infos[model_input['address']
+                                            ] = pool_result.output
+                        elif pool_result.error is not None:
+                            self.logger.error(pool_result.error)
+                            raise ModelRunError(
+                                (f'Error with models({self.context.block_number}).' +
+                                 f'{model_inputs[vault_n]["modelSlug"].replace("-","_")}' +
+                                 f'({pool_result.input}). ' +
+                                 pool_result.error.message))
+                elif vault_result.error is not None:
+                    self.logger.error(vault_result.error)
+                    raise ModelRunError(
+                        (f'Error with models({self.context.block_number}).' +
+                         f'{model_inputs[vault_n]}. ' +
+                         vault_result.error.message))
+                else:
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
+            return all_vault_infos
+
+        results = _use_compose()
+        return results
