@@ -11,7 +11,7 @@ from requests.exceptions import HTTPError
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput, DTOField, DTO
 from credmark.dto.encoder import json_dumps
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict
 from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
                                 Some, Token)
 
@@ -384,7 +384,7 @@ class IchiVaultPerformance(Model):
         _cagr_annualized = np.power(vault_info_current['vault_token_ratio'] /
                                     vault_info_past['vault_token_ratio'], 365 / days) - 1
 
-        # print((days, _cagr_from_irr, _cagr_annualized))
+        self.logger.info((days, _cagr_from_irr, _cagr_annualized))
         return _cagr_from_irr
 
     def run(self, input: VaultPerformanceInput) -> dict:
@@ -492,28 +492,16 @@ class IchiVaultsPerformance(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'ichi.vault-performance',
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[dict, MapInputsOutput[dict, Some[dict]]])
+                return_type=MapInputsOutput[VaultPerformanceInput, dict])
 
             all_vault_infos = {}
-            for vault_n, (model_input, vault_result) in enumerate(zip(model_inputs, all_vault_infos_results)):
+            for model_input, vault_result in zip(model_inputs, all_vault_infos_results):
                 if vault_result.output is not None:
-                    for pool_result in vault_result.output:
-                        if pool_result.output is not None:
-                            all_vault_infos[model_input['address']
-                                            ] = pool_result.output
-                        elif pool_result.error is not None:
-                            self.logger.error(pool_result.error)
-                            raise ModelRunError(
-                                (f'Error with models({self.context.block_number}).' +
-                                 f'{model_inputs[vault_n]["modelSlug"].replace("-","_")}' +
-                                 f'({pool_result.input}). ' +
-                                 pool_result.error.message))
+                    all_vault_infos[model_input['address']] = vault_result
                 elif vault_result.error is not None:
                     self.logger.error(vault_result.error)
-                    raise ModelRunError(
-                        (f'Error with models({self.context.block_number}).' +
-                         f'{model_inputs[vault_n]}. ' +
-                         vault_result.error.message))
+                    raise create_instance_from_error_dict(
+                        vault_result.error.dict())
                 else:
                     raise ModelRunError(
                         'compose.map-inputs: output/error cannot be both None')
