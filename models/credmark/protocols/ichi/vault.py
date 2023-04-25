@@ -368,15 +368,13 @@ class IchiVaultFirstDeposit(Model):
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         try:
-            first_deposit = vault_ichi.fetch_events(
-                vault_ichi.events.Deposit, from_block=0)
+            df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                vault_ichi.events.Deposit, from_block=0))
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
                 "address": input.address, "ignore_proxy": True})
-            first_deposit = vault_ichi.fetch_events(
-                vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000)
-
-        df_first_deposit = pd.DataFrame(first_deposit)
+            df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
+                vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000))
 
         return IchiVaultFirstDepositOutput(
             first_deposit_block_number=None
