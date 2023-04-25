@@ -1,4 +1,4 @@
-# pylint: disable= line-too-long, unused-import, no-self-use
+# pylint: disable= line-too-long, unused-import
 import math
 import numpy_financial as npf
 from typing import List, Optional
@@ -93,7 +93,7 @@ class IchiVaults(Model):
     ]
 
     def run(self, _: EmptyInput) -> dict:
-        latest_run = get_latest_run(self)
+        latest_run = get_latest_run(self.context, self.slug, self.version)
         if latest_run is not None:
             from_block = int(latest_run['blockNumber'])
             prev_result = latest_run['result']
@@ -329,7 +329,7 @@ class IchiVaultFirstDepositOutput(DTO):
                 output=IchiVaultFirstDepositOutput)
 class IchiVaultFirstDeposit(Model):
     def run(self, input: Contract) -> IchiVaultFirstDepositOutput:
-        latest_run = get_latest_run(self)
+        latest_run = get_latest_run(self.context, self.slug, self.version)
         if latest_run is not None:
             return latest_run['result']
 

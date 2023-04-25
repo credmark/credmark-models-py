@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, no-member, line-too-long, no-self-use
+# pylint: disable=locally-disabled, unused-import, no-member, line-too-long
 
 from typing import List, Optional
 
@@ -239,7 +239,7 @@ class TokenInfoDeployment(Model):
             return -1
 
     def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
-        latest_run = get_latest_run(self)
+        latest_run = get_latest_run(self.context, self.slug, self.version)
         if latest_run is not None:
             return latest_run['result']
 
