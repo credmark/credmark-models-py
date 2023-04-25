@@ -29,6 +29,7 @@ class TestICHI(CMFTest):
         self.run_model('ichi.vaults', {},
                        block_number=last_block, chain_id=137)
 
+        # credmark-dev run ichi.vault-info -i '{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"}' -c 137 -j
         self.run_model(
             'ichi.vault-info', {"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"},
             block_number=last_block, chain_id=137)

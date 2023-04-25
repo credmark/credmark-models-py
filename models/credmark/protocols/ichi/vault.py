@@ -152,7 +152,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.1',
+                version='0.2',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -161,16 +161,21 @@ class IchiVaults(Model):
                 output=dict)
 class IchiVaultInfo(Model):
     def run(self, input: Contract) -> dict:
+        latest_run = get_latest_run(self.context, self.slug, self.version)
+        if latest_run is not None:
+            prev_block = int(latest_run['blockNumber'])
+            prev_result = latest_run['result']
+            if prev_block == self.context.block_number:
+                return prev_result
+        else:
+            prev_block = None
+            prev_result = {}
+
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
         vault_pool = Contract(vault_pool_addr).set_abi(
             UNISWAP_V3_POOL_ABI, set_loaded=True)
-
-        token0_addr = Address(vault_ichi.functions.token0().call())
-        token1_addr = Address(vault_ichi.functions.token1().call())
-        token0 = Token(token0_addr).as_erc20(set_loaded=True)
-        token1 = Token(token1_addr).as_erc20(set_loaded=True)
 
         allow_token0 = vault_ichi.functions.allowToken0().call()
         allow_token1 = vault_ichi.functions.allowToken1().call()
@@ -178,7 +183,26 @@ class IchiVaultInfo(Model):
         assert not (allow_token0 and allow_token1) and (
             allow_token0 or allow_token1)
 
-        scale_multiplier = 10 ** (token0.decimals - token1.decimals)
+        if prev_block is None:
+            token0_addr = Address(vault_ichi.functions.token0().call())
+            token1_addr = Address(vault_ichi.functions.token1().call())
+            token0 = Token(token0_addr).as_erc20(set_loaded=True)
+            token1 = Token(token1_addr).as_erc20(set_loaded=True)
+            token0_decimals = token0.decimals
+            token1_decimals = token1.decimals
+            token0_address_checksum = token0.address.checksum
+            token1_address_checksum = token1.address.checksum
+            token0_symbol = token0.symbol
+            token1_symbol = token1.symbol
+        else:
+            token0_decimals = prev_result['token0_decimals']
+            token1_decimals = prev_result['token1_decimals']
+            token0_address_checksum = prev_result['token0']
+            token1_address_checksum = prev_result['token1']
+            token0_symbol = prev_result['token0_symbol']
+            token1_symbol = prev_result['token1_symbol']
+
+        scale_multiplier = 10 ** (token0_decimals - token1_decimals)
 
         current_tick = vault_ichi.functions.currentTick().call()
         sqrtPriceX96 = vault_pool.functions.slot0().call()[0]
@@ -191,8 +215,8 @@ class IchiVaultInfo(Model):
         total_supply = vault_ichi.total_supply
         total_supply_scaled = vault_ichi.total_supply_scaled
         token0_amount, token1_amount = vault_ichi.functions.getTotalAmounts().call()
-        token0_amount = token0.scaled(token0_amount)
-        token1_amount = token1.scaled(token1_amount)
+        token0_amount = token0_amount / (10 ** token0_decimals)
+        token1_amount = token1_amount / (10 ** token1_decimals)
 
         if allow_token0:
             token1_in_token0_amount = token1_amount / _tick_price0
@@ -202,16 +226,18 @@ class IchiVaultInfo(Model):
             total_amount_in_token = token1_amount + token0_in_token1_amount
 
         return {
-            'token0': token0.address.checksum,
-            'token1': token1.address.checksum,
-            'token0_symbol': token0.symbol,
-            'token1_symbol': token1.symbol,
+            'token0': token0_address_checksum,
+            'token1': token1_address_checksum,
+            'token0_decimals': token0_decimals,
+            'token1_decimals': token1_decimals,
+            'token0_symbol': token0_symbol,
+            'token1_symbol': token1_symbol,
             'allowed_token': 0 if allow_token0 else 1,
             'token0_amount': token0_amount,
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply,
+            'vault_token_ratio': total_amount_in_token * 10 ** (token0_decimals if allow_token0 else token1_decimals) / total_supply,
             'token0_amount_ratio': token0_amount / total_supply_scaled,
             'token1_amount_ratio': token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
