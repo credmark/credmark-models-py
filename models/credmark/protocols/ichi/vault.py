@@ -367,7 +367,7 @@ class IchiVaultFirstDeposit(Model):
     def run(self, input: Contract) -> IchiVaultFirstDepositOutput:
         latest_run = get_latest_run(self.context, self.slug, self.version)
         if latest_run is not None:
-            return latest_run['result'] | {'prev_block': latest_run['block_number']}
+            return latest_run['result'] | {'prev_block': latest_run['blockNumber']}
 
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
@@ -380,7 +380,7 @@ class IchiVaultFirstDeposit(Model):
             try:
                 df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
                     vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=10_000))
-            except HTTPError:
+            except ValueError:
                 df_first_deposit = pd.DataFrame(vault_ichi.fetch_events(
                     vault_ichi.events.Deposit, from_block=deployed_info['deployed_block_number'], by_range=1_000))
 
