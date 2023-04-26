@@ -11,8 +11,8 @@ class TestICHI(CMFTest):
 
         last_block_output = self.run_model_with_output(
             'chain.get-latest-block', {}, block_number=None, chain_id=137)
-        last_block = last_block_output['output']['blockNumber'] - 4320
-        last_block_2 = last_block_output['output']['blockNumber'] - 2320
+        last_block = last_block_output['output']['blockNumber'] - 62
+        last_block_2 = last_block_output['output']['blockNumber'] - 31
 
         # credmark-dev run ichi.vaults  -c 137 -j
         # credmark-dev run ichi.vault-info -i '' -c 137 -j -b
