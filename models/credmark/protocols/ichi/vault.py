@@ -155,7 +155,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.5',
+                version='0.7',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -231,6 +231,24 @@ class IchiVaultInfo(Model):
             token0_in_token1_amount = token0_amount * _tick_price0
             total_amount_in_token = token1_amount + token0_in_token1_amount
 
+        try:
+            token0_chainlink_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': token0_address_checksum})['price']
+        except ModelRunError:
+            token0_chainlink_price = None
+
+        try:
+            token1_chainlink_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': token1_address_checksum})['price']
+        except ModelRunError:
+            token1_chainlink_price = None
+
+        if token0_chainlink_price is None and token1_chainlink_price is not None:
+            token0_chainlink_price = token1_chainlink_price * _tick_price0
+
+        if token1_chainlink_price is None and token0_chainlink_price is not None:
+            token1_chainlink_price = token0_chainlink_price / _tick_price0
+
         return {
             'token0': token0_address_checksum,
             'token1': token1_address_checksum,
@@ -248,12 +266,19 @@ class IchiVaultInfo(Model):
             'token1_amount_ratio': token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
+            'tvl': (
+                (token0_amount * token0_chainlink_price +
+                 token1_amount * token1_chainlink_price)
+                if token0_chainlink_price is not None and token1_chainlink_price is not None
+                else None),
+            'token0_chainlink_price': token0_chainlink_price,
+            'token1_chainlink_price': token1_chainlink_price,
             'prev_block': prev_block,
         }
 
 
 @Model.describe(slug='ichi.vault-info-full',
-                version='0.1',
+                version='0.2',
                 display_name='ICHI vault info (full)',
                 description='Get the vault info from ICHI vault',
                 category='protocol',
@@ -307,13 +332,13 @@ class IchiVaultInfoFull(Model):
             token0_chainlink_price = self.context.run_model(
                 'price.oracle-chainlink', {'base': token0.address.checksum})['price']
         except ModelRunError:
-            token0_chainlink_price = math.nan
+            token0_chainlink_price = None
 
         try:
             token1_chainlink_price = self.context.run_model(
                 'price.oracle-chainlink', {'base': token1.address.checksum})['price']
         except ModelRunError:
-            token1_chainlink_price = math.nan
+            token1_chainlink_price = None
 
         # value of ichi vault token at a block
         total_supply = vault_ichi.total_supply
@@ -344,7 +369,11 @@ class IchiVaultInfoFull(Model):
             'ratio_price0': _ratio_price0,
             'token0_price_chainlink': token0_chainlink_price,
             'token1_price_chainlink': token1_chainlink_price,
-            'vault_token_value_chainlink': (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled,
+            'vault_token_value_chainlink': (
+                ((token0_amount * token0_chainlink_price + token1_amount *
+                 token1_chainlink_price) / total_supply_scaled)
+                if token0_chainlink_price is not None and token1_chainlink_price is not None
+                else None),
         }
 
 
@@ -427,7 +456,7 @@ class VaultPerformanceInput(Contract, PerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.15',
+                version='0.17',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -527,8 +556,11 @@ class IchiVaultPerformance(Model):
             'vault': vault_addr,
             'token0': vault_info_current['token0'],
             'token1': vault_info_current['token1'],
+            'tvl': vault_info_current['tvl'],
             'token0_symbol': vault_info_current['token0_symbol'],
             'token1_symbol': vault_info_current['token1_symbol'],
+            'token0_amount': vault_info_current['token0_amount'],
+            'token1_amount': vault_info_current['token1_amount'],
             'allowed_token': allowed_token,
             'allowed_token_n': vault_info_current['allowed_token'],
             'deployment_block_number': deployed_block_number,
@@ -591,7 +623,7 @@ class IchiVaultPerformance(Model):
 # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.9',
+                version='0.11',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
