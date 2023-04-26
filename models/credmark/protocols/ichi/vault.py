@@ -155,7 +155,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.4',
+                version='0.5',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -193,6 +193,7 @@ class IchiVaultInfo(Model):
             token1_addr = Address(vault_ichi.functions.token1().call())
             token0 = Token(token0_addr).as_erc20(set_loaded=True)
             token1 = Token(token1_addr).as_erc20(set_loaded=True)
+            self.logger.info(('token0', token0.address))
             token0_decimals = token0.decimals
             token1_decimals = token1.decimals
             token0_address_checksum = token0.address.checksum
@@ -547,6 +548,7 @@ class IchiVaultPerformance(Model):
             result['days_horizon'] = {day: None for day in input.days_horizon}
             return result
 
+        self.logger.info(('vault', vault_addr, first_deposit_block_number))
         vault_info_fist_deposit = self.context.run_model(
             'ichi.vault-info', {"address": vault_addr}, block_number=first_deposit_block_number)
         result['irr'] = self.calc_irr(

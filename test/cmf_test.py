@@ -117,7 +117,7 @@ class CMFTest(TestCase):
         if start is not None:
             duration = datetime.now() - start
         logging.info(
-            (f'{"Finished" if succeed else "Failed"} '
+            (f'{"Finished" if succeed else "Failed"}\n'
              f'I ran: {cmd_line}\n'
              f'U run: {cmd_line_local}\n'
              f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
@@ -182,7 +182,7 @@ class CMFTest(TestCase):
             if start is not None:
                 duration = datetime.now() - start
             logging.info(
-                (f'{"Finished" if succeed else "Failed"} '
+                (f'{"Finished" if succeed else "Failed"}\n'
                  f'I ran: {cmd_line}\n'
                  f'U run: {cmd_line_local}\n'
                  f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
