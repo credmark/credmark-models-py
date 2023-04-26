@@ -1,5 +1,6 @@
 # pylint:disable=locally-disabled,line-too-long
 
+from datetime import datetime
 from cmf_test import CMFTest
 
 from models.credmark.protocols.ichi.vault import IchiVaults
@@ -12,6 +13,7 @@ class TestICHI(CMFTest):
         last_block_output = self.run_model_with_output(
             'chain.get-latest-block', {}, block_number=None, chain_id=137)
         last_block = last_block_output['output']['blockNumber'] - 4320
+        last_block_2 = last_block_output['output']['blockNumber'] - 2320
 
         # credmark-dev run ichi.vaults  -c 137 -j
         # credmark-dev run ichi.vault-info -i '' -c 137 -j -b
@@ -48,27 +50,27 @@ class TestICHI(CMFTest):
                 "address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"},
             block_number=last_block, chain_id=137)
 
-        # credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
+        # credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
         self.run_model(
             'ichi.vault-performance',
             {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974",
-                "time_horizon": [7, 30, 60, 90]},
+                "days_horizon": [7, 30, 60, 90]},
             block_number=last_block, chain_id=137)
 
         # 0xac6c0264511EeEC305Da9Afc2e1ABa08409F99f6 # WMATIC-ICHI, ICHI
         self.run_model(
             'ichi.vault-performance',
             {"address": "0xac6c0264511EeEC305Da9Afc2e1ABa08409F99f6",
-                "time_horizon": []},
-            block_number=last_block, chain_id=137)
-
-        # credmark-dev run ichi.vaults-performance -i '{"time_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
-        self.run_model(
-            'ichi.vaults-performance',
-            {"time_horizon": []},
+                "days_horizon": []},
             block_number=last_block, chain_id=137)
 
         self.run_model(
             'ichi.vaults-performance',
             {},
-            block_number=last_block, chain_id=137)
+            block_number=last_block_2, chain_id=137)
+
+        # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
+        self.run_model(
+            'ichi.vaults-performance',
+            {"days_horizon": []},
+            block_number=last_block_2, chain_id=137)
