@@ -155,7 +155,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.3',
+                version='0.4',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -426,7 +426,7 @@ class VaultPerformanceInput(Contract, PerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.11',
+                version='0.15',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -446,7 +446,7 @@ class IchiVaultPerformance(Model):
         self.logger.info(('irr', days, _cagr_from_irr, _cagr_annualized))
         return _cagr_from_irr
 
-    def calc_irr_hold(self, vault_info_past, vault_info_current, days):
+    def calc_irr_hold_5050(self, vault_info_past, vault_info_current, days):
         p1, p2 = 0.5, 0.5
 
         past_value = p1 + p2
@@ -462,7 +462,7 @@ class IchiVaultPerformance(Model):
         irr = npf.irr([-past_value, current_value])
         _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
         _cagr_annualized = np.power(current_value / past_value, 365 / days) - 1
-        self.logger.info(('irr_hold', days, _cagr_from_irr,
+        self.logger.info(('irr_hold_5050', days, _cagr_from_irr,
                          _cagr_annualized, past_value, current_value,
                          vault_info_past['ratio_price0'], vault_info_current['ratio_price0']))
         return _cagr_from_irr
@@ -502,6 +502,8 @@ class IchiVaultPerformance(Model):
 
         deployed_block_number = deployment['deployed_block_number']
         deployed_block_timestamp = deployment['deployed_block_timestamp']
+        days_since_deployment = (
+            self.context.block_number.timestamp - deployed_block_timestamp) / (60 * 60 * 24)
 
         vault_info_current = self.context.run_model(
             'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
@@ -509,6 +511,16 @@ class IchiVaultPerformance(Model):
             'ichi.vault-first-deposit', {'address': vault_addr}, return_type=IchiVaultFirstDepositOutput)
         first_deposit_block_number = first_deposit.first_deposit_block_number
         first_deposit_block_timestamp = first_deposit.first_deposit_block_timestamp
+        if first_deposit_block_timestamp is not None:
+            days_from_first_deposit = (
+                self.context.block_number.timestamp - first_deposit_block_timestamp) / (60 * 60 * 24)
+        else:
+            days_from_first_deposit = None
+
+        allowed_token = (
+            vault_info_current['token0_symbol']
+            if vault_info_current['allowed_token'] == 0
+            else vault_info_current['token1_symbol'])
 
         result = {
             'vault': vault_addr,
@@ -516,14 +528,16 @@ class IchiVaultPerformance(Model):
             'token1': vault_info_current['token1'],
             'token0_symbol': vault_info_current['token0_symbol'],
             'token1_symbol': vault_info_current['token1_symbol'],
-            'allowed_token': vault_info_current['allowed_token'],
-            'deployed_block_number': deployed_block_number,
-            'deployed_block_timestamp': deployed_block_timestamp,
+            'allowed_token': allowed_token,
+            'allowed_token_n': vault_info_current['allowed_token'],
+            'deployment_block_number': deployed_block_number,
+            'deployment_block_timestamp': deployed_block_timestamp,
             'first_deposit_block_number': first_deposit_block_number,
             'first_deposit_block_timestamp': first_deposit_block_timestamp,
-            'days_since_first_deposit': None,
+            'days_since_first_deposit': days_from_first_deposit,
+            'days_since_deployment': days_since_deployment,
             'irr': None,
-            'irr_hold': None,
+            'irr_hold_5050': None,
             'irr_uniswap': None,
             'days_horizon': {},
             'vault_token_ratio': {},
@@ -535,15 +549,9 @@ class IchiVaultPerformance(Model):
 
         vault_info_fist_deposit = self.context.run_model(
             'ichi.vault-info', {"address": vault_addr}, block_number=first_deposit_block_number)
-
-        first_deposit_block_timestamp = BlockNumber(
-            first_deposit_block_number).timestamp
-        days_from_first_deposit = (
-            self.context.block_number.timestamp - first_deposit_block_timestamp) / (60 * 60 * 24)
-        result['days_since_first_deposit'] = days_from_first_deposit
         result['irr'] = self.calc_irr(
             vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
-        result['irr_hold'] = self.calc_irr_hold(
+        result['irr_hold_5050'] = self.calc_irr_hold_5050(
             vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
         result['irr_uniswap'] = self.calc_irr_uniswap(
             vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
@@ -581,7 +589,7 @@ class IchiVaultPerformance(Model):
 # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.5',
+                version='0.9',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
