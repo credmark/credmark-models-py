@@ -415,18 +415,18 @@ class IchiVaultFirstDeposit(Model):
 
 
 class PerformanceInput(DTO):
-    time_horizon: List[int] = DTOField(
+    days_horizon: List[int] = DTOField(
         [], description='Time horizon in days')
 
 
 class VaultPerformanceInput(Contract, PerformanceInput):
     pass
 
-# credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "time_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j
+# credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "days_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.9',
+                version='0.11',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -525,12 +525,12 @@ class IchiVaultPerformance(Model):
             'irr': None,
             'irr_hold': None,
             'irr_uniswap': None,
-            'performance': {},
+            'days_horizon': {},
             'vault_token_ratio': {},
         }
 
         if first_deposit_block_number is None:
-            result['performance'] = {day: None for day in input.time_horizon}
+            result['days_horizon'] = {day: None for day in input.days_horizon}
             return result
 
         vault_info_fist_deposit = self.context.run_model(
@@ -548,13 +548,13 @@ class IchiVaultPerformance(Model):
         result['irr_uniswap'] = self.calc_irr_uniswap(
             vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
 
-        result['vault_token_ratio'][0] = vault_info_current['vault_token_ratio']
-        result['vault_token_ratio'][days_from_first_deposit] = vault_info_fist_deposit['vault_token_ratio']
+        result['vault_token_ratio']['current'] = vault_info_current['vault_token_ratio']
+        result['vault_token_ratio']['start'] = vault_info_fist_deposit['vault_token_ratio']
 
         # if we hold: 50:50
         # if we uniswap v3
 
-        for days in input.time_horizon:
+        for days in input.days_horizon:
             block_past_day = self.context.run_model(
                 'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * days})
 
@@ -563,7 +563,7 @@ class IchiVaultPerformance(Model):
                 vault_info_past = self.context.run_model(
                     'ichi.vault-info', {"address": vault_addr}, block_number=block_past)
             else:
-                result['performance'][days] = None
+                result['days_horizon'][days] = None
                 result['vault_token_ratio'][days] = None
                 continue
 
@@ -572,16 +572,16 @@ class IchiVaultPerformance(Model):
 
             result['vault_token_ratio'][days] = vault_info_past['vault_token_ratio']
 
-            result['performance'][days] = self.calc_irr(
+            result['days_horizon'][days] = self.calc_irr(
                 vault_info_past, vault_info_current, days)
 
         return result
 
 
-# credmark-dev run ichi.vaults-performance -i '{"time_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
+# credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.3',
+                version='0.5',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -597,12 +597,12 @@ class IchiVaultsPerformance(Model):
             # Change to a compose model to run
             for vault_addr in vaults_all.keys():
                 result.append(self.context.run_model(
-                    'ichi.vault-performance', {"address": vault_addr, "time_horizon": input.time_horizon}))
+                    'ichi.vault-performance', {"address": vault_addr, "days_horizon": input.days_horizon}))
                 self.logger.info((vault_addr, result[vault_addr]))
             return result
 
         def _use_compose():
-            model_inputs = [{"address": vault_addr, "time_horizon": input.time_horizon}
+            model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon}
                             for vault_addr in vaults_all.keys()]
             all_vault_infos_results = self.context.run_model(
                 slug='compose.map-inputs',
