@@ -118,9 +118,10 @@ class CMFTest(TestCase):
             duration = datetime.now() - start
         logging.info(
             (f'{"Finished" if succeed else "Failed"} '
-                f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
-                f'I ran: {cmd_line}\n'
-                f'U run: {cmd_line_local}'))
+             f'I ran: {cmd_line}\n'
+             f'U run: {cmd_line_local}\n'
+             f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
+             ))
 
         CMFTest.test_n += 1
         stdout_result: dict = json.loads(output['stdout'])
@@ -182,9 +183,10 @@ class CMFTest(TestCase):
                 duration = datetime.now() - start
             logging.info(
                 (f'{"Finished" if succeed else "Failed"} '
-                    f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
-                    f'I ran: {cmd_line}\n'
-                    f'U run: {cmd_line_local}'))
+                 f'I ran: {cmd_line}\n'
+                 f'U run: {cmd_line_local}\n'
+                 f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
+                 ))
 
         CMFTest.test_n += 1
 
