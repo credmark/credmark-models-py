@@ -1,6 +1,5 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from datetime import datetime
 from cmf_test import CMFTest
 
 from models.credmark.protocols.ichi.vault import IchiVaults
