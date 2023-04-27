@@ -1,8 +1,10 @@
 from credmark.cmf.engine.mocks import ModelMock, ModelMockConfig
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
-from .dtos import ExampleLedgerOutput
+
 from models.tmp_abi_lookup import CMK_ADDRESS
+
+from .dtos import ExampleLedgerOutput
 
 
 @Model.describe(
@@ -74,7 +76,8 @@ class ExampleLedgerTransactions(Model):
         with self.context.ledger.Transaction as txn:
             ledger_output = txn.select(
                 columns=[txn.HASH],
-                where=txn.BLOCK_TIMESTAMP.eq(txn.field(self.context.block_number.timestamp).to_timestamp()),
+                where=txn.BLOCK_TIMESTAMP.eq(
+                    txn.field(self.context.block_number.timestamp).to_timestamp()),
                 limit=10,
                 order_by=txn.GAS)
 
@@ -87,7 +90,8 @@ class ExampleLedgerTransactions(Model):
                 "components.html#ledger",
                 ledger_output=ledger_output)
 
-            output.log("To fetch 10 transactions hashes mined in the requested block:")
+            output.log(
+                "To fetch 10 transactions hashes mined in the requested block:")
             output.log_io(input="""
 with self.context.ledger.Transaction as txn:
     ledger_output = txn.select(

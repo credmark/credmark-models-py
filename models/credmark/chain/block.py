@@ -1,7 +1,6 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, EmptyInput
-
 from credmark.cmf.model.errors import ModelDataError
+from credmark.dto import DTO, EmptyInput
 
 
 class TimestampInput(DTO):

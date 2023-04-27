@@ -32,7 +32,8 @@ class ExampleAddress(Model):
         output.log("Address automatically normalizes to lowercase")
         output.log_io(input="address", output=address)
 
-        output.log_io(input=f"Address('{address}').checksum", output=address.checksum)
+        output.log_io(
+            input=f"Address('{address}').checksum", output=address.checksum)
 
         output.log("Address equality exists for string and Address")
         output.log_io(input=f"address == '{address}'",

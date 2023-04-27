@@ -40,7 +40,8 @@ class _ExampleModelOutput(DTO):
             self._log(f'> {TermColors.apply("Docs", underline=True)}   '
                       f'{data["documentation_url"]}')
 
-        self._log(f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
+        self._log(
+            f'> {TermColors.apply("Source", underline=True)} {data["github_url"]}')
 
     @staticmethod
     def _log(message: str):
@@ -55,14 +56,16 @@ class _ExampleModelOutput(DTO):
         normalized_input = input.lstrip("\n").replace("\n", "\n\t")
         if normalized_input != "":
             str_to_log += "\n>>> "
-            highlighted_input = TermColors.apply(normalized_input, TermColors.GREEN)
+            highlighted_input = TermColors.apply(
+                normalized_input, TermColors.GREEN)
             str_to_log += highlighted_input
 
         if isinstance(output, DTO):
             output = output.dict()
 
         if output != "":
-            highlighted_output = TermColors.apply(str(output), TermColors.YELLOW)
+            highlighted_output = TermColors.apply(
+                str(output), TermColors.YELLOW)
             str_to_log += "\n"
             str_to_log += highlighted_output
 
@@ -106,7 +109,8 @@ class ExampleAccountInput(DTO):
 
 
 class ExampleTokenInput(DTO):
-    address: Address = DTOField(default=Address('0x68cfb82eacb9f198d508b514d898a403c449533e'))
+    address: Address = DTOField(default=Address(
+        '0x68cfb82eacb9f198d508b514d898a403c449533e'))
     symbol: str = DTOField(default='AAVE')
 
 

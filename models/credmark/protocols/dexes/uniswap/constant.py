@@ -1,6 +1,7 @@
 # pylint:disable=invalid-name
 
 from collections import namedtuple
+
 from credmark.cmf.types import Address, Network
 
 # For mainnet, Ropsten, Rinkeby, Görli, and Kovan

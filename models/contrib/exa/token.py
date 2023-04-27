@@ -1,10 +1,11 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.dto import DTO, DTOField
 
 
 class TokenBalanceInput(DTO):
-    token: Address = DTOField(default=Address('0xD533a949740bb3306d119CC777fa900bA034cd52'))
+    token: Address = DTOField(default=Address(
+        '0xD533a949740bb3306d119CC777fa900bA034cd52'))
     wallet: Address = Address('0xd2d43555134dc575bf7279f4ba18809645db0f1d')
 
 
@@ -74,8 +75,10 @@ class TokenNetInflow(Model):
                 order_by=q.BLOCK_NUMBER.desc(),
             ).to_dataframe()
 
-        inflow = transfers.query('to_address == @from_addr')['value'].astype(float).sum()
-        outflow = transfers.query('from_address == @from_addr')['value'].astype(float).sum()
+        inflow = transfers.query(
+            'to_address == @from_addr')['value'].astype(float).sum()
+        outflow = transfers.query(
+            'from_address == @from_addr')['value'].astype(float).sum()
 
         return {
             'inflow': token.scaled(inflow),

@@ -1,8 +1,8 @@
 # pylint:disable=unused-import, invalid-name
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token, Network, Contract, Address
-from credmark.dto import DTO, DTOField
+from credmark.cmf.types import Address, Contract, Network, Token
+from credmark.dto import DTO
 
 
 class ConvexPoolInput(DTO):
@@ -23,8 +23,10 @@ class ConvexPoolInput(DTO):
 class ConvexPoolApr(Model):
     # This is a re-implementation of the convex subgraph from:
     # https://github.com/convex-community/convex-subgraph/blob/e9c5cdfae055802af99b545739d9cf67a2a4c2cd/subgraphs/curve-pools/src/services/pools.ts#L253
-    CRV_ADDRESS = {Network.Mainnet: "0xD533a949740bb3306d119CC777fa900bA034cd52"}
-    CVX_ADDRESS = {Network.Mainnet: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B"}
+    CRV_ADDRESS = {
+        Network.Mainnet: "0xD533a949740bb3306d119CC777fa900bA034cd52"}
+    CVX_ADDRESS = {
+        Network.Mainnet: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B"}
 
     CVX_CLIFF_SIZE = 100000
     CVX_CLIFF_COUNT = 1000
@@ -65,7 +67,8 @@ class ConvexPoolApr(Model):
         return (currentVirtualPrice - previous_vprice) / previous_vprice
 
     def run(self, input: ConvexPoolInput) -> dict:
-        v_price = self.get_lptoken_price(input.lp_token, self.context.block_number)
+        v_price = self.get_lptoken_price(
+            input.lp_token, self.context.block_number)
         reward_contract = Contract(address=input.reward)
         finish_period = reward_contract.functions.periodFinish().call()
         supply = reward_contract.functions.totalSupply().call() / 1e18

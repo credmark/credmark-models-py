@@ -4,22 +4,20 @@ Uni V3 Pool
 
 # pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, unused-import
 
+import sys
 from datetime import datetime
-
 from typing import Optional
 
-import sys
-import numpy as np
 import pandas as pd
-from credmark.cmf.ipython import CmfInit, create_cmf_context
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO
-from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity
+
+from models.credmark.protocols.dexes.uniswap.univ3_math import (
+    calculate_onetick_liquidity,
+)
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
-
-from web3.exceptions import ContractLogicError
 
 
 class Tick(DTO):

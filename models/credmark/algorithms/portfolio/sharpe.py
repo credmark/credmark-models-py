@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import Price, Token, Address
+from credmark.cmf.types import Address, Price, Token
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO
 
@@ -61,7 +61,8 @@ class SharpeRatioToken(Model):
         df_pl = (pd.DataFrame(input.prices.dict()['series'])
                  .sort_values(['blockNumber'], ascending=False))
         df_pl.loc[:, 'price'] = df_pl.output.apply(lambda p: p['price'])
-        df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(datetime.utcfromtimestamp)
+        df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(
+            datetime.utcfromtimestamp)
         df_pl = (df_pl.loc[:, ['blockNumber', 'blockTimestamp', 'blockTime', 'price']]
                  .reset_index(drop=True))
 

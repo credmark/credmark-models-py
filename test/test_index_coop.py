@@ -59,4 +59,5 @@ class TestIndexCoop(CMFTest):
 
             # for start_block, end_block in [(15053226, 15253305), (15253306, 15449617), (15449618, 15649594)]:
             for start_block, end_block in [(15449618, 15649594)]:
-                self.run_model('indexcoop.fee', contract_config | {"start_block": start_block}, block_number=end_block)
+                self.run_model('indexcoop.fee', contract_config | {
+                               "start_block": start_block}, block_number=end_block)

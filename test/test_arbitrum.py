@@ -11,7 +11,7 @@ class TestArbitrum(CMFTest):
         last_block_output = self.run_model_with_output(
             'chain.get-latest-block', {}, block_number=None, chain_id=chain_id)
 
-        last_block = last_block_output['output']['blockNumber']
+        last_block_output['output']['blockNumber']
 
         # V3 NFT Manager on Arbitrum
         # https://arbiscan.io/address/0xc36442b4a4522e871399cd717abdd847ab11fe88#code

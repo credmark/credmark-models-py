@@ -21,7 +21,8 @@ class HistoricalRunModelInput(HistoricalDTO):
     class Config:
         schema_extra = {
             'examples':  cross_examples(
-                [{"model_slug": "aave-v2.token-asset", "model_input": {"symbol":"USDC"}},],
+                [{"model_slug": "aave-v2.token-asset",
+                    "model_input": {"symbol": "USDC"}}, ],
                 HistoricalDTO.Config.schema_extra['examples'],
                 limit=10)
         }

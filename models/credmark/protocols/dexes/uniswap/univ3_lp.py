@@ -4,17 +4,28 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, Contract, Token)
+from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, DTOField
-from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    tick_to_price, in_range, out_of_range)
+from web3.exceptions import BadFunctionCallOutput, ContractLogicError
+
 from models.credmark.protocols.dexes.uniswap.constant import (
-    V3_POS_NFT, V3_FACTORY_ADDRESS, V3_TICK, V3_POS)
+    V3_FACTORY_ADDRESS,
+    V3_POS,
+    V3_POS_NFT,
+    V3_TICK,
+)
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI, UNISWAP_V3_NFT_MANAGER_ABI, UNISWAP_V3_FACTORY_ABI
-from web3.exceptions import BadFunctionCallOutput
-from web3.exceptions import ContractLogicError
+from models.credmark.protocols.dexes.uniswap.univ3_math import (
+    in_range,
+    out_of_range,
+    tick_to_price,
+)
+from models.tmp_abi_lookup import (
+    UNISWAP_V3_FACTORY_ABI,
+    UNISWAP_V3_NFT_MANAGER_ABI,
+    UNISWAP_V3_POOL_ABI,
+)
 
 
 class V3LPInput(DTO):

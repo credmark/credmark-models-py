@@ -38,7 +38,8 @@ class MyModel(Model):
             while True:
                 df_tt = (q.select(
                     columns=[q.FROM_ADDRESS],
-                    where=q.NONCE.eq(0).and_(q.BLOCK_NUMBER.gt(actual_start_block)),
+                    where=q.NONCE.eq(0).and_(
+                        q.BLOCK_NUMBER.gt(actual_start_block)),
                     order_by=q.BLOCK_NUMBER,
                     offset=offset)
                     .to_dataframe())
@@ -53,7 +54,8 @@ class MyModel(Model):
             return {"accounts": [], "count": 0}
 
         if input.unique:
-            addresses = pd.concat(df_ts)['from_address'].unique().tolist()  # type: ignore
+            addresses = pd.concat(
+                df_ts)['from_address'].unique().tolist()  # type: ignore
         else:
             addresses = pd.concat(df_ts)['from_address'].to_list()
         return {"accounts": addresses, "count": len(addresses)}

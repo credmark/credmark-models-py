@@ -2,8 +2,14 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 
 from credmark.cmf.types import Address, Contract, Portfolio, PriceList, Token
-from credmark.dto import (DTO, DTOField, IterableListGenericDTO, PrivateAttr,
-                          cross_examples)
+from credmark.dto import (
+    DTO,
+    DTOField,
+    IterableListGenericDTO,
+    PrivateAttr,
+    cross_examples,
+)
+
 from models.credmark.algorithms.value_at_risk.risk_method import VaROutput
 
 
@@ -25,7 +31,8 @@ class VaRHistoricalOutput(DTO):
     cvar: List[float] = DTOField(description='VaR components')
     var: float = DTOField(description='VaR')
     total_value: float = DTOField(description='VaR')
-    value_list: List[ValueList] = DTOField(description='List of portfolio items')
+    value_list: List[ValueList] = DTOField(
+        description='List of portfolio items')
 
     @classmethod
     def default(cls):
@@ -64,8 +71,10 @@ class AccountVaRInput(ContractVaRInput):
 
 
 class UniswapPoolVaRInput(ContractVaRInput):
-    lower_range: float = DTOField(description='Lower bound to the current price for V3 pool')
-    upper_range: float = DTOField(description="Upper bound to the current price for V3 pool")
+    lower_range: float = DTOField(
+        description='Lower bound to the current price for V3 pool')
+    upper_range: float = DTOField(
+        description="Upper bound to the current price for V3 pool")
     pool: Contract
 
 

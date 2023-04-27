@@ -1,8 +1,9 @@
 # pylint:disable=line-too-long
 
+import json
 import math
 import os
-import json
+
 from cmf_test import CMFTest
 
 

@@ -5,12 +5,11 @@ from typing import List
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (BlockNumber, Contract,
-                                Some, Token)
+from credmark.cmf.types import BlockNumber, Contract, Some, Token
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
-from models.dtos.volume import (TokenTradingVolume, VolumeInput,
-                                VolumeInputHistorical)
-from models.tmp_abi_lookup import (CURVE_VYPER_POOL, UNISWAP_V3_POOL_ABI)
+
+from models.dtos.volume import TokenTradingVolume, VolumeInput, VolumeInputHistorical
+from models.tmp_abi_lookup import CURVE_VYPER_POOL, UNISWAP_V3_POOL_ABI
 
 
 @Model.describe(slug='dex.pool-volume-block-range',

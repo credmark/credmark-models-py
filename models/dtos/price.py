@@ -1,12 +1,13 @@
-from typing import Optional, List
+from enum import Enum
+from typing import List, Optional
+
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (Contract, Currency, FiatCurrency,
-                                Some, Token, Tokens)
+from credmark.cmf.types import Contract, Currency, FiatCurrency, Some, Token, Tokens
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
+
 from models.dtos.pool import PoolPriceInfo
-from enum import Enum
 
 
 class PriceInput(DTO):
@@ -61,11 +62,14 @@ class PriceSource(str, Enum):
 
 
 class PriceInputWithPreference(PriceInput):
-    prefer: PriceSource = DTOField(PriceSource.CEX, description='Preferred source')
+    prefer: PriceSource = DTOField(
+        PriceSource.CEX, description='Preferred source')
+
 
 class PriceMultipleInput(DTO):
     slug: str = DTOField(description='Slug of the price model')
     some: List[PriceInputWithPreference]
+
 
 class PriceHistoricalInput(PriceInputWithPreference, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)

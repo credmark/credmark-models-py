@@ -1,7 +1,6 @@
 # pylint:disable=line-too-long, invalid-name
 
 import pandas as pd
-
 from credmark.cmf.ipython import create_cmf
 
 if __name__ == '__main__':
@@ -46,11 +45,14 @@ if __name__ == '__main__':
             df_result.loc[row_n, 'Current'] = current  # type: ignore
             df_result.loc[row_n, 'Updated'] = updated  # type: ignore
             df_result.loc[row_n, 'Oracle'] = oracle  # type: ignore
-            df_result.loc[row_n, 'Current Diff (%)'] = (current - oracle) / oracle  # type: ignore
-            df_result.loc[row_n, 'Updated Diff (%)'] = (updated - oracle) / oracle  # type: ignore
+            df_result.loc[row_n, 'Current Diff (%)'] = (
+                current - oracle) / oracle  # type: ignore
+            df_result.loc[row_n, 'Updated Diff (%)'] = (
+                updated - oracle) / oracle  # type: ignore
 
         df_result.reset_index(drop=False, inplace=True)
-        df_result.columns = [block, 'Token', 'Current', 'Updated', 'Oracle', 'Current Diff (%)', 'Updated Diff (%)']
+        df_result.columns = [block, 'Token', 'Current', 'Updated',
+                             'Oracle', 'Current Diff (%)', 'Updated Diff (%)']
         csv_str_list.append(df_result.to_csv(index=False))
         print(f'Finished {block}')
 

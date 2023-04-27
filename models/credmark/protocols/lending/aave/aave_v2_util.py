@@ -1,11 +1,11 @@
 # pylint:disable=unsupported-membership-test, line-too-long, pointless-string-statement, protected-access
 
 import pandas as pd
-
-from credmark.cmf.types import Contract
 from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import Contract
+
 from models.credmark.tokens.token import get_eip1967_proxy_err
-from models.tmp_abi_lookup import AAVE_LENDING_POOL_PROXY, AAVE_LENDING_POOL
+from models.tmp_abi_lookup import AAVE_LENDING_POOL, AAVE_LENDING_POOL_PROXY
 
 
 def get_aave_lender(context, start_block, end_block, query_filter=''):
@@ -39,7 +39,8 @@ def get_lending_pool(context):
 
     lending_pool_contract = Contract(address=lending_pool_address)
     lending_pool_contract.set_abi(AAVE_LENDING_POOL_PROXY, set_loaded=True)
-    lending_pool_contract._meta.proxy_implementation = Contract(aave_lending_pool_proxy.address)
+    lending_pool_contract._meta.proxy_implementation = Contract(
+        aave_lending_pool_proxy.address)
     lending_pool_contract._meta.proxy_implementation.set_abi(
         AAVE_LENDING_POOL, set_loaded=True)  # pylint: disable=protected-access
 

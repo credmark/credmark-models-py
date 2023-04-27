@@ -9,12 +9,14 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO, DTOField
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    UNISWAP_TICK, UNISWAP_V3_MAX_TICK, UNISWAP_V3_MIN_TICK,
+    UNISWAP_TICK,
+    UNISWAP_V3_MAX_TICK,
+    UNISWAP_V3_MIN_TICK,
     tick_to_price,
 )
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
 class V3PoolLiquidityByTicksInput(Contract):

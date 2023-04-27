@@ -1,6 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Accounts, Portfolio
 
+
 # Next Steps:
 
 # Set the slug, display_name, and description for your model below.
@@ -46,6 +47,7 @@ class ExploitedValue(Model):
             block_number=self.context.block_number - 2)
 
         # pylint:disable=line-too-long
-        value_diff = portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()  # type: ignore
+        value_diff = portfolio_two_blocks_ago.get_value(
+        ) - portfolio_now.get_value()  # type: ignore
 
         return {"exploited_value": value_diff}

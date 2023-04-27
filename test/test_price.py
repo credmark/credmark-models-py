@@ -128,7 +128,8 @@ class TestPrice(CMFTest):
                         '0x92d6c1e31e14520e676a687f0a93788b716beff5', ]
 
     def test_1inch(self):
-        self.run_model('price.one-inch', {"base": "0xdac17f958d2ee523a2206206994597c13d831ec7"})
+        self.run_model('price.one-inch',
+                       {"base": "0xdac17f958d2ee523a2206206994597c13d831ec7"})
         self.run_model('price.one-inch', {"base": "WETH"})
         self.run_model('price.one-inch', {"base": "USDC"})
         self.run_model('price.one-inch', {"base": "AAVE"})
@@ -140,10 +141,14 @@ class TestPrice(CMFTest):
         for _prefer in ['cex', 'dex']:
             self.run_model('price.quote', {"base": "CMK", "prefer": _prefer})
             self.run_model('price.quote', {"base": "EUR", "prefer": _prefer})
-            self.run_model('price.quote', {"base": "EUR", "quote": "JPY", "prefer": _prefer})
-            self.run_model('price.quote', {"base": "ETH", "quote": "JPY", "prefer": _prefer})
-            self.run_model('price.quote', {"base": "AAVE", "quote": "ETH", "prefer": _prefer})
-            self.run_model('price.quote', {"base": "0x853d955acef822db058eb8505911ed77f175b99e", "prefer": _prefer})
+            self.run_model('price.quote', {
+                           "base": "EUR", "quote": "JPY", "prefer": _prefer})
+            self.run_model('price.quote', {
+                           "base": "ETH", "quote": "JPY", "prefer": _prefer})
+            self.run_model('price.quote', {
+                           "base": "AAVE", "quote": "ETH", "prefer": _prefer})
+            self.run_model('price.quote', {
+                           "base": "0x853d955acef822db058eb8505911ed77f175b99e", "prefer": _prefer})
 
     def test_historical(self):
         self.title('Price - Historical')
@@ -152,29 +157,40 @@ class TestPrice(CMFTest):
     def test_price_general(self):
         self.title('Price - General')
 
-        self.run_model('price.quote', {"base": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
-        self.run_model('price.quote', {"base": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
-        self.run_model('price.quote', {"base": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
+        self.run_model('price.quote', {
+                       "base": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"})
+        self.run_model('price.quote', {
+                       "base": "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"})
+        self.run_model('price.quote', {
+                       "base": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
-        self.run_model('price.dex-blended', {"symbol": "CMK"})  # price.pool-aggregator
+        # price.pool-aggregator
+        self.run_model('price.dex-blended', {"symbol": "CMK"})
 
         # aDAI v1: 0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d
-        self.run_model('token.underlying-maybe', {"address": "0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"})
+        self.run_model('token.underlying-maybe',
+                       {"address": "0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"})
         # aDAI V2: 0x028171bCA77440897B824Ca71D1c56caC55b68A3
-        self.run_model('token.underlying-maybe', {"address": "0x028171bCA77440897B824Ca71D1c56caC55b68A3"})
+        self.run_model('token.underlying-maybe',
+                       {"address": "0x028171bCA77440897B824Ca71D1c56caC55b68A3"})
 
         # aETHb 0xd01ef7c0a5d8c432fc2d1a85c66cf2327362e5c6
-        self.run_model('price.quote', {"base": {"address": "0xd01ef7c0a5d8c432fc2d1a85c66cf2327362e5c6"}})
+        self.run_model('price.quote', {
+                       "base": {"address": "0xd01ef7c0a5d8c432fc2d1a85c66cf2327362e5c6"}})
 
         # aETHc 0xE95A203B1a91a908F9B9CE46459d101078c2c3cb
-        self.run_model('price.quote', {"base": {"address": "0xE95A203B1a91a908F9B9CE46459d101078c2c3cb"}})
+        self.run_model('price.quote', {
+                       "base": {"address": "0xE95A203B1a91a908F9B9CE46459d101078c2c3cb"}})
 
-        self.run_model('price.quote', {"base": {"address": "0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"}})
-        self.run_model('price.quote', {"base": {"address": "0x028171bCA77440897B824Ca71D1c56caC55b68A3"}})
+        self.run_model('price.quote', {
+                       "base": {"address": "0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d"}})
+        self.run_model('price.quote', {
+                       "base": {"address": "0x028171bCA77440897B824Ca71D1c56caC55b68A3"}})
 
         self.run_model('price.quote-historical', {"base": {"symbol": "AAVE"},
                        "interval": 86400, "count": 1, "exclusive": True})
-        self.run_model('price.quote-multiple', {"some": [{"base": {"symbol": "EUR"}}, {"base": {"symbol": "JPY"}}]})
+        self.run_model('price.quote-multiple',
+                       {"some": [{"base": {"symbol": "EUR"}}, {"base": {"symbol": "JPY"}}]})
         self.run_model('price.quote-historical-multiple',
                        {"some": [{"base": {"symbol": "AAVE"}}], "interval": 86400, "count": 1, "exclusive": True})
         self.run_model('finance.var-dex-lp', {"pool": {"address": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58"},
@@ -211,27 +227,40 @@ class TestPrice(CMFTest):
         self.title('Price - Dex')
         block_number = 15981401
 
-        self.run_model('price.dex', {"base": "CMK", "quote": "USD"}, block_number=block_number)
-        self.run_model('price.dex', {"quote": "CMK", "base": "USD"}, block_number=block_number)
-        self.run_model('price.dex', {"base": "CMK", "quote": "EUR"}, block_number=block_number)
-        self.run_model('price.dex', {"quote": "CMK", "base": "EUR"}, block_number=block_number)
-        self.run_model('price.dex', {"base": "CMK", "quote": "AAVE"}, block_number=block_number)
-        self.run_model('price.dex', {"quote": "CMK", "base": "AAVE"}, block_number=block_number)
+        self.run_model('price.dex', {"base": "CMK",
+                       "quote": "USD"}, block_number=block_number)
+        self.run_model(
+            'price.dex', {"quote": "CMK", "base": "USD"}, block_number=block_number)
+        self.run_model('price.dex', {"base": "CMK",
+                       "quote": "EUR"}, block_number=block_number)
+        self.run_model(
+            'price.dex', {"quote": "CMK", "base": "EUR"}, block_number=block_number)
+        self.run_model(
+            'price.dex', {"base": "CMK", "quote": "AAVE"}, block_number=block_number)
+        self.run_model(
+            'price.dex', {"quote": "CMK", "base": "AAVE"}, block_number=block_number)
 
     def test_price_cex(self):
         self.title('Price - Cex')
         block_number = 15981401
 
-        self.run_model('price.cex', {"base": "AAVE", "quote": "USD"}, block_number=block_number)
-        self.run_model('price.cex', {"quote": "AAVE", "base": "USD"}, block_number=block_number)
-        self.run_model('price.cex', {"base": "AAVE", "quote": "EUR"}, block_number=block_number)
-        self.run_model('price.cex', {"quote": "AAVE", "base": "EUR"}, block_number=block_number)
-        self.run_model('price.cex', {"base": "LINK", "quote": "AAVE"}, block_number=block_number)
-        self.run_model('price.cex', {"quote": "LINK", "base": "AAVE"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"base": "AAVE", "quote": "USD"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"quote": "AAVE", "base": "USD"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"base": "AAVE", "quote": "EUR"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"quote": "AAVE", "base": "EUR"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"base": "LINK", "quote": "AAVE"}, block_number=block_number)
+        self.run_model(
+            'price.cex', {"quote": "LINK", "base": "AAVE"}, block_number=block_number)
 
     def test_dex_prefer(self) -> None:
         self.run_model('price.dex-db-prefer', {"symbol": "AAVE"})
-        self.run_model('price.dex-db-prefer', {"symbol": "AAVE"}, block_number=15981401)
+        self.run_model('price.dex-db-prefer',
+                       {"symbol": "AAVE"}, block_number=15981401)
 
     CHAINLINK_FIAT_TOKENS = [
         'WBTC',
@@ -306,18 +335,22 @@ def run_test_price_mix(self, tok):
     for _prefer in ['cex', 'dex']:
         if prefer == 'dex' and tok not in TestPrice.CEX_ONLY_TOKENS:
             self.run_model('price.quote',
-                           {"base": {"address": tok}, "quote": {"symbol": "USD"}, "prefer": _prefer},
+                           {"base": {"address": tok}, "quote": {
+                               "symbol": "USD"}, "prefer": _prefer},
                            block_number=block_number)
             self.run_model('price.quote',
-                           {"base": {"address": tok}, "quote": {"symbol": "EUR"}, "prefer": _prefer},
+                           {"base": {"address": tok}, "quote": {
+                               "symbol": "EUR"}, "prefer": _prefer},
                            block_number=block_number)
 
         if prefer == 'cex':
             self.run_model('price.quote',
-                           {"quote": {"address": tok}, "base": {"symbol": "USD"}, "prefer": _prefer},
+                           {"quote": {"address": tok}, "base": {
+                               "symbol": "USD"}, "prefer": _prefer},
                            block_number=block_number)
             self.run_model('price.quote',
-                           {"quote": {"address": tok}, "base": {"symbol": "EUR"}, "prefer": _prefer},
+                           {"quote": {"address": tok}, "base": {
+                               "symbol": "EUR"}, "prefer": _prefer},
                            block_number=block_number)
 
     self.run_model('price.oracle-chainlink', {"base": {"address": tok},

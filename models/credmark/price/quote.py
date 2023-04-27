@@ -1,19 +1,35 @@
 # pylint:disable=try-except-raise, no-member
 from typing import List
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
-    ModelDataError, ModelRunError, create_instance_from_error_dict)
+    ModelDataError,
+    ModelRunError,
+    create_instance_from_error_dict,
+)
+from credmark.cmf.types import (
+    Address,
+    Currency,
+    MapBlocksOutput,
+    Maybe,
+    NativeToken,
+    Network,
+    Price,
+    PriceWithQuote,
+    Some,
+    Token,
+)
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapInputsOutput
 from credmark.dto import DTOField
-from credmark.cmf.types import (Address, Currency,
-                                Maybe, NativeToken, Network,
-                                Price, PriceWithQuote,
-                                Some, Token, MapBlocksOutput)
-from credmark.cmf.types.compose import (MapBlockTimeSeriesOutput,
-                                        MapInputsOutput)
-from models.dtos.price import (PRICE_DATA_ERROR_DESC,
-                               PriceHistoricalInput, PriceHistoricalInputs,
-                               PriceInput, PriceInputWithPreference,
-                               PriceMultipleInput)
+
+from models.dtos.price import (
+    PRICE_DATA_ERROR_DESC,
+    PriceHistoricalInput,
+    PriceHistoricalInputs,
+    PriceInput,
+    PriceInputWithPreference,
+    PriceMultipleInput,
+)
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -192,7 +208,8 @@ class PriceQuoteMultiple(Model):
                     self.logger.error(p.error)
                     raise create_instance_from_error_dict(p.error.dict())
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
 
             return Some[PriceWithQuote](some=prices)
 
@@ -230,7 +247,8 @@ class PriceQuoteMaybeBlock(Model):
             raise ModelRunError(f'Request block number ({max_input_block_numbers}) is '
                                 f'larger than current block number {self.context.block_number}')
 
-        pi = PriceInputWithPreference(base=input.base, quote=input.quote, prefer=input.prefer)
+        pi = PriceInputWithPreference(
+            base=input.base, quote=input.quote, prefer=input.prefer)
         pp = self.context.run_model('compose.map-blocks',
                                     {"modelSlug": "price.quote-maybe",
                                      "modelInput": pi,
@@ -256,9 +274,10 @@ class PriceQuoteMaybe(Model):
 
     def run(self, input: PriceInputWithPreference) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('price.quote', input=input, return_type=PriceWithQuote)
+            price = self.context.run_model(
+                'price.quote', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
-        except (ModelRunError, ModelDataError) as _err:
+        except (ModelRunError, ModelDataError):
             pass
         return Maybe.none()
 
@@ -289,14 +308,16 @@ class PriceQuote(Model):
                 model1, pi, return_type=Maybe[PriceWithQuote])
             if price_maybe1.just is not None:
                 price = price_maybe1.just
-                price.src = label1 + '|' + (price.src if price.src is not None else '')
+                price.src = label1 + '|' + \
+                    (price.src if price.src is not None else '')
                 return price
             else:
                 price_maybe2 = self.context.run_model(
                     model2, pi, return_type=Maybe[PriceWithQuote])
                 if price_maybe2.just is not None:
                     price = price_maybe2.just
-                    price.src = label2 + '|' + (price.src if price.src is not None else '')
+                    price.src = label2 + '|' + \
+                        (price.src if price.src is not None else '')
                     return price
                 else:
                     raise ModelRunError(
@@ -341,7 +362,8 @@ class PriceCommon:
 
     @staticmethod
     def wrap_token(context, token):
-        new_token = __class__.WRAP_TOKEN.get(context.network, {}).get(token.address, None)
+        new_token = __class__.WRAP_TOKEN.get(
+            context.network, {}).get(token.address, None)
         if new_token is not None:
             return Currency(**new_token)
         return token
@@ -354,7 +376,8 @@ class PriceCommon:
         if token.address in __class__.EXCEPTION_TOKEN.get(context.network, {}):
             return token
 
-        new_token = __class__.UNWRAP_TOKEN.get(context.network, {}).get(token.symbol, None)
+        new_token = __class__.UNWRAP_TOKEN.get(
+            context.network, {}).get(token.symbol, None)
         if new_token is not None:
             if Token(token.symbol).address == token.address:
                 return Currency(new_token)
@@ -377,7 +400,8 @@ class PriceCommon:
         # When quote is non-USD, we try to obtain base's price quote in USD
         if input.quote != Currency(symbol='USD'):
             input_quote_usd = input.quote_usd()
-            input_quote_usd.base = __class__.unwrap_token(context, input_quote_usd.base)
+            input_quote_usd.base = __class__.unwrap_token(
+                context, input_quote_usd.base)
             price_usd_maybe = context.run_model('price.oracle-chainlink-maybe',
                                                 input=input_quote_usd,
                                                 return_type=Maybe[PriceWithQuote],
@@ -386,7 +410,8 @@ class PriceCommon:
                 return price_usd_maybe.just
 
         if no_dex:
-            raise ModelRunError(f'No chainlink source for this token {input.base.address}')
+            raise ModelRunError(
+                f'No chainlink source for this token {input.base.address}')
 
         return __class__.get_price_usd_from_dex(context, input.base)
 
@@ -394,7 +419,8 @@ class PriceCommon:
     def get_price_usd_from_dex(context, input_base):
         try:
             price_usd = context.run_model('price.dex-db-prefer',
-                                          input=__class__.wrap_token(context, input_base),
+                                          input=__class__.wrap_token(
+                                              context, input_base),
                                           return_type=PriceWithQuote,
                                           local=True)
             return price_usd
@@ -503,9 +529,10 @@ class PriceCexMaybe(Model):
 
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('price.cex', input=input, return_type=PriceWithQuote)
+            price = self.context.run_model(
+                'price.cex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
-        except (ModelRunError, ModelDataError) as _err:
+        except (ModelRunError, ModelDataError):
             return Maybe.none()
 
 
@@ -532,9 +559,10 @@ class PriceDexMaybe(Model):
 
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
-            price = self.context.run_model('price.dex', input=input, return_type=PriceWithQuote)
+            price = self.context.run_model(
+                'price.dex', input=input, return_type=PriceWithQuote)
             return Maybe[PriceWithQuote](just=price)
-        except (ModelRunError, ModelDataError) as _err:
+        except (ModelRunError, ModelDataError):
             return Maybe.none()
 
 
@@ -570,30 +598,36 @@ class PriceDex(Model, PriceCommon):
 
         # 2. Use chainlink when either half is fiat
         if input.quote.fiat:
-            price_usd = __class__.get_price_usd_from_dex(self.context, input.base)
+            price_usd = __class__.get_price_usd_from_dex(
+                self.context, input.base)
 
             if input.quote == usd_currency:
                 return price_usd
             else:
                 price_quote = self.context.run_model('price.cex',
-                                                     input={'base': input.quote},
+                                                     input={
+                                                         'base': input.quote},
                                                      return_type=PriceWithQuote)
                 return price_usd.cross(price_quote)
 
         if input.base.fiat:
-            price_usd = __class__.get_price_usd_from_dex(self.context, input.quote)
+            price_usd = __class__.get_price_usd_from_dex(
+                self.context, input.quote)
 
             if input.base == usd_currency:
                 return price_usd.inverse(input.quote.address)
             else:
                 price_quote = self.context.run_model('price.cex',
-                                                     input={'base': input.base},
+                                                     input={
+                                                         'base': input.base},
                                                      return_type=PriceWithQuote)
                 return price_usd.inverse(usd_address).cross(price_quote)
 
         # 3. Use only dex
-        price_usd_base = __class__.get_price_usd_from_dex(self.context, input.base)
-        price_usd_quote = __class__.get_price_usd_from_dex(self.context, input.quote)
+        price_usd_base = __class__.get_price_usd_from_dex(
+            self.context, input.base)
+        price_usd_quote = __class__.get_price_usd_from_dex(
+            self.context, input.quote)
 
         return PriceWithQuote(price=price_usd_base.price / price_usd_quote.price,
                               quoteAddress=input.quote.address,

@@ -4,16 +4,27 @@ from typing import List, Optional
 
 import requests
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
-                                       ModelRunError)
-from credmark.cmf.types import (Accounts, Address, BlockNumber, Contract, Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Network, NetworkDict, Price, PriceWithQuote,
-                                Token)
+from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
+from credmark.cmf.types import (
+    Accounts,
+    Address,
+    BlockNumber,
+    Contracts,
+    Currency,
+    FiatCurrency,
+    Maybe,
+    NativeToken,
+    Network,
+    NetworkDict,
+    Price,
+    PriceWithQuote,
+    Token,
+)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from models.utils.model_run import get_latest_run
 from web3 import Web3
 
+from models.utils.model_run import get_latest_run
 
 SLOT_EIP1967 = hex(
     int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)

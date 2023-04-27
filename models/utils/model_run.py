@@ -1,7 +1,8 @@
 # pylint: disable=line-too-long
 from typing import Any, Optional
-from credmark.dto.encoder import json_dumps
+
 from credmark.cmf.model.errors import ModelDataError
+from credmark.dto.encoder import json_dumps
 
 
 def get_latest_run(context, slug, version) -> Optional[Any]:

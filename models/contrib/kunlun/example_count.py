@@ -1,10 +1,11 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
 from credmark.cmf.model.errors import ModelRunError
+from credmark.dto import DTO, DTOField
 
 
 class ApeCountInput(DTO):
-    block_number_count: int = DTOField(1, gt=0, description='Number of blocks to look back')
+    block_number_count: int = DTOField(
+        1, gt=0, description='Number of blocks to look back')
 
 
 @Model.describe(slug='contrib.ape-count',
@@ -31,7 +32,8 @@ class ContribModel(Model):
                          q.TO_ADDRESS,
                          q.GAS,
                          q.GAS_PRICE],
-                where=q.BLOCK_NUMBER.gt(self.context.block_number - input.block_number_count),
+                where=q.BLOCK_NUMBER.gt(
+                    self.context.block_number - input.block_number_count),
                 order_by=q.TRANSACTION_INDEX)
                 .to_dataframe()
                 .drop_duplicates())
@@ -42,7 +44,8 @@ class ContribModel(Model):
                          q.CUMULATIVE_GAS_USED,
                          q.EFFECTIVE_GAS_PRICE,
                          q.GAS_USED],
-                where=q.BLOCK_NUMBER.eq(self.context.block_number - input.block_number_count),
+                where=q.BLOCK_NUMBER.eq(
+                    self.context.block_number - input.block_number_count),
                 order_by=q.TRANSACTION_INDEX)
                 .to_dataframe()
                 .drop_duplicates())
@@ -51,7 +54,8 @@ class ContribModel(Model):
         max_gas = int(df_rts.gas_used.max())
 
         # Total gas cost
-        total_gas_cost = (df_rts.gas_used * df_rts.effective_gas_price).sum() / 1e18
+        total_gas_cost = (df_rts.gas_used *
+                          df_rts.effective_gas_price).sum() / 1e18
 
         # Unique address in both from and to
         count_address = len(set(df_txs.from_address) | set(df_txs.to_address))

@@ -1,14 +1,13 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Maybe, Network,
-                                Some, Token)
+from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Some, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import \
-    UniswapV2PoolMeta
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
+
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolMeta
 from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -103,7 +102,8 @@ class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
     def run(self, _: EmptyInput) -> dict:
-        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
+        contract = Contract(
+            **self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()
         sushiswap_pairs_addresses = []
 
@@ -111,11 +111,13 @@ class SushiswapAllPairs(Model):
         for i in range(allPairsLength):
             try:
                 pair_address = contract.functions.allPairs(i).call()
-                sushiswap_pairs_addresses.append(Address(pair_address).checksum)
-            except Exception as _err:
+                sushiswap_pairs_addresses.append(
+                    Address(pair_address).checksum)
+            except Exception:
                 error_count += 1
 
-        self.logger.warning(f'There are {error_count} errors in total {allPairsLength} pools.')
+        self.logger.warning(
+            f'There are {error_count} errors in total {allPairsLength} pools.')
 
         return {"result": sushiswap_pairs_addresses,
                 'all_pairs_length': allPairsLength,
@@ -138,7 +140,8 @@ class SushiSwapPool(DTO):
 class SushiswapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
-        contract = Contract(**self.context.models(local=True).sushiswap.get_v2_factory())
+        contract = Contract(
+            **self.context.models(local=True).sushiswap.get_v2_factory())
 
         if input.token0.address and input.token1.address:
             token0 = input.token0.address.checksum
@@ -194,7 +197,8 @@ class SushiswapGetTokenPriceInfo(Model):
                          f'{model_slug.replace("-","_")}({model_inputs[pool_n]}). ' +
                          p.error.message))
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return infos
 
         def _use_for(local):

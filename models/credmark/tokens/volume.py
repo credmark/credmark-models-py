@@ -1,10 +1,17 @@
 # pylint: disable=locally-disabled, unused-import, no-member, line-too-long
 from typing import List, Union
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, Contract,
-                                JoinType, NativeToken, PriceWithQuote,
-                                Token)
+from credmark.cmf.types import (
+    Address,
+    BlockNumber,
+    Contract,
+    JoinType,
+    NativeToken,
+    PriceWithQuote,
+    Token,
+)
 from credmark.dto import DTO, DTOField
 
 
@@ -28,7 +35,8 @@ class TokenVolumeBlockInput(DTO):
                      'or negative or zero for an interval. '
                      'Both excludes the start block.'))
     address: Address
-    include_price: bool = DTOField(default=True, description='Include price quote')
+    include_price: bool = DTOField(
+        default=True, description='Include price quote')
 
     @property
     def token(self):
@@ -122,7 +130,8 @@ class TokenVolumeBlock(Model):
 class TokenVolumeWindowInput(DTO):
     window: str
     address: Address
-    include_price: bool = DTOField(default=True, description='Include price quote')
+    include_price: bool = DTOField(
+        default=True, description='Include price quote')
 
     @property
     def token(self):
@@ -214,7 +223,8 @@ class TokenVolumeSegmentBlock(Model):
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
-                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
+                        (JoinType.LEFT_OUTER, t, t.field(
+                            f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
                     having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
@@ -277,7 +287,8 @@ class TokenVolumeSegmentBlock(Model):
                                         to_timestamp=r['to_timestamp'],)
             volumes.append(vol)
 
-        output = TokenVolumeSegmentOutput(address=input.address, volumes=volumes)
+        output = TokenVolumeSegmentOutput(
+            address=input.address, volumes=volumes)
 
         return output
 

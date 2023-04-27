@@ -1,17 +1,20 @@
 import math
+
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Contract, PriceWithQuote, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from models.credmark.algorithms.value_at_risk.dto import (DexVaR,
-                                                          UniswapPoolVaRInput,
-                                                          UniswapPoolVaROutput)
+
+from models.credmark.algorithms.value_at_risk.dto import (
+    DexVaR,
+    UniswapPoolVaRInput,
+    UniswapPoolVaROutput,
+)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
-from models.credmark.protocols.dexes.uniswap.uniswap_v3 import \
-    UniswapV3PoolInfo
+from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')

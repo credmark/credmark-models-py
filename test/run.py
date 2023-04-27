@@ -1,25 +1,19 @@
 # pylint:disable=unused-import,line-too-long
 
 import argparse
+import inspect
 import logging
 import os
-from posixpath import split
 import sys
 import unittest
-import testtools
-import inspect
-from concurrencytest import ConcurrentTestSuite, fork_for_tests
-from importlib import import_module
 
 from cmf_test import CMFTest
-
-from test_bsc import TestBSC
-from test_polygon import TestPolygon
-
+from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from test_aave import TestAAVE
-from test_arbitrum import TestArbitrum
 from test_account import TestAccount
+from test_arbitrum import TestArbitrum
 from test_balancer import TestBalancer
+from test_bsc import TestBSC
 from test_chainlink import TestChainlink
 from test_cmk import TestCMK
 from test_compose import TestCompose
@@ -30,17 +24,20 @@ from test_example import TestExample
 from test_fiat import TestFiat
 from test_finance import TestFinance
 from test_ichi import TestICHI
-from test_ipor import TestIPOR
 from test_index_coop import TestIndexCoop
+from test_ipor import TestIPOR
 from test_optimism import TestOptimism
+from test_polygon import TestPolygon
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
-from test_token import TestToken
 from test_tls import TestTLS
+from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
 
+ALL_TESTS = [TestBSC, TestPolygon, TestAAVE, TestArbitrum, TestAccount, TestBalancer, TestChainlink, TestCMK, TestCompose, TestCompound, TestCurve, TestDashboard,
+             TestExample, TestFiat, TestFinance, TestICHI, TestIPOR, TestIndexCoop, TestOptimism, TestPrice, TestSpeed, TestSushiSwap, TestToken, TestTLS, TestTVL, TestUniswap]
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

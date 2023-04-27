@@ -7,22 +7,27 @@ import numpy.linalg as nplin
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts, Price,
-                                Some, Token)
+from credmark.cmf.types import Address, Contract, Contracts, Price, Some, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
-from models.credmark.price.dex import get_primary_token_tuples
-from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    tick_to_price, in_range, out_of_range)
-from models.credmark.protocols.dexes.uniswap.constant import (
-    V3_FACTORY_ADDRESS, V3_POOL_FEES, V3_TICK)
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
-from models.dtos.pool import PoolPriceInfo
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 from scipy.optimize import minimize
-from web3.exceptions import BadFunctionCallOutput
-from web3.exceptions import ContractLogicError
+from web3.exceptions import BadFunctionCallOutput, ContractLogicError
+
+from models.credmark.price.dex import get_primary_token_tuples
+from models.credmark.protocols.dexes.uniswap.constant import (
+    V3_FACTORY_ADDRESS,
+    V3_POOL_FEES,
+    V3_TICK,
+)
+from models.credmark.protocols.dexes.uniswap.univ3_math import (
+    in_range,
+    out_of_range,
+    tick_to_price,
+)
+from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
 
@@ -755,14 +760,14 @@ class DexPrimaryTokensUniV3(Model):
         try:
             _opt_result = minimize(opt_target, x0, method='nelder-mead',
                                    options={'xatol': 1e-8, 'disp': False})
-        except Exception as _err:
+        except Exception:
             pass
 
         # try linear system
         b = np.zeros(shape=(len(tokens), 1))
         try:
             _lin_result = nplin.solve(a, b)
-        except Exception as _err:
+        except Exception:
             pass
 
         # (pd.concat(all_dfs)

@@ -5,20 +5,34 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts,
-                                Maybe, Portfolio, Position, Price,
-                                PriceWithQuote, Some, Token, Tokens)
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Contracts,
+    Maybe,
+    Portfolio,
+    Position,
+    Price,
+    PriceWithQuote,
+    Some,
+    Token,
+    Tokens,
+)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from web3.exceptions import (
+    ABIFunctionNotFound,
+    BadFunctionCallOutput,
+    ContractLogicError,
+)
 
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
 from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
 from models.dtos.tvl import TVLInfo
-from models.tmp_abi_lookup import (UNISWAP_V2_POOL_ABI)
-from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
+from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
 
 class UniswapV2PoolMeta:
@@ -36,7 +50,7 @@ class UniswapV2PoolMeta:
                         _ = cc.abi
                     except BlockNumberOutOfRangeError:
                         continue
-                    except ModelDataError as _err:
+                    except ModelDataError:
                         pass
                     contracts.append(cc)
 

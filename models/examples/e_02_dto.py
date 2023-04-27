@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.dto import DTO, DTOField, EmptyInput
+
 from .dtos import ExampleModelOutput
 
 
@@ -40,7 +41,8 @@ class Animal(DTO):
         animal = Animal(name='Dog')
         output.log_io(input="Animal(name='Dog')", output=animal)
         output.log_io(input="animal.dict()", output=animal.dict())
-        output.log_io(input="animal.schema_json()", output=animal.schema_json())
+        output.log_io(input="animal.schema_json()",
+                      output=animal.schema_json())
 
         output.log("To declare a field as required, you may declare it using just"
                    " an annotation, or you may use an ellipsis (...) as the value:")
@@ -52,7 +54,8 @@ class Animal(DTO):
 """,
                       output="")
 
-        output.log("You can use default_factory to declare field with dynamic value")
+        output.log(
+            "You can use default_factory to declare field with dynamic value")
         output.log_io(input="""
 class Animal(DTO):
     uid: UUID = DTOField(default_factory=uuid4)

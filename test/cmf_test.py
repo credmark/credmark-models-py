@@ -1,5 +1,7 @@
 # pylint:disable=locally-disabled,line-too-long
 
+import contextlib
+import io
 import json
 import logging
 import sys
@@ -8,9 +10,6 @@ from importlib import import_module
 from types import ModuleType
 from typing import List, Optional
 from unittest import TestCase
-
-import io
-import contextlib
 
 
 @contextlib.contextmanager

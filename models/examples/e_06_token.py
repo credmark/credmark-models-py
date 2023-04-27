@@ -2,6 +2,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError, ModelTypeError
 from credmark.cmf.types import NativeToken, Token
+
 from .dtos import ExampleModelOutput, ExampleTokenInput
 
 
@@ -29,11 +30,13 @@ class ExampleToken(Model):
 
         output.log("Token can be initialized from address")
         tokenLoadedFromAddress = Token(address=input.address)
-        output.log_io(input=f"Token(address='{input.address}')", output=tokenLoadedFromAddress)
+        output.log_io(
+            input=f"Token(address='{input.address}')", output=tokenLoadedFromAddress)
 
         output.log("Token can also be initialized from symbol")
         tokenLoadedFromSymbol = Token(symbol=input.symbol)
-        output.log_io(input=f"Token(symbol='{input.symbol}')", output=tokenLoadedFromSymbol)
+        output.log_io(
+            input=f"Token(symbol='{input.symbol}')", output=tokenLoadedFromSymbol)
 
         output.log("Token's meta info has its symbol, name, decimals "
                    "and total supply along with contract metadata")

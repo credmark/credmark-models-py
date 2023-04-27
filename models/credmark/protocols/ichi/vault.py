@@ -1,26 +1,24 @@
 # pylint: disable= line-too-long, unused-import
-import math
-import numpy_financial as npf
 from typing import List, Optional
-import numpy as np
-import sys
 
+import numpy as np
+import numpy_financial as npf
 import pandas as pd
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import (
+    ModelEngineError,
+    ModelRunError,
+    create_instance_from_error_dict,
+)
+from credmark.cmf.types import Address, Contract, Token
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import DTO, DTOField, EmptyInput
 from requests.exceptions import HTTPError
 
-from credmark.cmf.model import Model
-from credmark.dto import EmptyInput, DTOField, DTO
-from credmark.dto.encoder import json_dumps
-from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict, ModelEngineError
-from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
-                                Some, Token)
-
-from credmark.cmf.types.compose import MapInputsOutput
-
-from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    tick_to_price, in_range, out_of_range)
-from models.utils.model_run import get_latest_run
+from models.credmark.protocols.dexes.uniswap.univ3_math import tick_to_price
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
+from models.utils.model_run import get_latest_run
+
 
 # ICHI Vault
 # https://app.ichi.org/vault?token={}',

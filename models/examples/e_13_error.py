@@ -14,7 +14,8 @@ from credmark.cmf.model.errors import ModelDataError
                               code_desc='Data does not exist'))
 class ExampleDataError1(Model):
     def run(self, _) -> dict:
-        raise ModelDataError('Data does not exist', ModelDataError.Codes.NO_DATA)
+        raise ModelDataError('Data does not exist',
+                             ModelDataError.Codes.NO_DATA)
 
 
 @Model.describe(
@@ -30,4 +31,5 @@ class ExampleDataError1(Model):
 )
 class ExampleDataError2(Model):
     def run(self, _) -> dict:
-        raise ModelDataError('Conflicting values in input', ModelDataError.Codes.CONFLICT)
+        raise ModelDataError('Conflicting values in input',
+                             ModelDataError.Codes.CONFLICT)

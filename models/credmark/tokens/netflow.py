@@ -1,9 +1,16 @@
 # pylint:disable=line-too-long
 from typing import List, Union
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, BlockNumber, JoinType,
-                                NativeToken, PriceWithQuote, Token)
+from credmark.cmf.types import (
+    Address,
+    BlockNumber,
+    JoinType,
+    NativeToken,
+    PriceWithQuote,
+    Token,
+)
 from credmark.dto import DTO, DTOField
 
 

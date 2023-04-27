@@ -1,10 +1,9 @@
 from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
-                                       ModelRunError)
+from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
 from credmark.cmf.types import Address, Currency, Maybe, Network, Price, PriceWithQuote
-from models.dtos.price import PriceInput
 
 from models.credmark.price.data.chainlink_feeds import CHAINLINK_OVERRIDE_FEED
+from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
@@ -107,7 +106,8 @@ class PriceOracleChainlink(Model):
             if price_maybe.just is not None:
                 return price_maybe.just
 
-        try_override_base = CHAINLINK_OVERRIDE_FEED[self.context.network].get(base.address, None)
+        try_override_base = CHAINLINK_OVERRIDE_FEED[self.context.network].get(
+            base.address, None)
         if try_override_base is not None:
             if 'ens' in try_override_base:
                 override_ens = try_override_base['ens']
@@ -134,11 +134,13 @@ class PriceOracleChainlink(Model):
                 return pq0
             else:
                 pq1 = self.context.run_model(self.slug,
-                                             input={'base': override_quote, 'quote': quote},
+                                             input={
+                                                 'base': override_quote, 'quote': quote},
                                              return_type=PriceWithQuote)
                 return pq0.cross(pq1)
 
-        try_override_quote = CHAINLINK_OVERRIDE_FEED[self.context.network].get(quote.address, None)
+        try_override_quote = CHAINLINK_OVERRIDE_FEED[self.context.network].get(
+            quote.address, None)
         if try_override_quote is not None:
             if 'ens' in try_override_quote:
                 override_ens = try_override_quote['ens']
@@ -159,12 +161,14 @@ class PriceOracleChainlink(Model):
             else:
                 raise ModelRunError(f'Unknown override {try_override_quote}')
 
-            pq0 = PriceWithQuote(**p0.dict(), quoteAddress=quote.address).inverse(quote.address)
+            pq0 = PriceWithQuote(
+                **p0.dict(), quoteAddress=quote.address).inverse(quote.address)
             if override_quote.address == base.address:
                 return pq0
             else:
                 pq1 = self.context.run_model(self.slug,
-                                             input={'base': override_quote, 'quote': base},
+                                             input={
+                                                 'base': override_quote, 'quote': base},
                                              return_type=PriceWithQuote)
                 pq1 = pq1.inverse(override_quote.address)
             return pq0.cross(pq1)
@@ -173,7 +177,8 @@ class PriceOracleChainlink(Model):
         r1 = None
         for rt_addr in self.ROUTING_ADDRESSES.get(self.context.network, []):
             if rt_addr not in (quote.address, base.address):
-                price_input = PriceInput(base=base, quote=Currency(address=rt_addr))
+                price_input = PriceInput(
+                    base=base, quote=Currency(address=rt_addr))
 
                 pq1_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                    input=price_input,
@@ -189,7 +194,8 @@ class PriceOracleChainlink(Model):
             r2 = None
             for rt_addr in self.ROUTING_ADDRESSES.get(self.context.network, []):
                 if rt_addr not in (quote.address, base.address):
-                    price_input = PriceInput(base=Currency(address=rt_addr), quote=quote)
+                    price_input = PriceInput(
+                        base=Currency(address=rt_addr), quote=quote)
 
                     pq2_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                        input=price_input,

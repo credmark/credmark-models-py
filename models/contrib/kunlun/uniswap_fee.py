@@ -19,8 +19,10 @@ def get_block(in_dt: datetime):
 
 
 class UniswapFeeInput(DTO):
-    interval: int = DTOField(gt=0, description='Block interval to gather the fees')
-    pool_address: Address = Address('0xcbcdf9626bc03e24f779434178a73a0b4bad62ed')
+    interval: int = DTOField(
+        gt=0, description='Block interval to gather the fees')
+    pool_address: Address = Address(
+        '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed')
 
 
 class UniswapFeeOutput(UniswapFeeInput):
@@ -42,7 +44,8 @@ class UniswapFeeOutput(UniswapFeeInput):
         return cls(**input.dict(),
                    block_start=block_start,
                    block_end=block_end,
-                   block_start_time=BlockNumber(block_start).timestamp_datetime,
+                   block_start_time=BlockNumber(
+                       block_start).timestamp_datetime,
                    block_end_time=BlockNumber(block_end).timestamp_datetime,
                    tx_number=0,
                    fee_rate=0,
@@ -104,7 +107,8 @@ class UniswapFee(Model):
                     break
                 offset += 5000
 
-            _df_empty = pd.DataFrame(data=[], columns=q_cols + ['transaction_value'])
+            _df_empty = pd.DataFrame(
+                data=[], columns=q_cols + ['transaction_value'])
 
         df_tx = pd.DataFrame()
         if len(df_ts) > 0:
@@ -149,12 +153,14 @@ class UniswapFee(Model):
                                              'transaction_value'].to_list()[0])  # type: ignore
                 if df.to_address.to_list()[0] == uni_pool_addr:
                     full_tx.append((dfg, df.block_number.to_list()[0],
-                                    df.from_address.to_list()[0], df.to_address.to_list()[1],
-                                    t0_amount, t1_amount, t1_amount / t0_amount))
+                                    df.from_address.to_list()[0], df.to_address.to_list()[
+                        1],
+                        t0_amount, t1_amount, t1_amount / t0_amount))
                 elif df.to_address.to_list()[1] == uni_pool_addr:
                     full_tx.append((dfg, df.block_number.to_list()[0],
-                                    df.from_address.to_list()[1], df.to_address.to_list()[0],
-                                    t0_amount, t1_amount, t1_amount / t0_amount))
+                                    df.from_address.to_list()[1], df.to_address.to_list()[
+                        0],
+                        t0_amount, t1_amount, t1_amount / t0_amount))
                 else:
                     raise ValueError('Cannot match trades\' from and to')
 
@@ -188,7 +194,8 @@ class UniswapFee(Model):
 
         df_new_cols.columns = pd.Index(['in_value', 'out_value', 'fee'])
 
-        df_tx_swap_one_line = pd.concat([df_tx_swap_one_line, df_new_cols], axis=1)
+        df_tx_swap_one_line = pd.concat(
+            [df_tx_swap_one_line, df_new_cols], axis=1)
 
         df_tx_swap_one_line.in_value.sum()
 

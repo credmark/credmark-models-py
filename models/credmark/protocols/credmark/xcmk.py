@@ -1,10 +1,10 @@
 from typing import Union
 
-from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
-
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, BlockNumber, Contract
 from credmark.dto import DTO
+
+from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 
 # TODO: Need to get ABI's programmatically, I want to be able to do something like:
@@ -22,7 +22,8 @@ class xCmkCmkStaked(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
         cmk_contract = Contract(address=Address(CMK_ADDRESS).checksum)
-        result = int(cmk_contract.functions.balanceOf(STAKED_CREDMARK_ADDRESS).call())
+        result = int(cmk_contract.functions.balanceOf(
+            STAKED_CREDMARK_ADDRESS).call())
         return {'result': result}
 
 
@@ -36,7 +37,8 @@ class xCmkTotalSupply(Model):  # pylint: disable=invalid-name
 
     def run(self, input) -> dict:
 
-        staked_credmark = Contract(address=Address(STAKED_CREDMARK_ADDRESS).checksum)
+        staked_credmark = Contract(address=Address(
+            STAKED_CREDMARK_ADDRESS).checksum)
         result = int(staked_credmark.functions.totalSupply().call())
         return {'result': result}
 
