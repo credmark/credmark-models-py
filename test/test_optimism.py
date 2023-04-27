@@ -10,7 +10,7 @@ class TestOptimism(CMFTest):
         last_block_output = self.run_model_with_output(
             'chain.get-latest-block', {}, block_number=None, chain_id=chain_id)
 
-        last_block = last_block_output['output']['blockNumber']
+        last_block = last_block_output['output']['blockNumber'] - 100
 
         # V3 NFT Manager
         # https://optimistic.etherscan.io/address/0xc36442b4a4522e871399cd717abdd847ab11fe88

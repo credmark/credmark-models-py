@@ -90,3 +90,8 @@ class TestICHI(CMFTest):
             'ichi.vaults-performance',
             {"days_horizon": []},
             block_number=last_block_2, chain_id=137)
+
+        self.run_model(
+            'ichi.vaults-performance',
+            {"days_horizon": [], "base": 100},
+            block_number=last_block_2, chain_id=137)

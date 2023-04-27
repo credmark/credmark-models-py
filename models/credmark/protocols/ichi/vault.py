@@ -11,7 +11,7 @@ from requests.exceptions import HTTPError
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput, DTOField, DTO
 from credmark.dto.encoder import json_dumps
-from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict
+from credmark.cmf.model.errors import ModelDataError, ModelRunError, create_instance_from_error_dict, ModelEngineError
 from credmark.cmf.types import (Address, Contract, BlockNumber, Contracts, Price,
                                 Some, Token)
 
@@ -447,16 +447,16 @@ class IchiVaultFirstDeposit(Model):
 class PerformanceInput(DTO):
     days_horizon: List[int] = DTOField(
         [], description='Time horizon in days')
+    base: int = DTOField(1000, description='Base amount to calculate value')
 
 
 class VaultPerformanceInput(Contract, PerformanceInput):
     pass
-
 # credmark-dev run ichi.vault-performance -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "days_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.20',
+                version='0.21',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -464,6 +464,19 @@ class VaultPerformanceInput(Contract, PerformanceInput):
                 input=VaultPerformanceInput,
                 output=dict)
 class IchiVaultPerformance(Model):
+    """
+    Output columns
+    - vault: vault address
+    - tvl: value of tokens in the vault, price comes from chainlink. Some tokens (e.g. GOVI, oneBTC, on the bottom) has no chainlink price
+    - token0_symbol, token1_symbol: no need to explain
+    - allowed_token: the single token to be deposited, can be displayed as `Deposit token`
+    - days_since_first_deposit: vault starts to operate from first deposit, can be displayed as `Vault live days`
+    - irr: internal return rate (annualized) for the deposit token since vault went live, can be displayed as "IRR"
+    - value_hold: current value of hold $1000 worth of deposit token from the start time of the vault
+    - value_vault: current value of deposit $1000 worth of deposit token from the start time of the vault
+    - value_uniswap: current value of deposit $1000's token to Uniswap from the start time of the vault
+    """
+
     def calc_irr(self, vault_info_past, vault_info_current, days):
         past_value, current_value = \
             vault_info_past['vault_token_ratio'], vault_info_current['vault_token_ratio']
@@ -523,7 +536,7 @@ class IchiVaultPerformance(Model):
                          vault_info_past['ratio_price0'], vault_info_current['ratio_price0']))
         return _cagr_from_irr
 
-    def calc_irr_uniswap_value(self, vault_info_past, vault_info_current, base=1000):
+    def calc_uniswap_value(self, vault_info_past, vault_info_current, base=1000):
         try:
             if vault_info_current['allowed_token'] == 0:
                 token0_amount = base / 2 / \
@@ -549,7 +562,7 @@ class IchiVaultPerformance(Model):
         except TypeError:
             return None
 
-        self.logger.info(('calc_irr_uniswap_value', current_value))
+        self.logger.info(('calc_uniswap_value', current_value))
         return current_value
 
     def calc_value(self, vault_info_past, vault_info_current, base=1000):
@@ -641,11 +654,11 @@ class IchiVaultPerformance(Model):
         result['irr_uniswap'] = self.calc_irr_uniswap(
             vault_info_first_deposit, vault_info_current, days_from_first_deposit)
 
-        value_uniswap = self.calc_irr_uniswap_value(
-            vault_info_first_deposit, vault_info_current)
+        value_uniswap = self.calc_uniswap_value(
+            vault_info_first_deposit, vault_info_current, input.base)
 
         value_hold, value_vault = self.calc_value(
-            vault_info_first_deposit, vault_info_current)
+            vault_info_first_deposit, vault_info_current, input.base)
 
         result['value_hold'] = value_hold
         result['value_vault'] = value_vault
@@ -677,11 +690,11 @@ class IchiVaultPerformance(Model):
 
         return result
 
-
 # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
+
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.13',
+                version='0.15',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -692,18 +705,19 @@ class IchiVaultsPerformance(Model):
     def run(self, input: PerformanceInput) -> dict:
         vaults_all = self.context.run_model('ichi.vaults')['vaults']
 
+        model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
+                        for vault_addr in vaults_all.keys()]
+
         def _use_for():
             result = []
             # Change to a compose model to run
-            for vault_addr in vaults_all.keys():
+            for model_input in model_inputs:
                 result.append(self.context.run_model(
-                    'ichi.vault-performance', {"address": vault_addr, "days_horizon": input.days_horizon}))
-                self.logger.info((vault_addr, result[vault_addr]))
+                    'ichi.vault-performance', model_input))
+                self.logger.info((model_input['address'], result))
             return result
 
         def _use_compose():
-            model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon}
-                            for vault_addr in vaults_all.keys()]
             all_vault_infos_results = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': 'ichi.vault-performance',
@@ -723,5 +737,12 @@ class IchiVaultsPerformance(Model):
                         'compose.map-inputs: output/error cannot be both None')
             return all_vault_infos
 
-        results = _use_compose()
+        try:
+            results = _use_compose()
+        except ModelEngineError as err:
+            if err.data.message.startswith('429 Client Error: Too Many Requests for url'):
+                results = _use_for()
+            else:
+                raise err
+
         return {'data': results}

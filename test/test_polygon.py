@@ -11,7 +11,7 @@ class TestPolygon(CMFTest):
 
         last_block_output = self.run_model_with_output(
             'chain.get-latest-block', {}, block_number=None, chain_id=137)
-        last_block = last_block_output['output']['blockNumber']
+        last_block = last_block_output['output']['blockNumber'] - 100
 
         self.run_model('chain.get-block',
                        {"timestamp": 1591824836}, chain_id=137)
