@@ -456,7 +456,7 @@ class VaultPerformanceInput(Contract, PerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.19',
+                version='0.20',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -523,31 +523,56 @@ class IchiVaultPerformance(Model):
                          vault_info_past['ratio_price0'], vault_info_current['ratio_price0']))
         return _cagr_from_irr
 
-    def calc_irr_uniswap_value(self, vault_info_past, vault_info_current):
-        if vault_info_current['allowed_token'] == 0:
-            token0_amount, token1_amount = 500 / vault_info_past['token0_chainlink_price'], \
-                500 / vault_info_past['token0_chainlink_price'] * \
-                vault_info_past['ratio_price0']
-            liquidity = token0_amount * token1_amount
-            token0_amount_new = np.sqrt(
-                liquidity / vault_info_current['ratio_price0'])
-            _past_value = 1_000
-            current_value = token0_amount_new * 2 * \
-                vault_info_current['token0_chainlink_price']
-        else:
-            token0_amount, token1_amount = \
-                500 / vault_info_past['token1_chainlink_price'] / \
-                vault_info_past['ratio_price0'], 500 / \
-                vault_info_past['token1_chainlink_price']
-            liquidity = token0_amount * token1_amount
-            token1_amount_new = np.sqrt(
-                liquidity * vault_info_current['ratio_price0'])
-            _past_value = 1_000
-            current_value = token1_amount_new * 2 * \
-                vault_info_current['token1_chainlink_price']
+    def calc_irr_uniswap_value(self, vault_info_past, vault_info_current, base=1000):
+        try:
+            if vault_info_current['allowed_token'] == 0:
+                token0_amount = base / 2 / \
+                    vault_info_past['token0_chainlink_price']
+                token1_amount = token0_amount * vault_info_past['ratio_price0']
+                liquidity = token0_amount * token1_amount
+                token0_amount_new = np.sqrt(
+                    liquidity / vault_info_current['ratio_price0'])
+                _past_value = 1_000
+                current_value = token0_amount_new * 2 * \
+                    vault_info_current['token0_chainlink_price']
+            else:
+                token1_amount = base / 2 / \
+                    vault_info_past['token1_chainlink_price']
+                token0_amount = token1_amount / vault_info_past['ratio_price0']
+
+                liquidity = token0_amount * token1_amount
+                token1_amount_new = np.sqrt(
+                    liquidity * vault_info_current['ratio_price0'])
+                _past_value = 1_000
+                current_value = token1_amount_new * 2 * \
+                    vault_info_current['token1_chainlink_price']
+        except TypeError:
+            return None
 
         self.logger.info(('calc_irr_uniswap_value', current_value))
         return current_value
+
+    def calc_value(self, vault_info_past, vault_info_current, base=1000):
+        try:
+            if vault_info_current['allowed_token'] == 0:
+                value_hold = base / \
+                    vault_info_past['token0_chainlink_price'] * \
+                    vault_info_current['token0_chainlink_price']
+                value_vault = value_hold / \
+                    vault_info_past['vault_token_ratio'] * \
+                    vault_info_current['vault_token_ratio']
+            else:
+                value_hold = base / \
+                    vault_info_past['token1_chainlink_price'] * \
+                    vault_info_current['token1_chainlink_price']
+                value_vault = value_hold / \
+                    vault_info_past['vault_token_ratio'] * \
+                    vault_info_current['vault_token_ratio']
+        except TypeError:
+            return None, None
+
+        self.logger.info(('calc_value', value_hold, value_vault))
+        return value_hold, value_vault
 
     def run(self, input: VaultPerformanceInput) -> dict:
         vault_addr = input.address
@@ -607,39 +632,27 @@ class IchiVaultPerformance(Model):
             return result
 
         self.logger.info(('vault', vault_addr, first_deposit_block_number))
-        vault_info_fist_deposit = self.context.run_model(
+        vault_info_first_deposit = self.context.run_model(
             'ichi.vault-info', {"address": vault_addr}, block_number=first_deposit_block_number)
         result['irr'] = self.calc_irr(
-            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+            vault_info_first_deposit, vault_info_current, days_from_first_deposit)
         result['irr_hold_5050'] = self.calc_irr_hold_5050(
-            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
+            vault_info_first_deposit, vault_info_current, days_from_first_deposit)
         result['irr_uniswap'] = self.calc_irr_uniswap(
-            vault_info_fist_deposit, vault_info_current, days_from_first_deposit)
-
-        if vault_info_current['allowed_token'] == 0:
-            value_hold = 1000 / \
-                vault_info_fist_deposit['token0_chainlink_price'] * \
-                vault_info_current['token0_chainlink_price']
-            value_vault = value_hold / \
-                vault_info_fist_deposit['vault_token_ratio'] * \
-                vault_info_current['vault_token_ratio']
-        else:
-            value_hold = 1000 / \
-                vault_info_fist_deposit['token1_chainlink_price'] * \
-                vault_info_current['token1_chainlink_price']
-            value_vault = value_hold / \
-                vault_info_fist_deposit['vault_token_ratio'] * \
-                vault_info_current['vault_token_ratio']
+            vault_info_first_deposit, vault_info_current, days_from_first_deposit)
 
         value_uniswap = self.calc_irr_uniswap_value(
-            vault_info_fist_deposit, vault_info_current)
+            vault_info_first_deposit, vault_info_current)
+
+        value_hold, value_vault = self.calc_value(
+            vault_info_first_deposit, vault_info_current)
 
         result['value_hold'] = value_hold
         result['value_vault'] = value_vault
         result['value_uniswap'] = value_uniswap
 
         result['vault_token_ratio']['current'] = vault_info_current['vault_token_ratio']
-        result['vault_token_ratio']['start'] = vault_info_fist_deposit['vault_token_ratio']
+        result['vault_token_ratio']['start'] = vault_info_first_deposit['vault_token_ratio']
 
         for days in input.days_horizon:
             block_past_day = self.context.run_model(
@@ -668,7 +681,7 @@ class IchiVaultPerformance(Model):
 # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.12',
+                version='0.13',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
