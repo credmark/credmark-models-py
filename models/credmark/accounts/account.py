@@ -76,7 +76,7 @@ class AccountERC20TokenReturn(Model):
         return self.context.run_model('accounts.token-return',
                                       input=AccountsReturnInput(
                                           # type: ignore
-                                          accounts=[input.address],
+                                          accounts=[Account(input.address)],
                                           token_list=input.token_list).dict(),
                                       return_type=TokenReturnOutput)
 

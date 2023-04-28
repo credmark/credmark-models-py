@@ -25,6 +25,31 @@ class ExampleContractInput(DTO):
                 input=ExampleContractInput,
                 output=ExampleModelOutput)
 class ExampleContract(Model):
+    def test_ledger_function(self, contract, output):
+        if not input.disable_function_ledger:
+            with contract.ledger.functions.addVestingSchedule as q:
+                output.log(
+                    "You can query ledger data for contract function calls")
+                output.log_io(
+                    input="""
+    with contract.ledger.functions.addVestingSchedule as q:
+        q.select(columns=[
+                    q.BLOCK_NUMBER,
+                    q.FN_ACCOUNT,
+                    q.FN_ALLOCATION
+                ],
+                order_by=q.BLOCK_NUMBER.asc(),
+                limit=5)
+    """,
+                    output=q.select(
+                        columns=[
+                            q.BLOCK_NUMBER,
+                            q.FN_ACCOUNT,
+                            q.FN_ALLOCATION
+                        ],
+                        order_by=q.BLOCK_NUMBER,
+                        limit=5))
+
     def run(self, input: ExampleContractInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",
@@ -77,6 +102,7 @@ class ExampleContract(Model):
             vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                                     for s in vesting_added_events]
 
+            # Contract ledger queries
             output.log_io(input="""
 event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi() # pylint:disable=locally-disabled,protected-access
 
@@ -98,31 +124,6 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
         except (ReadTimeoutError, ReadTimeout):
             output.log_error('There was timeout error when reading logs for '
                              f'{contract.address}')
-
-        # Contract ledger queries
-        if not input.disable_function_ledger:
-            with contract.ledger.functions.addVestingSchedule as q:
-                output.log(
-                    "You can query ledger data for contract function calls")
-                output.log_io(
-                    input="""
-    with contract.ledger.functions.addVestingSchedule as q:
-        q.select(columns=[
-                    q.BLOCK_NUMBER,
-                    q.FN_ACCOUNT,
-                    q.FN_ALLOCATION
-                ],
-                order_by=q.BLOCK_NUMBER.asc(),
-                limit=5)
-    """,
-                    output=q.select(
-                        columns=[
-                            q.BLOCK_NUMBER,
-                            q.FN_ACCOUNT,
-                            q.FN_ALLOCATION
-                        ],
-                        order_by=q.BLOCK_NUMBER,
-                        limit=5))
 
         output.log("You can query ledger data for contract events")
         with contract.ledger.events.VestingScheduleAdded as q:
@@ -147,5 +148,7 @@ with contract.ledger.events.VestingScheduleAdded as q:
                     ],
                     order_by=q.BLOCK_NUMBER.asc(),
                     limit=5))
+
+        # self.test_ledger_function(contract, output)
 
         return output

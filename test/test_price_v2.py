@@ -2,6 +2,7 @@
 
 import pandas as pd
 from credmark.cmf.ipython import create_cmf
+from credmark.cmf.types import PriceWithQuote
 
 if __name__ == '__main__':
     local_cmf_param = {
@@ -33,22 +34,31 @@ if __name__ == '__main__':
         )
         for row_n, row in df_result.iterrows():
             symbol = row['Token']
-            current = prod_context.run_model(
-                'price.dex-blended', input={'symbol': symbol}, return_type=dict, block_number=block)['price']  # type: ignore
+            current: float = prod_context.run_model(
+                'price.dex-blended',
+                input={'symbol': symbol},
+                return_type=PriceWithQuote,
+                block_number=block).price
 
             updated = local_context.run_model(
-                'price.dex-blended', input={'symbol': symbol}, block_number=block)['price']  # type: ignore
+                'price.dex-blended',
+                input={'symbol': symbol},
+                return_type=PriceWithQuote,
+                block_number=block).price  # type: ignore
 
-            oracle = prod_context.run_model('price.oracle-chainlink',
-                                            input={'base': symbol}, block_number=block)['price']  # type: ignore
+            oracle = prod_context.run_model(
+                'price.oracle-chainlink',
+                input={'base': symbol},
+                return_type=PriceWithQuote,
+                block_number=block).price  # type: ignore
 
             df_result.loc[row_n, 'Current'] = current  # type: ignore
             df_result.loc[row_n, 'Updated'] = updated  # type: ignore
             df_result.loc[row_n, 'Oracle'] = oracle  # type: ignore
-            df_result.loc[row_n, 'Current Diff (%)'] = (
-                current - oracle) / oracle  # type: ignore
-            df_result.loc[row_n, 'Updated Diff (%)'] = (
-                updated - oracle) / oracle  # type: ignore
+            df_result.loc[row_n, 'Current Diff (%)'] = (  # type: ignore
+                current - oracle) / oracle
+            df_result.loc[row_n, 'Updated Diff (%)'] = (  # type: ignore
+                updated - oracle) / oracle
 
         df_result.reset_index(drop=False, inplace=True)
         df_result.columns = [block, 'Token', 'Current', 'Updated',
@@ -58,7 +68,7 @@ if __name__ == '__main__':
 
     f_out = 'tmp/price_test_v2.csv'
     with open(f_out, 'w') as f:
-        for l in csv_str_list:
-            f.write(l)
+        for line in csv_str_list:
+            f.write(line)
             f.write('\n')
     print(f'Wrote to {f_out}')

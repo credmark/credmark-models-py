@@ -1,13 +1,23 @@
 # pylint:disable=line-too-long
 
 import math
+
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Address, Contract, Network, Portfolio,
-                                PriceWithQuote, Some, Token, Position)
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Network,
+    Portfolio,
+    Position,
+    PriceWithQuote,
+    Some,
+    Token,
+)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+
 from models.dtos.tvl import LendingPoolPortfolios
 
 np.seterr(all='raise')
@@ -141,7 +151,8 @@ class CompoundV2AllPoolsInfo(Model):
         pools = self.context.run_model(slug='compound-v2.get-pools')
 
         model_slug = 'compound-v2.pool-info'
-        model_inputs = [Token(address=cTokenAddress) for cTokenAddress in pools['some']]
+        model_inputs = [Token(address=cTokenAddress)
+                        for cTokenAddress in pools['some']]
 
         def _use_compose():
             all_pool_infos_results = self.context.run_model(
@@ -160,7 +171,8 @@ class CompoundV2AllPoolsInfo(Model):
                     raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
                                         pool_result.error.message)
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return pool_infos
 
         def _use_for():
@@ -208,7 +220,8 @@ class CompoundV2AllPoolsValue(Model):
                     raise ModelRunError(f'Error with {model_slug}({model_inputs[pool_n]}). ' +
                                         pool_result.error.message)
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return pool_infos
 
         def _use_for():
@@ -366,12 +379,14 @@ class CompoundV2GetPoolInfo(Model):
 
         # From cToken to Token
         if input.symbol == 'cETH':
-            token = Token(address=self.COMPOUND_ASSETS[self.context.network]['WETH'])
+            token = Token(
+                address=self.COMPOUND_ASSETS[self.context.network]['WETH'])
         elif (input.address == self.COMPOUND_CTOKEN[self.context.network]['cSAI'] and
               input.symbol == 'cDAI'):
             # When input = cSAI, it has been renamed to cDAI in the contract.
             # We will still call up SAI
-            token = Token(address=self.COMPOUND_ASSETS[self.context.network]['SAI'])
+            token = Token(
+                address=self.COMPOUND_ASSETS[self.context.network]['SAI'])
         else:
             token = Token(address=cToken.functions.underlying().call())
 
@@ -405,27 +420,34 @@ class CompoundV2GetPoolInfo(Model):
         cash = token.scaled(cToken.functions.getCash().call())
         totalBorrows = token.scaled(cToken.functions.totalBorrows().call())
         totalReserves = token.scaled(cToken.functions.totalReserves().call())
-        totalcTokenSupply = cToken.scaled(cToken.functions.totalSupply().call())
+        totalcTokenSupply = cToken.scaled(
+            cToken.functions.totalSupply().call())
 
-        exchangeRate = token.scaled(cToken.functions.exchangeRateCurrent().call())
+        exchangeRate = token.scaled(
+            cToken.functions.exchangeRateCurrent().call())
         invExchangeRate = 1 / exchangeRate * pow(10, 10)
         totalLiability = totalcTokenSupply / invExchangeRate
 
-        reserveFactor = cToken.functions.reserveFactorMantissa().call() / self.ETH_MANTISSA
+        reserveFactor = cToken.functions.reserveFactorMantissa().call() / \
+            self.ETH_MANTISSA
         borrowRate = cToken.functions.borrowRatePerBlock().call() / self.ETH_MANTISSA
         supplyRate = cToken.functions.supplyRatePerBlock().call() / self.ETH_MANTISSA
 
         if math.isclose(cash + totalBorrows - totalReserves, 0):
             utilizationRate = 0
         else:
-            utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)
+            utilizationRate = totalBorrows / \
+                (cash + totalBorrows - totalReserves)
 
-        supplyAPY = (supplyRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1
-        borrowAPY = (borrowRate * self.BLOCKS_PER_DAY + 1) ** self.DAYS_PER_YEAR - 1
+        supplyAPY = (supplyRate * self.BLOCKS_PER_DAY +
+                     1) ** self.DAYS_PER_YEAR - 1
+        borrowAPY = (borrowRate * self.BLOCKS_PER_DAY +
+                     1) ** self.DAYS_PER_YEAR - 1
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
 
-        block_dt = self.context.block_number.timestamp_datetime.replace(tzinfo=None).isoformat()
+        block_dt = self.context.block_number.timestamp_datetime.replace(
+            tzinfo=None).isoformat()
         pool_info = CompoundV2PoolInfo(
             tokenSymbol=input.symbol,
             cTokenSymbol=cToken.symbol,
@@ -477,7 +499,8 @@ class CompoundV2GetPoolValue(Model):
                                     return_type=PriceWithQuote)
 
         if tp.price is None or tp.src is None:
-            raise ModelRunError(f'Can not get price for token {input.symbol=}/{input.address=}')
+            raise ModelRunError(
+                f'Can not get price for token {input.symbol=}/{input.address=}')
 
         # Liquidity = cash (reserve is part of it)
         # Asset = cash + totalBorrow
@@ -494,12 +517,14 @@ class CompoundV2GetPoolValue(Model):
             qty_borrow=pool_info.totalBorrows,
             qty_liability=pool_info.totalLiability,
             qty_reserve=pool_info.totalReserves,
-            qty_net=(pool_info.totalLiability + pool_info.totalReserves - pool_info.totalBorrows),
+            qty_net=(pool_info.totalLiability +
+                     pool_info.totalReserves - pool_info.totalBorrows),
             cash=tp.price * pool_info.cash,
             borrow=tp.price * pool_info.totalBorrows,
             liability=tp.price * pool_info.totalLiability,
             reserve=tp.price * pool_info.totalReserves,
-            net=tp.price * (pool_info.totalLiability + pool_info.totalReserves - pool_info.totalBorrows),
+            net=tp.price * (pool_info.totalLiability +
+                            pool_info.totalReserves - pool_info.totalBorrows),
             block_number=pool_info.block_number,
             block_datetime=pool_info.block_datetime,
         )
@@ -537,8 +562,10 @@ class CompoundV2GetPoolPortfolio(Model):
             # supply = liability
             # debt = borrow
             positions_net.append(Position(amount=dbt.qty_net, asset=dbt.token))
-            positions_supply.append(Position(amount=dbt.qty_liability, asset=dbt.token))
-            positions_debt.append(Position(amount=dbt.qty_borrow, asset=dbt.token))
+            positions_supply.append(
+                Position(amount=dbt.qty_liability, asset=dbt.token))
+            positions_debt.append(
+                Position(amount=dbt.qty_borrow, asset=dbt.token))
             prices[dbt.token.address] = dbt.token_price
 
             supply_value += dbt.qty_liability * dbt.token_price.price

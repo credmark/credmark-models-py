@@ -23,7 +23,8 @@ def create_graph_from_txn(df_txn) -> nx.DiGraph:
                 raise ValueError('Missing edge data')
             data = data['txn_data']
             dig.remove_edge(r.from_address, r.to_address)
-            dig.add_edge(r.from_address, r.to_address, txn_data=data + txn_data)
+            dig.add_edge(r.from_address, r.to_address,
+                         txn_data=data + txn_data)
         else:
             dig.add_edge(r.from_address, r.to_address, txn_data=txn_data)
     return dig
@@ -31,7 +32,8 @@ def create_graph_from_txn(df_txn) -> nx.DiGraph:
 
 def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
     input_nodes = {u for u, deg in dig.in_degree() if not deg}  # type: ignore
-    output_nodes = {u for u, deg in dig.out_degree() if not deg}  # type: ignore
+    # type: ignore
+    output_nodes = {u for u, deg in dig.out_degree() if not deg}
     in_and_out_nodes = ({u for u, _deg in dig.in_degree()} &  # type: ignore
                         {u for u, _deg in dig.out_degree()})  # type: ignore
 
@@ -114,26 +116,30 @@ def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
 def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
     _ax = plt.figure(3, figsize=figsize)
 
-    etwo = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) > 1]  # type: ignore
-    eone = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) == 1]  # type: ignore
+    etwo = [(u, v) for (u, v, d) in dig.edges(data=True)
+            if len(d["txn_data"]) > 1]  # type: ignore
+    eone = [(u, v) for (u, v, d) in dig.edges(data=True)
+            if len(d["txn_data"]) == 1]  # type: ignore
 
-    pos = nx.spring_layout(dig, seed=9)  # positions for all nodes - seed for reproducibility
+    # positions for all nodes - seed for reproducibility
+    pos = nx.spring_layout(dig, seed=9)  # type: ignore
 
     # nodes
-    nx.draw_networkx_nodes(dig, pos, node_size=1400, node_color='#FFFFFF', edgecolors='#000000')
+    nx.draw_networkx_nodes(dig, pos, node_size=1400,  # type: ignore
+                           node_color='#FFFFFF', edgecolors='#000000')
 
     # edges
-    nx.draw_networkx_edges(dig, pos, edgelist=etwo, width=3,
+    nx.draw_networkx_edges(dig, pos, edgelist=etwo, width=3,  # type: ignore
                            edge_color="black", connectionstyle='Arc3, rad=0.2', arrowsize=20)
-    nx.draw_networkx_edges(dig, pos, edgelist=eone, width=3,
+    nx.draw_networkx_edges(dig, pos, edgelist=eone, width=3,  # type: ignore
                            edge_color="blue", connectionstyle='Arc3, rad=0.2', arrowsize=20)
 
     # node labels
-    nx.draw_networkx_labels(dig, pos, labels={n: n[:5] for n in dig},
+    nx.draw_networkx_labels(dig, pos, labels={n: n[:5] for n in dig},  # type: ignore
                             font_size=11, font_family="sans-serif")
 
     # edge weight labels
-    edge_labels = nx.get_edge_attributes(dig, "txn_data")
+    edge_labels = nx.get_edge_attributes(dig, "txn_data")  # type: ignore
     edge_set = set()
     new_edge_labels = {}
     for e, v in edge_labels.items():
@@ -148,7 +154,8 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
                                      for x in v])
                        for e, v in new_edge_labels.items()}
 
-    nx.draw_networkx_edge_labels(dig, pos, edge_labels=new_edge_labels, rotate=False, font_size=11)
+    nx.draw_networkx_edge_labels(  # type: ignore
+        dig, pos, edge_labels=new_edge_labels, rotate=False, font_size=11)
 
     # ax = plt.gca()
     # ax.margins(0.08)

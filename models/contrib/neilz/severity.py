@@ -42,9 +42,10 @@ class ExploitedValue(Model):
         portfolio_now = self.context.models.account.portfolio_aggregate(input=input,
                                                                         return_type=Portfolio)
 
-        portfolio_two_blocks_ago = self.context.models.account.portfolio_aggregate(
-            input=input, return_type=Portfolio,
-            block_number=self.context.block_number - 2)
+        portfolio_two_blocks_ago: Portfolio = self.context.models.account.portfolio_aggregate(
+            input=input,
+            return_type=Portfolio,
+            block_number=self.context.block_number - 2)  # type: ignore
 
         # pylint:disable=line-too-long
         value_diff = portfolio_two_blocks_ago.get_value(
