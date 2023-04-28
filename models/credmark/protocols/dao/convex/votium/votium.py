@@ -1,4 +1,5 @@
 # pylint:disable=unused-import
+# ruff: noqa: F401
 
 from typing import List
 

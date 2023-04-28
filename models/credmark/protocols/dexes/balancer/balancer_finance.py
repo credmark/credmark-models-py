@@ -1,6 +1,5 @@
 # pylint:disable=unused-import, invalid-name
 
-import sys
 from decimal import Decimal, getcontext
 from typing import List, NamedTuple
 

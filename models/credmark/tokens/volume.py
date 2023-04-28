@@ -221,14 +221,15 @@ class TokenVolumeSegmentBlock(Model):
                         (e.TIMESTAMP, 'to_timestamp'),
                         (t.VALUE.as_numeric().sum_(), 'sum_value')
                     ],
+                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
+                        block_end)),
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
                         (JoinType.LEFT_OUTER, t, t.field(
                             f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
-                    having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
-                        block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
+                    having=f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0',
                     order_by=s.NUMBER.asc(),
                     bigint_cols=['from_block', 'to_block', 'sum_value']
                 ).to_dataframe()
@@ -248,14 +249,15 @@ class TokenVolumeSegmentBlock(Model):
                         (e.TIMESTAMP, 'to_timestamp'),
                         (t.VALUE.as_numeric().sum_(), 'sum_value')
                     ],
+                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
+                        block_end)),
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
                         (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}')
                          .and_(t.TOKEN_ADDRESS.eq(token_address)))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
-                    having=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
-                        block_end).and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0')),
+                    having=f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0',
                     order_by=s.NUMBER.asc(),
                     bigint_cols=['from_block', 'to_block', 'sum_value']
                 ).to_dataframe()

@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines, bare-except, line-too-long, pointless-string-statement
+# ruff: noqa: E722
 
 import os
 from datetime import timedelta
