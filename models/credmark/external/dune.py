@@ -4,10 +4,10 @@ from time import sleep
 from typing import Any, Optional, Type, TypeVar
 
 import requests
+from requests import HTTPError, JSONDecodeError, Response
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, DTOField
-from requests import HTTPError, JSONDecodeError, Response
 
 
 class DuneQueryState(str, Enum):
