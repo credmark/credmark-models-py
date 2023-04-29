@@ -1,4 +1,4 @@
-# pylint:disable=try-except-raise, no-member
+# pylint:disable=try-except-raise, no-member, line-too-long
 from typing import List
 
 from credmark.cmf.model import Model
@@ -22,6 +22,7 @@ from credmark.cmf.types import (
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapInputsOutput
 from credmark.dto import DTOField
 
+from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolLPPosition
 from models.dtos.price import (
     PRICE_DATA_ERROR_DESC,
     PriceHistoricalInput,
@@ -395,7 +396,7 @@ class PriceCommon:
         return token
 
     @staticmethod
-    def get_price_usd_for_base(context, input, no_dex):
+    def get_price_usd_for_base(context, input, logger, slug, no_dex):
         # We already tried base with quote in USD.
         # When quote is non-USD, we try to obtain base's price quote in USD
         if input.quote != Currency(symbol='USD'):
@@ -410,17 +411,30 @@ class PriceCommon:
                 return price_usd_maybe.just
 
         if no_dex:
+            try:
+                uniswap_pos = context.run_model('uniswap-v2.lp-amount',
+                                                input=input.base,
+                                                return_type=UniswapV2PoolLPPosition)
+                token0_price = context.run_model(slug, {"base": uniswap_pos.token0})
+                token1_price = context.run_model(slug, {"base": uniswap_pos.token1})
+                logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
+                            f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
+                uniswap_lp_value = \
+                    uniswap_pos.token0_amount * token0_price['price'] + \
+                    uniswap_pos.token1_amount * token1_price['price']
+                return PriceWithQuote.usd(price=uniswap_lp_value, src=token0_price['src'] + '|' + token1_price['src'])
+            except ModelDataError:
+                pass
             raise ModelRunError(
                 f'No chainlink source for this token {input.base.address}')
 
-        return __class__.get_price_usd_from_dex(context, input.base)
+        return __class__.get_price_usd_from_dex(context, logger, slug, input.base)
 
     @staticmethod
-    def get_price_usd_from_dex(context, input_base):
+    def get_price_usd_from_dex(context, logger, slug, input_base):
         try:
             price_usd = context.run_model('price.dex-db-prefer',
-                                          input=__class__.wrap_token(
-                                              context, input_base),
+                                          input=__class__.wrap_token(context, input_base),
                                           return_type=PriceWithQuote,
                                           local=True)
             return price_usd
@@ -434,7 +448,20 @@ class PriceCommon:
             if price_usd_maybe.just is not None:
                 return PriceWithQuote.usd(**price_usd_maybe.just.dict())
             else:
-                raise
+                try:
+                    uniswap_pos = context.run_model('uniswap-v2.lp-amount',
+                                                    input=input_base,
+                                                    return_type=UniswapV2PoolLPPosition)
+                    token0_price = context.run_model(slug, {"base": uniswap_pos.token0})
+                    token1_price = context.run_model(slug, {"base": uniswap_pos.token1})
+                    logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
+                                f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
+                    uniswap_lp_value = \
+                        uniswap_pos.token0_amount * token0_price['price'] + \
+                        uniswap_pos.token1_amount * token1_price['price']
+                    return PriceWithQuote.usd(price=uniswap_lp_value, src=token0_price['src'] + '|' + token1_price['src'])
+                except ModelDataError:
+                    raise
 
 
 class NoDEX:
@@ -476,11 +503,15 @@ class PriceCexModel(Model, PriceCommon):
             price_usd = __class__.get_price_usd_for_base(
                 self.context,
                 input.inverse(),
+                self.logger,
+                self.slug,
                 no_dex=True).inverse(input.quote.address)
         else:
             price_usd = __class__.get_price_usd_for_base(
                 self.context,
                 input,
+                self.logger,
+                self.slug,
                 no_dex=self.no_dex)  # type: ignore
 
         if Currency(symbol='USD') in [input.base, input.quote]:
@@ -599,7 +630,7 @@ class PriceDex(Model, PriceCommon):
         # 2. Use chainlink when either half is fiat
         if input.quote.fiat:
             price_usd = __class__.get_price_usd_from_dex(
-                self.context, input.base)
+                self.context, self.logger, self.slug, input.base)
 
             if input.quote == usd_currency:
                 return price_usd
@@ -612,7 +643,7 @@ class PriceDex(Model, PriceCommon):
 
         if input.base.fiat:
             price_usd = __class__.get_price_usd_from_dex(
-                self.context, input.quote)
+                self.context, self.logger, self.slug, input.quote)
 
             if input.base == usd_currency:
                 return price_usd.inverse(input.quote.address)
@@ -625,9 +656,9 @@ class PriceDex(Model, PriceCommon):
 
         # 3. Use only dex
         price_usd_base = __class__.get_price_usd_from_dex(
-            self.context, input.base)
+            self.context, self.logger, self.slug, input.base)
         price_usd_quote = __class__.get_price_usd_from_dex(
-            self.context, input.quote)
+            self.context, self.logger, self.slug, input.quote)
 
         return PriceWithQuote(price=price_usd_base.price / price_usd_quote.price,
                               quoteAddress=input.quote.address,

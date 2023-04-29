@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, invalid-name, line-too-long
+# pylint: disable=locally-disabled, invalid-name, line-too-long
 
 from typing import List
 

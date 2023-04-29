@@ -1,7 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Contract, Maybe, NativeToken, Network,
-                                PriceWithQuote, Token)
+from credmark.cmf.types import Contract, Maybe, NativeToken, Network, PriceWithQuote, Token
 
 from models.dtos.price import PriceInput
 

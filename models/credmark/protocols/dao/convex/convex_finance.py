@@ -1,13 +1,12 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 
 
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (Account, Contract, Some,
-                                Token,
-                                Network)
+from credmark.cmf.types import Account, Contract, Network, Some, Token
 from credmark.dto import DTO, EmptyInput
+
 from models.tmp_abi_lookup import CRV_REWARD
 
 np.seterr(all='raise')

@@ -137,3 +137,26 @@ class TestUniswap(CMFTest):
             "uniswap-v3.lp", {"lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355427}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355415}, block_number=15931588)
+
+    def test_v2(self):
+        # credmark-dev run uniswap-v2.lp-amount -i '{"address": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.quote -i '{"base": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.cex -i '{"base": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.dex -i '{"base": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
+
+        # credmark-dev run uniswap-v2.lp-amount -i '{"address": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.quote -i '{"base": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.cex -i '{"base": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
+        # credmark-dev run price.dex -i '{"base": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
+
+        pool_address = [
+            '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
+            '0xce84867c3c02b05dc570d0135103d3fb9cc19433'
+        ]
+
+        for pool_addr in pool_address:
+            self.run_model(
+                "uniswap-v2.lp-amount", {"address": pool_addr}, block_number=17150428)
+
+            self.run_model(
+                "price.dex", {"base": pool_addr}, block_number=17150428)

@@ -1,4 +1,4 @@
-# pylint: disable= line-too-long, unused-import
+# pylint: disable= line-too-long
 
 from typing import List, Optional
 

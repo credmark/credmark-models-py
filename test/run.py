@@ -1,4 +1,5 @@
 # pylint:disable=unused-import,line-too-long
+# ruff: noqa: F401
 
 import argparse
 import inspect
@@ -35,9 +36,6 @@ from test_tls import TestTLS
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
-
-ALL_TESTS = [TestBSC, TestPolygon, TestAAVE, TestArbitrum, TestAccount, TestBalancer, TestChainlink, TestCMK, TestCompose, TestCompound, TestCurve, TestDashboard,
-             TestExample, TestFiat, TestFinance, TestICHI, TestIPOR, TestIndexCoop, TestOptimism, TestPrice, TestSpeed, TestSushiSwap, TestToken, TestTLS, TestTVL, TestUniswap]
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

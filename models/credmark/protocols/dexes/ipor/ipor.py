@@ -1,15 +1,20 @@
 # pylint: disable=too-many-lines, unsubscriptable-object, line-too-long
-from typing import NamedTuple, Generator, Any
 from collections import namedtuple
+from typing import Any, Generator, NamedTuple
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (
-    Address, BlockNumber, Contract, Contracts, Network, Token, )
-
-from credmark.dto import DTO, EmptyInput, DTOField
-from eth_typing.evm import ChecksumAddress
+    Address,
+    BlockNumber,
+    Contract,
+    Contracts,
+    Network,
+    Token,
+)
+from credmark.dto import DTO, DTOField, EmptyInput
 from eth_abi.abi import encode_abi
+from eth_typing.evm import ChecksumAddress
 
 
 @Model.describe(slug='ipor.get-oracle-and-calculator',

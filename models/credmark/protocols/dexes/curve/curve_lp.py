@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract

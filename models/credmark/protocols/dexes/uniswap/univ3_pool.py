@@ -1,8 +1,8 @@
+# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long
+
 """
 Uni V3 Pool
 """
-
-# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, unused-import
 
 import sys
 from datetime import datetime

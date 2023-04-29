@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 
 
 from typing import List

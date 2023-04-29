@@ -25,7 +25,8 @@ class ExampleContractInput(DTO):
                 input=ExampleContractInput,
                 output=ExampleModelOutput)
 class ExampleContract(Model):
-    def test_ledger_function(self, contract, output):
+    @staticmethod
+    def test_ledger_function(contract, output):
         if not input.disable_function_ledger:
             with contract.ledger.functions.addVestingSchedule as q:
                 output.log(

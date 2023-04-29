@@ -1,5 +1,3 @@
-# pylint: disable=unused-import
-
 from credmark.cmf.ipython import create_cmf
 from credmark.cmf.types import Records, Token
 

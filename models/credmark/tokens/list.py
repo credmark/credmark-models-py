@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, no-member
+# pylint: disable=locally-disabled, no-member
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Records

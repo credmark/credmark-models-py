@@ -4,10 +4,10 @@ from time import sleep
 from typing import Any, Optional, Type, TypeVar
 
 import requests
-from requests import HTTPError, JSONDecodeError, Response
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, DTOField
+from requests import HTTPError, JSONDecodeError, Response
 
 
 class DuneQueryState(str, Enum):
@@ -30,8 +30,8 @@ T = TypeVar("T", bound=DTO)
 class DuneClient:
     DEFAULT_TIMEOUT = 10
 
+    @staticmethod
     def _handle_response(
-        self,
         response: Response,
         dto_cls: Type[T]
     ) -> T:
@@ -43,7 +43,8 @@ class DuneClient:
         except JSONDecodeError:
             raise ModelDataError("Received invalid JSON from Dune.")
 
-    def _route_url(self, route: str) -> str:
+    @staticmethod
+    def _route_url(route: str) -> str:
         return f"https://api.dune.com/api/v1/{route}"
 
     def _get(self, *, api_key: str, route: str, dto_cls: Type[T]) -> T:

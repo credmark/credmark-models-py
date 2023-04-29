@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, unused-import, invalid-name, line-too-long
+# pylint: disable=locally-disabled, invalid-name, line-too-long
 
 import math
 
@@ -80,16 +80,19 @@ def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -
     pools = []
     for token_pair in token_pairs:
         for fee in V3_POOL_FEES:
-            pool = uniswap_factory.functions.getPool(*token_pair, fee).call()
-            if not Address(pool).is_null():
-                cc = Contract(address=pool).set_abi(
+            pool_addr = uniswap_factory.functions.getPool(
+                *token_pair, fee).call()
+            if not Address(pool_addr).is_null():
+                cc = Contract(address=pool_addr).set_abi(
                     abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
                 try:
                     _ = cc.abi
+                    _ = cc.functions.token0().call()
                 except BlockNumberOutOfRangeError:
-                    continue
+                    continue  # before its creation
                 except ModelDataError:
                     pass
+
                 pools.append(cc)
     return Contracts(contracts=pools)
 

@@ -3,12 +3,15 @@
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
-  "python.formatting.autopep8Args": [
+  "autopep8.args": [
     "--max-line-length",
-    "120"
+    "120",
   ],
   "ruff.args": [
-    "--ignore E501",
+    "--ignore",
+    "E501",
+    "--ignore",
+    "F841",
   ],
   "python.linting.pylintEnabled": true,
   "python.linting.lintOnSave": true,

@@ -1,4 +1,4 @@
-# pylint:disable=unused-import, line-too-long, protected-access
+# pylint:disable=line-too-long, protected-access
 
 from typing import NamedTuple, Union
 
