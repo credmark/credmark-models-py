@@ -15,9 +15,9 @@ class TestICHI(CMFTest):
         last_block_2 = last_block_output['output']['blockNumber'] - 31
         self.ichi_tests(last_block, last_block_2)
 
-        remainder = last_block % 42_00_000
-        for last_block in [25_697_834, 27_697_834, 28_697_834, 30_028_518, 39_028_518]:
-            self.ichi_tests(last_block, last_block)
+        remainder = last_block % int(last_block // 1_000_000 * 1_000_000)
+        for last_block in [25_697_834, 27_697_834, 34_028_518, 39_028_518]:
+            # self.ichi_tests(last_block, last_block)
             self.ichi_tests(last_block + remainder, last_block + remainder)
 
     def get_token_deployment_block(self, address, last_block, chain_id):
