@@ -2,8 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError, ModelRunError
-from credmark.cmf.types.block_number import (BlockNumber,
-                                             BlockNumberOutOfRangeError)
+from credmark.cmf.types.block_number import BlockNumber, BlockNumberOutOfRangeError
 from credmark.dto import EmptyInput
 
 from .dtos import ExampleBlockTimeInput, ExampleModelOutput
@@ -33,7 +32,8 @@ class ExampleBlockNumber(Model):
 
         block_number = self.context.block_number
 
-        output.log("The current environment's BlockNumber is available in the Model Context")
+        output.log(
+            "The current environment's BlockNumber is available in the Model Context")
         output.log_io(input="self.context.block_number",
                       output=self.context.block_number)
         output.log_io(input="block_number",
@@ -43,7 +43,8 @@ class ExampleBlockNumber(Model):
         output.log_io(input="block_number.timestamp_datetime",
                       output=block_number.timestamp_datetime)
 
-        output.log('Addition and subtraction works across BlockNumber and int types')
+        output.log(
+            'Addition and subtraction works across BlockNumber and int types')
         output.log_io(input="block_number - 1000",
                       output=block_number - 1000)
         output.log_io(input="(block_number - 1000).timestamp_datetime",
@@ -59,8 +60,7 @@ class ExampleBlockNumber(Model):
 
         try:
             # pylint: disable=pointless-statement
-            # pyright: reportUnusedExpression=false
-            block_number + 1
+            _ = block_number + 1
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
                 'an exception was NOT caught, and the example has FAILED')
@@ -107,11 +107,14 @@ class ExampleBlockTime(Model):
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
-        output.log("CMF object BlockNumber is used to get Block Number from datetime or timestamp")
+        output.log(
+            "CMF object BlockNumber is used to get Block Number from datetime or timestamp")
         block_number = BlockNumber.from_timestamp(block_time)
-        output.log("BlockNumber's timestamp might be different from the input timestamp,")
+        output.log(
+            "BlockNumber's timestamp might be different from the input timestamp,")
         output.log("as the last block before the datetime is returned")
-        output.log_io(input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
+        output.log_io(
+            input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
 
         output.log_io(input="block_number.timestamp_datetime",
                       output=block_number.timestamp_datetime)
@@ -126,13 +129,15 @@ class ExampleBlockTime(Model):
         if self.context.web3.eth.get_block_number() - self.context.block_number < 100:
             output.log("Querying block number for a future timestamp "
                        "returns the latest block number")
-            future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
+            future_block_time = datetime.utcnow().replace(
+                tzinfo=timezone.utc) + timedelta(days=10)
             output.log_io(input="future_block_time", output=future_block_time)
             output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
                           output=BlockNumber.from_timestamp(future_block_time))
 
         block_time_without_tz = block_time.replace(tzinfo=None)
-        output.log_io(input="block_time_without_tz", output=block_time_without_tz)
+        output.log_io(input="block_time_without_tz",
+                      output=block_time_without_tz)
 
         try:
             BlockNumber.from_timestamp(block_time_without_tz)

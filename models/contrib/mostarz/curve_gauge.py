@@ -14,7 +14,8 @@ class CurveFinanceGaugeAmounts(Model):
     def run(self, input: Contract) -> dict:
         balances = []
 
-        all_addrs = Accounts(**self.context.models.curve_fi.all_gauge_claim_addresses(input))
+        all_addrs = Accounts(
+            **self.context.models.curve_fi.all_gauge_claim_addresses(input))
         for addr in all_addrs:
             if not addr.address:
                 raise ModelInputError(f'Input is invalid, {input}')

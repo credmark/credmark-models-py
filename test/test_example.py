@@ -8,8 +8,10 @@ class TestExample(CMFTest):
         self.title('Neil\'s example')
         self.run_model('contrib.neilz', {})
 
-        self.run_model('contrib.neilz-new-addresses', {"start_block": -100, "unique": True})
-        self.run_model('contrib.neilz-new-addresses', {"start_block": 15709159}, block_number=15709259)
+        self.run_model('contrib.neilz-new-addresses',
+                       {"start_block": -100, "unique": True})
+        self.run_model('contrib.neilz-new-addresses',
+                       {"start_block": 15709159}, block_number=15709259)
 
         self.run_model('contrib.curve-fi-pool-historical-reserve',
                        {"address": "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46"})
@@ -39,7 +41,8 @@ class TestExample(CMFTest):
         self.run_model('example.historical', {"model_slug": "price.quote",
                        "model_input": {"base": {"symbol": "USDC"}}})  # price.quote
         # token.overall-volume  # series.time-window-interval, series.time-start-end-interval
-        self.run_model('example.historical', {"model_slug": "token.overall-volume", "model_input": {"symbol": "USDC"}})
+        self.run_model('example.historical', {
+                       "model_slug": "token.overall-volume", "model_input": {"symbol": "USDC"}})
         # example.libraries  # series.block-window-interval, series.block-start-end-interval
         self.run_model('example.historical-block', {})
 
@@ -56,17 +59,22 @@ class TestExample(CMFTest):
         self.title('Iteration Examples')
         self.run_model('example.iteration', {})
 
-        self.run_model('contrib.token-net-inflow', {'blocks': 7000}, block_number=15038786)
+        self.run_model('contrib.token-net-inflow',
+                       {'blocks': 7000}, block_number=15038786)
         self.run_model('contrib.debt-dao-generalized-cashflow',
                        {"sender_address": "0xf16E9B0D03470827A95CDfd0Cb8a8A3b46969B91",
                            "receiver_address": "0xf596c85d4ec5572dfB2351F9395ca6A185aAec6D"},
                        block_number=15086281)
-        self.run_model('contrib.neilz-redacted-votium-cashflow', {}, block_number=15086281)
-        self.run_model('contrib.neilz-redacted-convex-cashflow', {}, block_number=15086281)
+        self.run_model('contrib.neilz-redacted-votium-cashflow',
+                       {}, block_number=15086281)
+        self.run_model('contrib.neilz-redacted-convex-cashflow',
+                       {}, block_number=15086281)
 
-        self.run_model('contrib.uniswap-fee', {"interval": 500}, block_number=15211790)
+        self.run_model('contrib.uniswap-fee',
+                       {"interval": 500}, block_number=15211790)
 
-        self.run_model('example.all', {})  # example.contract, example.ledger-transactions, example.block-time
+        # example.contract, example.ledger-transactions, example.block-time
+        self.run_model('example.all', {})
         self.run_model('example.contract', {})
 
     def test_convex_apr(self):
@@ -108,4 +116,5 @@ class TestExample(CMFTest):
         }]
 
         for tc in test_cases[:3]:
-            self.run_model('contrib.curve-convex-yield', tc, block_number=15839025)
+            self.run_model('contrib.curve-convex-yield',
+                           tc, block_number=15839025)

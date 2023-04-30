@@ -2,8 +2,8 @@
 
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.dto import (DTO, EmptyInput)
-from credmark.cmf.types import (Address, Contract, Network)
+from credmark.cmf.types import Address, Contract, Network
+from credmark.dto import DTO, EmptyInput
 
 
 class SetV2ModulesOutput(DTO):
@@ -73,7 +73,8 @@ def setv2_fee(_setv_module, _start_block, _end_block, _set_token_addr):
     else:
         df_burn = pd.DataFrame(
             data=[(0, 0, 0, 0, '')],
-            columns=['blockNumber', 'logIndex', 'transactionIndex', '_quantity', '_redeemer'],
+            columns=['blockNumber', 'logIndex',
+                     'transactionIndex', '_quantity', '_redeemer'],
         ).query('_redeemer != ""')
 
     df_mint_burn = (pd

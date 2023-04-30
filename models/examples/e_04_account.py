@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Accounts
+
 from .dtos import ExampleAccountInput, ExampleModelOutput
 
 
@@ -29,15 +30,19 @@ class ExampleAccount(Model):
         account_2 = Account(address=input.address_2)
         accounts = Accounts(accounts=[account_1, account_2])
 
-        output.log("Account is the base Data Transfer Object for classes Contract and Token.")
+        output.log(
+            "Account is the base Data Transfer Object for classes Contract and Token.")
 
         output.log("You initialize an Account with an address.")
-        output.log_io(input=f"Account(address='{account_1.address}')", output=account_1.dict())
-        output.log_io(input=f"Account(address='{account_2.address}')", output=account_2.dict())
+        output.log_io(
+            input=f"Account(address='{account_1.address}')", output=account_1.dict())
+        output.log_io(
+            input=f"Account(address='{account_2.address}')", output=account_2.dict())
 
         output.log("There is also an iterable Accounts Data Transfer Object, "
                    "initialized with a list of accounts")
 
-        output.log_io(input="Accounts(accounts=[account_1, account_2])", output=accounts.dict())
+        output.log_io(
+            input="Accounts(accounts=[account_1, account_2])", output=accounts.dict())
 
         return output

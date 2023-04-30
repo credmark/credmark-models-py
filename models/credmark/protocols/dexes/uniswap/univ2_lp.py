@@ -5,10 +5,11 @@ from typing import List
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import (Address, Position, Token, Records)
+from credmark.cmf.types import Address, Position, Records, Token
 from credmark.dto import DTO, DTOField
+
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
-from models.tmp_abi_lookup import (UNISWAP_V2_POOL_ABI)
+from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
 
 class V2LPInput(DTO):
@@ -65,14 +66,16 @@ class UniswapV2LPQuantity(Model):
         token1_addr = pool.functions.token1().call()
 
         try:
-            token0 = Token(address=Address(token0_addr)).as_erc20(set_loaded=True)
+            token0 = Token(address=Address(token0_addr)
+                           ).as_erc20(set_loaded=True)
             scaled_reserve0 = token0.scaled(reserves[0])
         except OverflowError:
             token0 = Token(address=Address(token0_addr)).as_erc20()
             scaled_reserve0 = token0.scaled(reserves[0])
 
         try:
-            token1 = Token(address=Address(token1_addr)).as_erc20(set_loaded=True)
+            token1 = Token(address=Address(token1_addr)
+                           ).as_erc20(set_loaded=True)
             scaled_reserve1 = token1.scaled(reserves[1])
         except OverflowError:
             token1 = Token(address=Address(token1_addr)).as_erc20()
@@ -177,7 +180,8 @@ def try_zero(flt):
 
 def uniswap_v2_fee_sample_data():
     _df_sample = pd.DataFrame(
-        columns=['block_number', 'log_index', 'from_address', 'to_address', 'transaction_value'],
+        columns=['block_number', 'log_index', 'from_address',
+                 'to_address', 'transaction_value'],
         data=[(int(10109485), int(173),
               '0x0000000000000000000000000000000000000000',
                '0x76e2e2d4d655b83545d4c50d9521f5bc63bc5329',
@@ -258,7 +262,8 @@ class UniswapV2LPFeeHistory(Model):
 
         def _use_model():
             return self.context.run_model('account.token-transfer',
-                                          input={'address': lp, 'tokens': [pool.address]},
+                                          input={'address': lp,
+                                                 'tokens': [pool.address]},
                                           return_type=Records).to_dataframe()
 
         # _df = _use_model().rename(columns={'value': 'transaction_value'})[q_cols]
@@ -298,8 +303,10 @@ class UniswapV2LPFeeHistory(Model):
             return Records.from_dataframe(_df)
 
         if (_df["block_number"].tail(1) != int(self.context.block_number)).all():
-            new_row = [('', int(self.context.block_number), -1, input.lp, input.lp, 0)]
-            _df = pd.concat([_df, pd.DataFrame(new_row, columns=q_cols)]).reset_index(drop=True)
+            new_row = [('', int(self.context.block_number), -
+                        1, input.lp, input.lp, 0)]
+            _df = pd.concat(
+                [_df, pd.DataFrame(new_row, columns=q_cols)]).reset_index(drop=True)
 
         lp_prev_token0 = 0
         lp_prev_token1 = 0
@@ -352,7 +359,8 @@ class UniswapV2LPFee(Model):
         # Obtain the last 2 when the current block has mint/burn
         with self.context.ledger.TokenBalance as q:
             _df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'sum_transaction_value')],
+                aggregates=[
+                    (q.TRANSACTION_VALUE.as_numeric().sum_(), 'sum_transaction_value')],
                 order_by=q.BLOCK_NUMBER.desc(),
                 where=(q.ADDRESS.eq(lp)
                         .and_(q.TOKEN_ADDRESS.eq(pool.address))

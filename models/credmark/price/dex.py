@@ -5,15 +5,27 @@ from typing import List, Tuple
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Maybe, Network, Price, PriceWithQuote,
-                                Some, Token)
+from credmark.cmf.types import (
+    Address,
+    Maybe,
+    Network,
+    Price,
+    PriceWithQuote,
+    Some,
+    Token,
+)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import EmptyInput
-from models.dtos.price import (PRICE_DATA_ERROR_DESC, DexPoolAggregationInput,
-                               DexPriceTokenInput, DexPriceTokensInput)
-from models.dtos.pool import PoolPriceInfo
 from web3.exceptions import BadFunctionCallOutput
+
+from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import (
+    PRICE_DATA_ERROR_DESC,
+    DexPoolAggregationInput,
+    DexPriceTokenInput,
+    DexPriceTokensInput,
+)
 
 
 @Model.describe(slug='dex.ring0-tokens',
@@ -73,7 +85,8 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
         if input_address not in ring1_tokens:
             primary_tokens.extend(ring1_tokens)
         else:
-            primary_tokens.extend(ring1_tokens[:ring1_tokens.index(input_address)])
+            primary_tokens.extend(
+                ring1_tokens[:ring1_tokens.index(input_address)])
 
     token_pairs = []
 
@@ -81,11 +94,13 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
         if token_address == input_address:
             continue
         if input_address.to_int() < token_address.to_int():
-            token_pairs.append((input_address.checksum, token_address.checksum))
+            token_pairs.append(
+                (input_address.checksum, token_address.checksum))
             # TEST
             # token_pairs.append((Token(input_address).symbol, Token(token_address).symbol))
         else:
-            token_pairs.append((token_address.checksum, input_address.checksum))
+            token_pairs.append(
+                (token_address.checksum, input_address.checksum))
             # TEST
             # token_pairs.append((Token(token_address).symbol, Token(input_address).symbol))
 
@@ -107,7 +122,8 @@ class PoolPriceAggregator(Model):
         all_pool_infos = input.some
 
         if len(all_pool_infos) == 0:
-            raise ModelRunError(f'[{self.context.block_number}] No pool to aggregate for {input}')
+            raise ModelRunError(
+                f'[{self.context.block_number}] No pool to aggregate for {input}')
 
         non_zero_pools = [
             ii.pool_address for ii in all_pool_infos
@@ -147,8 +163,10 @@ class PoolPriceAggregator(Model):
         if input.debug:
             print(df, file=sys.stderr)
 
-        product_of_price_liquidity_power = (df.price_t * df.tick_liquidity_t ** input.weight_power).sum()
-        sum_of_liquidity_power = (df.tick_liquidity_t ** input.weight_power).sum()
+        product_of_price_liquidity_power = (
+            df.price_t * df.tick_liquidity_t ** input.weight_power).sum()
+        sum_of_liquidity_power = (
+            df.tick_liquidity_t ** input.weight_power).sum()
         price = product_of_price_liquidity_power / sum_of_liquidity_power
         return Price(price=price, src=f'{price_src}|{input.weight_power}')
 
@@ -288,7 +306,8 @@ class PriceInfoFromDex(Model):
                          f'{model_inputs[dex_n]}. ' +
                          dex_result.error.message))
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return all_pool_infos
 
         def _use_for(local):
@@ -331,7 +350,8 @@ class PriceFromDexModel(Model):
                 **input.dict(),
                 some=all_pool_infos)
 
-            price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
+            price = PoolPriceAggregator(
+                self.context).run(pool_aggregator_input)
 
             # Above code replaced code below as a saving to a model call
             # price = self.context.run_model('price.pool-aggregator',
@@ -340,7 +360,7 @@ class PriceFromDexModel(Model):
             #                              local=True)
 
             return PriceWithQuote.usd(**price.dict())
-        except (ModelDataError, ModelRunError) as _err:
+        except (ModelDataError, ModelRunError):
             addr_maybe = self.context.run_model('token.underlying-maybe',
                                                 input=input,
                                                 return_type=Maybe[Address],
@@ -377,7 +397,8 @@ class PriceFromDexPreferModel(Model):
 
     def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
         try:
-            price_dex = self.context.run_model('price.dex-db', input=input, local=True)
+            price_dex = self.context.run_model(
+                'price.dex-db', input=input, local=True)
             if price_dex['liquidity'] > 1e-8:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
             raise ModelDataError(f'There is no liquidity for {input.address}.')

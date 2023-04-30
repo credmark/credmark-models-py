@@ -1,13 +1,13 @@
 # pylint:disable=too-many-arguments
 
-import numpy as np
-import numpy.typing as npt
 from abc import abstractmethod
 from datetime import datetime
 from typing import Any, Generator, Optional
 
-from credmark.dto import DTO
+import numpy as np
+import numpy.typing as npt
 from credmark.cmf.types import BlockNumber
+from credmark.dto import DTO
 
 
 class MarketTarget(DTO):
@@ -91,7 +91,8 @@ class TokenTradeable(Tradeable):
         TokenTrade's value does not change with the as_of to the Tradeable's own as_of
         Other type of trade could have time value.
         """
-        current_price = mkt_adj(mkt[(block_number, tag, self.key)]['extracted'])
+        current_price = mkt_adj(
+            mkt[(block_number, tag, self.key)]['extracted'])
         pnl = current_price - self._init_price
         pnl *= self._amount
         return pnl
@@ -110,6 +111,7 @@ class TokenTradeable(Tradeable):
         scen_pnl = []
         scenarios = mkt_scenarios[(tag_scenario, self.key)]['extracted']
         for scen in scenarios:
-            new_pnl = self.value(block_number, tag, mkt, lambda x, scen=scen: x * scen)
+            new_pnl = self.value(block_number, tag, mkt,
+                                 lambda x, scen=scen: x * scen)
             scen_pnl.append(new_pnl)
         return np.array(scen_pnl) - base_pnl

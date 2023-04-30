@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token, Network
+from credmark.cmf.types import Network, Token
 
 
 @Model.describe(

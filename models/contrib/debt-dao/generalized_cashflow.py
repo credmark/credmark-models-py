@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.dto import DTO
 
 

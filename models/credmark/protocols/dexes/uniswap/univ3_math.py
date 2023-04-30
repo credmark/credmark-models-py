@@ -5,6 +5,7 @@ UniV3 Math
 # pylint:disable=invalid-name, missing-function-docstring
 
 from math import log
+
 import numpy as np
 
 # out-of-range
@@ -96,7 +97,8 @@ def calculate_onetick_liquidity(
     #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
     #    float(liquidity * liquidity))
 
-    ratio_left = (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa)
+    ratio_left = (in_tick_amount0 + liquidity / sb) * \
+        (in_tick_amount1 + liquidity * sa)
     ratio_right = float(liquidity * liquidity)
 
     try:
@@ -110,11 +112,13 @@ def calculate_onetick_liquidity(
 
     # Liquidity in 1 tick
     if current_tick == tick_bottom:
-        __tick1_amount0, tick1_amount1 = out_of_range(liquidity-_liquidityNet, sp, sa_p)
+        __tick1_amount0, tick1_amount1 = out_of_range(
+            liquidity-_liquidityNet, sp, sa_p)
         tick1_amount0, __tick1_amount1 = in_range(liquidity, sb_p, sp, sp)
     elif current_tick == tick_top:
         __tick1_amount0, tick1_amount1 = in_range(liquidity, sp, sa_p, sp)
-        tick1_amount0, __tick1_amount1 = out_of_range(liquidity+_liquidityNet, sb_p, sp)
+        tick1_amount0, __tick1_amount1 = out_of_range(
+            liquidity+_liquidityNet, sb_p, sp)
     else:
         tick1_amount0, tick1_amount1 = in_range(liquidity, sb_p, sa_p, sp)
         # equivalent to

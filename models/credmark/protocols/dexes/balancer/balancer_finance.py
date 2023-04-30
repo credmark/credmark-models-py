@@ -1,18 +1,17 @@
-# pylint:disable=unused-import, invalid-name
+# pylint:disable=invalid-name
 
-import sys
 from decimal import Decimal, getcontext
 from typing import List, NamedTuple
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import (Address, Contract, Contracts, Network, Some,
-                                Token, Tokens)
+from credmark.cmf.types import Address, Contract, Contracts, Network, Some, Token, Tokens
 from credmark.dto import DTO, EmptyInput
+from web3.exceptions import ABIFunctionNotFound
+
 from models.tmp_abi_lookup import BALANCER_POOL_ABI
 from models.utils.math import divDown, divUp, mulUp
-from web3.exceptions import ABIFunctionNotFound
 
 np.seterr(all='raise')
 

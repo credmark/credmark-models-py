@@ -1,16 +1,24 @@
 from datetime import datetime
 from typing import List
 
-from requests.exceptions import ReadTimeout
-from urllib3.exceptions import ReadTimeoutError
-
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
-                                       create_instance_from_error_dict)
-from credmark.cmf.types import (Account, Accounts, Contract, Contracts,
-                                PriceWithQuote, Token)
+from credmark.cmf.model.errors import (
+    ModelDataError,
+    ModelRunError,
+    create_instance_from_error_dict,
+)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Contract,
+    Contracts,
+    PriceWithQuote,
+    Token,
+)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from requests.exceptions import ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
 
 
 class VestingInfo(DTO):
@@ -43,14 +51,22 @@ class CMKGetVestingContracts(Model):
         if self.context.chain_id == 1:
             return Contracts(
                 contracts=[
-                    Contract(address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9"),
-                    Contract(address="0x46d812De7EF3cA2E3c1D8EfFb496F070b2202DFF"),
-                    Contract(address="0xCA9bb8A10B2C0FB16A18eDae105456bf7e91B041"),
-                    Contract(address="0x70371C6D23A26Df7Bf0654C47D69ddE9000013E7"),
-                    Contract(address="0x0f8d3D79f5Fb9EDFceFF399F056c996eb9b89C67"),
-                    Contract(address="0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"),
-                    Contract(address="0xdb9DCecbA3f21e2aa53897a05A92F89209731b68"),
-                    Contract(address="0x5CE367c907a119afa25f4DBEe4f5B4705C802Df5"),
+                    Contract(
+                        address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9"),
+                    Contract(
+                        address="0x46d812De7EF3cA2E3c1D8EfFb496F070b2202DFF"),
+                    Contract(
+                        address="0xCA9bb8A10B2C0FB16A18eDae105456bf7e91B041"),
+                    Contract(
+                        address="0x70371C6D23A26Df7Bf0654C47D69ddE9000013E7"),
+                    Contract(
+                        address="0x0f8d3D79f5Fb9EDFceFF399F056c996eb9b89C67"),
+                    Contract(
+                        address="0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"),
+                    Contract(
+                        address="0xdb9DCecbA3f21e2aa53897a05A92F89209731b68"),
+                    Contract(
+                        address="0x5CE367c907a119afa25f4DBEe4f5B4705C802Df5"),
                 ]
             )
         raise ModelDataError(message="cmk vesting contracts only deployed on mainnet",
@@ -123,7 +139,8 @@ class CMKGetVestingAccounts(Model):
                 output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
     def run(self, input: Account) -> AccountVestingInfo:
-        vesting_contracts = Contracts(**self.context.models.cmk.vesting_contracts())
+        vesting_contracts = Contracts(
+            **self.context.models.cmk.vesting_contracts())
         result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
 
@@ -151,11 +168,13 @@ class CMKGetVestingByAccount(Model):
                 unvested_amount=token.scaled(
                     vesting_contract.functions.getUnvestedAmount(input.address).call()),
                 claimable_amount=token.scaled(
-                    vesting_contract.functions.getClaimableAmount(input.address).call()
+                    vesting_contract.functions.getClaimableAmount(
+                        input.address).call()
                 ),
                 claimed_amount=token.scaled(
                     vesting_contract.functions.getVestedAmount(input.address).call() -
-                    vesting_contract.functions.getClaimableAmount(input.address).call()
+                    vesting_contract.functions.getClaimableAmount(
+                        input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
 
@@ -186,7 +205,8 @@ class CMKGetVestingByAccount(Model):
                         c['value_at_claim_time'] = c['amount'] * self.context.run_model(
                             slug="price.quote",
                             input={"base": "CMK"},
-                            block_number=self.context.block_number.from_timestamp(c['timestamp']),
+                            block_number=self.context.block_number.from_timestamp(
+                                c['timestamp']),
                             return_type=PriceWithQuote).price
                         c['value_now'] = c['amount'] * current_price
                         vesting_claims.append(c)
@@ -209,7 +229,8 @@ class CMKGetVestingByAccount(Model):
                     price = self.context.run_model(
                         slug="price.quote",
                         input={"base": "CMK"},
-                        block_number=self.context.block_number.from_timestamp(timestamp),
+                        block_number=self.context.block_number.from_timestamp(
+                            timestamp),
                         return_type=PriceWithQuote).price
                     return price
 
@@ -218,7 +239,8 @@ class CMKGetVestingByAccount(Model):
                     ledger_events.loc[:, 'amount_scaled'] = (
                         ledger_events['evt_amount'].apply(Token(symbol="CMK").scaled))
                     ledger_events.loc[:, 'price_now'] = current_price
-                    ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
+                    ledger_events.loc[:, 'value_now'] = current_price * \
+                        ledger_events.amount_scaled
                     ledger_events.loc[:, 'price_at_claim_time'] = (
                         ledger_events.apply(price_at_claim_time, axis=1))
                     ledger_events.loc[:, 'value_at_claim_time'] = (
@@ -265,7 +287,8 @@ class CMKGetAllVestingBalances(Model):
             results = {"vesting_infos": []}
             for account in accounts:
                 results['vesting_infos'].append(
-                    self.context.models.cmk.get_vesting_info_by_account(account)
+                    self.context.models.cmk.get_vesting_info_by_account(
+                        account)
                 )
             return results
 
@@ -275,7 +298,8 @@ class CMKGetAllVestingBalances(Model):
 
             accounts_run = self.context.run_model(
                 slug='compose.map-inputs',
-                input={'modelSlug': model_slug, 'modelInputs': model_inputs.accounts},
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs.accounts},
                 return_type=MapInputsOutput[Account, dict])
 
             results = {"vesting_infos": []}
@@ -286,7 +310,8 @@ class CMKGetAllVestingBalances(Model):
                     self.logger.error(p.error)
                     raise create_instance_from_error_dict(p.error.dict())
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return results
 
         results = _use_compose()

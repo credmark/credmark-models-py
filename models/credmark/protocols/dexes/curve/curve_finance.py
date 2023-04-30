@@ -1,22 +1,36 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 
 
 from typing import List
 
 import numpy as np
-import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Maybe,
-                                PriceWithQuote, Some, Token, Tokens)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Address,
+    Contract,
+    Contracts,
+    Maybe,
+    Portfolio,
+    Position,
+    PriceWithQuote,
+    Some,
+    Token,
+    Tokens,
+)
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
 from credmark.cmf.types.series import BlockSeries
+from credmark.dto import DTO, EmptyInput
+from web3.exceptions import (
+    ABIFunctionNotFound,
+    BadFunctionCallOutput,
+    ContractLogicError,
+)
+
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import CURVE_VYPER_POOL
-from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
-                             ContractLogicError)
 
 np.seterr(all='raise')
 
@@ -192,7 +206,7 @@ class CurveFinancePoolInfoTokens(Model):
                         self.slug,
                         input=Contract(address=Address(pool_addr)),
                         return_type=CurveFiPoolInfoToken)
-            except Exception as _err:
+            except Exception:
                 pass
 
             tokens = Tokens()
@@ -226,7 +240,7 @@ class CurveFinancePoolInfoTokens(Model):
 
         try:
             name = input.functions.name().call()
-        except Exception as _err:
+        except Exception:
             name = ""
 
         lp_token_addr = Address.null()
@@ -323,12 +337,12 @@ class CurveFinancePoolInfo(Model):
 
         try:
             virtual_price = pool_contract.functions.get_virtual_price().call()
-        except Exception as _err:
+        except Exception:
             virtual_price = 10**18
 
         try:
             pool_A = pool_contract.functions.A().call()
-        except Exception as _err:
+        except Exception:
             pool_A = 0
 
         # Calculating 'chi'

@@ -1,21 +1,36 @@
 # pylint:disable=unsupported-membership-test, line-too-long, pointless-string-statement, protected-access
 
-import pandas as pd
-
 from typing import Optional, cast
 
+import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Account, Contract, Contracts,
-                                NativeToken, Network, Portfolio, Position,
-                                PriceWithQuote, Some, Token)
+from credmark.cmf.types import (
+    Account,
+    Address,
+    Contract,
+    Contracts,
+    NativeToken,
+    Network,
+    Portfolio,
+    Position,
+    PriceWithQuote,
+    Some,
+    Token,
+)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from web3 import Web3
+from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
+
 from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_err
 from models.dtos.tvl import LendingPoolPortfolios
-from models.tmp_abi_lookup import AAVE_STABLEDEBT_ABI, AAVE_LENDING_POOL_PROVIDER, AAVE_DATA_PROVIDER, AAVE_ATOKEN
-from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
-from web3 import Web3
+from models.tmp_abi_lookup import (
+    AAVE_ATOKEN,
+    AAVE_DATA_PROVIDER,
+    AAVE_LENDING_POOL_PROVIDER,
+    AAVE_STABLEDEBT_ABI,
+)
 
 
 class AaveDebtInfo(DTO):
@@ -590,7 +605,8 @@ class AaveV2GetTokenAsset(Model):
 
         aToken.set_abi(AAVE_ATOKEN, set_loaded=True)
         if aToken.proxy_for is not None and aToken.proxy_for._meta.proxy_implementation is not None:
-            aToken.proxy_for._meta.proxy_implementation.set_abi(AAVE_ATOKEN, set_loaded=True)
+            aToken.proxy_for._meta.proxy_implementation.set_abi(
+                AAVE_ATOKEN, set_loaded=True)
 
         stableDebtToken = get_eip1967_proxy_err(
             self.context, self.logger, reservesData[8], True)

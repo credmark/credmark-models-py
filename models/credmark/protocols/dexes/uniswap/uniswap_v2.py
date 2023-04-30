@@ -5,20 +5,34 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Address, Contract, Contracts,
-                                Maybe, Portfolio, Position, Price,
-                                PriceWithQuote, Some, Token, Tokens)
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Contracts,
+    Maybe,
+    Portfolio,
+    Position,
+    Price,
+    PriceWithQuote,
+    Some,
+    Token,
+    Tokens,
+)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, EmptyInput
+from web3.exceptions import (
+    ABIFunctionNotFound,
+    BadFunctionCallOutput,
+    ContractLogicError,
+)
 
 from models.credmark.price.dex import get_primary_token_tuples
 from models.credmark.protocols.dexes.uniswap.constant import V2_FACTORY_ADDRESS
-from models.dtos.price import (DexPricePoolInput, DexPriceTokenInput)
 from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
 from models.dtos.tvl import TVLInfo
-from models.tmp_abi_lookup import (UNISWAP_V2_POOL_ABI)
-from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
+from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
 
 class UniswapV2PoolMeta:
@@ -29,14 +43,16 @@ class UniswapV2PoolMeta:
         contracts = []
         try:
             for token_pair in token_pairs:
-                pair_address = factory.functions.getPair(*token_pair).call()
-                if not Address(pair_address).is_null():
-                    cc = Contract(address=pair_address)
+                pair_addr = factory.functions.getPair(*token_pair).call()
+                if not Address(pair_addr).is_null():
+                    cc = Contract(address=pair_addr).set_abi(
+                        UNISWAP_V2_POOL_ABI, set_loaded=True)
                     try:
                         _ = cc.abi
+                        _ = cc.functions.token0().call()
                     except BlockNumberOutOfRangeError:
-                        continue
-                    except ModelDataError as _err:
+                        continue  # before its creation
+                    except ModelDataError:
                         pass
                     contracts.append(cc)
 
@@ -579,3 +595,53 @@ class UniswapV2PoolTVL(Model):
         )
 
         return tvl_info
+
+
+class UniswapV2PoolLPPosition(DTO):
+    token0: Token
+    token1: Token
+    token0_amount: float
+    token1_amount: float
+    token0_reserve: float
+    token1_reserve: float
+    total_supply_scaled: float
+
+
+@Model.describe(slug='uniswap-v2.lp-amount',
+                version='0.1',
+                display_name=('Decompose a UniswapV2Pair into its underlying tokens'),
+                description='To calculate the value of a UniswapV2 LP token from its underlying tokens',
+                developer='Credmark',
+                category='protocol',
+                tags=['token', 'price'],
+                input=Contract,
+                output=UniswapV2PoolLPPosition,)
+class PriceDexUniswapV2(Model):
+    """
+    Return token's price from
+    """
+
+    def run(self, input: Contract) -> UniswapV2PoolLPPosition:
+        pool = Token(input.address)
+        if pool.contract_name == 'UniswapV2Pair':
+            token0 = Token(pool.functions.token0().call())
+            token1 = Token(pool.functions.token1().call())
+            total_supply_scaled = pool.total_supply_scaled
+            token0_reserve, token1_reserve,  _blockTimestampLast = pool.functions.getReserves().call()
+            token0_balance_scaled = token0.scaled(token0_reserve)
+            token1_balance_scaled = token1.scaled(token1_reserve)
+            self.logger.info(
+                f'token0_balance_scaled: {token0_balance_scaled}, {token0.balance_of_scaled(pool.address.checksum)}')
+            self.logger.info(
+                f'token1_balance_scaled: {token1_balance_scaled}, {token1.balance_of_scaled(pool.address.checksum)}')
+            return UniswapV2PoolLPPosition(
+                token0=token0,
+                token1=token1,
+                token0_amount=token0_balance_scaled / total_supply_scaled,
+                token1_amount=token1_balance_scaled / total_supply_scaled,
+                token0_reserve=token0_balance_scaled,
+                token1_reserve=token1_balance_scaled,
+                total_supply_scaled=total_supply_scaled,
+            )
+
+        raise ModelDataError(f'Contract {input.address} is not a UniswapV2Pair')

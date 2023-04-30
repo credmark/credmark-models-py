@@ -1,11 +1,13 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
-from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
-                                                          PortfolioVaRInput,
-                                                          VaRHistoricalOutput)
-from models.credmark.protocols.lending.compound.compound_v2 import \
-    CompoundV2PoolInfo
+
+from models.credmark.algorithms.value_at_risk.dto import (
+    ContractVaRInput,
+    PortfolioVaRInput,
+    VaRHistoricalOutput,
+)
+from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfo
 
 
 @Model.describe(slug="finance.var-compound",

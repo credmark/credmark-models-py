@@ -4,12 +4,17 @@ import math
 from datetime import datetime
 from typing import List, Optional
 
-from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
-                                       ModelRunError)
-from credmark.cmf.types import (Address, BlockNumber,
-                                MapBlocksOutput, Maybe,
-                                NativeToken, PriceWithQuote, Records,
-                                Token)
+from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
+from credmark.cmf.types import (
+    Address,
+    BlockNumber,
+    MapBlocksOutput,
+    Maybe,
+    NativeToken,
+    PriceWithQuote,
+    Records,
+    Token,
+)
 from credmark.dto import DTO, DTOField
 from web3.exceptions import ContractLogicError
 
@@ -20,7 +25,8 @@ class TokenReturn(DTO):
     current_amount: float
     current_value: Optional[float]
     token_return: Optional[float]
-    transactions: Optional[int] = DTOField(description="Number of transactions")
+    transactions: Optional[int] = DTOField(
+        description="Number of transactions")
 
 
 class TokenReturnOutput(DTO):
@@ -76,7 +82,8 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     _block_times = [BlockNumber(blk).timestamp_datetime
                     for blk in _df.block_number.unique().tolist()]
 
-    _logger.info(f'{_df.shape[0]} rows, {_df["token_address"].unique().shape[0]} tokens')
+    _logger.info(
+        f'{_df.shape[0]} rows, {_df["token_address"].unique().shape[0]} tokens')
 
     _token_min_block = _df.groupby('token_address')["block_number"].min()
 
@@ -86,7 +93,8 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
         tok = Token(tok_address).as_erc20(set_loaded=True)
 
         try:
-            dfa = dfa.assign(value=lambda x, tok=tok: x.value.apply(tok.scaled))
+            dfa = dfa.assign(
+                value=lambda x, tok=tok: x.value.apply(tok.scaled))
         except ModelDataError:
             _context.logger.info(tok.address)
             if tok.abi is not None and 'decimals' not in tok.abi.functions:
@@ -123,11 +131,13 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
         block_numbers = []
         past_prices = {}
         if then_price is not None:
-            block_numbers = [int(x) for x in dfa.block_number.unique().tolist()]
+            block_numbers = [int(x)
+                             for x in dfa.block_number.unique().tolist()]
 
             dd = datetime.now()
             pp = _context.run_model('price.quote-maybe-blocks',
-                                    input={'base': tok, 'block_numbers': block_numbers},
+                                    input={'base': tok,
+                                           'block_numbers': block_numbers},
                                     return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
 
             for r in pp.results:
@@ -144,7 +154,8 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
                           len(block_numbers), tt.seconds / len(block_numbers),
                           min_block_number))
         else:
-            _logger.info((tok_symbol, then_price, len(block_numbers), 'Skip price'))
+            _logger.info((tok_symbol, then_price, len(
+                block_numbers), 'Skip price'))
 
         balance = 0
         for _n, r in dfa.iterrows():

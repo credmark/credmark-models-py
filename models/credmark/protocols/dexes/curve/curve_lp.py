@@ -1,9 +1,7 @@
-# pylint: disable=locally-disabled, unused-import
+# pylint: disable=locally-disabled
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import (Account, Accounts, Address, Contract,
-                                Contracts, Portfolio, Position, Price,
-                                PriceWithQuote, Some, Token, Tokens)
+from credmark.cmf.types import Address, Contract
 from credmark.cmf.types.series import BlockSeries
 
 
@@ -23,7 +21,8 @@ class CurveFinanceLPDist(Model):
         dist = []
 
         for addr in _addrs:
-            balanceOf = _gauge.functions.balanceOf(Address(addr).checksum).call()
+            balanceOf = _gauge.functions.balanceOf(
+                Address(addr).checksum).call()
             dist.append({
                 "balanceOf": balanceOf,
                 "address": addr
@@ -48,7 +47,8 @@ class CurveFinanceLPPoolDist(Model):
         dist = []
 
         for addr in _addrs:
-            balanceOf = _pool.functions.balanceOf(Address(addr).checksum).call()
+            balanceOf = _pool.functions.balanceOf(
+                Address(addr).checksum).call()
             dist.append({
                 "balanceOf": balanceOf,
                 "address": addr

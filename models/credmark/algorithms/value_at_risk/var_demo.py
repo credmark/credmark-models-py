@@ -1,9 +1,12 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, PriceList, Token
 from credmark.dto import DTO
-from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
-                                                          VaRHistoricalInput,
-                                                          VaRHistoricalOutput)
+
+from models.credmark.algorithms.value_at_risk.dto import (
+    ContractVaRInput,
+    VaRHistoricalInput,
+    VaRHistoricalOutput,
+)
 
 
 class ExampleHistoricalPriceInput(DTO):

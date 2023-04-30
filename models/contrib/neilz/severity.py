@@ -1,6 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Accounts, Portfolio
 
+
 # Next Steps:
 
 # Set the slug, display_name, and description for your model below.
@@ -41,11 +42,13 @@ class ExploitedValue(Model):
         portfolio_now = self.context.models.account.portfolio_aggregate(input=input,
                                                                         return_type=Portfolio)
 
-        portfolio_two_blocks_ago = self.context.models.account.portfolio_aggregate(
-            input=input, return_type=Portfolio,
-            block_number=self.context.block_number - 2)
+        portfolio_two_blocks_ago: Portfolio = self.context.models.account.portfolio_aggregate(
+            input=input,
+            return_type=Portfolio,
+            block_number=self.context.block_number - 2)  # type: ignore
 
         # pylint:disable=line-too-long
-        value_diff = portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()  # type: ignore
+        value_diff = portfolio_two_blocks_ago.get_value(
+        ) - portfolio_now.get_value()  # type: ignore
 
         return {"exploited_value": value_diff}

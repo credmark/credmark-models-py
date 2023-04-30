@@ -3,9 +3,12 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
-from models.credmark.algorithms.value_at_risk.dto import (ContractVaRInput,
-                                                          PortfolioVaRInput,
-                                                          VaRHistoricalOutput)
+
+from models.credmark.algorithms.value_at_risk.dto import (
+    ContractVaRInput,
+    PortfolioVaRInput,
+    VaRHistoricalOutput,
+)
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
 
 
@@ -45,7 +48,8 @@ class AaveV2GetVAR(Model):
                               f'from {dbt.totalSupply_qty=}-{dbt.totalDebt_qty=}')
             # Note below is taking the negated totalLiquidity as -totalSupply_qty + totalDebt_qty
             # See the doc of this class
-            positions.append(Position(amount=-dbt.totalLiquidity_qty, asset=dbt.token))
+            positions.append(
+                Position(amount=-dbt.totalLiquidity_qty, asset=dbt.token))
         portfolio = Portfolio(positions=positions)
 
         var_input = PortfolioVaRInput(portfolio=portfolio, **input.dict())

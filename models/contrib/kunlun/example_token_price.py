@@ -1,8 +1,8 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Price, Some, Token
 
-from models.dtos.price import DexPoolAggregationInput
 from models.dtos.pool import PoolPriceInfo
+from models.dtos.price import DexPoolAggregationInput
 
 
 @Model.describe(slug='contrib.example-token-price',

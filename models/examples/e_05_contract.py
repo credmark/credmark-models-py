@@ -11,7 +11,8 @@ from .dtos import ExampleModelOutput
 
 
 class ExampleContractInput(DTO):
-    disable_function_ledger: bool = DTOField(False, description="Disable function ledger queries")
+    disable_function_ledger: bool = DTOField(
+        False, description="Disable function ledger queries")
 
 
 @Model.describe(slug='example.contract',
@@ -24,6 +25,32 @@ class ExampleContractInput(DTO):
                 input=ExampleContractInput,
                 output=ExampleModelOutput)
 class ExampleContract(Model):
+    @staticmethod
+    def test_ledger_function(contract, output):
+        if not input.disable_function_ledger:
+            with contract.ledger.functions.addVestingSchedule as q:
+                output.log(
+                    "You can query ledger data for contract function calls")
+                output.log_io(
+                    input="""
+    with contract.ledger.functions.addVestingSchedule as q:
+        q.select(columns=[
+                    q.BLOCK_NUMBER,
+                    q.FN_ACCOUNT,
+                    q.FN_ALLOCATION
+                ],
+                order_by=q.BLOCK_NUMBER.asc(),
+                limit=5)
+    """,
+                    output=q.select(
+                        columns=[
+                            q.BLOCK_NUMBER,
+                            q.FN_ACCOUNT,
+                            q.FN_ALLOCATION
+                        ],
+                        order_by=q.BLOCK_NUMBER,
+                        limit=5))
+
     def run(self, input: ExampleContractInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",
@@ -34,9 +61,11 @@ class ExampleContract(Model):
             documentation_url="https://developer-docs.credmark.com/en/latest/"
             "reference/credmark.cmf.types.contract.Contract.html")
 
-        output.log("Contract is a subclass of Account, and is initialized with an address.")
+        output.log(
+            "Contract is a subclass of Account, and is initialized with an address.")
         output.log("To interact with one of CMK's vesting contracts:")
-        contract = Contract(address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9")
+        contract = Contract(
+            address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9")
         output.log_io(input="Contract(address='0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9')",
                       output=contract.dict())
 
@@ -69,10 +98,12 @@ class ExampleContract(Model):
                 fromBlock=0,
                 toBlock=self.context.block_number
             )
-            vesting_added_events = self.context.web3.eth.get_logs(event_filter_params)
+            vesting_added_events = self.context.web3.eth.get_logs(
+                event_filter_params)
             vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
                                     for s in vesting_added_events]
 
+            # Contract ledger queries
             output.log_io(input="""
 event_abi = contract.instance.events.VestingScheduleAdded._get_event_abi() # pylint:disable=locally-disabled,protected-access
 
@@ -94,30 +125,6 @@ vesting_added_events = [get_event_data(self.context.web3.codec, event_abi, s)
         except (ReadTimeoutError, ReadTimeout):
             output.log_error('There was timeout error when reading logs for '
                              f'{contract.address}')
-
-        # Contract ledger queries
-        if not input.disable_function_ledger:
-            with contract.ledger.functions.addVestingSchedule as q:
-                output.log("You can query ledger data for contract function calls")
-                output.log_io(
-                    input="""
-    with contract.ledger.functions.addVestingSchedule as q:
-        q.select(columns=[
-                    q.BLOCK_NUMBER,
-                    q.FN_ACCOUNT,
-                    q.FN_ALLOCATION
-                ],
-                order_by=q.BLOCK_NUMBER.asc(),
-                limit=5)
-    """,
-                    output=q.select(
-                        columns=[
-                            q.BLOCK_NUMBER,
-                            q.FN_ACCOUNT,
-                            q.FN_ALLOCATION
-                        ],
-                        order_by=q.BLOCK_NUMBER,
-                        limit=5))
 
         output.log("You can query ledger data for contract events")
         with contract.ledger.events.VestingScheduleAdded as q:
@@ -142,5 +149,7 @@ with contract.ledger.events.VestingScheduleAdded as q:
                     ],
                     order_by=q.BLOCK_NUMBER.asc(),
                     limit=5))
+
+        # self.test_ledger_function(contract, output)
 
         return output

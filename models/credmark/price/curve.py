@@ -1,9 +1,17 @@
 import numpy as np
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Maybe, Network, Price, PriceWithQuote, Token
-from models.credmark.protocols.dexes.curve.curve_finance import \
-    CurveFiPoolInfoToken
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Maybe,
+    Network,
+    Price,
+    PriceWithQuote,
+    Token,
+)
+
+from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
 
 np.seterr(all='raise')
 
@@ -121,25 +129,30 @@ class CurveFinancePrice(Model):
             exchange_rate = exchange_rate_stored / 10**mantissa
 
             if underlying_token.address in self.supported_coins(self.context.network):
-                raise ModelRunError(f'{underlying_token=} is self-referenced in {self.slug}')
+                raise ModelRunError(
+                    f'{underlying_token=} is self-referenced in {self.slug}')
 
             price_underlying = self.context.run_model('price.quote',
-                                                      input={'base': underlying_token},
+                                                      input={
+                                                          'base': underlying_token},
                                                       return_type=PriceWithQuote)
 
             price_underlying.price *= exchange_rate
             if price_underlying.src is not None:
-                price_underlying.src = price_underlying.src + f'|cToken*{exchange_rate:.3f}'
+                price_underlying.src = price_underlying.src + \
+                    f'|cToken*{exchange_rate:.3f}'
             return price_underlying
 
-        derived_info = self.CRV_DERIVED[self.context.network].get(input.address)
+        derived_info = self.CRV_DERIVED[self.context.network].get(
+            input.address)
         if derived_info is not None:
             pool = Contract(address=derived_info['pool_address'])
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            n_token_input = np.where([tok == input for tok in pool_info.tokens])[0].tolist()
+            n_token_input = np.where([tok == input for tok in pool_info.tokens])[
+                0].tolist()
             if len(n_token_input) != 1:
                 raise ModelRunError(
                     f'{self.slug} does not find {input=} in pool {pool.address=}')
@@ -157,13 +170,15 @@ class CurveFinancePrice(Model):
                                               10**input.decimals  # amount of the token to send
                                               ).call())
                     price_other = self.context.run_model('price.quote',
-                                                         input={'base': other_token},
+                                                         input={
+                                                             'base': other_token},
                                                          return_type=PriceWithQuote).price
                     price_to_others.append(ratio_to_other * price_other)
                     ratio_to_others.append(ratio_to_other)
                     price_others.append(price_other)
 
-            n_price_min = np.where(price_to_others == np.min(price_to_others))[0][0]
+            n_price_min = np.where(
+                price_to_others == np.min(price_to_others))[0][0]
             return Price(
                 price=np.min(price_to_others),
                 src=(f'{self.slug}|{pool.address}|'
@@ -174,8 +189,10 @@ class CurveFinancePrice(Model):
             if input.abi is not None and 'minter' in input.abi.functions:
                 pool_addr = input.functions.minter().call()
             else:
-                registry = Contract(**self.context.models.curve_fi.get_registry())
-                pool_addr = registry.functions.get_pool_from_lp_token(input.address.checksum).call()
+                registry = Contract(
+                    **self.context.models.curve_fi.get_registry())
+                pool_addr = registry.functions.get_pool_from_lp_token(
+                    input.address.checksum).call()
             pool = Contract(address=Address(pool_addr))
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
@@ -195,7 +212,8 @@ class CurveFinancePrice(Model):
 
             virtual_price = pool.functions.get_virtual_price().call()
             lp_token_price = input.scaled(min(price_tokens) * virtual_price)
-            n_min_token_symbol = np.where(np.isclose(min(price_tokens), price_tokens))[0][0]
+            n_min_token_symbol = np.where(np.isclose(
+                min(price_tokens), price_tokens))[0][0]
             min_token_symbol = pool_info.tokens_symbol[n_min_token_symbol]
 
             return Price(price=lp_token_price,

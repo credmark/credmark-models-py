@@ -1,22 +1,29 @@
-# pylint:disable=unused-import, line-too-long, protected-access
+# pylint:disable=line-too-long, protected-access
 
-from collections import namedtuple
 from typing import NamedTuple, Union
+
 import numpy as np
 import pandas as pd
-
-
 from credmark.cmf.model import Model
-from credmark.dto import DTO, EmptyInput, DTOField
 from credmark.cmf.model.errors import (
-    ModelDataError, ModelRunError, create_instance_from_error_dict)
-from credmark.cmf.types import (Account, Address, Contract, Contracts,
-                                MapBlocksOutput, NativeToken, Network, Portfolio, Position,
-                                PriceWithQuote, Some, Token)
-from credmark.cmf.types.compose import (MapInputsOutput)
+    ModelDataError,
+    ModelRunError,
+    create_instance_from_error_dict,
+)
+from credmark.cmf.types import (
+    Account,
+    Contract,
+    MapBlocksOutput,
+    NativeToken,
+    PriceWithQuote,
+    Token,
+)
+from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
+from credmark.dto import DTOField, EmptyInput
+
 from models.credmark.tokens.token import get_eip1967_proxy_err
-from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, AAVE_LENDING_POOL_PROXY, AAVE_LENDING_POOL
+from models.tmp_abi_lookup import AAVE_DATA_PROVIDER
 
 
 class AAVEUserReserveData(NamedTuple):
@@ -165,9 +172,12 @@ class AaveV2GetAccountInfoAsset(Model):
         variable_borrow_APR = token_info['variableBorrowRate']
         stable_borrow_APR = token_info['stableBorrowRate']
 
-        deposit_APY = ((1 + (deposit_APR / seconds_per_year)) ** seconds_per_year) - 1
-        variable_borrow_APY = ((1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
-        stable_borrow_APY = ((1 + (stable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
+        deposit_APY = ((1 + (deposit_APR / seconds_per_year))
+                       ** seconds_per_year) - 1
+        variable_borrow_APY = (
+            (1 + (variable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
+        stable_borrow_APY = (
+            (1 + (stable_borrow_APR / seconds_per_year)) ** seconds_per_year) - 1
 
         token_info['depositAPY'] = deposit_APY
         token_info['variableBorrowAPY'] = variable_borrow_APY
@@ -230,15 +240,18 @@ class AaveV2GetAccountInfo(Model):
             balance_list = []
             for reserve_token in user_reserve_data:
                 if reserve_token['currentATokenBalance'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentATokenBalance']
                     balance_list.append({'amount': amount,
                                          'APY': reserve_token['depositAPY']})
                 if reserve_token['currentStableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentStableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['stableBorrowAPY']})
                 if reserve_token['currentVariableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentVariableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['variableBorrowAPY']})
 
@@ -275,7 +288,8 @@ class AaveV2GetAccountSummary(Model):
                                                    local=True)
 
         user_account_data = {}
-        account_data = aave_lending_pool.functions.getUserAccountData(input.address).call()
+        account_data = aave_lending_pool.functions.getUserAccountData(
+            input.address).call()
 
         keys_need_to_be_scaled = ['totalCollateralETH',
                                   'totalDebtETH',
@@ -283,7 +297,8 @@ class AaveV2GetAccountSummary(Model):
         keys_need_to_be_decimal = ['currentLiquidationThreshold',
                                    'ltv']
 
-        keys = keys_need_to_be_scaled + keys_need_to_be_decimal + ['healthFactor']
+        keys = keys_need_to_be_scaled + \
+            keys_need_to_be_decimal + ['healthFactor']
         keys_need_to_be_scaled.append('healthFactor')
 
         native_token = NativeToken()
@@ -345,7 +360,8 @@ class AaveV2GetAccountSummaryHistorical(Model):
              'model_input': input},
             return_type=BlockSeries[dict])
 
-        result_historical_format = [{'blockNumber': p.blockNumber, 'result': p.output} for p in result_historical]
+        result_historical_format = [
+            {'blockNumber': p.blockNumber, 'result': p.output} for p in result_historical]
 
         historical_blocks = set(p.blockNumber for p in result_historical)
 
@@ -355,7 +371,8 @@ class AaveV2GetAccountSummaryHistorical(Model):
         # 2. Fetch liquidationCall events for this user
         result_blocks_format = []
         if last_block > first_block:
-            lending_pool = Contract(**self.context.run_model('aave-v2.get-lending-pool', local=True))
+            lending_pool = Contract(
+                **self.context.run_model('aave-v2.get-lending-pool', local=True))
 
             if lending_pool.proxy_for is None:
                 raise ModelDataError('lending pool shall be a proxy contract')
@@ -386,11 +403,14 @@ class AaveV2GetAccountSummaryHistorical(Model):
                 blocks_to_run = df.blockNumber.unique()
                 blocks_to_run_diff = blocks_to_run[1:] - blocks_to_run[:-1]
 
-                blocks_to_run_last = np.insert(blocks_to_run_diff, blocks_to_run_diff.size, 3)
-                blocks_to_run_simple_last = set(blocks_to_run[np.where(blocks_to_run_last > 2)].tolist())
+                blocks_to_run_last = np.insert(
+                    blocks_to_run_diff, blocks_to_run_diff.size, 3)
+                blocks_to_run_simple_last = set(
+                    blocks_to_run[np.where(blocks_to_run_last > 2)].tolist())
 
                 blocks_to_run_prev = np.insert(blocks_to_run_diff, 0, 3)
-                blocks_to_run_simple_prev = set((blocks_to_run[np.where(blocks_to_run_prev > 2)] - 1).tolist())
+                blocks_to_run_simple_prev = set(
+                    (blocks_to_run[np.where(blocks_to_run_prev > 2)] - 1).tolist())
 
                 blocks_to_run_simple = blocks_to_run_simple_last | blocks_to_run_simple_prev
 

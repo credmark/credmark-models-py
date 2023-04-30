@@ -1,11 +1,10 @@
 # pylint: disable=line-too-long
 from typing import List, Optional
-import pandas as pd
 
+import pandas as pd
 from credmark.cmf.model import Model
+from credmark.cmf.types import Account, Accounts, Address, NativeToken, Records
 from credmark.dto import DTO, DTOField, cross_examples
-from credmark.cmf.types import (Account, Accounts, Address,
-                                NativeToken, Records)
 
 
 class Tokens(DTO):
@@ -26,7 +25,8 @@ class AccountWithToken(Account, Tokens):
                 Account.Config.schema_extra['examples'],
                 [{}, {'limit': None}],
                 limit=10)}
-    limit: Optional[int] = DTOField(None, description='limit to the number of records')
+    limit: Optional[int] = DTOField(
+        None, description='limit to the number of records')
 
 
 class AccountsWithToken(Accounts, Tokens):
@@ -37,7 +37,8 @@ class AccountsWithToken(Accounts, Tokens):
                 Accounts.Config.schema_extra['examples'],
                 [{}, {'limit': None}],
                 limit=10)}
-    limit: Optional[int] = DTOField(None, description='limit to the number of records')
+    limit: Optional[int] = DTOField(
+        None, description='limit to the number of records')
 
 
 @Model.describe(slug='account.token-transfer',
@@ -105,7 +106,8 @@ def get_token_transfer(_context,
                 if len(_tokens) > 0:
                     where_cond = where_cond.and_(q.TOKEN_ADDRESS.in_(_tokens))
                 if start_block > 0:
-                    where_cond = where_cond.and_(q.BLOCK_NUMBER.le(start_block))
+                    where_cond = where_cond.and_(
+                        q.BLOCK_NUMBER.le(start_block))
                 offset = 0
                 while True:
                     df_tt = (q.select(

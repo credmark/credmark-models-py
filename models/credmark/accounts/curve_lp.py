@@ -1,10 +1,19 @@
 
 import numpy as np
 from credmark.cmf.model import Model
-from credmark.cmf.types import (Account, Accounts, Address,
-                                Contract, Network,
-                                Portfolio, Position, Records,
-                                Token, TokenPosition, Tokens)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Address,
+    Contract,
+    Network,
+    Portfolio,
+    Position,
+    Records,
+    Token,
+    TokenPosition,
+    Tokens,
+)
 
 
 class CurveLPPosition(Position):
@@ -82,7 +91,8 @@ class GetCurveLPPosition(Model):
                 else:
                     lp_token_amount = -abs(lp_token_amount)
 
-                pool_info = self.context.run_model('curve-fi.pool-info', lp_token)
+                pool_info = self.context.run_model(
+                    'curve-fi.pool-info', lp_token)
                 pool_contract = Contract(address=pool_info['address'])
                 pool_tokens = Tokens(**pool_info['tokens'])
                 withdraw_token_amount = np.zeros(len(pool_tokens.tokens))
@@ -92,10 +102,12 @@ class GetCurveLPPosition(Model):
                     withdraw_one[tok_n] = 1
                     withdraw_token_amount[tok_n] = pool_contract.functions.calc_token_amount(
                         withdraw_one, False).call()
-                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens[tok_n].scaled(1)
+                    np_balances[tok_n] = np_balances[tok_n] / \
+                        pool_tokens[tok_n].scaled(1)
 
                 for tok_n, tok in enumerate(pool_tokens.tokens):
-                    ratio = np_balances.dot(withdraw_token_amount) / np_balances[tok_n]
+                    ratio = np_balances.dot(
+                        withdraw_token_amount) / np_balances[tok_n]
                     amount = lp_token_amount / ratio
                     lp_position.append(
                         Position(

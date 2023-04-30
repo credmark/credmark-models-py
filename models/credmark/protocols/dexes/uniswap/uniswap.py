@@ -1,8 +1,12 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, PriceWithQuote, Token, Network
+from credmark.cmf.types import Address, Contract, Network, PriceWithQuote, Token
 from credmark.dto import EmptyInput
-from models.credmark.protocols.dexes.uniswap.constant import V3_QUOTER_ADDRESS, V3_SWAP_ROUTER_ADDRESS
+
+from models.credmark.protocols.dexes.uniswap.constant import (
+    V3_QUOTER_ADDRESS,
+    V3_SWAP_ROUTER_ADDRESS,
+)
 
 
 @Model.describe(slug='uniswap.quoter-price-dai',
@@ -92,7 +96,8 @@ class UniswapExchange(Model):
     }
 
     def run(self, input) -> dict:
-        uniswap_dai_v1_addr = Address(self.UNISWAP_DAI_V1_ADDRESS[self.context.network])
+        uniswap_dai_v1_addr = Address(
+            self.UNISWAP_DAI_V1_ADDRESS[self.context.network])
         exchange_contract = Contract(address=uniswap_dai_v1_addr)
 
         try:
@@ -103,10 +108,13 @@ class UniswapExchange(Model):
             # Prices
         eth_amount = to_wei('1', 'Ether')
 
-        bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(eth_amount).call()
+        bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(
+            eth_amount).call()
         bid_price = to_wei(bid_daiAmount, 'Ether') / eth_amount / eth_amount
 
-        offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(eth_amount).call()
-        offer_price = to_wei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
+        offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(
+            eth_amount).call()
+        offer_price = to_wei(offer_daiAmount, 'Ether') / \
+            eth_amount / eth_amount
 
         return {'value': (bid_price, offer_price, bid_daiAmount, offer_daiAmount)}

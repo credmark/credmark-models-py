@@ -16,8 +16,10 @@ class TestCMK(CMFTest):
 
         print('Below test do not work with web3 node running on the gateway')
         exit_code_failed = (1 if self.type in ['prod', 'gw'] else 0)
-        self.run_model('cmk.get-all-vesting-balances', {}, exit_code=exit_code_failed)
-        self.run_model('cmk.get-vesting-accounts', {}, exit_code=exit_code_failed)
+        self.run_model('cmk.get-all-vesting-balances',
+                       {}, exit_code=exit_code_failed)
+        self.run_model('cmk.get-vesting-accounts',
+                       {}, exit_code=exit_code_failed)
         self.run_model('cmk.vesting-events',
                        {"address": "0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"}, exit_code=exit_code_failed)
 

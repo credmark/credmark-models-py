@@ -1,6 +1,6 @@
 #pylint: disable=invalid-name
 
-from decimal import Decimal, getcontext, ROUND_DOWN, ROUND_UP
+from decimal import ROUND_DOWN, ROUND_UP, Decimal, getcontext
 
 
 def mulUp(a: Decimal, b: Decimal) -> Decimal:

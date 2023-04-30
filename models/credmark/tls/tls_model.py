@@ -1,17 +1,16 @@
 # pylint: disable=too-many-lines, bare-except, line-too-long, pointless-string-statement
+# ruff: noqa: E722
 
 import os
-from typing import Optional, List, Any
 from datetime import timedelta
 from enum import Enum
+from typing import Any, List, Optional
 
 import pandas as pd
-
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError)
-from credmark.cmf.types import (Account, FiatCurrency, Address, Contract,
-                                Maybe, Token)
-from credmark.dto import (DTO, DTOField)
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Account, Address, Contract, FiatCurrency, Maybe, Token
+from credmark.dto import DTO, DTOField
 
 from models.credmark.tokens.token import get_eip1967_proxy
 
@@ -45,7 +44,8 @@ class TLSItem(DTO):
 
 
 class TLSInput(Token):
-    tx_history_hours: int = DTOField(default=24, description='Transaction Historical Hours')
+    tx_history_hours: int = DTOField(
+        default=24, description='Transaction Historical Hours')
 
 
 class TLSOutput(Account):
@@ -95,9 +95,10 @@ class TLSScore(Model):
         # 1. Currency code
         try:
             fiat_symbol = FiatCurrency(address=input.address).symbol
-            items.append(TLSItem.create(f'Fiat currency code {fiat_symbol}', TLSItemImpact.STOP))
+            items.append(TLSItem.create(
+                f'Fiat currency code {fiat_symbol}', TLSItemImpact.STOP))
             return self.__class__.score(input.address, None, None, None, items)
-        except ModelDataError as _err:
+        except ModelDataError:
             pass
 
         self.info(f'[{input.address}] Running TLS model')
@@ -130,13 +131,17 @@ class TLSScore(Model):
         try:
             if contract.proxy_for is not None:
                 _ = contract.proxy_for.abi
-                items.append(TLSItem.create('Proxy contract', TLSItemImpact.NEUTRAL))
+                items.append(TLSItem.create(
+                    'Proxy contract', TLSItemImpact.NEUTRAL))
             else:
                 _ = contract.abi
-                items.append(TLSItem.create('Not a proxy contract', TLSItemImpact.NEUTRAL))
-            items.append(TLSItem.create('Found ABI from EtherScan', TLSItemImpact.POSITIVE))
+                items.append(TLSItem.create(
+                    'Not a proxy contract', TLSItemImpact.NEUTRAL))
+            items.append(TLSItem.create(
+                'Found ABI from EtherScan', TLSItemImpact.POSITIVE))
         except ModelDataError:
-            items.append(TLSItem.create('No ABI from EtherScan', TLSItemImpact.STOP))
+            items.append(TLSItem.create(
+                'No ABI from EtherScan', TLSItemImpact.STOP))
             return self.__class__.score(input.address, None, None, None, items)
 
         # 3.2.2 Is it ERC-20 Token?
@@ -155,7 +160,8 @@ class TLSScore(Model):
             _ = token.events.Approval
             items.append(TLSItem.create('ERC20 Token', TLSItemImpact.NEUTRAL))
         except:
-            items.append(TLSItem.create('Not an ERC20 Token', TLSItemImpact.STOP))
+            items.append(TLSItem.create(
+                'Not an ERC20 Token', TLSItemImpact.STOP))
             return self.__class__.score(input.address, None, None, None, items)
 
         # 4. AAVE collateral / debt tokens - Skip because AAVE may discretionary decide to frozen an asset.
@@ -164,15 +170,18 @@ class TLSScore(Model):
         # get liquidity data
         try:
             price = self.context.run_model('price.dex', input={'base': token})
-            items.append(TLSItem.create(['DEX price', price], TLSItemImpact.POSITIVE))
+            items.append(TLSItem.create(
+                ['DEX price', price], TLSItemImpact.POSITIVE))
         except ModelDataError as err:
             if err.data.message.startswith('There is no liquidity'):
-                items.append(TLSItem.create(err.data.message, TLSItemImpact.NEGATIVE))
+                items.append(TLSItem.create(
+                    err.data.message, TLSItemImpact.NEGATIVE))
             else:
                 raise
         except ModelRunError as err:
             if err.data.message.startswith(f'[{self.context.block_number}] No pool to aggregate for some='):
-                items.append(TLSItem.create('Not traded in DEX', TLSItemImpact.NEGATIVE))
+                items.append(TLSItem.create(
+                    'Not traded in DEX', TLSItemImpact.NEGATIVE))
             else:
                 raise
 
@@ -183,8 +192,10 @@ class TLSScore(Model):
 
         if addr_maybe.just is not None:
             value_token_input = input.dict() | {'address': addr_maybe.just}
-            self.info(f'[{input.address}] Running TLS model for underlying token {addr_maybe.just}')
-            underlying_token_tls = self.context.run_model(self.slug, input=value_token_input, return_type=TLSOutput)
+            self.info(
+                f'[{input.address}] Running TLS model for underlying token {addr_maybe.just}')
+            underlying_token_tls = self.context.run_model(
+                self.slug, input=value_token_input, return_type=TLSOutput)
             items.append(TLSItem.create(['DEX price is taken from the underlying',
                          addr_maybe.just, underlying_token_tls], TLSItemImpact.NEUTRAL))
         else:
@@ -192,8 +203,10 @@ class TLSScore(Model):
 
         # 4. Transfer records
         current_block_dt = self.context.block_number.timestamp_datetime
-        one_day_earlier = current_block_dt - timedelta(hours=input.tx_history_hours)
-        one_day_earlier_block = self.context.block_number.from_timestamp(one_day_earlier)
+        one_day_earlier = current_block_dt - \
+            timedelta(hours=input.tx_history_hours)
+        one_day_earlier_block = self.context.block_number.from_timestamp(
+            one_day_earlier)
 
         def _tx_event():
             try:
@@ -237,14 +250,16 @@ class TLSScore(Model):
         tx_period = f'during last {input.tx_history_hours}h ({one_day_earlier_block} to {self.context.block_number}) or ({one_day_earlier} to {current_block_dt})'
 
         if tx_count == 0:
-            items.append(TLSItem.create(f'No transfer during {tx_period}', TLSItemImpact.STOP))
+            items.append(TLSItem.create(
+                f'No transfer during {tx_period}', TLSItemImpact.STOP))
             if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score < 3.0:
                 items.append(TLSItem.create(['Score is overridden by the underlying', 3.0, underlying_token_tls.score],
                                             TLSItemImpact.NEUTRAL))
                 return self.__class__.score(input.address, token_name, token_symbol, underlying_token_tls.score, items)
             return self.__class__.score(input.address, token_name, token_symbol, 3.0, items)
 
-        items.append(TLSItem.create(f'{tx_count} transfers during {tx_period}', TLSItemImpact.POSITIVE))
+        items.append(TLSItem.create(
+            f'{tx_count} transfers during {tx_period}', TLSItemImpact.POSITIVE))
         if underlying_token_tls is not None and underlying_token_tls.score is not None and underlying_token_tls.score < 7.0:
             items.append(TLSItem.create(['Score is overridden by the underlying', 7.0, underlying_token_tls.score],
                                         TLSItemImpact.NEUTRAL))

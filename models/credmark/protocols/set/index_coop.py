@@ -39,16 +39,16 @@ BTC2x-FLI: Debt
 - Mint/Redeem Fee: 0.1% (60% Index Coop, 40% DeFi Pulse)
 """
 
-from enum import Enum
-import pandas as pd
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 
+import pandas as pd
 from credmark.cmf.model import Model
-from credmark.dto import (DTOField, EmptyInput)
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError)
-from credmark.cmf.types import (Address, BlockNumber, Contract, Network, Token, Records)
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import Address, BlockNumber, Contract, Network, Records, Token
+from credmark.dto import DTOField, EmptyInput
 
-from models.credmark.protocols.set.setv2 import setv2_fee, SetV2ModulesOutput
+from models.credmark.protocols.set.setv2 import SetV2ModulesOutput, setv2_fee
 
 
 def index_coop_revenue_issue(
@@ -105,13 +105,16 @@ def index_coop_revenue_issue(
 
     for day in range(0, days_in_period):
         new_dt = _start_dt + timedelta(days=day)
-        new_dt = datetime(new_dt.year, new_dt.month, new_dt.day, 23, 59, 59, tzinfo=timezone.utc)
+        new_dt = datetime(new_dt.year, new_dt.month,
+                          new_dt.day, 23, 59, 59, tzinfo=timezone.utc)
         blk_eod = BlockNumber.from_timestamp(new_dt)
-        blk_eod, new_dt = (blk_eod, new_dt) if blk_eod < _end_block else (_end_block, _end_dt)
+        blk_eod, new_dt = (blk_eod, new_dt) if blk_eod < _end_block else (
+            _end_block, _end_dt)
 
-        # _logger.info(f'{new_dt} at {blk_eod} till {_end_block}')
+        _logger.info(f'{new_dt} at {blk_eod} till {_end_block}')
 
-        unit = df.query('blockNumber <= @blk_eod')['_quantity'].sum() / 10 ** prod_token_decimals
+        unit = df.query(
+            'blockNumber <= @blk_eod')['_quantity'].sum() / 10 ** prod_token_decimals
         mint_redeem_events = df.query(
             '(blockNumber > @_prev_end_block) & (blockNumber <= @blk_eod)')['_quantity'] / 10 ** prod_token_decimals
         mint_unit = mint_redeem_events.loc[mint_redeem_events > 0].sum()
@@ -124,7 +127,8 @@ def index_coop_revenue_issue(
                     'price.dex', input={'base': _prod_token.address}, block_number=blk_eod)['price']
             except (ModelDataError, ModelRunError):
                 try:
-                    price = _prod_token.models(block_number=blk_eod).price.dex_db_ring3()['price']
+                    price = _prod_token.models(
+                        block_number=blk_eod).price.dex_db_ring3()['price']
                 except (ModelDataError, ModelRunError):
                     price = 1
         else:
@@ -189,9 +193,11 @@ class IndexCoopProductType(str, Enum):
 class IndexCoopFee(Contract):
     # product's address is inherited from Contract
     streaming_rate: float = DTOField(description='Streaming fee rate')
-    coop_streaming_rate: float = DTOField(description='Coop\'s share in streaming fee')
+    coop_streaming_rate: float = DTOField(
+        description='Coop\'s share in streaming fee')
     mint_redeem_rate: float = DTOField(description='Mint and redeem fee rate')
-    coop_mint_redeem_rate: float = DTOField(description='Coop\'s share in Mint and redeem')
+    coop_mint_redeem_rate: float = DTOField(
+        description='Coop\'s share in Mint and redeem')
     use_last_price: bool = DTOField(
         False, description='Use end_block\'s price (true) or every block\'s price (false, default)')
 
@@ -217,9 +223,12 @@ class IndexCoopFeeMonth(Model):
     def run(self, input: IndexCoopFeeMonthInput):
         _year = input.year
         _month = input.month
-        days_in_month = pd.Timestamp(year=_year, month=_month, day=1).days_in_month
-        prev_eom = datetime(_year, _month, 1, 23, 59, 59, tzinfo=timezone.utc) - timedelta(days=1)
-        this_eom = datetime(_year, _month, days_in_month, 23, 59, 59, tzinfo=timezone.utc)
+        days_in_month = pd.Timestamp(
+            year=_year, month=_month, day=1).days_in_month
+        prev_eom = datetime(_year, _month, 1, 23, 59, 59,
+                            tzinfo=timezone.utc) - timedelta(days=1)
+        this_eom = datetime(_year, _month, days_in_month,
+                            23, 59, 59, tzinfo=timezone.utc)
         start_block = BlockNumber.from_timestamp(prev_eom)+1
         end_block = BlockNumber.from_timestamp(this_eom)
 
@@ -243,9 +252,11 @@ class IndexCoopStreamingFeeInput(Contract):
     # The product's address is part of the Contract
     start_block: BlockNumber
     streaming_rate: float = DTOField(description='Streaming fee rate')
-    coop_streaming_rate: float = DTOField(description='Coop\'s share in streaming fee')
+    coop_streaming_rate: float = DTOField(
+        description='Coop\'s share in streaming fee')
     mint_redeem_rate: float = DTOField(description='Mint and redeem fee rate')
-    coop_mint_redeem_rate: float = DTOField(description='Coop\'s share in Mint and redeem')
+    coop_mint_redeem_rate: float = DTOField(
+        description='Coop\'s share in Mint and redeem')
     use_last_price: bool = DTOField(
         False, description='Use end_block\'s price (true) or every block\'s price (false, default)')
 
@@ -272,18 +283,21 @@ class IndexCoopStreamingFee(Model):
     }
 
     def run(self, input: IndexCoopStreamingFeeInput):
-        setv2_modules = self.context.run_model('set-v2.modules', input=EmptyInput(), return_type=SetV2ModulesOutput)
+        setv2_modules = self.context.run_model(
+            'set-v2.modules', input=EmptyInput(), return_type=SetV2ModulesOutput)
         product_type = self.PRODUCT_CONFIG[self.context.network][input.address]
 
         if input.start_block >= self.context.block_number:
-            raise ModelDataError(f'{input.start_block=} needs to be smaller than {self.context.block_number}')
+            raise ModelDataError(
+                f'{input.start_block=} needs to be smaller than {self.context.block_number}')
 
         if product_type == IndexCoopProductType.BASIC:
             setv2_module = setv2_modules.basic_issuance
         elif product_type == IndexCoopProductType.DEBT:
             setv2_module = setv2_modules.debt_issuance
         else:
-            raise ModelDataError(f'Input contract {input.address} is not an Index Coop product')
+            raise ModelDataError(
+                f'Input contract {input.address} is not an Index Coop product')
 
         prod_token = Token(input.address)
 
@@ -300,8 +314,10 @@ class IndexCoopStreamingFee(Model):
             _mint_redeem_rate=input.mint_redeem_rate,
             _coop_mr_rate=input.coop_mint_redeem_rate)
 
-        streaming_fees = df_fee.streaming_fee.sum(), df_fee.streaming_fee_coop.sum(), df_fee.streaming_fee_methodologist.sum()
-        mint_redeem_fees = df_fee.mint_redeem_fee.sum(), df_fee.mint_redeem_fee_coop.sum(), df_fee.mint_redeem_fee_methodologist.sum()
+        streaming_fees = df_fee.streaming_fee.sum(), df_fee.streaming_fee_coop.sum(
+        ), df_fee.streaming_fee_methodologist.sum()
+        mint_redeem_fees = df_fee.mint_redeem_fee.sum(
+        ), df_fee.mint_redeem_fee_coop.sum(), df_fee.mint_redeem_fee_methodologist.sum()
 
         self.logger.info(
             f'Total Fee: {streaming_fees[0]+mint_redeem_fees[0]} = {streaming_fees[1]+mint_redeem_fees[1]} + {streaming_fees[2]+mint_redeem_fees[2]}, '

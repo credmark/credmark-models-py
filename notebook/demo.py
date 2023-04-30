@@ -1,7 +1,5 @@
-# pylint: disable=unused-import
-
 from credmark.cmf.ipython import create_cmf
-from credmark.cmf.types import Token, Contract, Address, Account, BlockNumber, Records
+from credmark.cmf.types import Records, Token
 
 
 def main():
@@ -14,9 +12,11 @@ def main():
     print(context.block_number)
 
     crv_token = Token('0xD533a949740bb3306d119CC777fa900bA034cd52')
-    print(crv_token.symbol, crv_token.decimals, crv_token.functions.rate().call())
+    print(crv_token.symbol, crv_token.decimals,
+          crv_token.functions.rate().call())
 
-    result = context.run_model('price.cex', {'base': crv_token})  # type: ignore
+    result = context.run_model(
+        'price.cex', {'base': crv_token})  # type: ignore
     print(result)
     print(result['price'])  # type: ignore
 

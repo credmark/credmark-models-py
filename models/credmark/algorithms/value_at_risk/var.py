@@ -1,26 +1,42 @@
 from typing import Optional
+
 import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, BlockNumber, Currency, Maybe, Portfolio,
-                                PriceList, PriceWithQuote, Some, Token,
-                                TokenPosition)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    BlockNumber,
+    Currency,
+    Maybe,
+    Portfolio,
+    PriceList,
+    PriceWithQuote,
+    Some,
+    Token,
+    TokenPosition,
+)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
+
 from models.credmark.accounts.curve_lp import CurveLPPosition
-from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
-                                                          PortfolioVaRInput,
-                                                          VaRHistoricalInput,
-                                                          VaRHistoricalOutput)
+from models.credmark.algorithms.value_at_risk.dto import (
+    AccountVaRInput,
+    PortfolioVaRInput,
+    VaRHistoricalInput,
+    VaRHistoricalOutput,
+)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
 np.seterr(all='raise')
 
 
 class AccountsValueInput(Accounts):
-    quote: Currency = DTOField(Currency("USD"), description='Quote currency for the value')
-    timestamp: Optional[int] = DTOField(None, description='block timestamp to query')
+    quote: Currency = DTOField(
+        Currency("USD"), description='Quote currency for the value')
+    timestamp: Optional[int] = DTOField(
+        None, description='block timestamp to query')
 
 
 @Model.describe(slug="accounts.value",
@@ -37,7 +53,8 @@ class AccountValue(Model):
             block_number = BlockNumber.from_timestamp(input.timestamp)
             return self.context.run_model(
                 self.slug,
-                AccountsValueInput(accounts=input.accounts, quote=input.quote, timestamp=None),
+                AccountsValueInput(accounts=input.accounts,
+                                   quote=input.quote, timestamp=None),
                 block_number=block_number)
 
         portfolio = self.context.run_model('accounts.portfolio',
@@ -123,7 +140,8 @@ class VaRPortfolio(Model):
             if position.asset.address not in assets_to_quote:
                 assets_to_quote.add(position.asset.address)
 
-        t_unit, count = self.context.historical.parse_timerangestr(input.window)
+        t_unit, count = self.context.historical.parse_timerangestr(
+            input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         assets_to_quote_list = list(assets_to_quote)
@@ -179,7 +197,7 @@ class VaRPortfolio(Model):
                                            src=ps['src'].to_list()[0])
 
                     price_lists.append(price_list)
-                except ModelRunError as _err:
+                except ModelRunError:
                     price_lists_skip.append(asset_addr)
 
             return price_lists, price_lists_skip
@@ -221,10 +239,12 @@ class VaREngineHistorical(Model):
     all_ppl_arr = np.array([])
 
     def calculate_ppl(self, token, amount, input):
-        priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
+        priceLists = [
+            pl for pl in input.priceLists if pl.tokenAddress == token.address]
 
         if len(priceLists) != 1:
-            raise ModelRunError(f'There is no or more than 1 price list for {token.address=}')
+            raise ModelRunError(
+                f'There is no or more than 1 price list for {token.address=}')
 
         np_priceList = np.array(priceLists[0].prices)
 
@@ -239,7 +259,8 @@ class VaREngineHistorical(Model):
                                                              amount=amount,
                                                              price=np_priceList[0],
                                                              value=value))
-        ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
+        ret_series = np_priceList[:-input.interval] / \
+            np_priceList[input.interval:] - 1
         # ppl: potential profit&loss
         ppl_vector = value * ret_series
         return ppl_vector
@@ -289,7 +310,8 @@ class VaREngineHistorical(Model):
         weights = np.ones(len(input.portfolio.positions))
         for i in range(len(input.portfolio.positions)):
             try:
-                linreg_result = sps.linregress(all_ppl_vec, self.all_ppl_arr[:, i])
+                linreg_result = sps.linregress(
+                    all_ppl_vec, self.all_ppl_arr[:, i])
                 weights[i] = linreg_result.slope  # type: ignore
             except ValueError as err:
                 if 'Cannot calculate a linear regression if all x values are identical' in str(err):

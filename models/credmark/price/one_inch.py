@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Contract, Maybe, NativeToken, Network,
-                                PriceWithQuote, Token)
+from credmark.cmf.types import Contract, Maybe, NativeToken, Network, PriceWithQuote, Token
+
 from models.dtos.price import PriceInput
 
 
@@ -31,7 +31,8 @@ class PriceOneInch(Model):
                 # ) / (10 ** (eth.decimals+eth.decimals - input.decimals))
                 if p != 0:
                     p_weth = self.context.run_model('price.quote',
-                                                    {'base': 'WETH', 'quote': input.quote},
+                                                    {'base': 'WETH',
+                                                        'quote': input.quote},
                                                     return_type=PriceWithQuote)
                     return Maybe(just=PriceWithQuote.eth(price=p, src=self.slug).cross(p_weth))
         except ModelRunError:

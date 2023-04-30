@@ -10,6 +10,7 @@ import xlsxwriter
 from bs4 import BeautifulSoup
 from credmark.cmf.model import Model
 from credmark.dto import EmptyInput
+
 from .dtos import ExampleLibrariesOutput
 
 

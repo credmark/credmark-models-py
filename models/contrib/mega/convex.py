@@ -1,8 +1,8 @@
-# pylint:disable=unused-import, invalid-name
+# pylint:disable=invalid-name
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token, Network, Contract, Address
-from credmark.dto import DTO, DTOField
+from credmark.cmf.types import Address, Contract, Network, Token
+from credmark.dto import DTO
 
 
 class ConvexPoolInput(DTO):
@@ -65,7 +65,8 @@ class ConvexPoolApr(Model):
         return (currentVirtualPrice - previous_vprice) / previous_vprice
 
     def run(self, input: ConvexPoolInput) -> dict:
-        v_price = self.get_lptoken_price(input.lp_token, self.context.block_number)
+        v_price = self.get_lptoken_price(
+            input.lp_token, self.context.block_number)
         reward_contract = Contract(address=input.reward)
         finish_period = reward_contract.functions.periodFinish().call()
         supply = reward_contract.functions.totalSupply().call() / 1e18

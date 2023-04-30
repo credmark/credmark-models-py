@@ -1,26 +1,38 @@
 # pylint: disable=too-many-function-args, line-too-long
 
-import math
 import functools
+import math
 from enum import Enum
 
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    BlockNumber,
+    Currency,
+    FiatCurrency,
+    Maybe,
+    NativePosition,
+    NativeToken,
+    Portfolio,
+    PortfolioWithPrice,
+    Position,
+    PositionWithPrice,
+    PriceWithQuote,
+    Records,
+    Some,
+    Token,
+    TokenPosition,
+)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from credmark.cmf.types import (Account, Accounts,
-                                Currency, FiatCurrency,
-                                Maybe, NativePosition, NativeToken,
-                                Portfolio, Position,
-                                PortfolioWithPrice, PositionWithPrice,
-                                PriceWithQuote,
-                                Records, Some, Token, TokenPosition, BlockNumber)
 from credmark.dto import DTOField, EmptyInput, cross_examples
-from models.dtos.historical import HistoricalDTO
-from models.credmark.accounts.token_return import TokenReturnOutput, token_return
-from models.credmark.ledger.transfers import get_token_transfer, get_native_transfer
 from web3.exceptions import ContractLogicError
 
+from models.credmark.accounts.token_return import TokenReturnOutput, token_return
+from models.credmark.ledger.transfers import get_native_transfer, get_token_transfer
+from models.dtos.historical import HistoricalDTO
 
 np.seterr(all='raise')
 
@@ -63,7 +75,8 @@ class AccountERC20TokenReturn(Model):
     def run(self, input: AccountReturnInput) -> TokenReturnOutput:
         return self.context.run_model('accounts.token-return',
                                       input=AccountsReturnInput(
-                                          accounts=[input.address],  # type: ignore
+                                          # type: ignore
+                                          accounts=[Account(input.address)],
                                           token_list=input.token_list).dict(),
                                       return_type=TokenReturnOutput)
 
@@ -99,7 +112,8 @@ class AccountsTokenReturn(Model):
         native_token = NativeToken()
         native_amount = 0
         for account in input:
-            native_amount += native_token.balance_of_scaled(account.address.checksum)
+            native_amount += native_token.balance_of_scaled(
+                account.address.checksum)
 
         # TODO: native token transaction (incomplete) and gas spending
         _df_native = get_native_transfer(self.context, input.to_address())
@@ -164,7 +178,8 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 class AccountsTokenReturnHistorical(Model):
     def run(self, input: AccountsReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        interval_in_seconds = self.context.historical.to_seconds(
+            input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(
@@ -228,11 +243,13 @@ class AccountsTokenReturnHistorical(Model):
                 non_zero_bal_tokens_dict = {token_bal_row['token_address']: token_bal_row['value']
                                             for _, token_bal_row in _token_bal.iterrows()
                                             if not math.isclose(token_bal_row['value'], 0)}
-                non_zero_bal_tokens_addrs = list(non_zero_bal_tokens_dict.keys())
+                non_zero_bal_tokens_addrs = list(
+                    non_zero_bal_tokens_dict.keys())
 
                 pqs_maybe = self.context.run_model(
                     slug='price.quote-multiple-maybe',
-                    input=Some(some=[{'base': addr} for addr in non_zero_bal_tokens_addrs]),
+                    input=Some(some=[{'base': addr}
+                               for addr in non_zero_bal_tokens_addrs]),
                     return_type=Some[Maybe[PriceWithQuote]],
                     block_number=_past_block_number
                 )
@@ -254,9 +271,11 @@ class AccountsTokenReturnHistorical(Model):
             def _use_for(_assets, _token_bal, _past_block_number):
                 for _, token_bal_row in _token_bal.iterrows():
                     if not math.isclose(token_bal_row['value'], 0):
-                        asset_token = Token(token_bal_row['token_address']).as_erc20(set_loaded=True)
+                        asset_token = Token(
+                            token_bal_row['token_address']).as_erc20(set_loaded=True)
                         try_price = self.context.run_model('price.quote-maybe',
-                                                           input={'base': asset_token},
+                                                           input={
+                                                               'base': asset_token},
                                                            block_number=_past_block_number)
                         if try_price['just'] is None:
                             continue
@@ -279,7 +298,8 @@ class AccountsTokenReturnHistorical(Model):
 
 
 class AccountHistoricalInput(Account, HistoricalDTO):
-    include_price: bool = DTOField(default=True, description='Include price quote')
+    include_price: bool = DTOField(
+        default=True, description='Include price quote')
 
     class Config:
         schema_extra = {
@@ -314,7 +334,8 @@ class AccountERC20TokenHistorical(Model):
 
 
 class AccountsHistoricalInput(Accounts, HistoricalDTO):
-    include_price: bool = DTOField(default=True, description='Include price quote')
+    include_price: bool = DTOField(
+        default=True, description='Include price quote')
     quote: Currency = DTOField(default=Currency(symbol='USD'), description='')
 
     class Config:
@@ -342,14 +363,17 @@ class AccountsERC20TokenHistorical(Model):
     def account_token_historical(self, input, do_wobble_price):
         _include_price = input.include_price
 
-        self.logger.info(f'[{self.slug}] fetching `accounts.token-historical-balance`')
-        balance_result = self.context.run_model('accounts.token-historical-balance', input)
+        self.logger.info(
+            f'[{self.slug}] fetching `accounts.token-historical-balance`')
+        balance_result = self.context.run_model(
+            'accounts.token-historical-balance', input)
 
         historical_blocks = balance_result['historical_blocks']
         token_blocks = balance_result['token_blocks']
         token_rows = balance_result['token_rows']
 
-        price_historical_result = MapBlockTimeSeriesOutput[dict](**balance_result)
+        price_historical_result = MapBlockTimeSeriesOutput[dict](
+            **balance_result)
 
         if _include_price:
             all_blocks = list(functools.reduce(lambda a, b: a | set(b),
@@ -372,7 +396,8 @@ class AccountsERC20TokenHistorical(Model):
                     ['results'])
 
             if len(all_prices) != len(all_tokens):
-                raise ModelRunError('Prices results length is different from input list of tokens')
+                raise ModelRunError(
+                    'Prices results length is different from input list of tokens')
 
             all_prices_dict = {d['address']: d['results'] for d in all_prices}
 
@@ -407,14 +432,16 @@ class AccountsERC20TokenHistorical(Model):
 
                 if quotes is not None:
                     for p_idx, _ in enumerate(prices):
-                        prices[p_idx]['price'] /= quotes[prices[p_idx]['blockNumber']]
+                        prices[p_idx]['price'] /= quotes[prices[p_idx]
+                                                         ['blockNumber']]
 
                 if len(prices) < len(past_blocks):
                     if not do_wobble_price:
                         continue
 
                     try:
-                        last_price = self.context.run_model('price.dex-db-latest', input={'address': token_addr})
+                        last_price = self.context.run_model(
+                            'price.dex-db-latest', input={'address': token_addr})
                         if input.quote.address != FiatCurrency(symbol='USD').address:
                             last_quote = self.context.run_model(
                                 'price.dex-db-latest', input={'address': input.quote.address})
@@ -431,7 +458,8 @@ class AccountsERC20TokenHistorical(Model):
                     for blk_n, blk in enumerate(past_blocks):
                         if blk not in blocks_in_prices:
                             # 7200 blocks = 1440 minutes = 24 hr = 1 day
-                            self.logger.info(f'[{self.slug}] make up last price')
+                            self.logger.info(
+                                f'[{self.slug}] make up last price')
                             blk_diff = blk - last_price_block
                             if 0 < blk_diff < 7200:
                                 self.logger.info(
@@ -450,14 +478,15 @@ class AccountsERC20TokenHistorical(Model):
                                             'quote': input.quote.address,
                                             'prefer': 'cex'},
                                         block_number=blk)  # type: ignore
-                                except ModelRunError as _err:
+                                except ModelRunError:
                                     continue
                                 prices.insert(blk_n, new_price)
 
                 # pylint:disable=line-too-long
                 for past_block, price in zip(past_blocks, prices):
                     (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
-                        .output['positions'][token_rows[token_addr][str(past_block)]]  # type: ignore
+                        # type: ignore
+                        .output['positions'][token_rows[token_addr][str(past_block)]]
                         ['fiat_quote']) = PriceWithQuote(
                             price=price['price'],
                             src='dex',
@@ -499,7 +528,8 @@ class AccountsERC20TokenHistoricalBalance(Model):
         df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
         window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        interval_in_seconds = self.context.historical.to_seconds(
+            input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(
@@ -546,12 +576,14 @@ class AccountsERC20TokenHistoricalBalance(Model):
                 if not math.isclose(token_bal_row['value'], 0):
                     token_bal_addr = token_bal_row['token_address']
                     if all_tokens.get(token_bal_addr) is None:
-                        all_tokens[token_bal_addr] = Token(token_bal_addr).as_erc20(set_loaded=True)
+                        all_tokens[token_bal_addr] = Token(
+                            token_bal_addr).as_erc20(set_loaded=True)
                     try:
                         if _include_price:
                             assets.append(
                                 PositionWithPrice(
-                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    amount=all_tokens[token_bal_addr].scaled(
+                                        token_bal_row['value']),
                                     asset=all_tokens[token_bal_addr],
                                     fiat_quote=PriceWithQuote(
                                         price=0.0,
@@ -560,12 +592,15 @@ class AccountsERC20TokenHistoricalBalance(Model):
                         else:
                             assets.append(
                                 Position(
-                                    amount=all_tokens[token_bal_addr].scaled(token_bal_row['value']),
+                                    amount=all_tokens[token_bal_addr].scaled(
+                                        token_bal_row['value']),
                                     asset=all_tokens[token_bal_addr]))
 
                         if token_rows.get(token_bal_addr) is None:
-                            token_blocks[token_bal_addr] = set([past_block_number])
-                            token_rows[token_bal_addr] = {past_block_number: n_row - n_skip}
+                            token_blocks[token_bal_addr] = set(
+                                [past_block_number])
+                            token_rows[token_bal_addr] = {
+                                past_block_number: n_row - n_skip}
                         else:
                             token_blocks[token_bal_addr].add(past_block_number)
                             token_rows[token_bal_addr][past_block_number] = n_row - n_skip
@@ -642,11 +677,12 @@ class AccountsPortfolio(Model):
                 token = Token(address=t)
                 balance = 0
                 for acc in input.accounts:
-                    balance += token.scaled(token.functions.balanceOf(acc.address.checksum).call())
+                    balance += token.scaled(
+                        token.functions.balanceOf(acc.address.checksum).call())
                 if not math.isclose(balance, 0):
                     positions.append(
                         TokenPosition(asset=token, amount=balance))
-            except Exception as _err:
+            except Exception:
                 # TODO: currently skip NFTs
                 pass
 

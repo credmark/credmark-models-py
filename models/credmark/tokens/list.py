@@ -1,9 +1,8 @@
-# pylint: disable=locally-disabled, unused-import, no-member
+# pylint: disable=locally-disabled, no-member
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Records
-from credmark.cmf.types.data.fungible_token_data import \
-    FUNGIBLE_TOKEN_DATA_BY_SYMBOL
+from credmark.cmf.types.data.fungible_token_data import FUNGIBLE_TOKEN_DATA_BY_SYMBOL
 from credmark.dto import EmptyInput
 
 

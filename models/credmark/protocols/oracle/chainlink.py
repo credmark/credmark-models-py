@@ -2,14 +2,15 @@ import sys
 from typing import Any, cast
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelDataError, ModelEngineError
+from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
 from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, EmptyInput
 from ens import ENS
+from web3.exceptions import ContractLogicError
+
 from models.dtos.price import PriceInput
 from models.tmp_abi_lookup import CHAINLINK_AGG
-from web3.exceptions import ContractLogicError
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -124,14 +125,14 @@ class ChainLinkFeedFromRegistryMaybe(Model):
             return Maybe[PriceWithQuote](just=pq)
         except BlockNumberOutOfRangeError:
             return Maybe.none()
-        except ModelRunError as _err:
+        except ModelRunError:
             try:
                 pq = self.context.run_model('chainlink.price-by-registry',
                                             input=input.inverse(),
                                             return_type=PriceWithQuote,
                                             local=True)
                 return Maybe[PriceWithQuote](just=pq.inverse(input.quote.address))
-            except ModelRunError as _err2:
+            except ModelRunError:
                 return Maybe.none()
 
 
