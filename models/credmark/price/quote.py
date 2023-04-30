@@ -422,7 +422,7 @@ class PriceCommon:
                 uniswap_lp_value = \
                     uniswap_pos.token0_amount * token0_price['price'] + \
                     uniswap_pos.token1_amount * token1_price['price']
-                return PriceWithQuote.usd(price=uniswap_lp_value, src=token0_price['src'] + '|' + token1_price['src'])
+                return PriceWithQuote.usd(price=uniswap_lp_value, src='uniswap-v2 lp|cex|' + token0_price['src'] + '|' + token1_price['src'])
             except ModelDataError:
                 pass
             raise ModelRunError(
@@ -459,7 +459,7 @@ class PriceCommon:
                     uniswap_lp_value = \
                         uniswap_pos.token0_amount * token0_price['price'] + \
                         uniswap_pos.token1_amount * token1_price['price']
-                    return PriceWithQuote.usd(price=uniswap_lp_value, src=token0_price['src'] + '|' + token1_price['src'])
+                    return PriceWithQuote.usd(price=uniswap_lp_value, src='uniswap-v2 lp|dex|' + token0_price['src'] + '|' + token1_price['src'])
                 except ModelDataError:
                     pass
 
