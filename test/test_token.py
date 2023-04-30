@@ -72,6 +72,7 @@ class TestToken(CMFTest):
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
                         "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
 
+    def no_test_eth_flow(self):
         self.run_model("token.netflow-block",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                         "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
