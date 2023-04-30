@@ -2,7 +2,7 @@
 
 from cmf_test import CMFTest
 
-from models.credmark.protocols.ichi.vault import IchiVaults
+from models.credmark.protocols.ichi.ichi_vault import IchiVaults
 
 
 class TestICHI(CMFTest):
