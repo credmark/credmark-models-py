@@ -149,14 +149,19 @@ class TestUniswap(CMFTest):
         # credmark-dev run price.cex -i '{"base": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
         # credmark-dev run price.dex -i '{"base": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc"}' -j -b 17153464 --api_url=http://localhost:8700
 
+        # https://etherscan.io/tx/0x990a25a466f4df31bf70afcf3664149fbae23bbfd66653d1e1202a3c97d75c85
+        # pool: 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc
+        # block: 17136921
+
         pool_address = [
-            '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
-            '0xce84867c3c02b05dc570d0135103d3fb9cc19433'
+            '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',  # USDC - WETH
+            '0xce84867c3c02b05dc570d0135103d3fb9cc19433',  # SUSHI - WETH
+            '0xdc2b82bc1106c9c5286e59344896fb0ceb932f53',  # WETH - RGT
         ]
 
         for pool_addr in pool_address:
             self.run_model(
-                "uniswap-v2.lp-amount", {"address": pool_addr}, block_number=17150428)
+                "uniswap-v2.lp-amount", {"address": pool_addr}, block_number=17136921)
 
             self.run_model(
-                "price.dex", {"base": pool_addr}, block_number=17150428)
+                "price.dex", {"base": pool_addr}, block_number=17136921)

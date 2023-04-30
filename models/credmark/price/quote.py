@@ -396,6 +396,38 @@ class PriceCommon:
         return token
 
     @staticmethod
+    def get_price_for_uniswap(context, slug, uniswap_pos):
+        token0_error = None
+        token1_error = None
+
+        token0_price = {}
+        token1_price = {}
+
+        try:
+            token0_price = context.run_model(slug, {"base": uniswap_pos.token0})
+        except ModelDataError as err0:
+            token0_error = err0
+
+        try:
+            token1_price = context.run_model(slug, {"base": uniswap_pos.token1})
+        except ModelDataError as err1:
+            token1_error = err1
+
+        if token0_error is not None and token1_error is not None:
+            raise token1_error from token0_error
+
+        if token0_error is not None and token1_price is not None:
+            token0_price = token1_price.copy()
+            token0_price['price'] = token1_price['price'] * \
+                uniswap_pos['token1_amount'] / uniswap_pos['token0_amount']
+        elif token1_error is not None and token0_price is not None:
+            token1_price = token0_price.copy()
+            token1_price['price'] = token0_price['price'] * \
+                uniswap_pos['token0_amount'] / uniswap_pos['token1_amount']
+
+        return token0_price, token1_price
+
+    @staticmethod
     def get_price_usd_for_base(context, input, logger, slug, no_dex):
         # We already tried base with quote in USD.
         # When quote is non-USD, we try to obtain base's price quote in USD
@@ -415,10 +447,12 @@ class PriceCommon:
                 uniswap_pos = context.run_model('uniswap-v2.lp-amount',
                                                 input=input.base,
                                                 return_type=UniswapV2PoolLPPosition)
-                token0_price = context.run_model(slug, {"base": uniswap_pos.token0})
-                token1_price = context.run_model(slug, {"base": uniswap_pos.token1})
+
+                token0_price, token1_price = __class__.get_price_for_uniswap(context, slug, uniswap_pos)
+
                 logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
                             f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
+
                 uniswap_lp_value = \
                     uniswap_pos.token0_amount * token0_price['price'] + \
                     uniswap_pos.token1_amount * token1_price['price']
@@ -452,8 +486,9 @@ class PriceCommon:
                     uniswap_pos = context.run_model('uniswap-v2.lp-amount',
                                                     input=input_base,
                                                     return_type=UniswapV2PoolLPPosition)
-                    token0_price = context.run_model(slug, {"base": uniswap_pos.token0})
-                    token1_price = context.run_model(slug, {"base": uniswap_pos.token1})
+
+                    token0_price, token1_price = __class__.get_price_for_uniswap(context, slug, uniswap_pos)
+
                     logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
                                 f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
                     uniswap_lp_value = \
@@ -577,7 +612,7 @@ class PriceCexCross(PriceCexModel, AllowDEX):
 
 
 @Model.describe(slug='price.dex-maybe',
-                version='0.3',
+                version='0.5',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion [Maybe]'),
                 description='Price from Dex with fiat conversion for non-USD [Maybe]',
@@ -601,7 +636,7 @@ class PriceDexMaybe(Model):
 
 
 @Model.describe(slug='price.dex',
-                version='0.3',
+                version='0.5',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion'),
                 description='Price from Dex with fiat conversion for non-USD',
