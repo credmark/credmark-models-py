@@ -30,10 +30,8 @@ class CurveFinanceVeCRVLockup(Model):
         crv_token = Token(address=self.CRV_ADDRESS[self.context.network])
 
         crv_total_supply = crv_token.total_supply
-        crv_locked = crv_token.functions.balanceOf(
-            self.veCRV_ADDRESS[self.context.network]).call()
-        crv_vested = crv_token.functions.balanceOf(
-            self.vestCRV_ADDRESS[self.context.network]).call()
+        crv_locked = crv_token.functions.balanceOf(self.veCRV_ADDRESS[self.context.network]).call()
+        crv_vested = crv_token.functions.balanceOf(self.vestCRV_ADDRESS[self.context.network]).call()
 
         return {
             'total_supply': crv_token.scaled(crv_total_supply),

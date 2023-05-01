@@ -139,8 +139,7 @@ class CurveFinancePrice(Model):
 
             price_underlying.price *= exchange_rate
             if price_underlying.src is not None:
-                price_underlying.src = price_underlying.src + \
-                    f'|cToken*{exchange_rate:.3f}'
+                price_underlying.src = price_underlying.src + f'|cToken*{exchange_rate:.3f}'
             return price_underlying
 
         derived_info = self.CRV_DERIVED[self.context.network].get(

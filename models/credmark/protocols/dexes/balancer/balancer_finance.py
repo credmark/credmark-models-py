@@ -215,8 +215,7 @@ class GetBalancerPoolPriceInfo(Model):
                     token1 = tokens[t1]
                     scaled_balance0 = token1.scaled(pool_info.balances[t0])
                     scaled_balance1 = token1.scaled(pool_info.balances[t1])
-                    ratio01 = scaled_balance1 / \
-                        weights[t1] / scaled_balance0 * weights[t0]
+                    ratio01 = scaled_balance1 / weights[t1] / scaled_balance0 * weights[t0]
                     liquidity0 = (np.abs((np.power(1.001, - weights[t1] / weights[t0] / 2) - 1))
                                   * scaled_balance0)
                     liquidity1 = ((np.power(1.001, 1 - weights[t1] / weights[t0] / 2) - 1)

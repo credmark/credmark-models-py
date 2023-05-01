@@ -426,8 +426,7 @@ class UniswapV3GetPoolInfo(Model):
         #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
         #    float(liquidity * liquidity))
 
-        ratio_left = (in_tick_amount0 + liquidity / sb) * \
-            (in_tick_amount1 + liquidity * sa)
+        ratio_left = (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa)
         ratio_right = float(liquidity * liquidity)
 
         try:
@@ -485,8 +484,7 @@ class UniswapV3GetPoolInfo(Model):
         _tick_price_bottom0 = tick_to_price(tick_bottom) * scale_multiplier
         _tick_price_top0 = tick_to_price(tick_top) * scale_multiplier
 
-        ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / \
-            (2 ** 192) * scale_multiplier
+        ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
         try:
             ratio_price1 = 1/ratio_price0
         except (FloatingPointError, ZeroDivisionError):

@@ -309,8 +309,7 @@ class PriceQuote(Model):
             price_maybe1 = self.context.run_model(model1, pi, return_type=Maybe[PriceWithQuote])
             if price_maybe1.just is not None:
                 price = price_maybe1.just
-                price.src = label1 + '|' + \
-                    (price.src if price.src is not None else '')
+                price.src = label1 + '|' + (price.src if price.src is not None else '')
                 return price
             else:
                 price_maybe2 = self.context.run_model(model2, pi, return_type=Maybe[PriceWithQuote])
@@ -415,12 +414,10 @@ class PriceCommon:
 
         if token0_error is not None and token1_price is not None:
             token0_price = token1_price.copy()
-            token0_price['price'] = token1_price['price'] * \
-                uniswap_pos['token1_amount'] / uniswap_pos['token0_amount']
+            token0_price['price'] = token1_price['price'] * uniswap_pos['token1_amount'] / uniswap_pos['token0_amount']
         elif token1_error is not None and token0_price is not None:
             token1_price = token0_price.copy()
-            token1_price['price'] = token0_price['price'] * \
-                uniswap_pos['token0_amount'] / uniswap_pos['token1_amount']
+            token1_price['price'] = token0_price['price'] * uniswap_pos['token0_amount'] / uniswap_pos['token1_amount']
 
         return token0_price, token1_price
 

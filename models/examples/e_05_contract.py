@@ -61,8 +61,7 @@ class ExampleContract(Model):
             documentation_url="https://developer-docs.credmark.com/en/latest/"
             "reference/credmark.cmf.types.contract.Contract.html")
 
-        output.log(
-            "Contract is a subclass of Account, and is initialized with an address.")
+        output.log("Contract is a subclass of Account, and is initialized with an address.")
         output.log("To interact with one of CMK's vesting contracts:")
         contract = Contract(
             address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9")

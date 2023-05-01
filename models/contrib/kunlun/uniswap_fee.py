@@ -19,10 +19,8 @@ def get_block(in_dt: datetime):
 
 
 class UniswapFeeInput(DTO):
-    interval: int = DTOField(
-        gt=0, description='Block interval to gather the fees')
-    pool_address: Address = Address(
-        '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed')
+    interval: int = DTOField(gt=0, description='Block interval to gather the fees')
+    pool_address: Address = Address('0xcbcdf9626bc03e24f779434178a73a0b4bad62ed')
 
 
 class UniswapFeeOutput(UniswapFeeInput):

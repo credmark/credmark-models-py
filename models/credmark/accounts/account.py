@@ -254,8 +254,7 @@ class AccountsTokenReturnHistorical(Model):
                     block_number=_past_block_number
                 )
 
-                for p_maybe, (token_addr, token_value) in \
-                        zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
+                for p_maybe, (token_addr, token_value) in zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
                     asset_token = Token(token_addr).as_erc20(set_loaded=True)
                     if p_maybe.just is None:
                         continue
@@ -334,8 +333,7 @@ class AccountERC20TokenHistorical(Model):
 
 
 class AccountsHistoricalInput(Accounts, HistoricalDTO):
-    include_price: bool = DTOField(
-        default=True, description='Include price quote')
+    include_price: bool = DTOField(default=True, description='Include price quote')
     quote: Currency = DTOField(default=Currency(symbol='USD'), description='')
 
     class Config:
@@ -363,8 +361,7 @@ class AccountsERC20TokenHistorical(Model):
     def account_token_historical(self, input, do_wobble_price):
         _include_price = input.include_price
 
-        self.logger.info(
-            f'[{self.slug}] fetching `accounts.token-historical-balance`')
+        self.logger.info(f'[{self.slug}] fetching `accounts.token-historical-balance`')
         balance_result = self.context.run_model(
             'accounts.token-historical-balance', input)
 
@@ -613,16 +610,14 @@ class AccountsERC20TokenHistoricalBalance(Model):
                     n_skip += 1
 
             if _include_price:
-                price_historical_result[n_historical].output = \
-                    PortfolioWithPrice(positions=assets)  # type: ignore
+                price_historical_result[n_historical].output = PortfolioWithPrice(positions=assets)  # type: ignore
             else:
-                price_historical_result[n_historical].output = \
-                    Portfolio(positions=assets)  # type: ignore
+                price_historical_result[n_historical].output = Portfolio(positions=assets)  # type: ignore
 
-        return price_historical_result.dict() | \
-            {'token_blocks': token_blocks,
-             'historical_blocks': historical_blocks,
-             'token_rows': token_rows}
+        return price_historical_result.dict() | {
+            'token_blocks': token_blocks,
+            'historical_blocks': historical_blocks,
+            'token_rows': token_rows}
 
 
 @Model.describe(slug="account.portfolio",

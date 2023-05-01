@@ -88,8 +88,7 @@ if __name__ == '__main__':
         print(f'Unknown test type {args["type"]}')
         sys.exit()
 
-    print(
-        f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
+    print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
 
     CMFTest.block_number = args["block_number"]
     CMFTest.start_n = args["start_n"]

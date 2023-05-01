@@ -50,8 +50,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     elif _token_list == 'all':
         token_list = None
     else:
-        raise ModelInputError(
-            'The token_list field in input shall be one of all or cmf (token list from token.list)')
+        raise ModelInputError('The token_list field in input shall be one of all or cmf (token list from token.list)')
 
     all_tokens = []
 

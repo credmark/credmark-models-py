@@ -413,8 +413,7 @@ class TokenLogoModel(Model):
 
 class TokenTotalSupplyOutput(DTO):
     total_supply: int = DTOField(description="Total supply of token")
-    total_supply_scaled: float = DTOField(
-        description="Total supply scaled to token decimals")
+    total_supply_scaled: float = DTOField(description="Total supply scaled to token decimals")
 
 
 @Model.describe(slug="token.total-supply",
@@ -438,12 +437,9 @@ class TokenTotalSupplyModel(Model):
 
 
 class TokenBalanceInput(Token):
-    account: Address = \
-        DTOField(
-            description='Account address for which to fetch balance.')
-    quote: Currency = \
-        DTOField(FiatCurrency(symbol='USD'),
-                 description='Quote token address to count the value')
+    account: Address = DTOField(description='Account address for which to fetch balance.')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Quote token address to count the value')
 
 
 class TokenBalanceOutput(DTO):

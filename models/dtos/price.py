@@ -33,11 +33,9 @@ class PriceInput(DTO):
     e.g. ETH / USD
     """
 
-    base: Currency = \
-        DTOField(description='Base token address to get the value for')
-    quote: Currency = \
-        DTOField(FiatCurrency(symbol='USD'),
-                 description='Quote token address to count the value')
+    base: Currency = DTOField(description='Base token address to get the value for')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Quote token address to count the value')
 
     def inverse(self):
         return __class__(base=self.quote, quote=self.base)

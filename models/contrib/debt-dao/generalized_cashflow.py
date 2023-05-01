@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, BlockNumber, Token
 from credmark.dto import DTO
@@ -46,9 +48,7 @@ class GeneralizedCashflow(Model):
                 transfer['price'] = 0
             if transfer['price'] is None:
                 transfer['price'] = 0
-            transfer['value_usd'] = transfer['price'] * \
-                float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(
-                int(transfer['block_number'])).timestamp_datetime)
+            transfer['value_usd'] = transfer['price'] * float(transfer['value']) / (10 ** token.decimals)
+            transfer['block_time'] = str(BlockNumber(int(transfer['block_number'])).timestamp_datetime)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()

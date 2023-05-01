@@ -203,8 +203,7 @@ class TLSScore(Model):
 
         # 4. Transfer records
         current_block_dt = self.context.block_number.timestamp_datetime
-        one_day_earlier = current_block_dt - \
-            timedelta(hours=input.tx_history_hours)
+        one_day_earlier = current_block_dt - timedelta(hours=input.tx_history_hours)
         one_day_earlier_block = self.context.block_number.from_timestamp(
             one_day_earlier)
 

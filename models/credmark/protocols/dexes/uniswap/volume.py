@@ -358,8 +358,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             raise ModelRunError(
                 f'Unknown pool info model {input.pool_info_model=}')
 
-        df_all_swaps['interval_n'] = input.count - \
-            df_all_swaps.loc[:, 'interval_n'] - 1
+        df_all_swaps['interval_n'] = input.count - df_all_swaps.loc[:, 'interval_n'] - 1
         df_all_swaps['start_block_number'] = (
             int(self.context.block_number) - (df_all_swaps.interval_n + 1) * input.interval)
         df_all_swaps['end_block_number'] = (
@@ -380,8 +379,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             df_swap_sel = df_all_swaps.loc[df_all_swaps.interval_n == cc, :]
 
             if df_swap_sel.empty:  # type: ignore
-                block_number = self.context.block_number + \
-                    (cc - input.count + 1) * input.interval
+                block_number = self.context.block_number + (cc - input.count + 1) * input.interval
                 pool_volume_history.series[cc].blockNumber = int(block_number)
                 pool_volume_history.series[cc].blockTimestamp = int(
                     BlockNumber(block_number).timestamp)

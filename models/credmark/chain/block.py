@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, EmptyInput
@@ -78,9 +80,7 @@ class GetBlock(Model):
         if (start_block == end_block - 1
                 or timestamp <= start.timestamp
                 or timestamp >= end.timestamp):
-            return start \
-                if abs(timestamp - start.timestamp) < abs(timestamp - end.timestamp) \
-                else end
+            return start if abs(timestamp - start.timestamp) < abs(timestamp - end.timestamp) else end
 
         # K is how far in between start and end we're expected to be
         k = (timestamp - start.timestamp) / (end.timestamp - start.timestamp)

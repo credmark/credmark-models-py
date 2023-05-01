@@ -212,8 +212,7 @@ class UniV3Pool:
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):
         num = sqrtPrice96 * sqrtPrice96
         denom = 2 ** 192
-        price0 = num / denom * \
-            10 ** (self.token0_decimals - self.token1_decimals)
+        price0 = num / denom * 10 ** (self.token0_decimals - self.token1_decimals)
         try:
             price1 = 1 / price0
         except (FloatingPointError, ZeroDivisionError):
@@ -373,11 +372,9 @@ class UniV3Pool:
         self.pool_sqrtPrice = event_row['sqrtPriceX96']
 
         self.token0_in += 0 if event_row['amount0'] < 0 else event_row['amount0']
-        self.token0_out += - \
-            event_row['amount0'] if event_row['amount0'] < 0 else 0
+        self.token0_out += (- event_row['amount0']) if event_row['amount0'] < 0 else 0
         self.token1_in += 0 if event_row['amount1'] < 0 else event_row['amount1']
-        self.token1_out += - \
-            event_row['amount1'] if event_row['amount1'] < 0 else 0
+        self.token1_out += (- event_row['amount1']) if event_row['amount1'] < 0 else 0
 
         self.token0_reserve += event_row['amount0']
         self.token1_reserve += event_row['amount1']

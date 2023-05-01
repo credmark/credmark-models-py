@@ -97,8 +97,7 @@ def calculate_onetick_liquidity(
     #     (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa),
     #    float(liquidity * liquidity))
 
-    ratio_left = (in_tick_amount0 + liquidity / sb) * \
-        (in_tick_amount1 + liquidity * sa)
+    ratio_left = (in_tick_amount0 + liquidity / sb) * (in_tick_amount1 + liquidity * sa)
     ratio_right = float(liquidity * liquidity)
 
     try:

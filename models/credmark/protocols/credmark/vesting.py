@@ -51,22 +51,14 @@ class CMKGetVestingContracts(Model):
         if self.context.chain_id == 1:
             return Contracts(
                 contracts=[
-                    Contract(
-                        address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9"),
-                    Contract(
-                        address="0x46d812De7EF3cA2E3c1D8EfFb496F070b2202DFF"),
-                    Contract(
-                        address="0xCA9bb8A10B2C0FB16A18eDae105456bf7e91B041"),
-                    Contract(
-                        address="0x70371C6D23A26Df7Bf0654C47D69ddE9000013E7"),
-                    Contract(
-                        address="0x0f8d3D79f5Fb9EDFceFF399F056c996eb9b89C67"),
-                    Contract(
-                        address="0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"),
-                    Contract(
-                        address="0xdb9DCecbA3f21e2aa53897a05A92F89209731b68"),
-                    Contract(
-                        address="0x5CE367c907a119afa25f4DBEe4f5B4705C802Df5"),
+                    Contract(address="0xCbF507C87f19B58fB719B65697Fb7fA84D682aA9"),
+                    Contract(address="0x46d812De7EF3cA2E3c1D8EfFb496F070b2202DFF"),
+                    Contract(address="0xCA9bb8A10B2C0FB16A18eDae105456bf7e91B041"),
+                    Contract(address="0x70371C6D23A26Df7Bf0654C47D69ddE9000013E7"),
+                    Contract(address="0x0f8d3D79f5Fb9EDFceFF399F056c996eb9b89C67"),
+                    Contract(address="0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb"),
+                    Contract(address="0xdb9DCecbA3f21e2aa53897a05A92F89209731b68"),
+                    Contract(address="0x5CE367c907a119afa25f4DBEe4f5B4705C802Df5"),
                 ]
             )
         raise ModelDataError(message="cmk vesting contracts only deployed on mainnet",
@@ -239,8 +231,7 @@ class CMKGetVestingByAccount(Model):
                     ledger_events.loc[:, 'amount_scaled'] = (
                         ledger_events['evt_amount'].apply(Token(symbol="CMK").scaled))
                     ledger_events.loc[:, 'price_now'] = current_price
-                    ledger_events.loc[:, 'value_now'] = current_price * \
-                        ledger_events.amount_scaled
+                    ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
                     ledger_events.loc[:, 'price_at_claim_time'] = (
                         ledger_events.apply(price_at_claim_time, axis=1))
                     ledger_events.loc[:, 'value_at_claim_time'] = (

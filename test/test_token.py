@@ -87,13 +87,11 @@ class TestToken(CMFTest):
                         "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
 
     def test_holders(self):
-        self.run_model(
-            "token.holders",
-            {"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "top_n": 20})
+        self.run_model("token.holders",
+                       {"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "top_n": 20})
 
-        self.run_model(
-            "token.holders",
-            {"address": "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B", "top_n": 20})
+        self.run_model("token.holders",
+                       {"address": "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B", "top_n": 20})
 
         # cbETH's first transfer is at block 14160141, created at 14133762
         # query at earlier blocks should return 0
@@ -104,27 +102,23 @@ class TestToken(CMFTest):
                                order_by=tt.BLOCK_NUMBER.asc(), limit=1)
                 return df.iloc[0]['block_number'] if not df.empty else -1
         # _get_first_tx(context, '0xbe9895146f7af43049ca1c1ae358b0541ea49704')
-        self.run_model(
-            "token.holders-count",
-            {"address": "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704"}, block_number=14130667)
+        self.run_model("token.holders-count",
+                       {"address": "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704"}, block_number=14130667)
 
         # USDC first transfer is at block , created at 6082465
         # _get_first_tx(context, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
-        self.run_model(
-            "token.holders-count",
-            {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}, block_number=6083000)
+        self.run_model("token.holders-count",
+                       {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}, block_number=6083000)
 
         self.run_model('token.holders-count',
                        {"address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"})
 
     def test_transaction(self):
-        self.run_model(
-            "token.transaction",
-            {"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867}, block_number=15225867)
+        self.run_model("token.transaction",
+                       {"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867}, block_number=15225867)
 
-        self.run_model(
-            "token.transaction",
-            {"hash": "0x7ee67c4b2b5540a503fdf3b2f3a44c955c22884c0e286f5d89e67d4d8989264a", "block_number": 13984858}, block_number=15125867)
+        self.run_model("token.transaction",
+                       {"hash": "0x7ee67c4b2b5540a503fdf3b2f3a44c955c22884c0e286f5d89e67d4d8989264a", "block_number": 13984858}, block_number=15125867)
 
     def test_account(self):
         self.title("Account Examples")
@@ -217,10 +211,8 @@ class TestToken(CMFTest):
         self.run_model("token.swap-pools", {"symbol": "CMK"})
 
         self.run_model("token.info", {"symbol": "CMK"})
-        self.run_model(
-            "token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
-        self.run_model(
-            "token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
+        self.run_model("token.info", {"address": "0x019Ff0619e1D8Cd2d550940eC743fDE6d268AfE2"})
+        self.run_model("token.info", {"address": "0x019ff0619e1d8cd2d550940ec743fde6d268afe2"})
         self.run_model("token.info", {"symbol": "MKR"})
 
         self.run_model('token.total-supply',

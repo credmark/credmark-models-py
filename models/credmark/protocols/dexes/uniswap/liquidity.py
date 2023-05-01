@@ -212,8 +212,7 @@ def get_amount_in_ticks(logger,
             if should_print_tick:
                 adjusted_amount0 = amount0 / (10 ** decimals0)
                 adjusted_amount1 = amount1 / (10 ** decimals1)
-                logger.info(
-                    f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
+                logger.info(f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
 
         tick += tick_spacing
 

@@ -170,8 +170,7 @@ class CurveFinancePoolInfoTokens(Model):
         # Equivalent to input.functions.balances(ii).call()
         try:
             # Use Registry
-            balances_tokens = registry.functions.get_balances(
-                input.address.checksum).call()
+            balances_tokens = registry.functions.get_balances(input.address.checksum).call()
 
             # Equivalent to input.functions.coins(ii).call()
             coins = registry.functions.get_coins(input.address.checksum).call()
@@ -180,8 +179,7 @@ class CurveFinancePoolInfoTokens(Model):
             # However, input.functions.underlying_coins(ii).call() is empty for some pools
             underlying_coins = (registry.functions.get_underlying_coins(input.address.checksum)
                                 .call())
-            underlying, underlying_symbol = self.__class__.check_token_address(
-                underlying_coins)
+            underlying, underlying_symbol = self.__class__.check_token_address(underlying_coins)
             balances_raw = balances_tokens[:len(tokens_symbol)]
 
             balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
@@ -190,8 +188,7 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 _ = input.abi
             except ModelDataError:
-                input = Contract(input.address).set_abi(
-                    CURVE_VYPER_POOL, set_loaded=True)
+                input = Contract(input.address).set_abi(CURVE_VYPER_POOL, set_loaded=True)
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(
@@ -202,10 +199,9 @@ class CurveFinancePoolInfoTokens(Model):
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
                 if not Address(pool_addr).is_null():
-                    return self.context.run_model(
-                        self.slug,
-                        input=Contract(address=Address(pool_addr)),
-                        return_type=CurveFiPoolInfoToken)
+                    return self.context.run_model(self.slug,
+                                                  input=Contract(address=Address(pool_addr)),
+                                                  return_type=CurveFiPoolInfoToken)
             except Exception:
                 pass
 
@@ -256,12 +252,9 @@ class CurveFinancePoolInfoTokens(Model):
                     provider = self.context.run_model('curve-fi.get-provider',
                                                       input=EmptyInput(),
                                                       return_type=Contract)
-                    pool_info_addr = Address(
-                        provider.functions.get_address(1).call())
-                    pool_info_contract = Contract(
-                        address=pool_info_addr.checksum)
-                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum)
-                                 .call())
+                    pool_info_addr = Address(provider.functions.get_address(1).call())
+                    pool_info_contract = Contract(address=pool_info_addr.checksum)
+                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum).call())
                     lp_token_addr = Address(pool_info[5])
                 except ContractLogicError:
                     pass
@@ -326,8 +319,7 @@ class CurveFinancePoolInfo(Model):
 
         token_prices = _use_for()
 
-        np_balance = np.array(pool_info.balances_token) * \
-            np.array([p.price for p in token_prices])
+        np_balance = np.array(pool_info.balances_token) * np.array([p.price for p in token_prices])
         n_asset = np_balance.shape[0]
         product_balance = np_balance.prod()
         avg_balance = np_balance.mean()
@@ -486,8 +478,7 @@ class CurveFiAllGaugesOutput(Contracts):
                 output=CurveFiAllGaugesOutput)
 class CurveFinanceAllGauges(Model):
     def run(self, _) -> CurveFiAllGaugesOutput:
-        gauge_controller = Contract(
-            **self.context.models.curve_fi.get_gauge_controller())
+        gauge_controller = Contract(**self.context.models.curve_fi.get_gauge_controller())
         gauges = []
         lp_tokens = []
         i = 0
@@ -550,11 +541,9 @@ class CurveFinanceGaugeRewardsCRV(Model):
             if not addr.address:
                 raise ModelRunError(f'Input is invalid, {input}')
 
-            claimable_tokens = input.functions.claimable_tokens(
-                addr.address.checksum).call()
+            claimable_tokens = input.functions.claimable_tokens(addr.address.checksum).call()
             balanceOf = input.functions.balanceOf(addr.address.checksum).call()
-            working_balances = input.functions.working_balances(
-                addr.address.checksum).call()
+            working_balances = input.functions.working_balances(addr.address.checksum).call()
 
             yields.append({
                 "claimable_tokens": claimable_tokens,
@@ -632,22 +621,16 @@ class CurveFinanceAverageGaugeYield(Model):
                         if y2['claimable_tokens'] == 0:
                             continue
                         if y1['balanceOf'] == y2['balanceOf']:
-                            y2_rewards_value = y2["claimable_tokens"] * \
-                                self.CRV_PRICE / (10**18)
-                            y1_rewards_value = y1["claimable_tokens"] * \
-                                self.CRV_PRICE / (10**18)
-                            virtual_price = pool_virtual_price / \
-                                (10**18) / (10**18)
-                            y2_liquidity_value = y2["balanceOf"] * \
-                                virtual_price
-                            y1_liquidity_value = y1["balanceOf"] * \
-                                virtual_price
+                            y2_rewards_value = y2["claimable_tokens"] * self.CRV_PRICE / (10**18)
+                            y1_rewards_value = y1["claimable_tokens"] * self.CRV_PRICE / (10**18)
+                            virtual_price = pool_virtual_price / (10**18) / (10**18)
+                            y2_liquidity_value = y2["balanceOf"] * virtual_price
+                            y1_liquidity_value = y1["balanceOf"] * virtual_price
                             new_portfolio_value = y2_rewards_value + y2_liquidity_value
                             old_portfolio_value = y1_rewards_value + y1_liquidity_value
                             if old_portfolio_value > new_portfolio_value:
                                 break
-                            yields.append(
-                                (new_portfolio_value - old_portfolio_value) / old_portfolio_value)
+                            yields.append((new_portfolio_value - old_portfolio_value) / old_portfolio_value)
                             break
         if len(yields) == 0:
             return {}

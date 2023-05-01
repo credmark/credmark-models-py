@@ -346,12 +346,9 @@ class PriceFromDexModel(Model):
                                                     return_type=Some[PoolPriceInfo],
                                                     local=True).some
 
-            pool_aggregator_input = DexPoolAggregationInput(
-                **input.dict(),
-                some=all_pool_infos)
+            pool_aggregator_input = DexPoolAggregationInput(**input.dict(), some=all_pool_infos)
 
-            price = PoolPriceAggregator(
-                self.context).run(pool_aggregator_input)
+            price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
 
             # Above code replaced code below as a saving to a model call
             # price = self.context.run_model('price.pool-aggregator',

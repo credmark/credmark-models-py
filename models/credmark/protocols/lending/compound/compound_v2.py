@@ -401,8 +401,7 @@ class CompoundV2GetPoolInfo(Model):
         #    except AssertionError:
         #        self.logger.error(f'{cToken.functions.implementation().call()}, '
         #                          f'{cToken.proxy_for.address=}')
-        assert cToken.functions.admin().call() == \
-            Address(self.COMPOUND_TIMELOCK[self.context.network])
+        assert cToken.functions.admin().call() == Address(self.COMPOUND_TIMELOCK[self.context.network])
         assert cToken.functions.comptroller().call() == Address(comptroller.address)
         assert cToken.functions.symbol().call()
         if cToken.name != 'Compound Ether':
@@ -428,16 +427,14 @@ class CompoundV2GetPoolInfo(Model):
         invExchangeRate = 1 / exchangeRate * pow(10, 10)
         totalLiability = totalcTokenSupply / invExchangeRate
 
-        reserveFactor = cToken.functions.reserveFactorMantissa().call() / \
-            self.ETH_MANTISSA
+        reserveFactor = cToken.functions.reserveFactorMantissa().call() / self.ETH_MANTISSA
         borrowRate = cToken.functions.borrowRatePerBlock().call() / self.ETH_MANTISSA
         supplyRate = cToken.functions.supplyRatePerBlock().call() / self.ETH_MANTISSA
 
         if math.isclose(cash + totalBorrows - totalReserves, 0):
             utilizationRate = 0
         else:
-            utilizationRate = totalBorrows / \
-                (cash + totalBorrows - totalReserves)
+            utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)
 
         supplyAPY = (supplyRate * self.BLOCKS_PER_DAY +
                      1) ** self.DAYS_PER_YEAR - 1

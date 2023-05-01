@@ -114,7 +114,6 @@ class UniswapExchange(Model):
 
         offer_daiAmount = exchange_contract.functions.getTokenToEthOutputPrice(
             eth_amount).call()
-        offer_price = to_wei(offer_daiAmount, 'Ether') / \
-            eth_amount / eth_amount
+        offer_price = to_wei(offer_daiAmount, 'Ether') / eth_amount / eth_amount
 
         return {'value': (bid_price, offer_price, bid_daiAmount, offer_daiAmount)}

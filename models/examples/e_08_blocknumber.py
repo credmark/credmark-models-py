@@ -32,8 +32,7 @@ class ExampleBlockNumber(Model):
 
         block_number = self.context.block_number
 
-        output.log(
-            "The current environment's BlockNumber is available in the Model Context")
+        output.log("The current environment's BlockNumber is available in the Model Context")
         output.log_io(input="self.context.block_number",
                       output=self.context.block_number)
         output.log_io(input="block_number",
@@ -43,8 +42,7 @@ class ExampleBlockNumber(Model):
         output.log_io(input="block_number.timestamp_datetime",
                       output=block_number.timestamp_datetime)
 
-        output.log(
-            'Addition and subtraction works across BlockNumber and int types')
+        output.log('Addition and subtraction works across BlockNumber and int types')
         output.log_io(input="block_number - 1000",
                       output=block_number - 1000)
         output.log_io(input="(block_number - 1000).timestamp_datetime",
@@ -71,14 +69,12 @@ class ExampleBlockNumber(Model):
 
         try:
             BlockNumber(-1)
-            raise ModelRunError(
-                message="BlockNumbers cannot be negative, an exception was NOT caught, "
-                "and the example has FAILED")
+            raise ModelRunError(message="BlockNumbers cannot be negative, an exception was NOT caught, "
+                                "and the example has FAILED")
         except BlockNumberOutOfRangeError as _e:
             output.log_error(_e)
-            output.log_error(
-                "Attempting to create a BlockNumber object with a negative block number "
-                "raises BlockNumberOutOfRangeError")
+            output.log_error("Attempting to create a BlockNumber object with a negative block number "
+                             "raises BlockNumberOutOfRangeError")
 
         return output
 
@@ -107,14 +103,11 @@ class ExampleBlockTime(Model):
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
-        output.log(
-            "CMF object BlockNumber is used to get Block Number from datetime or timestamp")
+        output.log("CMF object BlockNumber is used to get Block Number from datetime or timestamp")
         block_number = BlockNumber.from_timestamp(block_time)
-        output.log(
-            "BlockNumber's timestamp might be different from the input timestamp,")
+        output.log("BlockNumber's timestamp might be different from the input timestamp,")
         output.log("as the last block before the datetime is returned")
-        output.log_io(
-            input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
+        output.log_io(input=f"BlockNumber.from_timestamp({block_time})", output=block_number)
 
         output.log_io(input="block_number.timestamp_datetime",
                       output=block_number.timestamp_datetime)

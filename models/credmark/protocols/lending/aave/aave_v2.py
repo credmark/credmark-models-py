@@ -462,8 +462,7 @@ class AaveV2GetAssetsDetail(Model):
                     aave_debts_infos.append(pool_result.output)
                 elif pool_result.error is not None:
                     self.logger.error(pool_result.error)
-                    if pool_result.error.message.startswith('aToken') and \
-                       pool_result.error.message.endswith('was not initialized'):
+                    if pool_result.error.message.startswith('aToken') and pool_result.error.message.endswith('was not initialized'):
                         continue
                     raise ModelRunError(
                         (f'Error with models({self.context.block_number}).' +
@@ -691,8 +690,7 @@ class AaveV2GetReserveConfigurationData(Model):
             return_type=Contract,
             local=True,
         )
-        config_data = protocolDataProvider.functions\
-            .getReserveConfigurationData(input.address).call()
+        config_data = protocolDataProvider.functions.getReserveConfigurationData(input.address).call()
 
         keys_need_to_be_decimal = ['ltv',
                                    'liquidationThreshold',

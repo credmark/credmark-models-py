@@ -240,18 +240,15 @@ class AaveV2GetAccountInfo(Model):
             balance_list = []
             for reserve_token in user_reserve_data:
                 if reserve_token['currentATokenBalance'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * \
-                        reserve_token['currentATokenBalance']
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
                     balance_list.append({'amount': amount,
                                          'APY': reserve_token['depositAPY']})
                 if reserve_token['currentStableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * \
-                        reserve_token['currentStableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['stableBorrowAPY']})
                 if reserve_token['currentVariableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * \
-                        reserve_token['currentVariableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['variableBorrowAPY']})
 
@@ -297,8 +294,7 @@ class AaveV2GetAccountSummary(Model):
         keys_need_to_be_decimal = ['currentLiquidationThreshold',
                                    'ltv']
 
-        keys = keys_need_to_be_scaled + \
-            keys_need_to_be_decimal + ['healthFactor']
+        keys = keys_need_to_be_scaled + keys_need_to_be_decimal + ['healthFactor']
         keys_need_to_be_scaled.append('healthFactor')
 
         native_token = NativeToken()

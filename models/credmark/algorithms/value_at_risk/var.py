@@ -259,8 +259,7 @@ class VaREngineHistorical(Model):
                                                              amount=amount,
                                                              price=np_priceList[0],
                                                              value=value))
-        ret_series = np_priceList[:-input.interval] / \
-            np_priceList[input.interval:] - 1
+        ret_series = np_priceList[:-input.interval] / np_priceList[input.interval:] - 1
         # ppl: potential profit&loss
         ppl_vector = value * ret_series
         return ppl_vector

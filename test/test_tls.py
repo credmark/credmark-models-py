@@ -69,8 +69,7 @@ class TestTLS(CMFTest):
             '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643',  # cDAI
             '0x6b175474e89094c44da98b954eedeac495271d0f',  # DAI
         ]:
-            tls_score = self.run_model_with_output(
-                'tls.score', {"address": addr}, block_number=block_number)
+            tls_score = self.run_model_with_output('tls.score', {"address": addr}, block_number=block_number)
             print((addr, tls_score['output']['score'],
                   tls_score['output']['items']))
 

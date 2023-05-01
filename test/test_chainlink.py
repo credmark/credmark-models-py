@@ -34,12 +34,9 @@ class TestChainlink(CMFTest):
     def test_price_quote(self):
         self.title('Chainlink - price quote')
 
-        self.run_model(
-            'price.cex', {"base": {"symbol": "AAVE"}}, block_number=self.block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "WETH"}}, block_number=self.block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "WBTC"}}, block_number=self.block_number)
+        self.run_model('price.cex', {"base": {"symbol": "AAVE"}}, block_number=self.block_number)
+        self.run_model('price.cex', {"base": {"symbol": "WETH"}}, block_number=self.block_number)
+        self.run_model('price.cex', {"base": {"symbol": "WBTC"}}, block_number=self.block_number)
         self.run_model('price.cex', {
                        "base": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}, block_number=self.block_number)
         self.run_model('price.cex', {
@@ -48,18 +45,12 @@ class TestChainlink(CMFTest):
                        "base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}}, block_number=self.block_number)
 
         block_number = 15249443
-        self.run_model(
-            'price.cex', {"base": {"symbol": "WBTC"}}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "BTC"}}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "WETH"}}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "ETH"}}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "AAVE"}}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": {"symbol": "USD"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "WBTC"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "BTC"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "WETH"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "ETH"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "AAVE"}}, block_number=block_number)
+        self.run_model('price.cex', {"base": {"symbol": "USD"}}, block_number=block_number)
 
     def test_oracle_chainlink(self):
         self.title('Chainlink - Oracle')

@@ -129,12 +129,9 @@ class TestUniswap(CMFTest):
         self.run_model("uniswap-v2.lp", {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
                        "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"})
 
-        self.run_model(
-            "uniswap-v3.lp", {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
-        self.run_model(
-            "uniswap-v3.lp", {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
-        self.run_model(
-            "uniswap-v3.lp", {"lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp", {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp", {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp", {"lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355427}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355415}, block_number=15931588)
 
@@ -160,8 +157,6 @@ class TestUniswap(CMFTest):
         ]
 
         for pool_addr in pool_address:
-            self.run_model(
-                "uniswap-v2.lp-amount", {"address": pool_addr}, block_number=17136921)
+            self.run_model("uniswap-v2.lp-amount", {"address": pool_addr}, block_number=17136921)
 
-            self.run_model(
-                "price.dex", {"base": pool_addr}, block_number=17136921)
+            self.run_model("price.dex", {"base": pool_addr}, block_number=17136921)

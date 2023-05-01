@@ -100,37 +100,29 @@ if __name__ == '__main__':
                       calc_var(test_ppl[::-1], 0.01).var)
 
     assert np.isclose(calc_var(test_ppl, 0.01).var, 1 * 0.4 + 2 * 0.6)
-    logging.info(
-        f'VaR for [0...260] at 0.01 confidence level is {calc_var(np.arange(260), 0.01)}')
+    logging.info(f'VaR for [0...260] at 0.01 confidence level is {calc_var(np.arange(260), 0.01)}')
 
     assert np.isclose(calc_es(test_ppl, 0.01).es, (0 + 1 + 1.6 * 0.6) / 2.6)
-    logging.info(
-        f'ES for [0...260] at 0.01 confidence level is {calc_es(test_ppl, 0.01)}')
+    logging.info(f'ES for [0...260] at 0.01 confidence level is {calc_es(test_ppl, 0.01)}')
 
     test_ppl_100 = np.arange(100)
     assert np.isclose(calc_es(test_ppl_100, 0.01).es, (0) / 1)
-    logging.info(
-        f'ES for [0...100] at 0.01 confidence level is {calc_es(test_ppl_100, 0.01)}')
+    logging.info(f'ES for [0...100] at 0.01 confidence level is {calc_es(test_ppl_100, 0.01)}')
 
     assert np.isclose(calc_es(test_ppl_100, 0.03).es, (0 + 1 + 2) / 3)
-    logging.info(
-        f'ES for [0...100] at 0.03 confidence level is {calc_es(test_ppl_100, 0.03)}')
+    logging.info(f'ES for [0...100] at 0.03 confidence level is {calc_es(test_ppl_100, 0.03)}')
 
     assert np.isclose(calc_es(test_ppl_100, 0.035).es,
                       (0 + 1 + 2 + 2.5 * 0.5) / 3.5)
-    logging.info(
-        f'ES for [0...100] at 0.035 confidence level is {calc_es(test_ppl_100, 0.035)}')
+    logging.info(f'ES for [0...100] at 0.035 confidence level is {calc_es(test_ppl_100, 0.035)}')
 
     assert np.isclose(calc_es(test_ppl_100, 0.037).es,
                       (0 + 1 + 2 + 2.7 * 0.7) / 3.7)
-    logging.info(
-        f'ES for [0...100] at 0.0375 confidence level is {calc_es(test_ppl_100, 0.037)}')
+    logging.info(f'ES for [0...100] at 0.0375 confidence level is {calc_es(test_ppl_100, 0.037)}')
 
     assert np.isclose(calc_es(test_ppl_100, 0.043).es,
                       (0 + 1 + 2 + 3 + 3.3 * 0.3) / 4.3)
-    logging.info(
-        f'ES for [0...100] at 0.043 confidence level is {calc_es(test_ppl_100, 0.043)}')
+    logging.info(f'ES for [0...100] at 0.043 confidence level is {calc_es(test_ppl_100, 0.043)}')
 
     assert np.isclose(calc_es(test_ppl_100, 0.05).es, (0 + 1 + 2 + 3 + 4) / 5)
-    logging.info(
-        f'ES for [0...100] at 0.05 confidence level is {calc_es(test_ppl_100, 0.05)}')
+    logging.info(f'ES for [0...100] at 0.05 confidence level is {calc_es(test_ppl_100, 0.05)}')

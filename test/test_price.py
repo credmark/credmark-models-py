@@ -229,33 +229,23 @@ class TestPrice(CMFTest):
 
         self.run_model('price.dex', {"base": "CMK",
                        "quote": "USD"}, block_number=block_number)
-        self.run_model(
-            'price.dex', {"quote": "CMK", "base": "USD"}, block_number=block_number)
+        self.run_model('price.dex', {"quote": "CMK", "base": "USD"}, block_number=block_number)
         self.run_model('price.dex', {"base": "CMK",
                        "quote": "EUR"}, block_number=block_number)
-        self.run_model(
-            'price.dex', {"quote": "CMK", "base": "EUR"}, block_number=block_number)
-        self.run_model(
-            'price.dex', {"base": "CMK", "quote": "AAVE"}, block_number=block_number)
-        self.run_model(
-            'price.dex', {"quote": "CMK", "base": "AAVE"}, block_number=block_number)
+        self.run_model('price.dex', {"quote": "CMK", "base": "EUR"}, block_number=block_number)
+        self.run_model('price.dex', {"base": "CMK", "quote": "AAVE"}, block_number=block_number)
+        self.run_model('price.dex', {"quote": "CMK", "base": "AAVE"}, block_number=block_number)
 
     def test_price_cex(self):
         self.title('Price - Cex')
         block_number = 15981401
 
-        self.run_model(
-            'price.cex', {"base": "AAVE", "quote": "USD"}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"quote": "AAVE", "base": "USD"}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": "AAVE", "quote": "EUR"}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"quote": "AAVE", "base": "EUR"}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"base": "LINK", "quote": "AAVE"}, block_number=block_number)
-        self.run_model(
-            'price.cex', {"quote": "LINK", "base": "AAVE"}, block_number=block_number)
+        self.run_model('price.cex', {"base": "AAVE", "quote": "USD"}, block_number=block_number)
+        self.run_model('price.cex', {"quote": "AAVE", "base": "USD"}, block_number=block_number)
+        self.run_model('price.cex', {"base": "AAVE", "quote": "EUR"}, block_number=block_number)
+        self.run_model('price.cex', {"quote": "AAVE", "base": "EUR"}, block_number=block_number)
+        self.run_model('price.cex', {"base": "LINK", "quote": "AAVE"}, block_number=block_number)
+        self.run_model('price.cex', {"quote": "LINK", "base": "AAVE"}, block_number=block_number)
 
     def test_dex_prefer(self) -> None:
         self.run_model('price.dex-db-prefer', {"symbol": "AAVE"})

@@ -143,8 +143,7 @@ class UniswapPoolVaR(Model):
         # ratio_change[1] = 1000
 
         # V2
-        impermanent_loss_vector_v2 = 2 * \
-            np.sqrt(ratio_change)/(1+ratio_change) - 1
+        impermanent_loss_vector_v2 = 2 * np.sqrt(ratio_change)/(1+ratio_change) - 1
 
         # V3
         p_a = (1-input.lower_range) * p_0
@@ -194,8 +193,7 @@ class UniswapPoolVaR(Model):
         # plt.show()
 
         # Count in both portfolio PnL and IL for the total Pnl vector
-        total_pnl_vector = (1 + portfolio_pnl_vector) * \
-            (1 + impermanent_loss_vector) - 1
+        total_pnl_vector = (1 + portfolio_pnl_vector) * (1 + impermanent_loss_vector) - 1
         total_pnl_without_il_vector = portfolio_pnl_vector
         total_pnl_il_vector = impermanent_loss_vector
 
@@ -214,17 +212,14 @@ class UniswapPoolVaR(Model):
         var_result_without_il = calc_var(total_pnl_without_il_vector, conf)
         var_without_il = DexVaR(
             var=var_result_without_il.var,
-            scenarios=historical_days.loc[var_result_without_il.unsorted_index].to_list(
-            ),
-            ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(
-            ),
+            scenarios=historical_days.loc[var_result_without_il.unsorted_index].to_list(),
+            ppl=total_pnl_without_il_vector[var_result_without_il.unsorted_index].tolist(),
             weights=var_result_without_il.weights)
 
         var_result_il = calc_var(total_pnl_il_vector, conf)
         var_il = DexVaR(
             var=var_result_il.var,
-            scenarios=historical_days.loc[var_result_il.unsorted_index].to_list(
-            ),
+            scenarios=historical_days.loc[var_result_il.unsorted_index].to_list(),
             ppl=total_pnl_il_vector[var_result_il.unsorted_index].tolist(),
             weights=var_result_il.weights)
 

@@ -87,8 +87,7 @@ class IPORIndex(Model):
             asset = Token(symbol=asset_symbol)
             is_asset_supported = oracle.functions.isAssetSupported(
                 asset.address.checksum).call()
-            assert is_asset_supported, \
-                f'Asset {asset_symbol} is not supported by IPOR on {self.context.block_number}'
+            assert is_asset_supported, f'Asset {asset_symbol} is not supported by IPOR on {self.context.block_number}'
 
             # ipor_index.ibtPrice was the last published.
             index = IPORIndexValue(
@@ -107,9 +106,7 @@ class IPORIndex(Model):
             index['exponentialMovingAverage_scaled'] = index['exponentialMovingAverage'] / 1e18
             index['exponentialWeightedMovingVariance_scaled'] = index['exponentialWeightedMovingVariance'] / 1e18
 
-            index['blockTimestampDifference'] = \
-                self.context.block_number.timestamp - \
-                index['lastUpdateTimestamp']
+            index['blockTimestampDifference'] = self.context.block_number.timestamp - index['lastUpdateTimestamp']
             index['index_current'] = ipor_current
             index['index_current_scaled'] = ipor_current / 1e18
             index['ibtPrice_current'] = ibtPrice_current

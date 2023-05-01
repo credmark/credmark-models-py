@@ -26,24 +26,20 @@ class ExampleIteration(Model):
                    "\"IterableListGenericDTO\" and override \"_iterator\" attribute")
 
         output.log("To create iterable Tokens:")
-        output.log_io(
-            input="class Tokens(IterableListGenericDTO[Token]):\n"
-            "\ttokens: List[Token] = []\n"
-            "\t_iterator: str = PrivateAttr('tokens')",
-            output="")
+        output.log_io(input="class Tokens(IterableListGenericDTO[Token]):\n"
+                      "\ttokens: List[Token] = []\n"
+                      "\t_iterator: str = PrivateAttr('tokens')",
+                      output="")
 
-        output.log_io(
-            input="tokens = Tokens(tokens=[Token(symbol=\"CMK\")])", output=tokens)
+        output.log_io(input="tokens = Tokens(tokens=[Token(symbol=\"CMK\")])", output=tokens)
 
         output.log("More tokens can be added by using append method")
         tokens.append(Token(symbol="DAI"))
-        output.log_io(
-            input="tokens.append(Token(symbol=\"DAI\"))", output=tokens)
+        output.log_io(input="tokens.append(Token(symbol=\"DAI\"))", output=tokens)
 
         output.log("You can iterate over \"tokens\" as you would any other list")
         token_addresses = [token.address for token in tokens]
-        output.log_io(
-            input="[token.address for token in tokens]", output=token_addresses)
+        output.log_io(input="[token.address for token in tokens]", output=token_addresses)
 
         output.log("Use the extend function to merge another list into tokens")
 
