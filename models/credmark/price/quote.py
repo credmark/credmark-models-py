@@ -30,6 +30,7 @@ from models.dtos.price import (
     PriceInput,
     PriceInputWithPreference,
     PriceMultipleInput,
+    PriceSource,
 )
 
 
@@ -297,7 +298,7 @@ class PriceQuoteMaybe(Model):
 class PriceQuote(Model):
     def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
         pi = {"base": input.base.address, "quote": input.quote.address}
-        if input.prefer == 'cex':
+        if input.prefer == PriceSource.CEX:
             model1, label1 = 'price.cex-maybe', 'cex'
             model2, label2 = 'price.dex-maybe', 'dex'
         else:
@@ -305,24 +306,21 @@ class PriceQuote(Model):
             model2, label2 = 'price.cex-maybe', 'cex'
 
         try:
-            price_maybe1 = self.context.run_model(
-                model1, pi, return_type=Maybe[PriceWithQuote])
+            price_maybe1 = self.context.run_model(model1, pi, return_type=Maybe[PriceWithQuote])
             if price_maybe1.just is not None:
                 price = price_maybe1.just
                 price.src = label1 + '|' + \
                     (price.src if price.src is not None else '')
                 return price
             else:
-                price_maybe2 = self.context.run_model(
-                    model2, pi, return_type=Maybe[PriceWithQuote])
+                price_maybe2 = self.context.run_model(model2, pi, return_type=Maybe[PriceWithQuote])
                 if price_maybe2.just is not None:
                     price = price_maybe2.just
-                    price.src = label2 + '|' + \
-                        (price.src if price.src is not None else '')
+                    price.src = label2 + '|' + (price.src if price.src is not None else '')
                     return price
                 else:
                     raise ModelRunError(
-                        f'[{self.context.block_number}] No price can be found for {input}')
+                        f'[{self.context.block_number}] No price can be found from both {label1} and {label2} for {input}.')
         except ModelRunError:
             raise
             # cex_cross = PriceCexCross(self.context)
@@ -377,8 +375,7 @@ class PriceCommon:
         if token.address in __class__.EXCEPTION_TOKEN.get(context.network, {}):
             return token
 
-        new_token = __class__.UNWRAP_TOKEN.get(
-            context.network, {}).get(token.symbol, None)
+        new_token = __class__.UNWRAP_TOKEN.get(context.network, {}).get(token.symbol, None)
         if new_token is not None:
             if Token(token.symbol).address == token.address:
                 return Currency(new_token)
