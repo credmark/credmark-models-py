@@ -47,44 +47,58 @@ class TestToken(CMFTest):
         self.run_model("token.volume-segment-window",
                        {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "window": "2 hours", "n": 3})
 
-    def no_test_eth_transfer(self):
-        # Till Transaction table can be fixed
+    def test_netflow(self):
+        self.run_model("token.netflow-block",
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model("token.netflow-window",
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        self.run_model("token.netflow-segment-block",
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+        self.run_model("token.netflow-segment-window",
+                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+
+    # Till Transaction table can be fixed
+    def no_test_eth_volume(self):
+        _query = """
+        SELECT s.number AS "s.number",s.timestamp AS "s.timestamp",s.number AS "from_block",s.timestamp AS "from_timestamp",e.number AS "to_block",e.timestamp AS "to_timestamp",SUM(t.value::NUMERIC) AS "sum_value" FROM raw_ethereum.public.blocks s JOIN raw_ethereum.public.blocks e ON e.number = ((s.number + 556) - 1) LEFT OUTER JOIN raw_ethereum.public.transactions t ON t.block_number between s.number and e.number WHERE  s.number <= 14249443 AND ( s.number >= 14248331 and s.number < 14249443 ) GROUP BY s.number,s.timestamp,e.number,e.timestamp HAVING MOD(e.number - 14248331, 556) = 0 ORDER BY s.number asc LIMIT 5000;
+        """
         self.run_model("token.volume-segment-window",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "2 hours"})
-        # SELECT s.number AS "s.number",s.timestamp AS "s.timestamp",s.number AS "from_block",s.timestamp AS "from_timestamp",e.number AS "to_block",e.timestamp AS "to_timestamp",SUM(t.value::NUMERIC) AS "sum_value" FROM raw_ethereum.public.blocks s JOIN raw_ethereum.public.blocks e ON e.number = ((s.number + 556) - 1) LEFT OUTER JOIN raw_ethereum.public.transactions t ON t.block_number between s.number and e.number WHERE  s.number <= 14249443 AND ( s.number >= 14247775 and s.number < 14249443 ) GROUP BY s.number,s.timestamp,e.number,e.timestamp HAVING MOD(e.number - 14247775, 556) = 0 ORDER BY s.number asc LIMIT 5000
+
+        _query = """
+        SELECT s.number AS "s.number",s.timestamp AS "s.timestamp",s.number AS "from_block",s.timestamp AS "from_timestamp",e.number AS "to_block",e.timestamp AS "to_timestamp",SUM(t.value::NUMERIC) AS "sum_value" FROM raw_ethereum.public.blocks s JOIN raw_ethereum.public.blocks e ON e.number = ((s.number + 556) - 1) LEFT OUTER JOIN raw_ethereum.public.transactions t ON t.block_number between s.number and e.number WHERE  s.number <= 14249443 AND ( s.number >= 14247775 and s.number < 14249443 ) GROUP BY s.number,s.timestamp,e.number,e.timestamp HAVING MOD(e.number - 14247775, 556) = 0 ORDER BY s.number asc LIMIT 5000;
+        """
         self.run_model("token.volume-segment-window",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "2 hours", "n": 3})
 
         self.run_model("token.volume-segment-window",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "2 hours", "n": 2})
 
-    def test_netflow(self):
-        self.run_model("token.netflow-block",
-                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
-                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+    def no_test_eth_flow(self):
         self.run_model("token.netflow-window",
-                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                         "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
-        self.run_model("token.netflow-segment-block",
-                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
-                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
+
+        self.run_model("token.netflow-block",
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+
+        _query = """
+        SELECT s.number AS "s.number",s.timestamp AS "s.timestamp",s.number AS "from_block",s.timestamp AS "from_timestamp",e.number AS "to_block",e.timestamp AS "to_timestamp",SUM(CASE WHEN t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE 0::INTEGER END) AS "inflow",SUM(CASE WHEN t.from_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE 0::INTEGER END) AS "outflow",SUM(CASE WHEN t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE -t.value END) AS "netflow" FROM raw_ethereum.public.blocks s JOIN raw_ethereum.public.blocks e ON e.number = ((s.number + 6516) - 1) LEFT OUTER JOIN raw_ethereum.public.transactions t ON t.block_number between s.number and e.number and (t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' or t.from_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43') WHERE  s.number <= 14249443 AND ( s.number > 14223379 and s.number <= 14249443 ) GROUP BY s.number,s.timestamp,e.number,e.timestamp HAVING s.number >= 14223379 and s.number < 14249443 and MOD(e.number - 14223379, 6516) = 0 ORDER BY s.number asc LIMIT 5000
+        """
         self.run_model("token.netflow-segment-window",
-                       {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                         "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
 
-    def no_test_eth_flow(self):
-        self.run_model("token.netflow-block",
-                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-                        "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
-        self.run_model("token.netflow-window",
-                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"})
+        _query = """
+        SELECT s.number AS "s.number",s.timestamp AS "s.timestamp",s.number AS "from_block",s.timestamp AS "from_timestamp",e.number AS "to_block",e.timestamp AS "to_timestamp",SUM(CASE WHEN t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE 0::INTEGER END) AS "inflow",SUM(CASE WHEN t.from_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE 0::INTEGER END) AS "outflow",SUM(CASE WHEN t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' THEN t.value ELSE -t.value END) AS "netflow" FROM raw_ethereum.public.blocks s JOIN raw_ethereum.public.blocks e ON e.number = ((s.number + 1000) - 1) LEFT OUTER JOIN raw_ethereum.public.transactions t ON t.block_number between s.number and e.number and (t.to_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43' or t.from_address = '0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43') WHERE  s.number <= 14249443 AND ( s.number > 14245443 and s.number <= 14249443 ) GROUP BY s.number,s.timestamp,e.number,e.timestamp HAVING s.number >= 14245443 and s.number < 14249443 and MOD(e.number - 14245443, 1000) = 0 ORDER BY s.number asc LIMIT 5000
+        """
         self.run_model("token.netflow-segment-block",
                        {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                         "block_number": -1000, "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
-        self.run_model("token.netflow-segment-window",
-                       {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43", "n": 4})
 
     def test_holders(self):
         self.run_model("token.holders",

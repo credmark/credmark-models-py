@@ -233,9 +233,8 @@ class TokenVolumeSegmentBlock(Model):
 
         block_start = self.context.block_number - block_seg * input.n
         if block_start < 0:
-            raise ModelRunError(
-                'Start block shall be larger than zero: '
-                f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
+            raise ModelRunError('Start block shall be larger than zero: '
+                                f'{self.context.block_number} - {block_seg} * {input.n} = {block_start}')
 
         native_token = NativeToken()
         token_address = input.address
@@ -252,9 +251,8 @@ class TokenVolumeSegmentBlock(Model):
         block_end = int(self.context.block_number)
         block_start = block_end - block_seg * input.n
         if block_start < 0:
-            raise ModelRunError(
-                'Start block shall be larger than zero: '
-                f'{block_end} - {block_seg} * {input.n} = {block_start}')
+            raise ModelRunError('Start block shall be larger than zero: '
+                                f'{block_end} - {block_seg} * {input.n} = {block_start}')
 
         native_token = NativeToken()
         if token_address == native_token.address:
@@ -283,8 +281,7 @@ class TokenVolumeSegmentBlock(Model):
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
-                    where=s.NUMBER.gt(block_start).and_(
-                        s.NUMBER.le(block_end)),
+                    where=s.NUMBER.gt(block_start).and_(s.NUMBER.le(block_end)),
                     having=(s.NUMBER.ge(block_start)
                             .and_(s.NUMBER.lt(block_end)
                             .and_(f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0'))),
@@ -319,8 +316,7 @@ class TokenVolumeSegmentBlock(Model):
                                .or_(t.FROM_ADDRESS.eq(input.netflow_address)).parentheses_()))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
-                    where=s.NUMBER.ge(block_start).and_(
-                        s.NUMBER.lt(block_end)),
+                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(block_end)),
                     having=f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0',
                     order_by=s.NUMBER.asc()
                 ).to_dataframe()
