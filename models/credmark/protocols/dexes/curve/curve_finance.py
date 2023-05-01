@@ -1,6 +1,4 @@
-# pylint: disable=locally-disabled
-
-
+# pylint: disable=locally-disabled, line-too-long
 from typing import List
 
 import numpy as np

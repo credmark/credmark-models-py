@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Network, Token
 

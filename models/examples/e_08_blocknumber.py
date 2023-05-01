@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from datetime import datetime, timedelta, timezone
 
 from credmark.cmf.model import Model
