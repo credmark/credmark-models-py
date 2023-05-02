@@ -108,7 +108,7 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
 
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.10',
+                version='1.11',
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 category='dex',
@@ -154,7 +154,7 @@ class PoolPriceAggregator(Model):
         _sum_of_liquidity_other = df.tick_liquidity_other.sum()
 
         if sum_of_liquidity_t <= 1e-8:
-            raise ModelDataError(f'There is no liquidity (<= 1e-8) in {len(zero_pools)} pools '
+            raise ModelDataError(f'There is no liquidity ({sum_of_liquidity_t} <= 1e-8) in {len(zero_pools)} pools '
                                  f'for {input.address}.')
 
         if len(input.some) == 1:
@@ -398,7 +398,7 @@ class PriceFromDexPreferModel(Model):
                 'price.dex-db', input=input, local=True)
             if price_dex['liquidity'] > 1e-8:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
-            raise ModelDataError(f'There is no liquidity for {input.address}.')
+            raise ModelDataError(f'There is no liquidity ({price_dex["liquidity"]}) for {input.address}.')
         except (ModelDataError, ModelRunError) as err:
             if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
                 return self.context.run_model(

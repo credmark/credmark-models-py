@@ -32,7 +32,7 @@ from test_polygon import TestPolygon
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
-from test_tls import TestTLS, TestTLSBatch, init_tls_batch
+from test_tls import TestTLS, TestTLSAll, TestTLSBatch, init_tls_batch
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
@@ -105,7 +105,7 @@ if __name__ == '__main__':
                       issubclass(o, CMFTest) and o != CMFTest
                       ]
 
-    print(f'All Tests: {all_tests_name}')
+    print(f'All Tests: {all_tests_name} but only run [TestTLSBatch, TestTLSAll] with [tlsbatch, tlsall] individually')
     if args['list']:
         sys.exit(0)
 
@@ -117,10 +117,13 @@ if __name__ == '__main__':
                      (args['tests'] == '__all__' or sum(o.__name__.lower().endswith(t.lower())
                                                         for t in tests_split) == 1)]
 
-    if len(tests_split) == 1 and tests_split[0] == 'tlsbatch':
-        init_tls_batch()
+    if len(tests_split) == 1:
+        if tests_split[0] == 'tlsbatch':
+            init_tls_batch()
+        if tests_split[0] == 'tlsall':
+            TestTLSAll().init_tls_all(page_till=1)
     else:
-        all_tests_sel = [o for o in all_tests_sel if o.__name__ != 'TestTLSBatch']
+        all_tests_sel = [o for o in all_tests_sel if o.__name__ != 'TestTLSBatch' or o.__name__ != 'TestTLSAll']
         print(f'Run Tests: {all_tests_sel}')
 
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(
