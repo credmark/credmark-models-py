@@ -3,16 +3,8 @@
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
-  "autopep8.args": [
-    "--max-line-length",
-    "120",
-  ],
-  "ruff.args": [
-    "--ignore",
-    "E501",
-    "--ignore",
-    "F841",
-  ],
+  "autopep8.args": ["--max-line-length", "120"],
+  "ruff.args": ["--ignore", "E501", "--ignore", "F841"],
   "python.linting.pylintEnabled": true,
   "python.linting.lintOnSave": true,
   "python.linting.enabled": true,
@@ -135,6 +127,7 @@
     "testtools",
     "TIMELOCK",
     "timerangestr",
+    "tlsbatch",
     "tokenexchange",
     "toolsai",
     "totalc",
@@ -166,7 +159,5 @@
     "editor.defaultFormatter": "ms-python.autopep8"
   },
   "python.formatting.provider": "none",
-  "githubPullRequests.ignoredPullRequestBranches": [
-    "main"
-  ]
+  "githubPullRequests.ignoredPullRequestBranches": ["main"]
 }

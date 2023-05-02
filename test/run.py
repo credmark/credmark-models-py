@@ -32,7 +32,7 @@ from test_polygon import TestPolygon
 from test_price import TestPrice
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
-from test_tls import TestTLS
+from test_tls import TestTLS, TestTLSBatch, init_tls_batch
 from test_token import TestToken
 from test_tvl import TestTVL
 from test_uniswap import TestUniswap
@@ -109,13 +109,19 @@ if __name__ == '__main__':
     if args['list']:
         sys.exit(0)
 
+    tests_split = args['tests'].split(",")
+
     all_tests_sel = [o for _n, o in locals().items()
                      if inspect.isclass(o) and
                      issubclass(o, CMFTest) and
                      (args['tests'] == '__all__' or sum(o.__name__.lower().endswith(t.lower())
-                                                        for t in args['tests'].split(",")) == 1)]
+                                                        for t in tests_split) == 1)]
 
-    print(f'Run Tests: {all_tests_sel}')
+    if len(tests_split) == 1 and tests_split[0] == 'tlsbatch':
+        init_tls_batch()
+    else:
+        all_tests_sel = [o for o in all_tests_sel if o.__name__ != 'TestTLSBatch']
+        print(f'Run Tests: {all_tests_sel}')
 
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(
         testCaseClass=x) for x in all_tests_sel])

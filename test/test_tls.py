@@ -1,50 +1,66 @@
-# pylint:disable=line-too-long
+# pylint:disable=line-too-long, too-many-return-statements, invalid-name
 
-import json
 import math
 import os
 
 from cmf_test import CMFTest
+from credmark.dto.encoder import json_dumps
 
 
-def compare_dict(a, b):
-    if isinstance(a, list):
-        for i, v in enumerate(a):
-            if not compare_dict(v, b[i]):
+def compare_dict(value_a, value_b):
+    if isinstance(value_a, list):
+        for i, v in enumerate(value_a):
+            if not compare_dict(v, value_b[i]):
                 return False
         return True
-    elif isinstance(a, dict) and isinstance(b, dict):
-        for k, v in a.items():
+    elif isinstance(value_a, dict) and isinstance(value_b, dict):
+        for k, v in value_a.items():
             if isinstance(v, dict):
-                if not compare_dict(v, b[k]):
+                if not compare_dict(v, value_b[k]):
                     return False
             elif isinstance(v, list):
                 return compare_dict(sorted(v, key=lambda x: list(x.keys()) if isinstance(x, dict) else [x]),
-                                    sorted(b[k], key=lambda x: list(x.keys()) if isinstance(x, dict) else [x]))
-            elif k not in b:
-                print(k, v, b[k])
+                                    sorted(value_b[k], key=lambda x: list(x.keys()) if isinstance(x, dict) else [x]))
+            elif k not in value_b:
+                print(k, v, value_b[k])
                 return False
             else:
-                return compare_dict(v, b[k])
+                return compare_dict(v, value_b[k])
 
         return True
-    elif isinstance(a, float) and isinstance(b, float):
-        return math.isclose(a, b, rel_tol=1e-4)
-    return a == b
+    elif isinstance(value_a, float) and isinstance(value_b, float):
+        return math.isclose(value_a, value_b, rel_tol=1e-4)
+    return value_a == value_b
 
 
 class TestTLSBatch(CMFTest):
-    def test_batch(self):
-        block_number = 16795830
-        # read the file from tmp/all_tokens.txt
-        if os.path.exists('tmp/all_tokens.txt'):
-            with open('tmp/all_tokens.txt', 'r') as f:
+    pass
+
+
+def run_tls_for_token(self, _addr, _block_number):
+    tls_score = self.run_model_with_output(
+        'tls.score', {"address": _addr}, block_number=_block_number)
+    with open(f'tmp/all_tokens_score/{_addr}_{_block_number}.txt', 'w') as f:
+        f.write(json_dumps(tls_score))
+
+
+def init_tls_batch():
+    block_number = 17170231
+    token_list_files = ['../price_api/scripts/all_tokens.txt', '../price_api/scripts/all_tokens_junk.txt']
+    token_added_n = 0
+    for token_list_fp in token_list_files:
+        if os.path.exists(token_list_fp):
+            with open(token_list_fp, 'r') as f:
                 _addresses = f.read().splitlines()
                 for addr in _addresses:
-                    tls_score = self.run_model_with_output(
-                        'tls.score', {"address": addr}, block_number=block_number)
-                    with open(f'tmp/all_tokens_score/{addr}_{block_number}.txt', 'a') as f:
-                        f.write(json.dumps(tls_score['output']))
+                    if addr.startswith('%% '):
+                        addr = addr[3:]
+                    token_added_n += 1
+                    print((token_added_n, addr[:42], block_number))
+                    setattr(TestTLSBatch, f'test_tls_batch_{token_added_n:05d}',
+                            lambda self, addr=addr[:42], block_number=block_number:
+                            run_tls_for_token(self, _addr=addr, _block_number=block_number))
+    print(f'Added {token_added_n} tokens to TestTLSBatch')
 
 
 class TestTLS(CMFTest):

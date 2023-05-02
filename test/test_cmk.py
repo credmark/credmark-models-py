@@ -2,6 +2,8 @@
 
 from cmf_test import CMFTest
 
+from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
+
 
 class TestCMK(CMFTest):
     def test(self):
@@ -31,3 +33,9 @@ class TestCMK(CMFTest):
                        {"address": "0x2DA5e2C09d4DEc83C38Db2BBE2c1Aa111dDEe028"}, exit_code=exit_code_failed)
         self.run_model('cmk.get-vesting-info-by-account',
                        {"address": "0x6395d77c5fd4ab21c442292e25a92be89ff29aa9"}, exit_code=exit_code_failed)
+
+        self.run_model('price.quote',
+                       {"base": STAKED_CREDMARK_ADDRESS}, block_number=17171332)
+
+        self.run_model('price.quote',
+                       {"base": CMK_ADDRESS}, block_number=17171332)

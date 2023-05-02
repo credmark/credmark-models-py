@@ -200,7 +200,7 @@ class CompoundV2AllPoolsValue(Model):
                                        input=EmptyInput(),
                                        return_type=Some[Address])
         model_slug = 'compound-v2.pool-value'
-        model_inputs = [Token(address=cTokenAddress)
+        model_inputs = [Token(address=cTokenAddress.checksum)
                         for cTokenAddress in pools.some]
 
         def _use_compose():

@@ -221,8 +221,7 @@ class TokenVolumeSegmentBlock(Model):
                         (e.TIMESTAMP, 'to_timestamp'),
                         (t.VALUE.as_numeric().sum_(), 'sum_value')
                     ],
-                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(
-                        block_end)),
+                    where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(block_end)),
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
                         (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
@@ -239,7 +238,6 @@ class TokenVolumeSegmentBlock(Model):
             with self.context.ledger.TokenTransfer.as_('t') as t,\
                     self.context.ledger.Block.as_('s') as s,\
                     self.context.ledger.Block.as_('e') as e:
-
                 df = s.select(
                     aggregates=[
                         (s.NUMBER, 'from_block'),
