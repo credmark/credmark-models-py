@@ -44,6 +44,18 @@ def run_tls_for_token(self, _addr, _block_number):
         f.write(json_dumps(tls_score))
 
 
+def add_test(_class, _addresses, _block_number, _token_added_n):
+    for addr in _addresses:
+        if addr.startswith('%% '):
+            addr = addr[3:]
+        _token_added_n += 1
+        print((_token_added_n, addr[:42], _block_number))
+        setattr(_class, f'test_{_class.__name__}_{_token_added_n:05d}',
+                lambda self, addr=addr[:42], _block_number=_block_number:
+                run_tls_for_token(self, _addr=addr, _block_number=_block_number))
+    return _token_added_n
+
+
 def init_tls_batch():
     block_number = 17170231
     token_list_files = ['../price_api/scripts/all_tokens.txt', '../price_api/scripts/all_tokens_junk.txt']
@@ -52,15 +64,30 @@ def init_tls_batch():
         if os.path.exists(token_list_fp):
             with open(token_list_fp, 'r') as f:
                 _addresses = f.read().splitlines()
-                for addr in _addresses:
-                    if addr.startswith('%% '):
-                        addr = addr[3:]
-                    token_added_n += 1
-                    print((token_added_n, addr[:42], block_number))
-                    setattr(TestTLSBatch, f'test_tls_batch_{token_added_n:05d}',
-                            lambda self, addr=addr[:42], block_number=block_number:
-                            run_tls_for_token(self, _addr=addr, _block_number=block_number))
+                token_added_n = add_test(TestTLSBatch, _addresses, block_number, token_added_n)
     print(f'Added {token_added_n} tokens to TestTLSBatch')
+
+
+class TestTLSAll(CMFTest):
+    def init_tls_all(self, page):
+        block_number = 17170231
+        token_result_page1 = self.run_model_with_output('token.all', {}, block_number=block_number)
+        token_count = token_result_page1['output']['total']
+        limit = token_result_page1['output']['limit']
+
+        if page < 1:
+            return
+
+        token_added_n = 0
+        if page == 1:
+            addresses = [x['address'] for x in token_result_page1['output']['result']['some']]
+            token_added_n = add_test(TestTLSAll, addresses, block_number, token_added_n)
+
+        for page_n in range(2, token_count // limit + 1):
+            if page_n == page:
+                tokens_result = self.run_model_with_output('token.all', {'page': page_n}, block_number=block_number)
+                addresses = [x['address'] for x in tokens_result['output']['result']['some']]
+                token_added_n = add_test(TestTLSAll, addresses, block_number, token_added_n)
 
 
 class TestTLS(CMFTest):

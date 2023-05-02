@@ -36,7 +36,7 @@ from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 
 @Model.describe(slug='price.quote-historical-multiple',
-                version='1.8',
+                version='1.9',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -66,7 +66,7 @@ class PriceQuoteHistoricalMultiple(Model):
 
 
 @Model.describe(slug='price.quote-historical',
-                version='1.3',
+                version='1.4',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -98,7 +98,7 @@ class PriceQuoteHistorical(Model):
 
 
 @Model.describe(slug='price.quote-multiple-maybe',
-                version='0.3',
+                version='0.4',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -139,7 +139,7 @@ class PriceQuoteMultipleMaybe(Model):
 
 
 @Model.describe(slug='price.multiple-maybe',
-                version='0.2',
+                version='0.3',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -184,7 +184,7 @@ class PriceMultipleMaybeWithSlug(Model):
 
 
 @Model.describe(slug='price.quote-multiple',
-                version='1.11',
+                version='1.12',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -229,7 +229,7 @@ class PriceBlocksInput(PriceInputWithPreference):
 
 
 @Model.describe(slug='price.quote-maybe-blocks',
-                version='0.2',
+                version='0.3',
                 display_name='Token Price - Quoted',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -262,7 +262,7 @@ class PriceQuoteMaybeBlock(Model):
 
 
 @Model.describe(slug='price.quote-maybe',
-                version='0.5',
+                version='0.6',
                 display_name='Token Price - Quoted - Maybe',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -286,7 +286,7 @@ class PriceQuoteMaybe(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.13',
+                version='1.14',
                 display_name=('Credmark Token Price with preference of cex or dex (default), '
                               'fiat conversion for non-USD from Chainlink'),
                 description='Credmark Token Price from cex or dex',
@@ -415,10 +415,10 @@ class PriceCommon:
 
         if token0_error is not None and token1_price is not None:
             token0_price = token1_price.copy()
-            token0_price['price'] = token1_price['price'] * uniswap_pos['token1_amount'] / uniswap_pos['token0_amount']
+            token0_price['price'] = token1_price['price'] * uniswap_pos.token1_amount / uniswap_pos.token0_amount
         elif token1_error is not None and token0_price is not None:
             token1_price = token0_price.copy()
-            token1_price['price'] = token0_price['price'] * uniswap_pos['token0_amount'] / uniswap_pos['token1_amount']
+            token1_price['price'] = token0_price['price'] * uniswap_pos.token0_amount / uniswap_pos.token1_amount
 
         return token0_price, token1_price
 
@@ -568,7 +568,7 @@ class PriceCexModel(Model, PriceCommon):
 
 
 @Model.describe(slug='price.cex',
-                version='0.3',
+                version='0.4',
                 display_name='Credmark Token Price and fiat conversion from Chainlink',
                 description='Price and fiat conversion for non-USD from Chainlink',
                 developer='Credmark',
@@ -584,7 +584,7 @@ class PriceCex(PriceCexModel, NoDEX):
 
 
 @Model.describe(slug='price.cex-maybe',
-                version='0.3',
+                version='0.4',
                 display_name='Credmark Token Price and fiat conversion from Chainlink [Maybe]',
                 description='Price and fiat conversion for non-USD from Chainlink [Maybe]',
                 developer='Credmark',
@@ -613,7 +613,7 @@ class PriceCexCross(PriceCexModel, AllowDEX):
 
 
 @Model.describe(slug='price.dex-maybe',
-                version='0.6',
+                version='0.7',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion [Maybe]'),
                 description='Price from Dex with fiat conversion for non-USD [Maybe]',
@@ -637,7 +637,7 @@ class PriceDexMaybe(Model):
 
 
 @Model.describe(slug='price.dex',
-                version='0.6',
+                version='0.7',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion'),
                 description='Price from Dex with fiat conversion for non-USD',

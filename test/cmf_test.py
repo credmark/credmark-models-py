@@ -65,6 +65,7 @@ class CMFTest(TestCase):
             cmd = 'python test/test.py'
         else:
             cmd = 'credmark-dev'
+
         sys.argv = ([cmd] +
                     self.pre_flag +
                     ['run', model_slug, '-j'] +
@@ -119,7 +120,7 @@ class CMFTest(TestCase):
             (f'{"Finished" if succeed else "Failed"}\n'
              f'I ran: {cmd_line}\n'
              f'U run: {cmd_line_local}\n'
-             f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
+             f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f} sec\n'
              ))
 
         CMFTest.test_n += 1
@@ -184,7 +185,7 @@ class CMFTest(TestCase):
                 (f'{"Finished" if succeed else "Failed"}\n'
                  f'I ran: {cmd_line}\n'
                  f'U run: {cmd_line_local}\n'
-                 f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f}s\n'
+                 f'case ({self.__class__.__name__}.{self._testMethodName}.{CMFTest.test_n}) {duration.total_seconds():.2f} sec\n'
                  ))
 
         CMFTest.test_n += 1

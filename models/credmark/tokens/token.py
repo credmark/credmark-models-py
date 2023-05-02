@@ -18,6 +18,7 @@ from credmark.cmf.types import (
     NetworkDict,
     Price,
     PriceWithQuote,
+    Some,
     Token,
 )
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
@@ -682,3 +683,39 @@ class TokenCirculatingSupply(Model):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
         return response
+
+
+class TokenAllInput(DTO):
+    limit: int = DTOField(gt=0, description='Number of tokens per page', default=5000)
+    page: int = DTOField(description='Page number', default=1, gt=0)
+
+
+class TokenAllOutput(TokenAllInput):
+    total: int = DTOField(description='Total number of tokens')
+    result: Some[Token] = DTOField(description='List of token addresses')
+
+
+@Model.describe(slug='token.all',
+                version='0.1',
+                display_name='All tokens',
+                description='Return all tokens by page',
+                category='protocol',
+                tags=['token'],
+                input=TokenAllInput,
+                output=TokenAllOutput)
+class TokenAll(Model):
+    def run(self, input: TokenAllInput) -> TokenAllOutput:
+        with self.context.ledger.Token as token:
+            rows = token.select(aggregates=[(token.ADDRESS.count_(), 'count_token_address')],
+                                bigint_cols=['count_token_address'])
+            count_token_address = int(rows[0]['count_token_address'])
+
+            df = token.select([token.ADDRESS],
+                              order_by=token.ADDRESS,
+                              limit=input.limit,
+                              offset=(input.page-1)*input.limit).to_dataframe()
+
+        return TokenAllOutput(total=count_token_address,
+                              limit=input.limit,
+                              page=input.page,
+                              result=Some[Token](some=df.address.to_list()))

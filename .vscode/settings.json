@@ -127,6 +127,7 @@
     "testtools",
     "TIMELOCK",
     "timerangestr",
+    "tlsall",
     "tlsbatch",
     "tokenexchange",
     "toolsai",
