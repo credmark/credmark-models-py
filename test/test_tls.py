@@ -69,9 +69,11 @@ def init_tls_batch():
 
 
 class TestTLSAll(CMFTest):
-    def init_tls_all(self, page):
+    def init_tls_all(self, page, page_end, page_limit):
+        assert page <= page_end
+        assert page_limit <= 5000
         block_number = 17170231
-        token_result_page1 = self.run_model_with_output('token.all', {}, block_number=block_number)
+        token_result_page1 = self.run_model_with_output('token.all', {'limit': page_limit}, block_number=block_number)
         token_count = token_result_page1['output']['total']
         limit = token_result_page1['output']['limit']
 
@@ -84,8 +86,9 @@ class TestTLSAll(CMFTest):
             token_added_n = add_test(TestTLSAll, addresses, block_number, token_added_n)
 
         for page_n in range(2, token_count // limit + 1):
-            if page_n == page:
-                tokens_result = self.run_model_with_output('token.all', {'page': page_n}, block_number=block_number)
+            if page <= page_n <= page_end:
+                tokens_result = self.run_model_with_output(
+                    'token.all', {'page': page_n, 'limit': page_limit}, block_number=block_number)
                 addresses = [x['address'] for x in tokens_result['output']['result']['some']]
                 token_added_n = add_test(TestTLSAll, addresses, block_number, token_added_n)
 
