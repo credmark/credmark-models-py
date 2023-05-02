@@ -62,6 +62,8 @@ if __name__ == '__main__':
                         help='test to run')
     parser.add_argument('-l', '--list', action='store_true', default=False,
                         help='List runnable tests')
+    parser.add_argument('-g', '--page', type=int, default=1,
+                        help='page to run tlsall')
 
     args = vars(parser.parse_args())
     CMFTest.type = args['type']
@@ -105,7 +107,8 @@ if __name__ == '__main__':
                       issubclass(o, CMFTest) and o != CMFTest
                       ]
 
-    print(f'All Tests: {all_tests_name} but only run [TestTLSBatch, TestTLSAll] with [tlsbatch, tlsall] individually')
+    print(
+        f'All Tests: {all_tests_name} but only run [TestTLSBatch, TestTLSAll] with [tlsbatch, tlsall -g n] individually')
     if args['list']:
         sys.exit(0)
 
@@ -121,7 +124,7 @@ if __name__ == '__main__':
         if tests_split[0] == 'tlsbatch':
             init_tls_batch()
         if tests_split[0] == 'tlsall':
-            TestTLSAll().init_tls_all(page_till=1)
+            TestTLSAll().init_tls_all(page=args['page'])
     else:
         all_tests_sel = [o for o in all_tests_sel if o.__name__ != 'TestTLSBatch' or o.__name__ != 'TestTLSAll']
         print(f'Run Tests: {all_tests_sel}')
