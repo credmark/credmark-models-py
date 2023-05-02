@@ -167,7 +167,7 @@ class TLSScore(Model):
         # 4. AAVE collateral / debt tokens - Skip because AAVE may discretionary decide to frozen an asset.
 
         # 5. Check DEX
-        # get liquidity data
+        # get price and liquidity data
         try:
             price = self.context.run_model('price.dex', input={'base': token})
             items.append(TLSItem.create(
@@ -192,8 +192,7 @@ class TLSScore(Model):
 
         if addr_maybe.just is not None:
             value_token_input = input.dict() | {'address': addr_maybe.just}
-            self.info(
-                f'[{input.address}] Running TLS model for underlying token {addr_maybe.just}')
+            self.info(f'[{input.address}] Running TLS model for underlying token {addr_maybe.just}')
             underlying_token_tls = self.context.run_model(
                 self.slug, input=value_token_input, return_type=TLSOutput)
             items.append(TLSItem.create(['DEX price is taken from the underlying',
@@ -223,12 +222,13 @@ class TLSScore(Model):
 
         def _tx_cache():
             df_tx_fn = f'tmp/df_tx/df_tx_{input.address}_{one_day_earlier_block}_{self.context.block_number}.csv'
+            df_tx_fn = ''
 
             if os.path.isfile(df_tx_fn):
                 df_tx = pd.read_pickle(df_tx_fn)
             else:
                 df_tx = _tx_event()
-                df_tx.to_pickle(df_tx_fn)
+                # df_tx.to_pickle(df_tx_fn)
             return df_tx
 
         def _tx_ledger():

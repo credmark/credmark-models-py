@@ -32,6 +32,7 @@ from models.dtos.price import (
     PriceMultipleInput,
     PriceSource,
 )
+from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -285,7 +286,7 @@ class PriceQuoteMaybe(Model):
 
 
 @Model.describe(slug='price.quote',
-                version='1.12',
+                version='1.13',
                 display_name=('Credmark Token Price with preference of cex or dex (default), '
                               'fiat conversion for non-USD from Chainlink'),
                 description='Credmark Token Price from cex or dex',
@@ -466,8 +467,7 @@ class PriceCommon:
                                           return_type=PriceWithQuote,
                                           local=True)
             return price_usd
-
-        except (ModelRunError, ModelDataError):
+        except (ModelRunError, ModelDataError) as err_from_dex_db_prefer:
             price_usd_maybe = context.run_model('price.dex-curve-fi-maybe',
                                                 input=input_base,
                                                 return_type=Maybe[Price],
@@ -492,8 +492,15 @@ class PriceCommon:
                 except ModelDataError:
                     pass
 
-            raise ModelRunError(
-                f'[{context.block_number}] No price can be found for {input}')
+            if Address(input_base.address) == Address(STAKED_CREDMARK_ADDRESS):
+                xcmk_decimals = input_base.functions.decimals().call()
+                ratio = input_base.functions.sharesToCmk(10 ** xcmk_decimals).call() / 10 ** xcmk_decimals
+                logger.info(f'xCMK ratio: {ratio}')
+                cmk_price = context.run_model(slug, {"base": CMK_ADDRESS})
+                return PriceWithQuote.usd(price=cmk_price['price'] * ratio, src=f'xCMK | {cmk_price["src"]}')
+
+            raise err_from_dex_db_prefer from ModelRunError(
+                f'[{context.block_number}] No price can be found for {input_base} from {slug}')
 
 
 class NoDEX:
@@ -561,7 +568,7 @@ class PriceCexModel(Model, PriceCommon):
 
 
 @Model.describe(slug='price.cex',
-                version='0.2',
+                version='0.3',
                 display_name='Credmark Token Price and fiat conversion from Chainlink',
                 description='Price and fiat conversion for non-USD from Chainlink',
                 developer='Credmark',
@@ -577,7 +584,7 @@ class PriceCex(PriceCexModel, NoDEX):
 
 
 @Model.describe(slug='price.cex-maybe',
-                version='0.2',
+                version='0.3',
                 display_name='Credmark Token Price and fiat conversion from Chainlink [Maybe]',
                 description='Price and fiat conversion for non-USD from Chainlink [Maybe]',
                 developer='Credmark',
@@ -606,7 +613,7 @@ class PriceCexCross(PriceCexModel, AllowDEX):
 
 
 @Model.describe(slug='price.dex-maybe',
-                version='0.5',
+                version='0.6',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion [Maybe]'),
                 description='Price from Dex with fiat conversion for non-USD [Maybe]',
@@ -630,7 +637,7 @@ class PriceDexMaybe(Model):
 
 
 @Model.describe(slug='price.dex',
-                version='0.5',
+                version='0.6',
                 display_name=('Credmark Token Price from Dex with '
                               'Chainlink for fiat conversion'),
                 description='Price from Dex with fiat conversion for non-USD',
