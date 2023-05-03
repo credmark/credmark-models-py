@@ -400,6 +400,8 @@ class PriceFromDexPreferModel(Model):
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
             raise ModelDataError(f'There is no liquidity ({price_dex["liquidity"]}) for {input.address}.')
         except (ModelDataError, ModelRunError) as err:
+            # ModelRunError => "No pool to aggregate for" from price.dex-blended
+            # ModelDataError => "No price for" from price.dex-db
             if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
                 return self.context.run_model(
                     'price.dex-blended',

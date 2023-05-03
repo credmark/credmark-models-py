@@ -443,7 +443,6 @@ class AccountsERC20TokenHistorical(Model):
                             last_quote = self.context.run_model(
                                 'price.dex-db-latest', input={'address': input.quote.address})
                             last_price['price'] /= last_quote['price']
-
                     except ModelDataError as err:
                         if "No price for" in err.data.message:  # pylint:disable=unsupported-membership-test
                             continue
