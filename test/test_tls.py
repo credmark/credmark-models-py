@@ -46,6 +46,8 @@ def run_tls_for_token(self, _addr, _block_number):
 
 def add_test(_class, _addresses, _block_number, _token_added_n):
     for addr in _addresses:
+        if addr == '0x0000000000000000000000000000000000000000':
+            continue
         if addr.startswith('%% '):
             addr = addr[3:]
         _token_added_n += 1
