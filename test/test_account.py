@@ -138,6 +138,17 @@ class TestAccount(CMFTest):
         self.run_model('account.token-return',
                        {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9", "token_list": "cmf"})
 
+    def test_native_token_balance(self):
+        for chain_id in [1, 137, 10, 56]:
+            latest_block_number = self.run_model_with_output(
+                'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 100
+            breakpoint()
+
+            self.run_model('account.native-balance',
+                           {"address": "0xb01F9Ad837be693e56F83569946Fd60B74121Ae2"}, chain_id=chain_id)
+            self.run_model('accounts.native-balance',
+                           {"accounts": ["0xb01F9Ad837be693e56F83569946Fd60B74121Ae2"]}, chain_id=chain_id)
+
     def test_token_historical(self):
         # token-historical, token-return-historical
         for acc_input in [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]:
