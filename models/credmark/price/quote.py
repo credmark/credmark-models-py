@@ -1,4 +1,4 @@
-# pylint:disable=try-except-raise, no-member, line-too-long
+# pylint:disable=try-except-raise, no-member, line-too-long, pointless-string-statement
 from typing import List
 
 from credmark.cmf.model import Model
@@ -33,6 +33,23 @@ from models.dtos.price import (
     PriceSource,
 )
 from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
+
+"""
+Error handling with price
+credmark-dev run price.dex-db -i '{"address": "0x7b0c54eaaaa1ead551d053d6c4c5f9551d66ad1b"}' --api_url http://localhost:8700 -b 17000000
+
+- price.dex-db / price.dex-db-latest -> ModelDataError, "No price for"
+
+- price.dex / price.dex-blended => ModelDataError, "There is no liquidity", or ModelRunError, "No pool to aggregate"
+
+- price.cex => ModelRunError, "No chainlink source"
+
+- price.dex-db-prefer: ModelDataError, 'There is no liquidity', or any from price.dex-blended
+
+- price.quote => ModelRunError, "No price can be found", or any or from price.cex / price.dex
+
+- price.cex-maybe / price.dex-maybe => no error
+"""
 
 
 @Model.describe(slug='price.quote-historical-multiple',
@@ -322,6 +339,7 @@ class PriceQuote(Model):
                     raise ModelRunError(
                         f'[{self.context.block_number}] No price can be found from both {label1} and {label2} for {input}.')
         except ModelRunError:
+            # shall not come here as both maybe models can catch both ModelRunError and ModelDataError
             raise
             # cex_cross = PriceCexCross(self.context)
             # price = cex_cross.run(input)

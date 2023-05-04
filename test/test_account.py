@@ -138,6 +138,28 @@ class TestAccount(CMFTest):
         self.run_model('account.token-return',
                        {"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9", "token_list": "cmf"})
 
+    def test_native_token_balance(self):
+        # 1: mainnet
+        # 137: polygon
+        # 10: optimism
+        # 42161: arbitrum
+        # 56: bsc
+        # 250: fantom
+        # 43114: avalanche
+
+        # credmark-dev run account.native-balance -i '{"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"}' -j -c 250
+
+        for chain_id in [1, 137, 10, 42161, 56, 250, 43114]:
+            latest_block_number = self.run_model_with_output(
+                'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 100
+
+            self.run_model('account.native-balance',
+                           {"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"},
+                           chain_id=chain_id, block_number=latest_block_number)
+            self.run_model('accounts.native-balance',
+                           {"accounts": ["0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"]},
+                           chain_id=chain_id, block_number=latest_block_number)
+
     def test_token_historical(self):
         # token-historical, token-return-historical
         for acc_input in [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]:
