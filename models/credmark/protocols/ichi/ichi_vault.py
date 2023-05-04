@@ -222,10 +222,12 @@ class IchiVaultInfo(Model):
 
         if allow_token0:
             token1_in_token0_amount = token1_amount / _tick_price0
-            total_amount_in_token = token0_amount + token1_in_token0_amount
+            total_amount_in_token_n = token0_amount + token1_in_token0_amount
         else:
             token0_in_token1_amount = token0_amount * _tick_price0
-            total_amount_in_token = token1_amount + token0_in_token1_amount
+            total_amount_in_token_n = token1_amount + token0_in_token1_amount
+
+        amount_scaling = 10 ** (token0_decimals if allow_token0 else token1_decimals)
 
         try:
             token0_chainlink_price = self.context.run_model(
@@ -255,9 +257,9 @@ class IchiVaultInfo(Model):
             'allowed_token': 0 if allow_token0 else 1,
             'token0_amount': token0_amount,
             'token1_amount': token1_amount,
-            'total_amount_in_token': total_amount_in_token,
+            'total_amount_in_token': total_amount_in_token_n,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': total_amount_in_token * 10 ** (token0_decimals if allow_token0 else token1_decimals) / total_supply,
+            'vault_token_ratio': total_amount_in_token_n * amount_scaling / total_supply,
             'token0_amount_ratio': token0_amount / total_supply_scaled,
             'token1_amount_ratio': token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
