@@ -144,8 +144,12 @@ class TestAccount(CMFTest):
         # 10: optimism
         # 42161: arbitrum
         # 56: bsc
+        # 250: fantom
+        # 43114: avalanche
 
-        for chain_id in [1, 137, 10, 42161, 56]:
+        # credmark-dev run account.native-balance -i '{"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"}' -j -c 250
+
+        for chain_id in [1, 137, 10, 42161, 56, 250, 43114]:
             latest_block_number = self.run_model_with_output(
                 'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 100
 
