@@ -142,9 +142,10 @@ class TestAccount(CMFTest):
         # 1: mainnet
         # 137: polygon
         # 10: optimism
+        # 42161: arbitrum
         # 56: bsc
 
-        for chain_id in [1, 137, 10, 56]:
+        for chain_id in [1, 137, 10, 42161, 56]:
             latest_block_number = self.run_model_with_output(
                 'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 100
 
