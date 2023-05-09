@@ -77,6 +77,11 @@ if __name__ == '__main__':
         CMFTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
         CMFTest.pre_flag = ['--model_path', 'x']
         parallel_count = args['parallel_count']
+    elif args['type'] == 'test-local':
+        sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
+        CMFTest.post_flag = ['-l', '*', f'--api_url={args["api_url"]}']
+        CMFTest.pre_flag = []
+        parallel_count = args['parallel_count']
     elif args['type'] == 'prod':
         CMFTest.post_flag = []
         CMFTest.pre_flag = []

@@ -5,6 +5,7 @@ from typing import List, Optional
 import requests
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
+from credmark.cmf.model.models import LookupType, ModelResultInput, ModelResultOutput
 from credmark.cmf.types import (
     Accounts,
     Address,
@@ -24,8 +25,6 @@ from credmark.cmf.types import (
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from web3 import Web3
-
-from models.utils.model_run import get_latest_run
 
 SLOT_EIP1967 = hex(
     int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
@@ -199,11 +198,11 @@ class TokenInfoModel(Model):
         return token_info
 
 
-class TokenDeploymentInput(Token):
+class TokenDeploymentInput(Token, ModelResultInput):
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
-class TokenDeploymentOutput(DTO):
+class TokenDeploymentOutput(ModelResultOutput):
     deployed_block_number: BlockNumber = DTOField(
         description='Block number of deployment')
     deployed_block_timestamp: Optional[int] = DTOField(
@@ -214,7 +213,7 @@ class TokenDeploymentOutput(DTO):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.3",
+                version="0.6",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -251,12 +250,29 @@ class TokenInfoDeployment(Model):
             return -1
 
     def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
-        latest_run = get_latest_run(self.context, self.slug, self.version)
-        if latest_run is not None:
-            return latest_run['result']
+        if input.use_model_result:
+            latest_run = self.context.models.get_result(
+                self.slug, self.version,
+                self.context.__dict__['original_input'],
+                LookupType.BACKWARD_LAST)
+            if latest_run is not None:
+                return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
+                                               'model_result_direction': LookupType.BACKWARD_LAST.value}
+
+            latest_run = self.context.models.get_result(
+                self.slug, self.version,
+                self.context.__dict__['original_input'],
+                LookupType.FORWARD_FIRST)
+
+            if latest_run is not None:
+                if latest_run['result']['deployed_block_number'] <= self.context.block_number:
+                    return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
+                                                   'model_result_direction': LookupType.FORWARD_FIRST.value}
+                else:
+                    raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
-            raise ModelDataError(f'{input.address} is not an EOA account')
+            raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         res = self.binary_search(
             0, int(self.context.block_number), input.address.checksum)
@@ -282,18 +298,22 @@ class TokenInfoDeployment(Model):
         if self.context.chain_id == Network.Mainnet and not input.ignore_proxy:
             if input.proxy_for is not None:
                 proxy_deployer = self.context.run_model(
-                    'token.deployment', input.proxy_for)
+                    self.slug, input.proxy_for)
                 return TokenDeploymentOutput(
                     deployed_block_number=BlockNumber(res),
                     deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
                     deployer=Address(str(deployer)),
-                    proxy_deployer=proxy_deployer)
+                    proxy_deployer=proxy_deployer,
+                    model_result_block=self.context.block_number,
+                    model_result_direction=LookupType.BACKWARD_LAST.value)
 
         return TokenDeploymentOutput(
             deployed_block_number=BlockNumber(res),
             deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
             deployer=Address(str(deployer)) if deployer is not None else None,
-            proxy_deployer=None)
+            proxy_deployer=None,
+            model_result_block=self.context.block_number,
+            model_result_direction=LookupType.BACKWARD_LAST.value)
 
 
 class TokenLogoOutput(DTO):

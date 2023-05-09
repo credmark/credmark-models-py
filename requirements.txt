@@ -1,4 +1,4 @@
-git+https://github.com/credmark/credmark-model-framework-py.git@0.8.101
+git+https://github.com/credmark/credmark-model-framework-py.git@0.8.102
 # data libraries
 numpy>=1.23.3
 numpy_financial>=1.0.0
@@ -12,3 +12,4 @@ xlsxwriter>=3.0.3
 BeautifulSoup4>=4.10.0
 pyarrow>=7.0.0
 networkx>=2.8.4
+pyxirr=0.9.0
