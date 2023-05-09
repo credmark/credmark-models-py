@@ -67,7 +67,7 @@ class IchiVaultTokens(Model):
 # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
 
 @Model.describe(slug='ichi.vaults',
-                version='0.7',
+                version='0.8',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
@@ -104,22 +104,21 @@ class IchiVaults(Model):
             self.slug, self.version,
             self.context.__dict__['original_input'],
             LookupType.BACKWARD_LAST_EXCLUDE)
+
+        from_block = 0
+        prev_result = {'vaults': {}}
         if latest_run is not None:
             from_block = int(latest_run['blockNumber'])
             prev_result = latest_run['result']
-        else:
-            from_block = self.context.block_number
-            prev_result = {'vaults': {}}
-
-        if from_block == self.context.block_number:
-            return prev_result
+            if from_block == self.context.block_number:
+                return prev_result
 
         vault_factory = Contract(self.VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created = pd.DataFrame(vault_factory.fetch_events(
                 vault_factory.events.ICHIVaultCreated,
-                from_block=max(from_block + 1, 0),
+                from_block=0,
                 to_block=self.context.block_number))
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
@@ -1166,7 +1165,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.19',
+                version='0.20',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

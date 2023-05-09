@@ -16,6 +16,10 @@ class TestICHI(CMFTest):
             'chain.get-latest-block', {}, block_number=None, chain_id=137)
         last_block = last_block_output['output']['blockNumber'] - 62
         last_block_2 = last_block_output['output']['blockNumber'] - 31
+
+        last_block = 42499457
+        last_block_2 = 42499488
+
         self.ichi_tests(last_block, last_block_2)
 
         remainder = last_block % int(last_block // 1_000_000 * 1_000_000)
