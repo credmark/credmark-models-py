@@ -159,7 +159,7 @@ class IchiVaults(Model):
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.12',
+                version='0.13',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -568,7 +568,7 @@ class ContractWithUseModelResult(Contract, ModelResultInput):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.10',
+                version='0.11',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -739,7 +739,7 @@ class VaultPerformanceInput(Contract, PerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.25',
+                version='0.26',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -787,7 +787,7 @@ class IchiVaultPerformance(Model):
                  token0_amount, token1_amount, total_amount_in_token_n,
                  event_name, context.block_number.timestamp_datetime.date()))
 
-    def irr_return(self, vault_info_past, vault_info_current, days):
+    def irr_return(self, vault_info_past, vault_info_current, days, past_block_date, current_block_date):
         """
         IRR of the vault, derived from the exchange ratio between vault token to deposit/withdraw tokens
         """
@@ -798,8 +798,12 @@ class IchiVaultPerformance(Model):
         _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
         _cagr_annualized = np.power(current_value / past_value, 365 / days) - 1
 
-        self.logger.info(('irr', days, _cagr_from_irr, _cagr_annualized))
-        return _cagr_from_irr
+        irr2 = xirr([past_block_date, current_block_date],
+                    [-past_value, current_value])
+
+        self.logger.info(('irr', days, irr, irr2, _cagr_from_irr, _cagr_annualized))
+
+        return irr2
 
     def irr_cashflow(self, vault_ichi, df_cashflow, start_block, end_block, vault_info):
         scale_multiplier = vault_info['scale_multiplier']
@@ -807,7 +811,6 @@ class IchiVaultPerformance(Model):
         token1_decimals = vault_info['token1_decimals']
         allow_token0 = vault_info['allowed_token'] == 0
 
-        # 'total_amount_in_token_n'
         def cash_flow(col_value, col_event):
             return lambda x, col_value=col_value, col_event=col_event: \
                 x[col_value].abs() * (-1 * (x[col_event] == 'Deposit')) + \
@@ -841,9 +844,16 @@ class IchiVaultPerformance(Model):
             df_row_end_block])
 
         non_zero_to = df_cashflow_comb.groupby('to', as_index=False)['shares'].sum().query(
-            'shares > 0 or to.isin(["Final", "Start"])')
+            'shares != 0 or to.isin(["Final", "Start"])')
+
+        zero_to = df_cashflow_comb.groupby('to', as_index=False)['shares'].sum().query(
+            'shares == 0 and ~to.isin(["Final", "Start"])')
 
         df_cashflow_comb_non_zero = df_cashflow_comb.merge(non_zero_to, on='to', how='inner')
+
+        self.logger.info(
+            f'Original:{df_cashflow_comb.shape[0]}, Non zero:{df_cashflow_comb_non_zero.shape[0]}. '
+            f'non_zero_to:{non_zero_to.shape[0]} zero_to:{zero_to.shape[0]}')
 
         irr = xirr(df_cashflow_comb.timestamp_date.to_list(),
                    (df_cashflow_comb.total_amount_in_token_n).to_list())
@@ -1046,6 +1056,7 @@ class IchiVaultPerformance(Model):
             'ichi.vault-first-deposit', {'address': vault_addr}, return_type=IchiVaultFirstDepositOutput)
         first_deposit_block_number = first_deposit.first_deposit_block_number
         first_deposit_block_timestamp = first_deposit.first_deposit_block_timestamp
+
         if first_deposit_block_timestamp is not None:
             days_from_first_deposit = (
                 self.context.block_number.timestamp - first_deposit_block_timestamp) / (60 * 60 * 24)
@@ -1078,8 +1089,11 @@ class IchiVaultPerformance(Model):
             'days_since_deployment': days_since_deployment,
         }
 
-        if first_deposit_block_number is None:
+        if first_deposit_block_number is None or first_deposit_block_timestamp is None:
             return result
+
+        first_deposit_date = datetime.fromtimestamp(first_deposit_block_timestamp).date()
+        current_block_date = self.context.block_number.timestamp_datetime.date()
 
         # Fill in result
         self.logger.info(('vault', vault_addr, first_deposit_block_number))
@@ -1095,7 +1109,10 @@ class IchiVaultPerformance(Model):
         result['vault_token_ratio_current'] = vault_info_current['vault_token_ratio']
         result['vault_token_ratio_start'] = vault_info_first_deposit['vault_token_ratio']
 
-        result['irr'] = self.irr_return(vault_info_first_deposit, vault_info_current, days_from_first_deposit)
+        result['irr'] = self.irr_return(vault_info_first_deposit, vault_info_current,
+                                        days_from_first_deposit,
+                                        first_deposit_date,
+                                        current_block_date)
         result['irr_cashflow'], result['irr_cashflow_non_zero'] = self.irr_cashflow(vault_ichi,
                                                                                     df_cashflow,
                                                                                     start_block=first_deposit_block_number,
@@ -1114,13 +1131,16 @@ class IchiVaultPerformance(Model):
         # result['value_uniswap_lp'] = self.calc_uniswap_lp(vault_info_first_deposit, vault_info_current, input.base)
 
         for days in input.days_horizon:
-            block_past_day = self.context.run_model(
+            past_block_result = self.context.run_model(
                 'chain.get-block', {'timestamp': self.context.block_number.timestamp - 60 * 60 * 24 * days})
 
-            block_past = block_past_day['block_number']
-            if block_past > first_deposit_block_number:
+            past_block = past_block_result['block_number']
+            past_block_timestamp = past_block_result['block_timestamp']
+            past_block_date = datetime.fromtimestamp(past_block_timestamp).date()
+
+            if past_block > first_deposit_block_number:
                 vault_info_past = self.context.run_model(
-                    'ichi.vault-info', {"address": vault_addr}, block_number=block_past)
+                    'ichi.vault-info', {"address": vault_addr}, block_number=past_block)
             else:
                 result[f'irr_{days}'] = None
                 result[f'irr_cashflow_{days}'] = None
@@ -1128,12 +1148,15 @@ class IchiVaultPerformance(Model):
                 continue
 
             result[f'vault_token_ratio_{days}'] = vault_info_past['vault_token_ratio']
-            result[f'irr_{days}'] = self.irr_return(vault_info_past, vault_info_current, days)
-            result[f'irr_cashflow_{days}'], result[f'irr_cashflow_non_zero_{days}'] = self.irr_cashflow(vault_ichi,
-                                                                                                        df_cashflow,
-                                                                                                        start_block=block_past,
-                                                                                                        end_block=self.context.block_number,
-                                                                                                        vault_info=vault_info_current)
+            result[f'irr_{days}'] = self.irr_return(
+                vault_info_past, vault_info_current, days, past_block_date, current_block_date)
+            result[f'irr_cashflow_{days}'], result[f'irr_cashflow_non_zero_{days}'] = \
+                self.irr_cashflow(vault_ichi,
+                                  df_cashflow,
+                                  start_block=past_block,
+                                  end_block=self.context.block_number,
+                                  vault_info=vault_info_current)
+
             _, result[f'qty_vault_{days}'] = self.qty_hold_and_vault(
                 vault_info_past, vault_info_current, input.base)
 
@@ -1143,7 +1166,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.18',
+                version='0.19',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

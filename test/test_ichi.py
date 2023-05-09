@@ -56,7 +56,7 @@ class TestICHI(CMFTest):
                        block_number=40100100,
                        chain_id=137)
 
-    def no_test_cash_flow(self):
+    def test_cash_flow(self):
         # credmark-dev run ichi.vault-cashflow -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137 --api_url=http://localhost:8700 -j -b 42454582
         # credmark-dev run ichi.vault-cashflow -i '{"address": "0x711901e4b9136119Fb047ABe8c43D49339f161c3"}' -c 137 --api_url=http://localhost:8700 -j -b 41675859
         self.run_model('ichi.vault-cashflow',
@@ -125,9 +125,9 @@ class TestICHI(CMFTest):
 
         # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
         self.run_model('ichi.vaults-performance',
-                       {"days_horizon": []},
+                       {"days_horizon": [7, 30, 60, 90]},
                        block_number=last_block_2, chain_id=137)
 
         self.run_model('ichi.vaults-performance',
-                       {"days_horizon": [], "base": 100},
+                       {"days_horizon": [7, 30, 60, 90], "base": 1000},
                        block_number=last_block_2, chain_id=137)
