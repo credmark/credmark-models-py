@@ -170,12 +170,10 @@ class TLSScore(Model):
         # get price and liquidity data
         try:
             price = self.context.run_model('price.dex', input={'base': token})
-            items.append(TLSItem.create(
-                ['DEX price', price], TLSItemImpact.POSITIVE))
+            items.append(TLSItem.create(['DEX price', price], TLSItemImpact.POSITIVE))
         except ModelDataError as err:
             if err.data.message.startswith('There is no liquidity'):
-                items.append(TLSItem.create(
-                    err.data.message, TLSItemImpact.NEGATIVE))
+                items.append(TLSItem.create(err.data.message, TLSItemImpact.NEGATIVE))
             else:
                 raise
         except ModelRunError as err:

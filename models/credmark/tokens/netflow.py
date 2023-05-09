@@ -350,7 +350,7 @@ class TokenVolumeSegmentBlock(Model):
             outflow_value_last = None
             netflow_value_last = None
             if input.include_price:
-                price_last = (self.context.models(block_number=r['to_block'])
+                price_last = (self.context.models(block_number=int(r['to_block']))
                               .price.quote(base=input_token,
                                            return_type=PriceWithQuote)).price  # type: ignore
                 inflow_value_last = inflow_scaled * price_last

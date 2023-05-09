@@ -263,7 +263,7 @@ class DuneRunQuery(Model, DuneClient):
                                               return_type=DuneExecutionResults,
                                               local=True)
 
-            sleep(input.sleep)
+            sleep(secs=input.sleep)
 
         try:
             self.context.run_model('dune.cancel-execution',

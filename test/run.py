@@ -77,6 +77,11 @@ if __name__ == '__main__':
         CMFTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
         CMFTest.pre_flag = ['--model_path', 'x']
         parallel_count = args['parallel_count']
+    elif args['type'] == 'test-local':
+        sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
+        CMFTest.post_flag = ['-l', '*', f'--api_url={args["api_url"]}']
+        CMFTest.pre_flag = []
+        parallel_count = args['parallel_count']
     elif args['type'] == 'prod':
         CMFTest.post_flag = []
         CMFTest.pre_flag = []
@@ -111,8 +116,8 @@ if __name__ == '__main__':
                       issubclass(o, CMFTest) and o != CMFTest
                       ]
 
-    print(
-        f'All Tests: {all_tests_name} but only run [TestTLSBatch, TestTLSAll] with [tlsbatch, tlsall -g n -ge m -gl x] individually')
+    print(f'All Tests: {all_tests_name} but only run [TestTLSBatch, TestTLSAll] with '
+          '[-t tlsbatch, -t tlsall -g n -ge m -gl x] individually')
     if args['list']:
         sys.exit(0)
 
