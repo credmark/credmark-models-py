@@ -124,62 +124,62 @@ class TestTLS(CMFTest):
     def test_sample(self):
         result = self.run_model_with_output(
             'tls.score', {"address": "0x0000000000000000000000000000000000000348"}, block_number=16583473)
-        self.assertEqual(
-            result['output'],
-            {"address": "0x0000000000000000000000000000000000000348",
-             "name": None,
-             "symbol": None,
-             "score": None,
-             "items": [{"name": "Fiat currency code USD", "impact": "!"}]})
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {"address": "0x0000000000000000000000000000000000000348",
+                          "name": None,
+                          "symbol": None,
+                          "score": None,
+                          "items": [{"name": "Fiat currency code USD", "impact": "!"}]}))
 
         result = self.run_model_with_output(
             'tls.score', {"address": "0x0000000000000000000000000000000000000349"}, block_number=16583473)
-        self.assertEqual(
-            result['output'],
-            {"address": "0x0000000000000000000000000000000000000349",
-             "name": None,
-             "symbol": None,
-             "score": None,
-             "items": [{"name": "Not an EOA", "impact": "!"}]})
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {"address": "0x0000000000000000000000000000000000000349",
+                          "name": None,
+                          "symbol": None,
+                          "score": None,
+                          "items": [{"name": "Not an EOA", "impact": "!"}]}))
 
         # 0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B: No source code, or not EOA for earlier block
         result = self.run_model_with_output(
             'tls.score', {"address": "0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B"})
-        self.assertEqual(
-            result['output'],
-            {"address": "0x208a9c9d8e1d33a4f5b371bf1864aa125379ba1b",
-             "name": None,
-             "symbol": None,
-             "score": None,
-             "items": [{"name": "Not an EOA", "impact": "!"}]})
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {"address": "0x208a9c9d8e1d33a4f5b371bf1864aa125379ba1b",
+                          "name": None,
+                          "symbol": None,
+                          "score": None,
+                          "items": [{"name": "Not an EOA", "impact": "!"}]}))
 
         result = self.run_model_with_output(
             'tls.score', {"address": "0x208A9C9D8E1d33a4f5b371Bf1864AA125379Ba1B"}, block_number=16583473)
-        self.assertEqual(
-            result['output'],
-            {"address": "0x208a9c9d8e1d33a4f5b371bf1864aa125379ba1b",
-             "name": None,
-             "symbol": None,
-             "score": None,
-             "items": [{"name": "EOA", "impact": "0"}, {"name": "No ABI from EtherScan", "impact": "!"}]})
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {"address": "0x208a9c9d8e1d33a4f5b371bf1864aa125379ba1b",
+                          "name": None,
+                          "symbol": None,
+                          "score": None,
+                          "items": [{"name": "EOA", "impact": "0"}, {"name": "No ABI from EtherScan", "impact": "!"}]}))
 
         # Comptroller 0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B
         result = self.run_model_with_output(
             'tls.score', {"address": "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B"}, block_number=16583473)
-        self.assertEqual(
-            result['output'],
-            {"address": "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b",
-             "name": None,
-             "symbol": None,
-             "score": None,
-             "items": [{"name": "EOA", "impact": "0"}, {"name": "Proxy contract", "impact": "0"}, {"name": "Found ABI from EtherScan", "impact": "+"}, {"name": "Not an ERC20 Token", "impact": "!"}]})
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {"address": "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b",
+                          "name": None,
+                          "symbol": None,
+                          "score": None,
+                          "items": [{"name": "EOA", "impact": "0"}, {"name": "Proxy contract", "impact": "0"}, {"name": "Found ABI from EtherScan", "impact": "+"}, {"name": "Not an ERC20 Token", "impact": "!"}]}))
 
         result = self.run_model_with_output(
             'tls.score', {"address": "0x0AdD679A421f63455372B57530e614B6CD77d2Fe"}, block_number=16583473)
         print(result)
-        self.assertEqual(
-            result['output'],
-            {
+        self.assertTrue(
+            compare_dict(result['output'],
+                         {
                 "address": "0x0add679a421f63455372b57530e614b6cd77d2fe",
                 "name": "Unikey.finance",
                 "symbol": "UNKY",
@@ -210,7 +210,7 @@ class TestTLS(CMFTest):
                         "impact": "!"
                     }
                 ]
-            })
+            }))
         # {"name": "No transfer during during last 12h (16579888 to 16583473) or (2023-02-07 22:29:59+00:00 to 2023-02-08 10:29:59+00:00)", "impact": "!"}]})
 
         # AAVE 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
