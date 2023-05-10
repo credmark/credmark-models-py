@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from credmark.cmf.types import Network
 
 from models.credmark.price.data.chainlink_feeds_arbitrum_one import CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE

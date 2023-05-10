@@ -59,7 +59,6 @@ class UniswapFeeOutput(UniswapFeeInput):
                 input=UniswapFeeInput,
                 output=UniswapFeeOutput)
 class UniswapFee(Model):
-
     def run(self, input: UniswapFeeInput) -> UniswapFeeOutput:
         # pylint:disable=invalid-name
         uni_pool_addr = input.pool_address
