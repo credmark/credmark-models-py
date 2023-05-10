@@ -12,7 +12,8 @@ from cmf_test import CMFTest
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from test_aave import TestAAVE
 from test_account import TestAccount
-from test_arbitrum import TestArbitrum
+from test_arbitrum import TestArbitrumOne
+from test_avalanche import TestAvalanche
 from test_balancer import TestBalancer
 from test_bsc import TestBSC
 from test_chainlink import TestChainlink
@@ -22,6 +23,7 @@ from test_compound import TestCompound
 from test_curve import TestCurve
 from test_dashboard import TestDashboard
 from test_example import TestExample
+from test_fantom import TestFantom
 from test_fiat import TestFiat
 from test_finance import TestFinance
 from test_ichi import TestICHI
