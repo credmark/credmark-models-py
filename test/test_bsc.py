@@ -21,4 +21,5 @@ class TestBSC(CMFTest):
         last_block = last_block_output['output']['blockNumber']
 
         self.run_model('price.oracle-chainlink',
-                       {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787"}, block_number=last_block, chain_id=56)
+                       {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787"},
+                       block_number=last_block, chain_id=56)

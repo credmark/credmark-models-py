@@ -8,8 +8,8 @@ class TestAAVE(CMFTest):
         self.title("Aave V2")
 
         self.run_model("aave-v2.get-oracle-price", {"symbol": "AAVE"})
-        self.run_model("aave-v2.get-price-oracle", {})
-        self.run_model("aave-v2.get-lending-pool-providers-from-registry", {})
+        self.run_model("aave-v2.get-price-oracle")
+        self.run_model("aave-v2.get-lending-pool-providers-from-registry")
 
         # aave-v2.get-lending-pool, aave-v2.get-lending-pool-provider
         self.run_model("aave-v2.token-asset",

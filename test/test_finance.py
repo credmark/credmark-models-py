@@ -9,7 +9,7 @@ class TestFinance(CMFTest):
         self.run_model('finance.lcr', {
                        "address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10})
         # compound-v2.pool-info, compound-v2.all-pools-info, token.stablecoins
-        self.run_model('finance.min-risk-rate', {})
+        self.run_model('finance.min-risk-rate')
 
         self.run_model('finance.sharpe-ratio-token',
                        {"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},

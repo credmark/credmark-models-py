@@ -9,12 +9,12 @@ class TestCMK(CMFTest):
     def test(self):
         self.title('CMK')
 
-        self.run_model('cmk.total-supply', {})
+        self.run_model('cmk.total-supply')
         self.run_model('cmk.circulating-supply', {"message": "hello world"})
-        self.run_model('xcmk.cmk-staked', {})
-        self.run_model('xcmk.total-supply', {})
-        # self.run_model('xcmk.deployment-time', {})
-        self.run_model('cmk.vesting-contracts', {})
+        self.run_model('xcmk.cmk-staked')
+        self.run_model('xcmk.total-supply')
+        # self.run_model('xcmk.deployment-time')
+        self.run_model('cmk.vesting-contracts')
 
         print('Below test do not work with web3 node running on the gateway')
         exit_code_failed = (1 if self.type in ['prod', 'gw'] else 0)

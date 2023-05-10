@@ -140,10 +140,10 @@ class TestAccount(CMFTest):
 
     def test_native_token_balance(self):
         # 1: mainnet
+        # 56: bsc
         # 137: polygon
         # 10: optimism
         # 42161: arbitrum
-        # 56: bsc
         # 250: fantom
         # 43114: avalanche
 
