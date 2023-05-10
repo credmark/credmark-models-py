@@ -12,9 +12,9 @@ class TestCurve(CMFTest):
         self.title('Curve - Pool Info')
 
         # curve-fi.get-registry,curve-fi.get-provider
-        self.run_model('curve-fi.all-pools', {})
+        self.run_model('curve-fi.all-pools')
 
-        self.run_model('curve-fi.all-pools-info', {})  # __all__
+        self.run_model('curve-fi.all-pools-info')  # __all__
 
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
@@ -175,6 +175,6 @@ class TestCurve(CMFTest):
 
     def test_convex(self):
         self.title('Curve - Convex')
-        self.run_model('convex-fi.all-pool-info', {})
+        self.run_model('convex-fi.all-pool-info')
         self.run_model(
             'convex-fi.earned', {'address': '0x5291fBB0ee9F51225f0928Ff6a83108c86327636'})

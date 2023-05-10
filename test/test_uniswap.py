@@ -7,12 +7,12 @@ class TestUniswap(CMFTest):
     def test(self):
         self.title("Uniswap")
 
-        self.run_model("uniswap.tokens", {})
-        self.run_model("uniswap.exchange", {})
+        self.run_model("uniswap.tokens")
+        self.run_model("uniswap.exchange")
         # WETH: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
         self.run_model("uniswap.quoter-price-dai",
                        {"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"})
-        self.run_model("uniswap.router", {})
+        self.run_model("uniswap.router")
 
         self.title("Uniswap V2")
         self.run_model("uniswap-v2.get-weighted-price", {"symbol": "WETH"})
@@ -89,7 +89,7 @@ class TestUniswap(CMFTest):
         self.run_model("dex.pool-volume-block-range",
                        {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})
 
-        self.run_model("uniswap-v3.get-all-pools", {})
+        self.run_model("uniswap-v3.get-all-pools")
 
         self.run_model("uniswap-v3.get-pools-ledger", {"symbol": "MKR"})
 

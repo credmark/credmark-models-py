@@ -1,4 +1,4 @@
-# pylint:disable=locally-disabled,line-too-long
+# pylint:disable=locally-disabled,line-too-long, dangerous-default-value
 
 import contextlib
 import io
@@ -57,7 +57,7 @@ class CMFTest(TestCase):
 
     def run_model_with_output(self,
                               model_slug,
-                              model_input,
+                              model_input={},
                               exit_code: Optional[int] = 0,
                               block_number: Optional[int] = None,
                               chain_id: int = 1):
@@ -131,7 +131,7 @@ class CMFTest(TestCase):
 
         return stdout_result
 
-    def run_model(self, model_slug, model_input, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
+    def run_model(self, model_slug, model_input={}, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
         if self.type == 'test':
             cmd = 'python test/test.py'
         else:

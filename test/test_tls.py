@@ -103,7 +103,7 @@ class TestTLS(CMFTest):
         block_number = 16795830
 
         _latest_block = self.run_model_with_output(
-            'rpc.get-latest-blocknumber', {})['output']['blockNumber']
+            'rpc.get-latest-blocknumber')['output']['blockNumber']
 
         # AAVE: 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         # UNI: 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
