@@ -48,8 +48,13 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
                                             self.POOLY_LAWYER,
                                             self.POOLY_SUPPORT]),
                     group_by=[q.TO_ADDRESS])
-                .to_dataframe()
-                .assign(sum_value=lambda x: x.sum_value.apply(int) / 1e18))
+                .to_dataframe())
+
+        if df_group_by.empty:
+            self.logger.info('No funds raised')
+            return {'total_raised_qty': 0}
+
+        df_group_by = df_group_by.assign(sum_value=lambda x: x.sum_value.apply(int) / 1e18)
 
         total_raised_qty_from_sum = df_group_by.sum_value.sum()
         self.logger.info(f'total raised: {total_raised_qty_from_sum}')
@@ -103,7 +108,8 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
                         offset=pg * 5000,
                         bigint_cols=['block_timestamp'])
                     .to_dataframe())
-                dfs.append(df)
+                if not df.empty:
+                    dfs.append(df)
                 pg += 1
                 if df.shape[0] < 5000:
                     break
@@ -111,13 +117,13 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
         if len(dfs) == 0:
             return {'total_raise_value': 0, 'total_raise_value_latest': 0, 'total_raised_qty': 0}
 
-        eth_price = self.context.models.price.quote(base='WETH', quote='USD')['price']
-
         df_all = (
             pd
             .concat(dfs)
             .assign(block_timestamp_day=lambda df:
                     df.block_timestamp.max() - ((df.block_timestamp.max() - df.block_timestamp) // (24 * 3600) * 24 * 3600)))
+
+        eth_price = self.context.models.price.quote(base='WETH', quote='USD')['price']
 
         self.logger.info(f'Fetched {df_all.shape[0]} rows of transactions to Pooly NFT')
 
@@ -190,6 +196,9 @@ class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
         all_nfts = [self.POOLY_JUDGE, self.POOLY_LAWYER, self.POOLY_SUPPORT]
         all_mints = pd.concat([self.fetch_mint(nft) for nft in all_nfts]).assign(
             evt_amount=lambda x: x.evt_amount.apply(int))
+
+        if all_mints.empty:
+            return Records.empty()
 
         all_mints_summary = (
             all_mints
@@ -271,13 +280,19 @@ class PoolyNFTFundRaiseSeries(Model, PoolyNFT):
                                                 self.POOLY_SUPPORT]),
                         order_by=q.BLOCK_TIMESTAMP.asc(),
                         limit=5000, offset=pg * 5000)
-                    .to_dataframe()
-                    .assign(block_time=lambda x: x.block_time.apply(lambda x: int(float(x))),
-                            cumu_value_eth=lambda x: x.cumu_value_eth.apply(float)))
-                dfs.append(df)
+                    .to_dataframe())
+                if not df.empty:
+                    dfs.append(df)
                 pg += 1
                 if df.shape[0] < 5000:
                     break
 
+        if len(dfs) == 0:
+            return Records.empty()
+
         df_all = pd.concat(dfs).reset_index(drop=True)
+
+        df_all = df_all.assign(block_time=lambda x: x.block_time.apply(lambda x: int(float(x))),
+                               cumu_value_eth=lambda x: x.cumu_value_eth.apply(float))
+
         return Records.from_dataframe(df_all)
