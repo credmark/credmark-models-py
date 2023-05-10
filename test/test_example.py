@@ -5,7 +5,7 @@ from cmf_test import CMFTest
 
 class TestExample(CMFTest):
     def test_pooly_nft(self):
-        self.run_model('contrib.pooly-fund-raise', block_number=17_100_200)
+        self.run_model('contrib.pooly-fund-raise', block_number=17_100_201)
         self.run_model('contrib.pooly-fund-raise-usd-and-count', block_number=14_100_200)
         self.run_model('contrib.pooly-fund-raise-leaderboard', {'top_n': 15}, block_number=17_100_200)
         self.run_model('contrib.pooly-total-supply', block_number=17_100_200)
