@@ -151,8 +151,8 @@ class NFTGet(Model):
             with ipfshttpclient.connect('/dns/ipfs.infura.io/tcp/5001/https', auth=(key, secret)) as client:
                 path = tokenURI.replace('ipfs://', '')
                 nft_meta = json.loads(client.cat(path).decode())
-
                 image_path = nft_meta['image'].replace('ipfs://', '')
+
                 # image_data = client.cat(image_path)
                 # nft_image = Image.open(BytesIO(image_data))
                 # nft_image.show()
