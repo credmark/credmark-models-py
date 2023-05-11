@@ -2,7 +2,7 @@
 
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Contract, Records, Token
+from credmark.cmf.types import Contract, Records, Token
 from credmark.dto import DTO, DTOField, EmptyInput
 
 
@@ -38,6 +38,12 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
     https://dune.com/queries/882266
     """
 
+    @staticmethod
+    def fetch_balance(nft):
+        contract = Contract(nft)
+        name = contract.functions.name().call()
+        return nft, name
+
     def run(self, _: EmptyInput) -> dict:
         with self.context.ledger.Transaction as q:
             df_group_by = (
@@ -50,6 +56,10 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
                     group_by=[q.TO_ADDRESS])
                 .to_dataframe())
 
+        all_nfts = [self.POOLY_JUDGE, self.POOLY_LAWYER, self.POOLY_SUPPORT]
+        nft_list = [self.fetch_balance(nft) for nft in all_nfts]
+        nft_dict = {name: nft for nft, name in nft_list}
+
         if df_group_by.empty:
             self.logger.info('No funds raised')
             return {'total_raised_qty': 0}
@@ -59,7 +69,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
         total_raised_qty_from_sum = df_group_by.sum_value.sum()
         self.logger.info(f'total raised: {total_raised_qty_from_sum}')
         per_nft = df_group_by.set_index('to_address').to_dict()['sum_value']
-        return {'total_raised_qty': total_raised_qty_from_sum, **per_nft}
+        return {'total_raised_qty': total_raised_qty_from_sum, **per_nft, **nft_dict}
 
 # Query 2: Funds raised in USD
 
@@ -80,13 +90,6 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
     https://dune.com/queries/884492 # contribution value as of price at the point of transfer
     https://dune.com/queries/887079 # count unique
     """
-
-    @staticmethod
-    def fetch_balance(native_token, nft):
-        contract = Contract(nft)
-        balance = native_token.balance_of_scaled(Address(nft).checksum)
-        name = contract.functions.name().call()
-        return nft, name, balance
 
     def run(self, _: EmptyInput) -> dict:
         pg = 0
@@ -166,13 +169,6 @@ class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
     Reference
     https://dune.com/queries/887141
     """
-
-    @staticmethod
-    def fetch_balance(native_token, nft):
-        contract = Contract(nft)
-        balance = native_token.balance_of_scaled(Address(nft).checksum)
-        name = contract.functions.name().call()
-        return nft, name, balance
 
     @staticmethod
     def fetch_mint(nft):
