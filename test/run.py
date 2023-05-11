@@ -29,6 +29,7 @@ from test_finance import TestFinance
 from test_ichi import TestICHI
 from test_index_coop import TestIndexCoop
 from test_ipor import TestIPOR
+from test_nft import TestNFT
 from test_optimism import TestOptimism
 from test_polygon import TestPolygon
 from test_price import TestPrice

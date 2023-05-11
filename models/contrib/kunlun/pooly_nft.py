@@ -133,13 +133,13 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
         total_raised_qty = df_all.value.apply(int).sum() / 1e18
         total_raised_value_latest = total_raised_qty * eth_price
 
-        prices_series = self.context.run_model('price.dex-db-interval',
-                                               {'address': Token('WETH').address,
-                                                "start": df_all.block_timestamp_day.min() - 86400,
-                                                "end": df_all.block_timestamp_day.max() + 86400,
-                                                "interval": 86400})
+        price_series = self.context.run_model('price.dex-db-interval',
+                                              {'address': Token('WETH').address,
+                                               "start": df_all.block_timestamp_day.min() - 86400,
+                                               "end": df_all.block_timestamp_day.max() + 86400,
+                                               "interval": 86400})
 
-        df_price_series = (pd.DataFrame(prices_series['results'])
+        df_price_series = (pd.DataFrame(price_series['results'])
                            .loc[:, ['sampleTimestamp', 'price']]
                            .assign(sampleTimestamp=lambda df: df.sampleTimestamp.astype(int)))
         df_all = df_all.merge(df_price_series, left_on='block_timestamp_day', right_on='sampleTimestamp', how='left')
