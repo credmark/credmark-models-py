@@ -28,11 +28,11 @@ class NFTAbout(Model):
         total_supply = input.functions.totalSupply().call()
         return {'name': name, 'symbol': symbol, 'total_supply': total_supply}
 
-# credmark-dev run nft.mint -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -j --api_url http://localhost:8700
+# credmark-dev run nft.mint -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -j --api_url http://localhost:8700 -b 17_000_000
 
 
 @Model.describe(slug='nft.mint',
-                version='0.2',
+                version='0.3',
                 display_name='NFT mint in ETH',
                 description="nft",
                 input=Contract,
@@ -48,13 +48,14 @@ class NFTMint(Model):
                         aggregates=[(tx.VALUE, 'value'),
                                     (ts.EVT_FROM, 'evt_from'),
                                     (ts.EVT_TO, 'evt_to'),
+                                    (ts.EVT_TOKENID, 'evt_tokenid'),
                                     (ts.BLOCK_NUMBER, 'block_number'),
                                     (tx.BLOCK_TIMESTAMP.extract_epoch().as_integer(), 'block_timestamp'),
                                     (tx.FROM_ADDRESS, 'from_address'),
                                     (tx.TO_ADDRESS, 'to_address'),
                                     (tx.TRANSACTION_INDEX, 'transaction_index'),
                                     (ts.TXN_HASH, 'hash')],
-                        order_by=tx.BLOCK_NUMBER.comma_(tx.TRANSACTION_INDEX),
+                        order_by=tx.BLOCK_NUMBER.comma_(tx.TRANSACTION_INDEX).comma_(ts.EVT_TOKENID),
                         where=ts.EVT_FROM.eq(Address.null()).and_(tx.TO_ADDRESS.eq(contract.address)),
                         joins=[(JoinType.LEFT_OUTER, tx, tx.HASH.eq(ts.TXN_HASH))],
                         limit=5000,
@@ -78,7 +79,13 @@ class NFTMint(Model):
         if df_mint is None:
             return {'status': 'no mint'}
 
-        df_mint['value'] = df_mint['value'].astype(float) / 1e18
+        minted_ids = df_mint.evt_tokenid.unique()
+        minted_ids_count = minted_ids.shape[0]
+
+        self.logger.info(
+            f'{minted_ids_count=} {set(range(0, minted_ids_count)) - set(df_mint.evt_tokenid.astype("int"))}')
+
+        df_mint['value'] = df_mint['value'].astype("float64") / 1e18
         df_mint['block_timestamp'] = df_mint['block_timestamp'].astype(int)
         # df_all['block_date'] = df_all['block_timestamp'].apply(datetime.fromtimestamp)
 
@@ -112,6 +119,7 @@ class NFTMint(Model):
         return {
             'total_eth': total_eth,
             'total_cost': df_all.cost.sum(),
+            'minted_ids_count': minted_ids_count,
         }
 
 
@@ -122,7 +130,7 @@ class NFTGetInput(Contract):
 
 
 @Model.describe(slug='nft.get',
-                version='0.2',
+                version='0.3',
                 display_name='NFT Get',
                 description="nft",
                 input=NFTGetInput,

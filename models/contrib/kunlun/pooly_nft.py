@@ -75,7 +75,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
 
 
 @Model.describe(slug='contrib.pooly-fund-raise-usd-and-count',
-                version='0.1',
+                version='0.2',
                 display_name='Pooly NFT fund raise in USD',
                 description="nft",
                 input=EmptyInput,
@@ -84,6 +84,7 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
     """
     Run with
     credmark-dev run contrib.pooly-fund-raise-usd-and-count -j
+    credmark-dev run contrib.pooly-fund-raise-usd-and-count -j -b 16_000_000
 
     Reference
     https://dune.com/queries/883725 # contribution value as of current price
@@ -108,6 +109,7 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
                         where=q.TO_ADDRESS.in_([self.POOLY_JUDGE,
                                                 self.POOLY_LAWYER,
                                                 self.POOLY_SUPPORT]),
+                        order_by=q.BLOCK_NUMBER.comma_(q.HASH),
                         offset=pg * 5000,
                         bigint_cols=['block_timestamp'])
                     .to_dataframe())
@@ -156,7 +158,7 @@ class LeaderInput(DTO):
 
 
 @Model.describe(slug='contrib.pooly-fund-raise-leaderboard',
-                version='0.1',
+                version='0.2',
                 display_name='Pooly NFT fund raise - leaders',
                 description="nft",
                 input=LeaderInput,
@@ -164,7 +166,7 @@ class LeaderInput(DTO):
 class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
     """
     Run with
-    credmark-dev run contrib.pooly-fund-raise-leader -j
+    credmark-dev run contrib.pooly-fund-raise-leaderboard -j
 
     Reference
     https://dune.com/queries/887141
@@ -178,7 +180,7 @@ class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
         with contract.ledger.events.NFTMinted as q:
             while True:
                 df = q.select([q.EVT_TO, q.EVT_NUMBEROFTOKENS, q.EVT_AMOUNT],
-                              order_by=q.BLOCK_NUMBER,
+                              order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX.comma_(q.HASH)),
                               limit=5000,
                               offset=pg*5000).to_dataframe()
                 dfs.append(df)
@@ -247,7 +249,7 @@ class PoolyNFTSupply(Model, PoolyNFT):
 
 
 @Model.describe(slug='contrib.pooly-fund-raise-timeseries',
-                version='0.1',
+                version='0.2',
                 display_name='Pooly NFT fund raise in series',
                 description="nft",
                 input=EmptyInput,
@@ -275,7 +277,8 @@ class PoolyNFTFundRaiseSeries(Model, PoolyNFT):
                                                 self.POOLY_LAWYER,
                                                 self.POOLY_SUPPORT]),
                         order_by=q.BLOCK_TIMESTAMP.asc(),
-                        limit=5000, offset=pg * 5000)
+                        limit=5000,
+                        offset=pg * 5000)
                     .to_dataframe())
                 if not df.empty:
                     dfs.append(df)

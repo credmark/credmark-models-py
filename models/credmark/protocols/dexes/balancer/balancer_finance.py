@@ -65,7 +65,7 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
 
 
 @Model.describe(slug='balancer-fi.get-all-pools',
-                version='0.2',
+                version='0.3',
                 display_name='Balancer Finance - Get all pools',
                 description='Get all pools',
                 category='protocol',
@@ -85,7 +85,8 @@ class GetBalancerAllPools(Model):
 
             while True:
                 df_tt = q.select(columns=[q.BLOCK_NUMBER, q.POOLADDRESS],
-                                 order_by=q.BLOCK_NUMBER,
+                                 order_by=q.BLOCK_NUMBER.comma_(q.POOLADDRESS),
+                                 limit=5000,
                                  offset=offset).to_dataframe()
 
                 if df_tt.shape[0] > 0:

@@ -86,7 +86,7 @@ class UniswapV2PoolMeta:
             while True:
                 df_tt = q.select(columns=[q.EVT_PAIR, q.BLOCK_NUMBER],
                                  where=eq_conds,
-                                 order_by=q.BLOCK_NUMBER,
+                                 order_by=q.BLOCK_NUMBER.comma_(q.EVT_PAIR),
                                  limit=5000,
                                  offset=offset).to_dataframe()
 
@@ -253,7 +253,7 @@ class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools-ledger',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract - use ledger',
                 category='protocol',

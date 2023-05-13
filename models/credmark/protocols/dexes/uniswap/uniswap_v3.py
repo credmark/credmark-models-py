@@ -204,7 +204,7 @@ class UniswapV3GetRing0RefPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -231,13 +231,13 @@ class UniswapV3GetPoolsLedger(Model):
             df_ts = []
             offset = 0
             while True:
-                df_tt = q.select(columns=[q.EVT_POOL, q.BLOCK_NUMBER],
-                                 aggregates=[
-                                     (q.EVT_FEE.as_bigint(), q.EVT_FEE)],
-                                 where=eq_conds,
-                                 order_by=q.BLOCK_NUMBER,
-                                 limit=5000,
-                                 offset=offset).to_dataframe()
+                df_tt = q.select(
+                    columns=[q.EVT_POOL, q.BLOCK_NUMBER],
+                    aggregates=[(q.EVT_FEE.as_bigint(), q.EVT_FEE)],
+                    where=eq_conds,
+                    order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                    limit=5000,
+                    offset=offset).to_dataframe()
 
                 if df_tt.shape[0] > 0:
                     df_ts.append(df_tt)
@@ -253,7 +253,7 @@ class UniswapV3GetPoolsLedger(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-all-pools',
-                version='1.5',
+                version='1.6',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -268,10 +268,11 @@ class UniswapV3AllPools(Model):
             offset = 0
 
             while True:
-                df_tt = q.select(columns=q.columns,
-                                 order_by=q.BLOCK_NUMBER,
-                                 limit=5000,
-                                 offset=offset).to_dataframe()
+                df_tt = q.select(
+                    columns=q.columns,
+                    order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                    limit=5000,
+                    offset=offset).to_dataframe()
 
                 if df_tt.shape[0] > 0:
                     df_ts.append(df_tt)
