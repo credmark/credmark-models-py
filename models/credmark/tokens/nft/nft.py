@@ -55,9 +55,10 @@ class NFTMint(Model):
                                     (tx.TO_ADDRESS, 'to_address'),
                                     (tx.TRANSACTION_INDEX, 'transaction_index'),
                                     (ts.TXN_HASH, 'hash')],
-                        order_by=tx.BLOCK_NUMBER.comma_(tx.TRANSACTION_INDEX).comma_(ts.EVT_TOKENID),
                         where=ts.EVT_FROM.eq(Address.null()).and_(tx.TO_ADDRESS.eq(contract.address)),
                         joins=[(JoinType.LEFT_OUTER, tx, tx.HASH.eq(ts.TXN_HASH))],
+                        # When use limit/offset, the order_by must be unique
+                        order_by=tx.BLOCK_NUMBER.comma_(tx.TRANSACTION_INDEX).comma_(ts.EVT_TOKENID),
                         limit=5000,
                         offset=pg * 5000).to_dataframe()
 

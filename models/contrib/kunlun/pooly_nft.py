@@ -180,7 +180,7 @@ class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
         with contract.ledger.events.NFTMinted as q:
             while True:
                 df = q.select([q.EVT_TO, q.EVT_NUMBEROFTOKENS, q.EVT_AMOUNT],
-                              order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX.comma_(q.HASH)),
+                              order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX.comma_(q.TXN_HASH)),
                               limit=5000,
                               offset=pg*5000).to_dataframe()
                 dfs.append(df)
