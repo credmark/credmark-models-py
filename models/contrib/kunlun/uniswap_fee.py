@@ -53,7 +53,7 @@ class UniswapFeeOutput(UniswapFeeInput):
 
 
 @Model.describe(slug='contrib.uniswap-fee',
-                version='1.1',
+                version='1.2',
                 display_name='Calculate fee from swaps in Uniswap V3 pool',
                 description="Ledger",
                 input=UniswapFeeInput,
@@ -93,7 +93,8 @@ class UniswapFee(Model):
                     where=(q.BLOCK_NUMBER.gt(block_start).and_(q.BLOCK_NUMBER.le(block_end))
                            .and_(q.FROM_ADDRESS.eq(uni_pool_addr)
                                  .or_(q.TO_ADDRESS.eq(uni_pool_addr)).parentheses_())),
-                    order_by=q.BLOCK_NUMBER,
+                    order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX).comma_(
+                        q.TRANSACTION_HASH).comma_(q.FROM_ADDRESS).comma_(q.TO_ADDRESS),
                     offset=offset,
                     bigint_cols=[q.BLOCK_NUMBER],
                 ).to_dataframe()

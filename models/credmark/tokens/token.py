@@ -528,7 +528,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 
 @Model.describe(slug='token.holders',
-                version='1.2',
+                version='1.4',
                 display_name='Token Holders',
                 description='Holders of a Token',
                 category='protocol',
@@ -543,8 +543,8 @@ class TokenHolders(Model):
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.field('balance').dquote().desc(),
                 having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
+                order_by=q.field('balance').dquote().desc().comma_(q.ADDRESS),
                 limit=input.limit,
                 offset=input.offset,
                 bigint_cols=['balance', 'total_holders']
@@ -716,7 +716,7 @@ class TokenAllOutput(TokenAllInput):
 
 
 @Model.describe(slug='token.all',
-                version='0.1',
+                version='0.3',
                 display_name='All tokens',
                 description='Return all tokens by page',
                 category='protocol',
@@ -731,6 +731,7 @@ class TokenAll(Model):
             count_token_address = int(rows[0]['count_token_address'])
 
             df = token.select([token.ADDRESS],
+                              where=token.BLOCK_NUMBER.le(self.context.block_number),
                               order_by=token.ADDRESS,
                               limit=input.limit,
                               offset=(input.page-1)*input.limit).to_dataframe()

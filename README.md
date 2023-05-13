@@ -1,5 +1,3 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/credmark/credmark-models-py/HEAD)
-
 # Credmark Models and Model Framework
 
 Credmark has created a Model Framework for creators to allow them easy access to Credmark's inhouse integrated, curated, and historical blockchain data via standard data models and to enable creators to leverage these models to build their own models and publish them.
@@ -17,11 +15,11 @@ Please find more details on the CLI [here](https://developer-docs.credmark.com/e
 You can as well configure the Credmark Model Framework to run within a Jupyter Notebook. Please have a look [here](https://docs.credmark.com/cmf-model-guide/getting-started/setup-of-jupyter-notebook).
 
 # How to...
-After installation, please follow the instructions on how to 
-- [create](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-model-skeleton), 
+After installation, please follow the instructions on how to
+- [create](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-model-skeleton),
 - [run](https://docs.credmark.com/cmf-model-guide/how-to-build-a-model/create-the-output-and-run-the-model),
-- [test](https://docs.credmark.com/cmf-model-guide/testing/unit-tests), 
-- [submit new models](https://docs.credmark.com/cmf-model-guide/how-to-submit-a-model/model-submission-process) 
+- [test](https://docs.credmark.com/cmf-model-guide/testing/unit-tests),
+- [submit new models](https://docs.credmark.com/cmf-model-guide/how-to-submit-a-model/model-submission-process)
 
 Please also have a look at our [modeling guidelines](https://docs.credmark.com/cmf-model-guide/model-guidelines/the-good-model-checklist).
 
@@ -40,7 +38,7 @@ Coming soon...
 ### DeFi API
 Understand the [core concepts](https://docs.credmark.com/defi-api-concepts/basics/introduction) of the DeFi API and find an [interactive technical documentation](https://gateway.credmark.com/api/#/DeFi%20API) of every endpoint.
 
-# Additional resources 
+# Additional resources
 
 ### Model Overview
 You can browse the models that are already deployed at the [Credmark Model Documentation](https://gateway.credmark.com/model-docs) site.
@@ -49,7 +47,7 @@ You can browse the models that are already deployed at the [Credmark Model Docum
 When running a model, the top level framework code will catch any exceptions, convert it to a ModelRunError if needed, and output an error object in the response. Please find more details on this [here](https://developer-docs.credmark.com/en/latest/errors.html#).
 
 ### Bugs, Issues and Support
-The Credmark Model Framework is under active development, thus there will be some bugs or issues that may cause problems. 
+The Credmark Model Framework is under active development, thus there will be some bugs or issues that may cause problems.
 
 We encourage all modelers to join our [Discord](https://discord.com/invite/3dSfMqP3d4), pick the role "Engineering" and post any issues the in the channel [#product-help](https://discord.com/channels/827615638540910622/965655586513485835). The Discord shall be the place to ask general questions about how to do something or if you have data-related questions.
 

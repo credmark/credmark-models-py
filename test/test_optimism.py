@@ -25,3 +25,7 @@ class TestOptimism(CMFTest):
         self.run_model('price.oracle-chainlink',
                        {"base": "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819"},
                        block_number=last_block, chain_id=chain_id)
+
+        self.run_model('price.quote',
+                       {"base": 'ETH'},
+                       block_number=last_block, chain_id=chain_id)
