@@ -19,7 +19,6 @@ from credmark.dto import EmptyInput
     description='Redacted Cartel Votium Cashflow',
     category='protocol',
     subcategory='votium',
-    input=EmptyInput,
     output=dict
 )
 class RedactedVotiumCashflow(Model):
@@ -63,7 +62,6 @@ class RedactedVotiumCashflow(Model):
     description='Redacted Cartel Convex Cashflow',
     category='protocol',
     subcategory='votium',
-    input=EmptyInput,
     output=dict)
 class RedactedConvexCashflow(Model):
     CONVEX_ADDRESSES = [

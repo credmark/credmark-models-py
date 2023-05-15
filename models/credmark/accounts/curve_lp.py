@@ -75,9 +75,9 @@ class GetCurveLPPosition(Model):
             df_tx = df.query('transaction_hash == @_tx')
             if df_tx.shape[0] == 2:
                 tx_in = df_tx.query('token_address not in @_lp_tokens')
-                in_token = Token(address=tx_in['token_address'].iloc[0])
-                in_token_amount = in_token.scaled(tx_in['value'].iloc[0])
-                if tx_in['from_address'].iloc[0] == input.address:
+                in_token = Token(address=tx_in.token_address.iloc[0])
+                in_token_amount = in_token.scaled(tx_in.value.iloc[0])
+                if tx_in.from_address.iloc[0] == input.address:
                     in_token_amount = abs(in_token_amount)
                 else:
                     in_token_amount = -abs(in_token_amount)

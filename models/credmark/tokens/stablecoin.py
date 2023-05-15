@@ -2,7 +2,6 @@
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Network, Token, Tokens
-from credmark.dto import EmptyInput
 
 
 @Model.describe(slug='token.stablecoins',
@@ -11,7 +10,6 @@ from credmark.dto import EmptyInput
                 description='A list of stable coins',
                 category='protocol',
                 tags=['token', 'stablecoin'],
-                input=EmptyInput,
                 output=Tokens)
 class StableCoins(Model):
     STABLECOINS = {

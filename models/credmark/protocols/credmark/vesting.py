@@ -38,14 +38,12 @@ class AccountVestingInfo(DTO):
     claims: List[dict]
 
 
-@Model.describe(
-    slug="cmk.vesting-contracts",
-    version="1.0",
-    display_name='CMK Vesting Contracts',
-    category='protocol',
-    subcategory='cmk',
-    input=EmptyInput,
-    output=Contracts)
+@Model.describe(slug="cmk.vesting-contracts",
+                version="1.0",
+                display_name='CMK Vesting Contracts',
+                category='protocol',
+                subcategory='cmk',
+                output=Contracts)
 class CMKGetVestingContracts(Model):
     def run(self, input) -> Contracts:
         if self.context.chain_id == 1:
@@ -268,7 +266,6 @@ class CMKGetVestingByAccount(Model):
                 display_name='CMK Vesting Balances',
                 category='protocol',
                 subcategory='cmk',
-                input=EmptyInput,
                 output=dict)
 class CMKGetAllVestingBalances(Model):
     def run(self, _: EmptyInput) -> dict:

@@ -35,7 +35,6 @@ from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAU
                 description='The tokens used in ICHI vaults',
                 category='protocol',
                 subcategory='ichi',
-                input=EmptyInput,
                 output=dict)
 class IchiVaultTokens(Model):
     ICHI_POLYGON_COINS = [
@@ -72,7 +71,6 @@ class IchiVaultTokens(Model):
                 description='ICHI vaults',
                 category='protocol',
                 subcategory='ichi',
-                input=EmptyInput,
                 output=dict)
 class IchiVaults(Model):
     VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'

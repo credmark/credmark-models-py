@@ -105,7 +105,6 @@ def get_comptroller(model):
                 description="Get comptroller contract",
                 category='protocol',
                 subcategory='compound',
-                input=EmptyInput,
                 output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
@@ -125,7 +124,6 @@ class CompoundV2Comptroller(Model):
                 description="Query the comptroller for all cTokens/markets",
                 category='protocol',
                 subcategory='compound',
-                input=EmptyInput,
                 output=Some[Address])
 class CompoundV2GetAllPools(Model):
     def run(self, _: EmptyInput) -> Some[Address]:
@@ -144,7 +142,6 @@ class CompoundV2GetAllPools(Model):
                 description="Get all pools and query for their info (deposit, borrow, rates)",
                 category='protocol',
                 subcategory='compound',
-                input=EmptyInput,
                 output=Some[CompoundV2PoolInfo])
 class CompoundV2AllPoolsInfo(Model):
     def run(self, input: EmptyInput) -> Some[CompoundV2PoolInfo]:
@@ -192,7 +189,6 @@ class CompoundV2AllPoolsInfo(Model):
                 description="Compound V2 - convert pool's info to value",
                 category='protocol',
                 subcategory='compound',
-                input=EmptyInput,
                 output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
     def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:

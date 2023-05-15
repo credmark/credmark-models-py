@@ -16,7 +16,6 @@ from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
                 description="Returns the address of Sushiswap factory contract",
                 category='protocol',
                 subcategory='sushi',
-                input=EmptyInput,
                 output=Contract)
 class SushiswapV2Factory(Model):
     SUSHISWAP_V2_FACTORY_ADDRESS = {
@@ -61,7 +60,6 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=EmptyInput,
                 output=dict)
 class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
     def run(self, input: EmptyInput) -> dict:

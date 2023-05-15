@@ -57,7 +57,6 @@ class AaveDebtInfo(DTO):
                 description="Aave V2 - Get lending pool providers",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contracts)
 class AaveV2GetLendingPoolProviders(Model):
     """
@@ -91,7 +90,6 @@ class AaveV2GetLendingPoolProviders(Model):
                 description="Aave V2 - Get incentive controller",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetIncentiveController(Model):
     """
@@ -115,7 +113,6 @@ class AaveV2GetIncentiveController(Model):
                 description="Aave V2 - Get lending pool providers",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetAddressProvider(Model):
     """
@@ -143,7 +140,6 @@ class AaveV2GetAddressProvider(Model):
                 description="Query data provider from address provider",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetProtocolDataProvider(Model):
     def run(self, _) -> Contract:
@@ -176,7 +172,6 @@ class AaveV2GetProtocolDataProvider(Model):
                 description="Aave V2 - Get lending pool for main market",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, _) -> Contract:
@@ -194,7 +189,6 @@ class AaveV2GetLendingPool(Model):
                 description="Aave V2 - Get price oracle for main market",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
     def run(self, _) -> Contract:

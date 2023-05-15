@@ -120,7 +120,6 @@ class UniswapV3GetPools(Model):
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=EmptyInput,
                 output=dict)
 class UniswapV3GetRing0RefPrice(Model):
     WEIGHT_POWER = 4.0

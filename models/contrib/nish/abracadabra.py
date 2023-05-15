@@ -4,7 +4,7 @@ from typing import List, Tuple
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, IterableListGenericDTO
 
 from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
 
@@ -75,7 +75,6 @@ class AbracadabraOutput(DTO):
                 category='protocol',
                 subcategory='abracadabra',
                 tags=['tvl'],
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraGetTVL(Model):
     def run(self, input) -> AbracadabraOutput:
@@ -288,7 +287,6 @@ class AbracadabraGetVaultPortfolio(Model):
                 description="Get the overall portfolio abracadabra",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraPortfolio)
 class AbracadabraGetOverallPortfolio(Model):
     def run(self, input) -> AbracadabraPortfolio:
@@ -314,7 +312,6 @@ class AbracadabraGetOverallPortfolio(Model):
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallLiabilities(Model):
 
@@ -375,7 +372,6 @@ class AbracadabraOverallLiabilities(Model):
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallAssets(Model):
 

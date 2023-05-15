@@ -1,6 +1,5 @@
 from credmark.cmf.engine.mocks import ModelMock, ModelMockConfig
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
 
 from models.tmp_abi_lookup import CMK_ADDRESS
 
@@ -15,7 +14,6 @@ from .dtos import ExampleLedgerOutput
     description="This model demonstrates the functionality of Ledger's blocks",
     category='example',
     tags=['ledger'],
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerBlocks(Model):
     def run(self, _):
@@ -69,7 +67,6 @@ ledger_transactions_mocks = ModelMockConfig(
     developer="Credmark",
     display_name="Example - Ledger Transactions",
     description="This model demonstrates the functionality of Ledger's transactions",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTransactions(Model):
     def run(self, _):
@@ -105,14 +102,12 @@ with self.context.ledger.Transaction as txn:
         return output
 
 
-@Model.describe(
-    slug='example.ledger-aggregates',
-    version="1.3",
-    developer="Credmark",
-    display_name="Example - Ledger Aggregates",
-    description="This model demonstrates the functionality of aggregates in Ledger",
-    input=EmptyInput,
-    output=ExampleLedgerOutput)
+@Model.describe(slug='example.ledger-aggregates',
+                version="1.3",
+                developer="Credmark",
+                display_name="Example - Ledger Aggregates",
+                description="This model demonstrates the functionality of aggregates in Ledger",
+                output=ExampleLedgerOutput)
 class ExampleLedgerAggregates(Model):
     def run(self, _):
         with self.context.ledger.Transaction as txn:
@@ -155,7 +150,6 @@ with self.context.ledger.Transaction as txn:
     developer="Credmark",
     display_name="Example - Ledger Receipts",
     description="This model demonstrates the functionality of Ledger's receipts",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerReceipts(Model):
     def run(self, _):
@@ -200,7 +194,6 @@ with self.context.ledger.Receipt as rec:
     developer="Credmark",
     display_name="Example - Ledger Token transfers",
     description="This model demonstrates the functionality of Ledger's ERC20 token transfers",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTokenTransfers(Model):
 
@@ -255,7 +248,6 @@ with self.context.ledger.TokenTransfer as ttf:
     developer="Credmark",
     display_name="Example - Ledger Tokens",
     description="This model demonstrates the functionality of Ledger's ERC20 tokens",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTokens(Model):
     def run(self, _):
@@ -290,7 +282,6 @@ with ledger.Token as q:
     developer="Credmark",
     display_name="Example - Ledger Logs",
     description="This model demonstrates the functionality of Ledger's logs",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerLogs(Model):
     def run(self, _):
@@ -333,7 +324,6 @@ with ledger.Log as q:
     developer="Credmark",
     display_name="Example - Ledger Contracts",
     description="This model demonstrates the functionality of Ledger's contracts",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerContracts(Model):
     def run(self, _):
@@ -372,7 +362,6 @@ with self.context.ledger.Contract as q:
     developer="Credmark",
     display_name="Example - Ledger Traces",
     description="This model demonstrates the functionality of Ledger's traces",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTraces(Model):
 

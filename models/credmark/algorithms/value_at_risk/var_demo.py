@@ -3,9 +3,9 @@ from credmark.cmf.types import Portfolio, Position, PriceList, Token
 from credmark.dto import DTO
 
 from models.credmark.algorithms.value_at_risk.dto import (
-    ContractVaRInput,
     VaRHistoricalInput,
     VaRHistoricalOutput,
+    VaRInput,
 )
 
 
@@ -13,9 +13,20 @@ class ExampleHistoricalPriceInput(DTO):
     token: Token
     window: str  # e.g. '30 day'
 
+    class Config:
+        schema_extra = {
+            'description': ('Returns a list of prices from 1 to window + 1 '
+                            '(1 more input as we need to calculate return)'),
+            'examples': [{
+                'prices': [float(i) for i in range(1, 31+1)],
+                'tokenAddress': '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+                'src': 'finance.example-historical-price'
+            }]
+        }
+
 
 @Model.describe(slug='finance.example-historical-price',
-                version='1.1',
+                version='1.2',
                 display_name='Value at Risk - Get Price Historical',
                 description='Feed a mock historical price list',
                 category='example',
@@ -31,21 +42,23 @@ class VaRPriceHistorical(Model):
         token = input.token
         _w_k, w_i = self.context.historical.parse_timerangestr(input.window)
 
-        return PriceList(
+        res = PriceList(
             prices=list(range(1, w_i+2)),
             tokenAddress=token.address,
             src=self.slug
         )
 
+        return res
+
 
 @Model.describe(slug='finance.example-var-contract',
-                version='1.3',
+                version='1.4',
                 display_name='Value at Risk',
                 description='Example of implementing VaR for a portfolio',
                 category='example',
                 subcategory='financial',
                 tags=['var'],
-                input=ContractVaRInput,
+                input=VaRInput,
                 output=VaRHistoricalOutput)
 class DemoContractVaR(Model):
     """
@@ -63,7 +76,7 @@ class DemoContractVaR(Model):
     -b 14234904 --format_json
     """
 
-    def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
+    def run(self, input: VaRInput) -> VaRHistoricalOutput:
         portfolio = Portfolio(
             positions=[
                 Position(asset=Token(symbol='AAVE'), amount=100),

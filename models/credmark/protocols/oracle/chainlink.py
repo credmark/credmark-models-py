@@ -19,7 +19,6 @@ from models.tmp_abi_lookup import CHAINLINK_AGG
                 description="Supports multi-chain",
                 category='protocol',
                 subcategory='chainlink',
-                input=EmptyInput,
                 output=Contract)
 class ChainLinkFeedRegistry(Model):
     CHAINLINK_REGISTRY = {
@@ -36,6 +35,9 @@ class ChainLinkFeedRegistry(Model):
 
 class ENSDomainName(DTO):
     domain: str = DTOField(description='ENS Domain nam')
+
+    class Config:
+        schema_extra = {'examples': [{"domain": "eth-usd.data.eth"}]}
 
 
 # TODO: implement shortest path
@@ -66,16 +68,23 @@ class ChainLinkPriceByENS(Model):
                                       local=True)
 
 
+class ChainlinkFeedContract(Contract):
+    class Config:
+        schema_extra = {'examples':
+                        [{"address": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"},
+                         {"address": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}]}
+
+
 @Model.describe(slug='chainlink.price-by-feed',
                 version="1.4",
                 display_name="Chainlink - Price by feed",
                 description="Input a Chainlink valid feed",
                 category='protocol',
                 subcategory='chainlink',
-                input=Contract,
+                input=ChainlinkFeedContract,
                 output=Price)
 class ChainLinkPriceByFeed(Model):
-    def run(self, input: Contract) -> Price:
+    def run(self, input: ChainlinkFeedContract) -> Price:
         feed_contract = input
         try:
             _ = feed_contract.abi

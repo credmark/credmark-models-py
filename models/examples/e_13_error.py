@@ -1,4 +1,4 @@
-from credmark.cmf.model import EmptyInput, Model, ModelDataErrorDesc
+from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 
 
@@ -9,7 +9,6 @@ from credmark.cmf.model.errors import ModelDataError
     description="An example model to generate a ModelDataError.",
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     errors=ModelDataErrorDesc(code=ModelDataError.Codes.NO_DATA,
                               code_desc='Data does not exist'))
 class ExampleDataError1(Model):
@@ -24,7 +23,6 @@ class ExampleDataError1(Model):
     display_name='Example - Data Error 2',
     description="An example model to generate a ModelDataError with 2 codes defined.",
     developer='Credmark',
-    input=EmptyInput,
     errors=ModelDataErrorDesc(
         codes=[(ModelDataError.Codes.NO_DATA, 'Data does not exist'),
                (ModelDataError.Codes.CONFLICT, 'Conflicting values in input')])
