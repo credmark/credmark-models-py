@@ -11,6 +11,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, JoinType, Token
 
 AZUKI_NFT = '0xED5AF388653567Af2F388E6224dC7C4b3241C544'
+RTFKT_MNLTH_NFT = '0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1'
+
 
 # credmark-dev run nft.about -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -j --api_url http://localhost:8700
 
@@ -29,6 +31,17 @@ class NFTAbout(Model):
         return {'name': name, 'symbol': symbol, 'total_supply': total_supply}
 
 # credmark-dev run nft.mint -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -j --api_url http://localhost:8700 -b 17_000_000
+
+# ERC-721: Plain Transfer
+# - OpenSea
+# - Blur: Blur Pool Token 0x0000000000A39bb272e79075ade125fd351887Ac
+
+# Clonex: 0x49cF6f5d44E70224e2E23fDcdd2C053F30aDA28B
+# Tx: 0x5d622c1e56ac5e7da7bb844ae7c7e4265d38ccd92f6b38efea3ab5ef050777b7
+
+# ERC-1151: TransferSingle, find the ethereum amount in the Tx, or Find the Token Transfer of WETH with to as the sender in the same transaction.
+# - Tx: 0xe6bd16b4ed7a5e2fa34adbd0ba38b6639e43142fd293614867ee9da01a2a653d
+# -
 
 
 @Model.describe(slug='nft.mint',
@@ -173,5 +186,5 @@ class NFTGet(Model):
             'startTimestamp': startTimestamp,
             'startTime': datetime.fromtimestamp(startTimestamp).isoformat(),
             'current_owner_duration': self.context.block_number.timestamp - startTimestamp,
-            'current_onwer_duration_days': (self.context.block_number.timestamp - startTimestamp) / 86400
+            'current_owner_duration_days': (self.context.block_number.timestamp - startTimestamp) / 86400
         }
