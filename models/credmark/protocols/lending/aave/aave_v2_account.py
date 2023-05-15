@@ -54,6 +54,12 @@ class AAVEUserReserveData(NamedTuple):
 class AccountInfo4Reserve(Account):
     reserve: Token = DTOField(description='Reserve token')
 
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3",
+                          "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"}]
+        }
+
 
 @Model.describe(slug="aave-v2.account-info-reserve",
                 version="0.2",
@@ -312,6 +318,11 @@ class AaveV2GetAccountSummary(Model):
 class AccountAAVEHistorical(Account):
     window: str
     interval: str
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E",
+                          "window": "10 days", "interval": "1 days"}]}
 
 
 @Model.describe(slug="aave-v2.account-summary-historical",

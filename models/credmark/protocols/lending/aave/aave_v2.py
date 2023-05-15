@@ -170,6 +170,12 @@ class AaveV2GetLPIncentive(Model):
         }
 
 
+class AAVEStakingReward(Account):
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}]}
+
+
 @Model.describe(slug="aave-v2.get-staking-reward",
                 version="0.2",
                 display_name="Aave V2 - Get staking controller",
