@@ -128,7 +128,12 @@ class AccountsTokenReturn(Model):
 
 
 class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
-    ...
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(AccountReturnInput.Config.schema_extra['examples'],
+                                       HistoricalDTO.Config.schema_extra['examples'],
+                                       limit=10)
+        }
 
 
 @Model.describe(slug='account.token-return-historical',

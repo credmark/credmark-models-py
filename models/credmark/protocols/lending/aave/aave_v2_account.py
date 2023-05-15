@@ -12,9 +12,11 @@ from credmark.cmf.model.errors import (
 )
 from credmark.cmf.types import (
     Account,
+    Address,
     Contract,
     MapBlocksOutput,
     NativeToken,
+    Network,
     PriceWithQuote,
     Token,
 )
@@ -192,17 +194,126 @@ class AaveV2GetAccountInfoAsset(Model):
         return token_info
 
 
+class AaveLPAccount(Account):
+    class Config:
+        schema_extra = {
+            'description': "Account had supplied to Aave V2",
+            'examples': [{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}]}
+
+
+@Model.describe(slug="aave-v2.get-lp-reward",
+                version="0.1",
+                display_name="Aave V2 - Get incentive controller",
+                description="Aave V2 - Get incentive controller",
+                category='protocol',
+                subcategory='aave-v2',
+                input=AaveLPAccount,
+                output=dict)
+class AaveV2GetLPIncentive(Model):
+    STAKED_AAVE = {
+        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
+    }
+
+    def run(self, input: AaveLPAccount) -> dict:
+        """
+        https://app.aave.com/governance/proposal/?proposalId=11
+        2,200 stkAAVE per day will be allocated pro-rata across supported markets
+        based on the dollar value of the borrowing activity in the underlying market
+        """
+
+        incentive_controller = self.context.run_model(
+            'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
+
+        # _accrued_rewards shall match with accrued amount from event log
+        _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(
+            input.address).call()
+
+        # data provider gets the reserve tokens and find asset for that reserve token
+        _data_provider = self.context.run_model(
+            'aave-v2.get-protocol-data-provider', input=EmptyInput(), local=True, return_type=Contract)
+        # data_provider.functions.getReserveTokensAddresses().call()
+        # incentive_controller.functions.getUserAssetData(input.address).call()
+
+        if not incentive_controller.proxy_for:
+            raise ModelDataError('Incentive Controller is a proxy contract')
+
+        df_accrued = pd.DataFrame(
+            incentive_controller.fetch_events(
+                incentive_controller.proxy_for.events.RewardsAccrued,
+                from_block=0,
+                to_block=self.context.block_number,
+                contract_address=incentive_controller.address, argument_filters={'user': input.address}))
+
+        df_claimed = pd.DataFrame(
+            incentive_controller.fetch_events(
+                incentive_controller.proxy_for.events.RewardsClaimed,
+                from_block=0,
+                to_block=self.context.block_number,
+                contract_address=incentive_controller.address, argument_filters={'claimer': input.address}))
+
+        staked_aave = Token(self.STAKED_AAVE[self.context.network])
+
+        return {
+            'accrued_scaled': int(df_accrued.amount.sum()) / 10 ** staked_aave.decimals if not df_accrued.empty else 0,
+            'claimed_scaled': int(df_claimed.amount.sum()) / 10 ** staked_aave.decimals if not df_claimed.empty else 0,
+            'staked_aave_address': staked_aave.address.checksum
+        }
+
+
+@Model.describe(slug="aave-v2.get-staking-reward",
+                version="0.2",
+                display_name="Aave V2 - Get staking controller",
+                description="Aave V2 - Get staking controller",
+                category='protocol',
+                subcategory='aave-v2',
+                input=AaveLPAccount,
+                output=dict)
+class AaveV2GetStakingIncentive(Model):
+    STAKED_AAVE = {
+        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
+    }
+
+    def run(self, input: AaveLPAccount) -> dict:
+        staked_aave = Token(self.STAKED_AAVE[self.context.network])
+        balance_of_scaled = staked_aave.balance_of_scaled(
+            input.address.checksum)
+        total_reward = staked_aave.scaled(
+            staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
+
+        rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
+            staked_aave.events.RewardsClaimed,
+            argument_filters={
+                'from': input.address.checksum},
+            from_block=0,
+            contract_address=staked_aave.address.checksum))
+
+        if rewards_claimed_df.empty:
+            rewards_claimed = 0.0
+        else:
+            rewards_claimed = staked_aave.scaled(
+                rewards_claimed_df.amount.sum())
+
+        # this does not include unclaimed rewards
+        _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
+            input.address.checksum).call()
+
+        return {
+            'staked_aave_address': staked_aave.address.checksum,
+            'balance_scaled': balance_of_scaled,
+            'reward_scaled': total_reward,
+            'total_rewards_claimed': rewards_claimed}
+
+
 @Model.describe(slug="aave-v2.account-info",
                 version="0.3",
                 display_name="Aave V2 user account info",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
                 subcategory="aave-v2",
-                input=Account,
-                output=dict,
-                )
+                input=AaveLPAccount,
+                output=dict)
 class AaveV2GetAccountInfo(Model):
-    def run(self, input: Account) -> dict:
+    def run(self, input: AaveLPAccount) -> dict:
         protocolDataProvider = self.context.run_model(
             "aave-v2.get-protocol-data-provider",
             input=EmptyInput(),
@@ -280,11 +391,11 @@ class AaveV2GetAccountInfo(Model):
                 description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
                 category="protocol",
                 subcategory="aave-v2",
-                input=Account,
+                input=AaveLPAccount,
                 output=dict,
                 )
 class AaveV2GetAccountSummary(Model):
-    def run(self, input: Account) -> dict:
+    def run(self, input: AaveLPAccount) -> dict:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract,
