@@ -115,10 +115,10 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.gauge-yield',
                        {"address": "0x29284d30bcb70e86a6c3f84cbc4de0ce16b0f1ca"})  # __all__
         # 0x824F13f1a2F29cFEEa81154b46C0fc820677A637 is Curve.fi rCRV Gauge Deposit (rCRV-gauge)
-        self.run_model('curve-fi.all-gauge-claim-addresses',
+        self.run_model('curve-fi.gauge-claim-addresses',
                        {"address": "0x824F13f1a2F29cFEEa81154b46C0fc820677A637"})
         # 0x72E158d38dbd50A483501c24f792bDAAA3e7D55C is Curve.fi FRAX3CRV-f Gauge Deposit (FRAX3CRV-...)
-        self.run_model('curve-fi.all-gauge-claim-addresses',
+        self.run_model('curve-fi.gauge-claim-addresses',
                        {"address": "0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"})
 
         # TODO

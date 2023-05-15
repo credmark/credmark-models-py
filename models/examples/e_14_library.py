@@ -9,7 +9,6 @@ import xlrd
 import xlsxwriter
 from bs4 import BeautifulSoup
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
 
 from .dtos import ExampleLibrariesOutput
 
@@ -22,7 +21,6 @@ from .dtos import ExampleLibrariesOutput
     'included in the Credmark Framework.',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleLibrariesOutput)
 class ExampleLibraries(Model):
     def run(self, _) -> ExampleLibrariesOutput:

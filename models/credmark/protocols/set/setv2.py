@@ -3,7 +3,7 @@
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Network
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 
 
 class SetV2ModulesOutput(DTO):
@@ -18,7 +18,6 @@ class SetV2ModulesOutput(DTO):
                 description='The contracts for SetV2',
                 category='protocol',
                 subcategory='set-v2',
-                input=EmptyInput,
                 output=SetV2ModulesOutput)
 class SetV2Modules(Model):
     Basic_Issuance = {

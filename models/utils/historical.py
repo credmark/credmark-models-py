@@ -14,7 +14,6 @@ from models.dtos.historical import HistoricalRunModelInput
                 description="",
                 category='utility',
                 subcategory='composer',
-                input=EmptyInput,
                 output=dict)
 class HistoricalEmpty(Model):
     def run(self, _: EmptyInput) -> dict:

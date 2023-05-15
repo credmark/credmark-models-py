@@ -48,7 +48,8 @@ class PriceInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{'base': {'symbol': 'USD'}},
+            'examples': [{"base": {"symbol": "CRV"}},
+                         {'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
                           'quote': {'symbol': 'USD'}}]
         }

@@ -230,7 +230,6 @@ class UniswapV2PoolMeta:
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=EmptyInput,
                 output=dict)
 class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
     def run(self, input: EmptyInput) -> dict:

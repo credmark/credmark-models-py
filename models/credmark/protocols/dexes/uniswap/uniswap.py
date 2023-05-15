@@ -1,7 +1,6 @@
 # pylint: disable=locally-disabled, line-too-long
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Network, PriceWithQuote, Token
-from credmark.dto import EmptyInput
 
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_QUOTER_ADDRESS,
@@ -49,7 +48,6 @@ class UniswapRouterPricePair(Model):
                 description='The Trading Price with respect to another Token on Uniswap\'s Frontend)',
                 category='protocol',
                 subcategory='uniswap',
-                input=EmptyInput,
                 output=Contract)
 class UniswapRouterPriceUsd(Model):
     def run(self, _) -> Contract:

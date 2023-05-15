@@ -96,15 +96,14 @@ class AccountValue(Model):
                 'total_value': total_value}
 
 
-@Model.describe(
-    slug="account.var",
-    version="0.2",
-    display_name="VaR for an account",
-    description="VaR for an account",
-    developer="Credmark",
-    category='financial',
-    input=AccountVaRInput,
-    output=VaRHistoricalOutput)
+@Model.describe(slug="account.var",
+                version="0.3",
+                display_name="VaR for an account",
+                description="VaR for an account",
+                developer="Credmark",
+                category='financial',
+                input=AccountVaRInput,
+                output=VaRHistoricalOutput)
 class AccountVaR(Model):
     def run(self, input: AccountVaRInput) -> VaRHistoricalOutput:
         portfolio = self.context.run_model('account.portfolio',

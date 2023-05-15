@@ -5,21 +5,21 @@ from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
 
 from models.credmark.algorithms.value_at_risk.dto import (
-    ContractVaRInput,
     PortfolioVaRInput,
     VaRHistoricalOutput,
+    VaRInput,
 )
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
 
 
 @Model.describe(slug="finance.var-aave",
-                version="1.2",
+                version="1.3",
                 display_name="Aave V2 VaR",
                 description="Calculate the VaR of Aave contract of its net asset",
                 category='protocol',
                 subcategory='aave-v2',
                 tags=['var'],
-                input=ContractVaRInput,
+                input=VaRInput,
                 output=VaRHistoricalOutput)
 class AaveV2GetVAR(Model):
     """
@@ -35,7 +35,7 @@ class AaveV2GetVAR(Model):
     https://docs.credmark.com/risk-insights/research/aave-and-compound-historical-var
     """
 
-    def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
+    def run(self, input: VaRInput) -> VaRHistoricalOutput:
         debts = self.context.run_model('aave-v2.lending-pool-assets',
                                        input=EmptyInput(),
                                        return_type=Some[AaveDebtInfo])

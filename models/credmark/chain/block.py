@@ -8,6 +8,11 @@ from credmark.dto import DTO, EmptyInput
 class TimestampInput(DTO):
     block_number: int
 
+    class Config:
+        schema_extra = {
+            'examples': [{'block_number': 16_837_261}]
+        }
+
 
 class TimestampOutput(DTO):
     timestamp: int
@@ -29,6 +34,11 @@ class GetBlockTimestamp(Model):
 
 class BlockInput(DTO):
     timestamp: int
+
+    class Config:
+        schema_extra = {
+            'examples': [{'timestamp': 1683726143}]
+        }
 
 
 class BlockOutput(DTO):
@@ -137,7 +147,6 @@ class LatestBlock(DTO):
                 display_name="Obtain latest block",
                 description='block number and timestamp',
                 category='chain',
-                input=EmptyInput,
                 output=LatestBlock)
 class GetLatestBlock(Model):
     def run(self, _) -> LatestBlock:

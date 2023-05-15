@@ -1,21 +1,11 @@
 # pylint:disable=line-too-long
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pandas as pd
 from credmark.cmf.model import Model, ModelContext
 from credmark.cmf.types import Address, BlockNumber, Contract, Token
 from credmark.dto import DTO, DTOField
-
-
-def get_dt(year: int, month: int, day: int, hour=0, minute=0, second=0, microsecond=0):
-    """Get a datetime for date and time values"""
-    return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=timezone.utc)
-
-
-def get_block(in_dt: datetime):
-    """Get the BlockNumber instance at or before the datetime timestamp."""
-    return BlockNumber.from_timestamp(in_dt.replace(tzinfo=timezone.utc).timestamp())
 
 
 class UniswapFeeInput(DTO):

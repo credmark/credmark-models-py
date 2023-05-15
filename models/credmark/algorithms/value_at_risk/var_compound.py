@@ -3,21 +3,21 @@ from credmark.cmf.types import Portfolio, Position, Some
 from credmark.dto import EmptyInput
 
 from models.credmark.algorithms.value_at_risk.dto import (
-    ContractVaRInput,
     PortfolioVaRInput,
     VaRHistoricalOutput,
+    VaRInput,
 )
 from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfo
 
 
 @Model.describe(slug="finance.var-compound",
-                version="1.4",
+                version="1.5",
                 display_name="Compound V2 VaR",
                 description="Calculate the VaR of Compound contract of its net asset",
                 category='protocol',
                 subcategory='compound',
                 tags=['var'],
-                input=ContractVaRInput,
+                input=VaRInput,
                 output=VaRHistoricalOutput)
 class CompoundGetVAR(Model):
     """
@@ -32,7 +32,7 @@ class CompoundGetVAR(Model):
     https://docs.credmark.com/risk-insights/research/aave-and-compound-historical-var
     """
 
-    def run(self, input: ContractVaRInput) -> VaRHistoricalOutput:
+    def run(self, input: VaRInput) -> VaRHistoricalOutput:
         pools_info = self.context.run_model('compound-v2.all-pools-info',
                                             input=EmptyInput(),
                                             return_type=Some[CompoundV2PoolInfo])

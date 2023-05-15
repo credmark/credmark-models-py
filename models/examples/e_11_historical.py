@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
 
 from .dtos import ExampleHistoricalOutput
 
@@ -13,7 +12,6 @@ from .dtos import ExampleHistoricalOutput
     description='This model demonstrates how to run a model over a period of time',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleHistoricalOutput)
 class ExampleHistorical(Model):
     def run(self, _) -> ExampleHistoricalOutput:
@@ -82,7 +80,6 @@ class ExampleHistorical(Model):
     description='This model demonstrates how to run a model over a series of historical blocks',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleHistoricalOutput)
 class ExampleHistoricalBlock(Model):
     def run(self, _) -> ExampleHistoricalOutput:

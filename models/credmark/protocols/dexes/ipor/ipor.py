@@ -23,7 +23,6 @@ from eth_typing.evm import ChecksumAddress
                 description='The Oracle and Calculator for IPOR index',
                 category='protocol',
                 subcategory='ipor',
-                input=EmptyInput,
                 output=Contracts)
 class IPOROracle(Model):
     IPOR_ORACLE = {
@@ -56,7 +55,6 @@ IPORIndexValue = namedtuple(
                 description='The IPOR Index from publication and per block',
                 category='protocol',
                 subcategory='ipor',
-                input=EmptyInput,
                 output=dict)
 class IPORIndex(Model):
     # IPOR_ASSETS holds the block number of the last update
@@ -133,7 +131,6 @@ class IPORIndex(Model):
                 description='The ratio between LP Token exchange rate and the underlying assets',
                 category='protocol',
                 subcategory='ipor',
-                input=EmptyInput,
                 output=dict)
 class IPORLpExchange(Model):
     IPOR_JOSEPH = {

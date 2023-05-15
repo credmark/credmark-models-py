@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -20,6 +22,23 @@ class VaRHistoricalInput(IterableListGenericDTO[PriceList]):
     confidence: float
     _iterator: str = PrivateAttr('priceLists')
 
+    class Config:
+        schema_extra = {
+            'description': 'Historical VaR input - priceList need not to have prices for all positions in the portfolio',
+            'examples': [
+                {'portfolio': {'positions': [
+                    {'amount': 100.0, 'asset': {'address': '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9'}},
+                    {'amount': 100.0, 'asset': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'}},
+                    {'amount': 1.0, 'asset': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'}}]},
+                 'priceLists': [
+                     {'prices': [float(i) for i in range(1, 31+1)],
+                      'tokenAddress': '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', 'src': 'finance.example-historical-price'},
+                    {'prices': [float(i) for i in range(1, 31+1)],
+                         'tokenAddress': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'src': 'finance.example-historical-price'}],
+                 'interval': 3,
+                 'confidence': 0.01}
+            ]}
+
 
 class VaRHistoricalOutput(DTO):
     class ValueList(DTO):
@@ -39,7 +58,7 @@ class VaRHistoricalOutput(DTO):
         return cls(cvar=[], var=VaROutput.default().var, total_value=0, value_list=[])
 
 
-class ContractVaRInput(DTO):
+class VaRInput(DTO):
     window: str
     interval: int
     confidence: float
@@ -47,30 +66,40 @@ class ContractVaRInput(DTO):
     class Config:
         schema_extra = {
             'examples': [
-                {'window': '2 days',
+                {'window': '30 days',
                  'interval': 1,
                  'confidence': 0.01
                  }]
         }
 
 
-class PortfolioVaRInput(ContractVaRInput):
+class PortfolioVaRInput(VaRInput):
     portfolio: Portfolio
 
     class Config:
         schema_extra = {
-            'examples': cross_examples(ContractVaRInput.Config.schema_extra['examples'],
+            'examples': cross_examples(VaRInput.Config.schema_extra['examples'],
                                        [{'portfolio': v}
                                            for v in Portfolio.Config.schema_extra['examples']],
                                        limit=10)
         }
 
 
-class AccountVaRInput(ContractVaRInput):
+class AccountVaRInput(VaRInput):
     address: Address
 
+    class Config:
+        schema_extra = {
+            'examples': cross_examples(
+                VaRInput.Config.schema_extra['examples'],
+                [{'address': v}
+                 for v in ['0x5291fBB0ee9F51225f0928Ff6a83108c86327636',
+                           '0x912a0a41b820e1fa660fb6ec07fff493e015f3b2']],
+                limit=10)
+        }
 
-class UniswapPoolVaRInput(ContractVaRInput):
+
+class UniswapPoolVaRInput(VaRInput):
     lower_range: float = DTOField(
         description='Lower bound to the current price for V3 pool')
     upper_range: float = DTOField(

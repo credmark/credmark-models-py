@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField
 
 from .dtos import ExampleModelOutput
 
@@ -11,7 +11,6 @@ from .dtos import ExampleModelOutput
     description='An example model to demonstrate DTO type',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleDto(Model):
     def run(self, _) -> ExampleModelOutput:
@@ -86,7 +85,6 @@ class PortfolioSummary(ExampleModelOutput):
     version='1.2',
     display_name='DTO Type Test 1',
     developer='Credmark',
-    input=EmptyInput,
     output=PortfolioSummary)
 class TestModel(Model):
 
@@ -111,7 +109,6 @@ class TestModel(Model):
     version='1.2',
     display_name='DTO Type Test 2',
     developer='Credmark',
-    input=EmptyInput,
     output=PortfolioSummary)
 class TestModel2(Model):
     def run(self, _) -> PortfolioSummary:

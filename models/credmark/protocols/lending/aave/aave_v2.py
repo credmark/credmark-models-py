@@ -2,11 +2,9 @@
 
 from typing import Optional, cast
 
-import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
-    Account,
     Address,
     Contract,
     Contracts,
@@ -59,7 +57,6 @@ class AaveDebtInfo(DTO):
                 description="Aave V2 - Get lending pool providers",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contracts)
 class AaveV2GetLendingPoolProviders(Model):
     """
@@ -93,7 +90,6 @@ class AaveV2GetLendingPoolProviders(Model):
                 description="Aave V2 - Get incentive controller",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetIncentiveController(Model):
     """
@@ -111,116 +107,12 @@ class AaveV2GetIncentiveController(Model):
         return Contract(address=addr)
 
 
-@Model.describe(slug="aave-v2.get-lp-reward",
-                version="0.1",
-                display_name="Aave V2 - Get incentive controller",
-                description="Aave V2 - Get incentive controller",
-                category='protocol',
-                subcategory='aave-v2',
-                input=Account,
-                output=dict)
-class AaveV2GetLPIncentive(Model):
-    STAKED_AAVE = {
-        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
-    }
-
-    def run(self, input: Account) -> dict:
-        """
-        https://app.aave.com/governance/proposal/?proposalId=11
-        2,200 stkAAVE per day will be allocated pro-rata across supported markets
-        based on the dollar value of the borrowing activity in the underlying market
-        """
-
-        incentive_controller = self.context.run_model(
-            'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
-
-        # _accrued_rewards shall match with accrued amount from event log
-        _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(
-            input.address).call()
-
-        # data provider gets the reserve tokens and find asset for that reserve token
-        _data_provider = self.context.run_model(
-            'aave-v2.get-protocol-data-provider', input=EmptyInput(), local=True, return_type=Contract)
-        # data_provider.functions.getReserveTokensAddresses().call()
-        # incentive_controller.functions.getUserAssetData(input.address).call()
-
-        if not incentive_controller.proxy_for:
-            raise ModelDataError('Incentive Controller is a proxy contract')
-
-        df_accrued = pd.DataFrame(
-            incentive_controller.fetch_events(
-                incentive_controller.proxy_for.events.RewardsAccrued,
-                from_block=0,
-                to_block=self.context.block_number,
-                contract_address=incentive_controller.address, argument_filters={'user': input.address}))
-
-        df_claimed = pd.DataFrame(
-            incentive_controller.fetch_events(
-                incentive_controller.proxy_for.events.RewardsClaimed,
-                from_block=0,
-                to_block=self.context.block_number,
-                contract_address=incentive_controller.address, argument_filters={'claimer': input.address}))
-
-        staked_aave = Token(self.STAKED_AAVE[self.context.network])
-
-        return {
-            'accrued_scaled': int(df_accrued.amount.sum()) / 10 ** staked_aave.decimals if not df_accrued.empty else 0,
-            'claimed_scaled': int(df_claimed.amount.sum()) / 10 ** staked_aave.decimals if not df_claimed.empty else 0,
-            'staked_aave_address': staked_aave.address.checksum
-        }
-
-
-@Model.describe(slug="aave-v2.get-staking-reward",
-                version="0.2",
-                display_name="Aave V2 - Get staking controller",
-                description="Aave V2 - Get staking controller",
-                category='protocol',
-                subcategory='aave-v2',
-                input=Account,
-                output=dict)
-class AaveV2GetStakingIncentive(Model):
-    STAKED_AAVE = {
-        Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
-    }
-
-    def run(self, input: Account) -> dict:
-        staked_aave = Token(self.STAKED_AAVE[self.context.network])
-        balance_of_scaled = staked_aave.balance_of_scaled(
-            input.address.checksum)
-        total_reward = staked_aave.scaled(
-            staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
-
-        rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
-            staked_aave.events.RewardsClaimed,
-            argument_filters={
-                'from': input.address.checksum},
-            from_block=0,
-            contract_address=staked_aave.address.checksum))
-
-        if rewards_claimed_df.empty:
-            rewards_claimed = 0.0
-        else:
-            rewards_claimed = staked_aave.scaled(
-                rewards_claimed_df.amount.sum())
-
-        # this does not include unclaimed rewards
-        _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
-            input.address.checksum).call()
-
-        return {
-            'staked_aave_address': staked_aave.address.checksum,
-            'balance_scaled': balance_of_scaled,
-            'reward_scaled': total_reward,
-            'total_rewards_claimed': rewards_claimed}
-
-
 @Model.describe(slug="aave-v2.get-lending-pool-provider",
                 version="1.1",
                 display_name="Aave V2 - Get lending pool providers",
                 description="Aave V2 - Get lending pool providers",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetAddressProvider(Model):
     """
@@ -248,7 +140,6 @@ class AaveV2GetAddressProvider(Model):
                 description="Query data provider from address provider",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetProtocolDataProvider(Model):
     def run(self, _) -> Contract:
@@ -281,7 +172,6 @@ class AaveV2GetProtocolDataProvider(Model):
                 description="Aave V2 - Get lending pool for main market",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, _) -> Contract:
@@ -299,7 +189,6 @@ class AaveV2GetLendingPool(Model):
                 description="Aave V2 - Get price oracle for main market",
                 category='protocol',
                 subcategory='aave-v2',
-                input=EmptyInput,
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
     def run(self, _) -> Contract:
@@ -322,16 +211,25 @@ class AaveV2GetPriceOracle(Model):
 """
 
 
+class AaveV2Token(Token):
+    class Config:
+        schema_extra = {
+            'description': "Tokens to be supplied and lend from Aave V2",
+            'examples': [{"symbol": "AAVE"},
+                         {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
+                         {"symbol": "USDC"}]}
+
+
 @Model.describe(slug="aave-v2.get-oracle-price",
                 version="1.3",
                 display_name="Aave V2 - Query price oracle for main market - in ETH",
                 description="Price of Token / ETH",
                 category='protocol',
                 subcategory='aave-v2',
-                input=Token,
+                input=AaveV2Token,
                 output=PriceWithQuote)
 class AaveV2GetOraclePrice(Model):
-    def run(self, input: Token) -> PriceWithQuote:
+    def run(self, input: AaveV2Token) -> PriceWithQuote:
         oracle = Contract(
             **self.context.models(local=True).aave_v2.get_price_oracle())
         price = oracle.functions.getAssetPrice(input.address).call()
@@ -349,7 +247,6 @@ class AaveV2GetOraclePrice(Model):
                 subcategory='aave-v2',
                 output=Portfolio)
 class AaveV2GetLiability(Model):
-
     def run(self, input) -> Portfolio:
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
@@ -381,7 +278,7 @@ class AaveV2GetLiability(Model):
                 description="Aave V2 token liability at a given block number",
                 category='protocol',
                 subcategory='aave-v2',
-                input=Token,
+                input=AaveV2Token,
                 output=Position)
 class AaveV2GetTokenLiability(Model):
 
@@ -549,7 +446,7 @@ class AaveV2GetLiabilityInPortfolios(Model):
                 description="Aave V2 token liquidity at a given block number",
                 category='protocol',
                 subcategory='aave-v2',
-                input=Token,
+                input=AaveV2Token,
                 output=AaveDebtInfo)
 class AaveV2GetTokenAsset(Model):
     def _get_token_price(self, token: Token):
@@ -561,7 +458,7 @@ class AaveV2GetTokenAsset(Model):
                 return self.context.models.price.quote(base=token, return_type=PriceWithQuote)
             raise
 
-    def run(self, input: Token):
+    def run(self, input: AaveV2Token):
         aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
                                                    input=EmptyInput(),
                                                    return_type=Contract,
@@ -672,18 +569,17 @@ class AaveV2GetTokenAsset(Model):
                                 f'for {aToken.address=}')
 
 
-@Model.describe(
-    slug="aave-v2.reserve-config",
-    version="0.1",
-    display_name="Aave V2 reserve configuration data",
-    description="Aave V2 metadata of the inputted reserve token",
-    category="protocol",
-    subcategory="aave-v2",
-    input=Token,
-    output=dict,
-)
+@Model.describe(slug="aave-v2.reserve-config",
+                version="0.1",
+                display_name="Aave V2 reserve configuration data",
+                description="Aave V2 metadata of the inputted reserve token",
+                category="protocol",
+                subcategory="aave-v2",
+                input=AaveV2Token,
+                output=dict,
+                )
 class AaveV2GetReserveConfigurationData(Model):
-    def run(self, input: Token) -> dict:
+    def run(self, input: AaveV2Token) -> dict:
         protocolDataProvider = self.context.run_model(
             "aave-v2.get-protocol-data-provider",
             input=EmptyInput(),

@@ -16,7 +16,6 @@ class MinRiskOutput(DTO):
                 description='Rates from stablecoins\' loans to Aave and Compound, '
                             'then weighted by their debt size and total supply',
                 category='financial',
-                input=EmptyInput,
                 output=MinRiskOutput)
 class MinRisk(Model):
     """

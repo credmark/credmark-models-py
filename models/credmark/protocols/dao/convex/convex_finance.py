@@ -28,7 +28,6 @@ class ConvexPoolInfo(DTO):
                 description="Get All Pools in Convex Finance",
                 category='protocol',
                 subcategory='convex',
-                input=EmptyInput,
                 output=Contract)
 class ConvexFinanceBooster(Model):
     BOOSTER = {
@@ -56,7 +55,6 @@ def fix_crv_reward(crv_rewards):
                 description="Get All Pools Information in Convex Finance",
                 category='protocol',
                 subcategory='convex',
-                input=EmptyInput,
                 output=Some[ConvexPoolInfo])
 class ConvexFinanceAllPools(Model):
     def run(self, _: EmptyInput) -> Some[ConvexPoolInfo]:

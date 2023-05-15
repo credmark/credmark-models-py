@@ -22,7 +22,6 @@ class PoolyNFT:
                 version='0.1',
                 display_name='Pooly NFT fund raise',
                 description="nft",
-                input=EmptyInput,
                 output=dict)
 class PoolyNFTFundRaise(Model, PoolyNFT):
     """
@@ -78,7 +77,6 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
                 version='0.2',
                 display_name='Pooly NFT fund raise in USD',
                 description="nft",
-                input=EmptyInput,
                 output=dict)
 class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
     """
@@ -215,7 +213,6 @@ class PoolyNFTFundRaiseLeaders(Model, PoolyNFT):
                 version='0.1',
                 display_name='Pooly NFT total supply and minted',
                 description="nft",
-                input=EmptyInput,
                 output=Records)
 class PoolyNFTSupply(Model, PoolyNFT):
     """
@@ -252,7 +249,6 @@ class PoolyNFTSupply(Model, PoolyNFT):
                 version='0.2',
                 display_name='Pooly NFT fund raise in series',
                 description="nft",
-                input=EmptyInput,
                 output=Records)
 class PoolyNFTFundRaiseSeries(Model, PoolyNFT):
     """
