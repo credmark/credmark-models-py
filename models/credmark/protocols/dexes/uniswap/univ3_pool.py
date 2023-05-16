@@ -236,6 +236,25 @@ class UniV3Pool:
         ratio_price0, ratio_price1 = self.sqrtPriceX96toTokenPrices(
             self.pool_sqrtPrice)
 
+        # Use reserve to cap the one tick liquidity
+        # Example: 0xf1d2172d6c6051960a289e0d7dca9e16b65bfc64, around block 17272381, May 16 2023 8pm GMT+8
+
+        reserve0_scaled = self.token0.scaled(self.token0_reserve)
+        reserve1_scaled = self.token1.scaled(self.token1_reserve)
+
+        if reserve0_scaled < one_tick_liquidity0_adj or reserve1_scaled < one_tick_liquidity1_adj:
+            balance2liquidity0_ratio = reserve0_scaled / one_tick_liquidity0_adj
+            balance2liquidity1_ratio = reserve1_scaled / one_tick_liquidity1_adj
+            if balance2liquidity0_ratio < balance2liquidity1_ratio:
+                one_tick_liquidity0 = reserve0_scaled
+                one_tick_liquidity1 = balance2liquidity0_ratio * one_tick_liquidity1_adj
+            else:
+                one_tick_liquidity0 = balance2liquidity1_ratio * one_tick_liquidity0_adj
+                one_tick_liquidity1 = reserve1_scaled
+        else:
+            one_tick_liquidity0 = one_tick_liquidity0_adj
+            one_tick_liquidity1 = one_tick_liquidity1_adj
+
         # if np.isclose(one_tick_liquidity0_adj, 0) or np.isclose(one_tick_liquidity1_adj, 0):
         #    ratio_price0 = 0
         #    ratio_price1 = 0
@@ -244,8 +263,8 @@ class UniV3Pool:
             src='uniswap-v3.get-weighted-price',
             price0=ratio_price0,
             price1=ratio_price1,
-            one_tick_liquidity0=one_tick_liquidity0_adj,
-            one_tick_liquidity1=one_tick_liquidity1_adj,
+            one_tick_liquidity0=one_tick_liquidity0,
+            one_tick_liquidity1=one_tick_liquidity1,
             full_tick_liquidity0=adjusted_in_tick_amount0,
             full_tick_liquidity1=adjusted_in_tick_amount1,
             token0_address=self.token0.address,
@@ -270,8 +289,8 @@ class UniV3Pool:
             token1_collect=self.token1.scaled(self.token1_collect),
             token1_collect_prot=self.token1.scaled(self.token1_collect_prot),
 
-            reserve0=self.token0.scaled(self.token0_reserve),
-            reserve1=self.token1.scaled(self.token1_reserve),
+            reserve0=reserve0_scaled,
+            reserve1=reserve1_scaled,
         )
 
         self.previous_block_number = self.block_number

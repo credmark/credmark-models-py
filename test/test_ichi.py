@@ -129,8 +129,7 @@ class TestICHI(CMFTest):
 
         # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
         self.run_model('ichi.vaults-performance',
-                       {"days_horizon": [7, 30, 60, 90]},
-                       block_number=last_block_2, chain_id=137)
+                       {"days_horizon": [7, 30, 60, 90]}, block_number=last_block_2, chain_id=137)
 
         self.run_model('ichi.vaults-performance',
                        {"days_horizon": [7, 30, 60, 90], "base": 1000},

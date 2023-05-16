@@ -531,7 +531,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -545,10 +545,23 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
             return_type=UniswapV3PoolInfo, local=True)
 
         ratio_price0 = info.ratio_price0
-        one_tick_liquidity0 = info.one_tick_liquidity0
-
         ratio_price1 = info.ratio_price1
-        one_tick_liquidity1 = info.one_tick_liquidity1
+
+        # Use reserve to cap the one tick liquidity
+        # Example: 0xf1d2172d6c6051960a289e0d7dca9e16b65bfc64, around block 17272381, May 16 2023 8pm GMT+8
+
+        if info.token0_balance < info.one_tick_liquidity0 or info.token1_balance < info.one_tick_liquidity1:
+            balance2liquidity0_ratio = info.token0_balance / info.one_tick_liquidity0
+            balance2liquidity1_ratio = info.token1_balance / info.one_tick_liquidity1
+            if balance2liquidity0_ratio < balance2liquidity1_ratio:
+                one_tick_liquidity0 = info.token0_balance
+                one_tick_liquidity1 = balance2liquidity0_ratio * info.one_tick_liquidity1
+            else:
+                one_tick_liquidity0 = balance2liquidity1_ratio * info.one_tick_liquidity0
+                one_tick_liquidity1 = info.token1_balance
+        else:
+            one_tick_liquidity0 = info.one_tick_liquidity0
+            one_tick_liquidity1 = info.one_tick_liquidity1
 
         ref_price = 1.0
         weth_address = Token('WETH').address
@@ -619,7 +632,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.17',
+                version='1.18',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -680,7 +693,7 @@ class TokenPrice(Price):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-primary-tokens',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap V3 - Obtain value of stable coins',
                 description='Derive value of each coin from their 2-pools',
                 category='protocol',
