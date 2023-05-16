@@ -127,6 +127,22 @@ class TestICHI(CMFTest):
                        {},
                        block_number=last_block_2, chain_id=137)
 
+        """
+time curl \
+-X 'POST' https://gateway.credmark.com/v1/model/run \
+-H 'accept: application/json' \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $CREDMARK_API_KEY" \
+-d '{ "slug": "ichi.vaults-performance", "chainId": 137, "blockNumber": "latest", "input": {"days_horizon": [7, 30, 60, 90]} }' | jq
+
+time curl \
+-X 'POST' http://localhost:8700/v1/model/run \
+-H 'accept: application/json' \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $CREDMARK_API_KEY" \
+-d '{ "slug": "ichi.vaults-performance", "chainId": 137, "blockNumber": "latest", "input": {"days_horizon": [7, 30, 60, 90]} }' | jq
+        """
+
         # credmark-dev run ichi.vaults-performance -i '{"days_horizon":[7, 30, 60, 90]}' -c 137 --api_url=http://localhost:8700 -j
         self.run_model('ichi.vaults-performance',
                        {"days_horizon": [7, 30, 60, 90]}, block_number=last_block_2, chain_id=137)
