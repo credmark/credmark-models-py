@@ -153,10 +153,16 @@ class NFTGet(Model):
     def run(self, input: NFTGetInput) -> dict:
         owner = Address(input.functions.ownerOf(input.id).call()).checksum
         balance_of = input.functions.balanceOf(owner).call()
-        ids = [input.functions.tokenOfOwnerByIndex(owner, i).call() for i in range(balance_of)]
-        tokenURI = input.functions.tokenURI(input.id).call()
-        _, startTimestamp = input.functions.getOwnershipData(input.id).call()
+        if 'tokenOfOwnerByIndex' in input.functions:
+            ids = [input.functions.tokenOfOwnerByIndex(owner, i).call() for i in range(balance_of)]
+        else:
+            ids = None
+        if 'getOwnershipData' in input.functions:
+            _, startTimestamp = input.functions.getOwnershipData(input.id).call()
+        else:
+            startTimestamp = None
 
+        tokenURI = input.functions.tokenURI(input.id).call()
         key = os.environ.get('INFURA_IPFS_KEY')
         secret = os.environ.get('INFURA_IPFS_SECRET')
 
@@ -184,7 +190,7 @@ class NFTGet(Model):
             'tokenURI': tokenURI,
             'image_path': image_path,
             'startTimestamp': startTimestamp,
-            'startTime': datetime.fromtimestamp(startTimestamp).isoformat(),
-            'current_owner_duration': self.context.block_number.timestamp - startTimestamp,
-            'current_owner_duration_days': (self.context.block_number.timestamp - startTimestamp) / 86400
+            'startTime': datetime.fromtimestamp(startTimestamp).isoformat() if startTimestamp is not None else None,
+            'current_owner_duration': self.context.block_number.timestamp - startTimestamp if startTimestamp is not None else None,
+            'current_owner_duration_days': (self.context.block_number.timestamp - startTimestamp) / 86400 if startTimestamp is not None else None
         }
