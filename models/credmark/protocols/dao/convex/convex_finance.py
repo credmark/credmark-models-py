@@ -34,9 +34,9 @@ class ConvexFinanceBooster(Model):
         Network.Mainnet: '0xF403C135812408BFbE8713b5A23a04b3D48AAE31'
     }
 
-    def run(self, input: EmptyInput) -> Contract:
+    def run(self, _: EmptyInput) -> Contract:
         booster = Contract(address=self.BOOSTER[self.context.network])
-        _ = booster.abi
+        _1 = booster.abi
         return booster
 
 

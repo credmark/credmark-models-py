@@ -391,7 +391,7 @@ class AaveV2GetAssetsDetail(Model):
                 subcategory='aave-v2',
                 output=LendingPoolPortfolios)
 class AaveV2GetLiabilityInPortfolios(Model):
-    def run(self, __input: EmptyInput) -> LendingPoolPortfolios:
+    def run(self, ___: EmptyInput) -> LendingPoolPortfolios:
         debt_pools = self.context.run_model(
             'aave-v2.lending-pool-assets', {}, return_type=Some[AaveDebtInfo])
 

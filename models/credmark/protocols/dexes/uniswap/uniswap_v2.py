@@ -230,7 +230,7 @@ class UniswapV2PoolMeta:
                 subcategory='uniswap-v2',
                 output=dict)
 class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
-    def run(self, input: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         factory_addr = V2_FACTORY_ADDRESS[self.context.network]
         return self.get_ref_price(self.context, factory_addr)
 

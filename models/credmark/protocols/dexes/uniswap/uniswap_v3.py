@@ -124,7 +124,7 @@ class UniswapV3GetPools(Model):
 class UniswapV3GetRing0RefPrice(Model):
     WEIGHT_POWER = 4.0
 
-    def run(self, input: EmptyInput) -> dict:
+    def run(self, _: EmptyInput) -> dict:
         factory_addr = V3_FACTORY_ADDRESS[self.context.network]
 
         ring0_tokens = self.context.run_model(
