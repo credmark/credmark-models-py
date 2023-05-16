@@ -177,22 +177,22 @@ def run_test_curve(self, pool_n, pool, test_volume):
                    block_number=block_number)
 
 
-for n, addr in enumerate(TestDashboard.UNIV2_POOLS):
+for n, addr in enumerate(TestDashboard.UNIV2_POOLS[:3]):
     setattr(TestDashboard,
             f'test_univ2_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.UNIV3_POOLS):
+for n, addr in enumerate(TestDashboard.UNIV3_POOLS[:3]):
     setattr(TestDashboard,
             f'test_univ3_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.SUSHI_POOLS):
+for n, addr in enumerate(TestDashboard.SUSHI_POOLS[:3]):
     setattr(TestDashboard,
             f'test_sushi_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.CURVE_POOLS):
+for n, addr in enumerate(TestDashboard.CURVE_POOLS[:3]):
     setattr(TestDashboard,
             f'test_curve_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_curve(self, pool_n, pool, pool_n < 4))

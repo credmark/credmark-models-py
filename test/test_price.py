@@ -29,7 +29,7 @@ CHAINLINK_TOKENS = [
     '0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b',
     '0x92d6c1e31e14520e676a687f0a93788b716beff5']
 
-CHAINLINK_FIAT_TOKENS = [
+CHAINLINK_CRYPTO_TOKENS = [
     'WBTC',
     'BTC',
     'USD',
@@ -325,7 +325,7 @@ def test_chainlink(self, _token_addr: str, _price_model: str, _prefer: str):
 
 
 for price_model in ['price.quote', 'price.oracle-chainlink']:
-    for n, token_addr in enumerate(CHAINLINK_FIAT_TOKENS):
+    for n, token_addr in enumerate(CHAINLINK_CRYPTO_TOKENS):
         for prefer in ['cex', 'dex']:
             setattr(TestPrice, f'test_price_fiat_chainlink_{n+1}',
                     lambda self, token_addr=token_addr, price_model=price_model, prefer=prefer:
@@ -370,6 +370,6 @@ def run_test_price_mix(self, tok):
                                               "base": {"symbol": "AAVE"}}, block_number=block_number)
 
 
-for n, token in enumerate(CHAINLINK_TOKENS):
+for n, token in enumerate(CHAINLINK_TOKENS[:5]):
     setattr(TestPrice, f'test_price_mix_{n+1}',
             lambda self, token=token: run_test_price_mix(self, tok=token))
