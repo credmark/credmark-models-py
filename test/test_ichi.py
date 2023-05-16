@@ -1,4 +1,4 @@
-# pylint:disable=locally-disabled,line-too-long
+# pylint:disable=locally-disabled,line-too-long, pointless-string-statement
 
 import json
 
