@@ -92,7 +92,7 @@ class ConvexPoolEarning(DTO):
 
 
 @Model.describe(slug="convex-fi.earned",
-                version="0.1",
+                version="0.2",
                 display_name="Convex Finance - Earned for a user",
                 description="Get all earned for an account",
                 category='protocol',
@@ -102,7 +102,7 @@ class ConvexPoolEarning(DTO):
 class ConvexFinanceEarning(Model):
     def run(self, input: Account) -> Some[ConvexPoolEarning]:
         all_pools = self.context.run_model('convex-fi.all-pool-info',
-                                           input=EmptyInput(), return_type=Some[ConvexPoolInfo])
+                                           {}, return_type=Some[ConvexPoolInfo])
 
         earnings = []
         for pp in all_pools:

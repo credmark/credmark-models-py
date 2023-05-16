@@ -2,7 +2,7 @@
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 
 
 class TimestampInput(DTO):
@@ -53,7 +53,7 @@ class Block(DTO):
 
 
 @Model.describe(slug="chain.get-block",
-                version="0.2",
+                version="0.3",
                 display_name="Obtain block from timestamp",
                 description='In UTC',
                 category='chain',
@@ -70,11 +70,7 @@ class GetBlock(Model):
 
     def get_latest_block(self) -> Block:
         output = self.context.run_model(
-            "chain.get-latest-block",
-            input=EmptyInput(),
-            local=True,
-            return_type=LatestBlock,
-        )
+            "chain.get-latest-block", {}, local=True, return_type=LatestBlock)
         return Block(block_number=output.blockNumber, timestamp=output.timestamp)
 
     def get_closest_block(self,

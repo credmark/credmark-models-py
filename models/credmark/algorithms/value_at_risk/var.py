@@ -40,7 +40,7 @@ class AccountsValueInput(Accounts):
 
 
 @Model.describe(slug="accounts.value",
-                version="0.1",
+                version="0.2",
                 display_name="Value for an account",
                 description="Value for an account",
                 developer="Credmark",
@@ -75,7 +75,7 @@ class AccountValue(Model):
         # For sequential
         # prices = portfolio
 
-        for pos, price_maybe in zip(portfolio, prices):
+        for pos, price_maybe in zip(portfolio, prices, strict=True):
             # For sequential
             # price = self.context.run_model(
             #    'price.dex-maybe',

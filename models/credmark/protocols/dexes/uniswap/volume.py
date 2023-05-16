@@ -429,8 +429,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
 class DexPoolSwapVolume(Model):
     def run(self, input: VolumeInput) -> Some[TokenTradingVolume]:
         input_historical = VolumeInputHistorical(**input.dict(), count=1)
-        volumes = self.context.run_model('dex.pool-volume-historical',
-                                         input=input_historical,
-                                         return_type=BlockSeries[Some[TokenTradingVolume]],
-                                         local=True)
+        volumes = self.context.run_model(
+            'dex.pool-volume-historical', input_historical,
+            return_type=BlockSeries[Some[TokenTradingVolume]], local=True)
         return volumes.series[0].output

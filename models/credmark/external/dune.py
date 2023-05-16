@@ -39,9 +39,9 @@ class DuneClient:
             response.raise_for_status()
             return dto_cls.parse_obj(response.json())
         except HTTPError as err:
-            raise ModelDataError("Error from Dune: " + str(err))
+            raise ModelDataError("Error from Dune: " + str(err)) from None
         except JSONDecodeError:
-            raise ModelDataError("Received invalid JSON from Dune.")
+            raise ModelDataError("Received invalid JSON from Dune.") from None
 
     @staticmethod
     def _route_url(route: str) -> str:
@@ -274,6 +274,7 @@ class DuneRunQuery(Model, DuneClient):
                                    local=True)
         except ModelDataError:
             raise ModelDataError(
-                f"Execution timed out. Unable to cancel execution: {execute_result.execution_id}")
+                'Execution timed out. Unable to cancel execution: '
+                f'{execute_result.execution_id}') from None
 
         raise ModelDataError("Execution has timed out. ")

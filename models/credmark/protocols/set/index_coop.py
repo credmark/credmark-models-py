@@ -46,7 +46,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, BlockNumber, Contract, Network, Records, Token
-from credmark.dto import DTOField, EmptyInput
+from credmark.dto import DTOField
 
 from models.credmark.protocols.set.setv2 import SetV2ModulesOutput, setv2_fee
 
@@ -262,7 +262,7 @@ class IndexCoopStreamingFeeInput(Contract):
 
 
 @Model.describe(slug='indexcoop.fee',
-                version='0.4',
+                version='0.5',
                 display_name='Index Coop Product - Streaming fee',
                 description='calculate fee collected from Index Coop\'s products, from AUM and Mint/Burn',
                 category='protocol',
@@ -284,7 +284,7 @@ class IndexCoopStreamingFee(Model):
 
     def run(self, input: IndexCoopStreamingFeeInput):
         setv2_modules = self.context.run_model(
-            'set-v2.modules', input=EmptyInput(), return_type=SetV2ModulesOutput)
+            'set-v2.modules', {}, return_type=SetV2ModulesOutput)
         product_type = self.PRODUCT_CONFIG[self.context.network][input.address]
 
         if input.start_block >= self.context.block_number:

@@ -137,7 +137,7 @@ class CompoundV2GetAllPools(Model):
 
 
 @Model.describe(slug="compound-v2.all-pools-info",
-                version="1.4",
+                version="1.5",
                 display_name="Compound V2 - get all pool info",
                 description="Get all pools and query for their info (deposit, borrow, rates)",
                 category='protocol',
@@ -145,7 +145,7 @@ class CompoundV2GetAllPools(Model):
                 output=Some[CompoundV2PoolInfo])
 class CompoundV2AllPoolsInfo(Model):
     def run(self, input: EmptyInput) -> Some[CompoundV2PoolInfo]:
-        pools = self.context.run_model(slug='compound-v2.get-pools')
+        pools = self.context.run_model('compound-v2.get-pools', {})
 
         model_slug = 'compound-v2.pool-info'
         model_inputs = [Token(address=cTokenAddress)
@@ -184,17 +184,16 @@ class CompoundV2AllPoolsInfo(Model):
 
 
 @Model.describe(slug="compound-v2.all-pools-value",
-                version="0.5",
+                version="0.6",
                 display_name="Compound V2 - get all pools value",
                 description="Compound V2 - convert pool's info to value",
                 category='protocol',
                 subcategory='compound',
                 output=Some[CompoundV2PoolValue])
 class CompoundV2AllPoolsValue(Model):
-    def run(self, _: EmptyInput) -> Some[CompoundV2PoolValue]:
-        pools = self.context.run_model(slug='compound-v2.get-pools',
-                                       input=EmptyInput(),
-                                       return_type=Some[Address])
+    def run(self, _) -> Some[CompoundV2PoolValue]:
+        pools = self.context.run_model(
+            'compound-v2.get-pools', {}, return_type=Some[Address])
         model_slug = 'compound-v2.pool-value'
         model_inputs = [Token(address=cTokenAddress.checksum)
                         for cTokenAddress in pools.some]
@@ -281,6 +280,7 @@ class CompoundV2GetPoolInfo(Model):
         Network.Mainnet: '0xc0da02939e1441f497fd74f78ce7decb17b66529',
         Network.Kovan: '0x100044c436dfb66ff106157970bc89f243411ffd',
     }
+
     COMPOUND_TIMELOCK = {
         Network.Mainnet: '0x6d903f6003cca6255d85cca4d3b5e5146dc33925',
         Network.Kovan: '0xe3e07f4f3e2f5a5286a99b9b8deed08b8e07550b'
@@ -524,18 +524,16 @@ class CompoundV2GetPoolValue(Model):
 
 
 @Model.describe(slug="compound-v2.all-pools-portfolio",
-                version="0.4",
+                version="0.5",
                 display_name="Compound V2 - Portfolio of assets",
                 description="Compound V2 - Portfolio of assets",
                 category='protocol',
                 subcategory='compound',
                 output=LendingPoolPortfolios)
 class CompoundV2GetPoolPortfolio(Model):
-    def run(self, __input: EmptyInput) -> LendingPoolPortfolios:
+    def run(self, _) -> LendingPoolPortfolios:
         debt_pools = self.context.run_model(
-            "compound-v2.all-pools-value",
-            input=EmptyInput(),
-            return_type=Some[CompoundV2PoolValue])
+            "compound-v2.all-pools-value", {}, return_type=Some[CompoundV2PoolValue])
 
         n_debts = len(debt_pools.some)
 

@@ -115,7 +115,7 @@ class UniswapV3GetPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.5',
+                version='0.6',
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
@@ -127,10 +127,8 @@ class UniswapV3GetRing0RefPrice(Model):
     def run(self, input: EmptyInput) -> dict:
         factory_addr = V3_FACTORY_ADDRESS[self.context.network]
 
-        ring0_tokens = self.context.run_model('dex.ring0-tokens',
-                                              input=EmptyInput(),
-                                              return_type=Some[Address],
-                                              local=True).some
+        ring0_tokens = self.context.run_model(
+            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
 
         ratios = {}
         valid_tokens = set()
@@ -153,7 +151,7 @@ class UniswapV3GetRing0RefPrice(Model):
                     'uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
                 pools_info_sel = [[p.address,
                                    *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
-                                  for p, pi in zip(pools.contracts, pools_info)]
+                                  for p, pi in zip(pools.contracts, pools_info, strict=True)]
 
                 pool_info = pd.DataFrame(data=pools_info_sel,
                                          columns=['address', 'ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1'])
@@ -178,7 +176,7 @@ class UniswapV3GetRing0RefPrice(Model):
                 assert len(ring0_tokens) == 3
             except AssertionError:
                 raise ModelDataError(
-                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens') from None
 
             for token0_address, token1_address in missing_relations:
                 other_token = list(set(ring0_tokens) -
@@ -199,7 +197,7 @@ class UniswapV3GetRing0RefPrice(Model):
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1], strict=True)) | dict(zip(ring0_token_symbols, ring0_tokens, strict=True))
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
@@ -286,7 +284,7 @@ class UniswapV3AllPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.14',
+                version='1.15',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -303,10 +301,8 @@ class UniswapV3GetPoolInfo(Model):
 
     def run(self, input: Contract) -> UniswapV3PoolInfo:
         # pylint:disable=locally-disabled, too-many-locals, too-many-statements
-        primary_tokens = self.context.run_model('dex.ring0-tokens',
-                                                input=EmptyInput(),
-                                                return_type=Some[Address],
-                                                local=True).some
+        primary_tokens = self.context.run_model(
+            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
 
         # Count WETH-pool as primary pool
         primary_tokens.append(Token('WETH').address)
@@ -535,7 +531,7 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
@@ -544,10 +540,9 @@ class UniswapV3GetPoolInfo(Model):
                 output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
     def run(self, input: DexPricePoolInput) -> PoolPriceInfo:
-        info = self.context.run_model('uniswap-v3.get-pool-info',
-                                      input=Contract(**input.dict()),
-                                      return_type=UniswapV3PoolInfo,
-                                      local=True)
+        info = self.context.run_model(
+            'uniswap-v3.get-pool-info', input=Contract(**input.dict()),
+            return_type=UniswapV3PoolInfo, local=True)
 
         ratio_price0 = info.ratio_price0
         one_tick_liquidity0 = info.one_tick_liquidity0
@@ -568,9 +563,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
             if weth_address not in [info.token0.address, info.token1.address]:
                 if input.ref_price_slug is not None:
                     ref_price_ring0 = self.context.run_model(
-                        slug=input.ref_price_slug,
-                        input=EmptyInput(),
-                        return_type=dict)
+                        input.ref_price_slug, {}, return_type=dict)
                     # Use the reference price to scale the tick price. Note the cross-reference is used here.
                     # token0 = tick_price0 * token1 = tick_price0 * ref_price of token1
                     ratio_price0 *= ref_price_ring0[info.token1.address]
@@ -635,10 +628,8 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                 output=Some[PoolPriceInfo])
 class UniswapV3GetTokenPoolInfo(Model):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
-        pools = self.context.run_model('uniswap-v3.get-pools',
-                                       input,
-                                       return_type=Contracts,
-                                       local=True)
+        pools = self.context.run_model(
+            'uniswap-v3.get-pools', input, return_type=Contracts, local=True)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
         model_inputs = [DexPricePoolInput(address=pool.address,
@@ -689,7 +680,7 @@ class TokenPrice(Price):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-primary-tokens',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap V3 - Obtain value of stable coins',
                 description='Derive value of each coin from their 2-pools',
                 category='protocol',
@@ -698,10 +689,8 @@ class TokenPrice(Price):
                 output=Some[TokenPrice])
 class DexPrimaryTokensUniV3(Model):
     def run(self, _) -> Some[TokenPrice]:
-        ring0_tokens = self.context.run_model('dex.ring0-tokens',
-                                              input=EmptyInput(),
-                                              return_type=Some[Address],
-                                              local=True).some
+        ring0_tokens = self.context.run_model(
+            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
 
         # tokens = primary_tokens[:2]
         # tokens = primary_tokens[1:]
@@ -720,13 +709,13 @@ class DexPrimaryTokensUniV3(Model):
                   .to_dataframe()
                   .assign(
                       token_t=tok_addr,
-                      price_t=lambda x, addr=str(tok_addr): x.price0.where(
+                      price_t=lambda x, addr=tok_addr: x.price0.where(
                           x.token0_address == addr,
                           x.price1),
-                      tick_liquidity_t=lambda x, addr=str(tok_addr): x.one_tick_liquidity0.where(
+                      tick_liquidity_t=lambda x, addr=tok_addr: x.one_tick_liquidity0.where(
                           x.token0_address == addr,
                           x.one_tick_liquidity1),
-                      other_token_t=lambda x, addr=str(tok_addr): x.token0_address.where(
+                      other_token_t=lambda x, addr=tok_addr: x.token0_address.where(
                           x.token0_address != addr,
                           x.token1_address))
                   .assign(tick_liquidity_norm=(lambda x:

@@ -16,7 +16,6 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import EmptyInput
 from web3.exceptions import BadFunctionCallOutput
 
 from models.dtos.pool import PoolPriceInfo
@@ -63,8 +62,7 @@ class DexPrimaryTokens(Model):
 
 
 def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Address, Address]]:
-    ring0_tokens = context.run_model('dex.ring0-tokens',
-                                     input=EmptyInput(),
+    ring0_tokens = context.run_model('dex.ring0-tokens', {},
                                      return_type=Some[Address],
                                      local=True).some
     primary_tokens = ring0_tokens.copy()

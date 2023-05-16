@@ -57,10 +57,12 @@ class CMFTest(TestCase):
 
     def run_model_with_output(self,
                               model_slug,
-                              model_input={},
+                              model_input=None,
                               exit_code: Optional[int] = 0,
                               block_number: Optional[int] = None,
                               chain_id: int = 1):
+        model_input = {} if model_input is None else model_input
+
         if self.type == 'test':
             cmd = 'python test/test.py'
         else:
@@ -131,7 +133,13 @@ class CMFTest(TestCase):
 
         return stdout_result
 
-    def run_model(self, model_slug, model_input={}, exit_code: Optional[int] = 0, block_number: Optional[int] = None, chain_id: int = 1):
+    def run_model(self,
+                  model_slug,
+                  model_input=None,
+                  exit_code: Optional[int] = 0,
+                  block_number: Optional[int] = None,
+                  chain_id: int = 1):
+        model_input = {} if model_input is None else model_input
         if self.type == 'test':
             cmd = 'python test/test.py'
         else:

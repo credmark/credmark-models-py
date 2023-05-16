@@ -2,7 +2,6 @@
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, Some
-from credmark.dto import EmptyInput
 
 from models.credmark.algorithms.value_at_risk.dto import (
     PortfolioVaRInput,
@@ -13,7 +12,7 @@ from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
 
 
 @Model.describe(slug="finance.var-aave",
-                version="1.3",
+                version="1.4",
                 display_name="Aave V2 VaR",
                 description="Calculate the VaR of Aave contract of its net asset",
                 category='protocol',
@@ -36,8 +35,7 @@ class AaveV2GetVAR(Model):
     """
 
     def run(self, input: VaRInput) -> VaRHistoricalOutput:
-        debts = self.context.run_model('aave-v2.lending-pool-assets',
-                                       input=EmptyInput(),
+        debts = self.context.run_model('aave-v2.lending-pool-assets', {},
                                        return_type=Some[AaveDebtInfo])
 
         n_debts = len(debts.some)

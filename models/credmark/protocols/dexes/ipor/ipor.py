@@ -50,7 +50,7 @@ IPORIndexValue = namedtuple(
 
 
 @Model.describe(slug='ipor.get-index',
-                version='0.1',
+                version='0.2',
                 display_name='IPOR Index',
                 description='The IPOR Index from publication and per block',
                 category='protocol',
@@ -66,9 +66,11 @@ class IPORIndex(Model):
 
     def run(self, _: EmptyInput) -> dict:
         assets = None
-        for last_block_number, assets in self.IPOR_ASSETS[self.context.network]:
+        for last_block_number, asset_list in self.IPOR_ASSETS[self.context.network]:
+            assets = asset_list
             if self.context.block_number <= last_block_number:
                 break
+
         if assets is None:
             raise ModelRunError('No IPOR assets found')
 
@@ -77,7 +79,7 @@ class IPORIndex(Model):
         # pd.DataFrame(cc.fetch_events(cc.proxy_for.events.IporIndexRemoveAsset, from_block=0, contract_address=cc.address)) # 'address'
 
         oracle, calculator = self.context.run_model(
-            'ipor.get-oracle-and-calculator', input=EmptyInput(), return_type=Contracts)
+            'ipor.get-oracle-and-calculator', {}, return_type=Contracts)
 
         index_collectors = {}
 
@@ -126,7 +128,7 @@ class IPORIndex(Model):
 
 
 @Model.describe(slug='ipor.get-lp-exchange',
-                version='0.1',
+                version='0.2',
                 display_name='IPOR LP token exchange rate',
                 description='The ratio between LP Token exchange rate and the underlying assets',
                 category='protocol',
@@ -145,9 +147,11 @@ class IPORLpExchange(Model):
 
     def run(self, _: EmptyInput) -> dict:
         josephs = None
-        for last_block_number, josephs in self.IPOR_JOSEPH[self.context.network]:
+        for last_block_number, joseph_list in self.IPOR_JOSEPH[self.context.network]:
+            josephs = joseph_list
             if self.context.block_number <= last_block_number:
                 break
+
         if josephs is None:
             raise ModelRunError('No IPOR Joseph found')
 
@@ -220,7 +224,7 @@ class IPORSwapInput(DTO):
 
 
 @Model.describe(slug='ipor.get-swap',
-                version='0.1',
+                version='0.3',
                 display_name='IPOR LP token exchange rate',
                 description='Calculate the fair price of an IPOR swap',
                 category='protocol',
@@ -250,12 +254,6 @@ class IPORSwap(Model):
             address buyer;
             /// @notice Swap opening epoch timestamp
             uint256 openTimestamp;
-            /// @notice Epoch when the swap will reach its maturity
-            uint256 endTimestamp;
-            /// @notice Index position of this Swap in an array of swaps' identification associated to swap buyer
-            /// @dev Field used for gas optimization purposes, it allows for quick removal by id in the array.
-            /// During removal the last item in the array is switched with the one that just has been removed.
-            uint256 idsIndex;
             /// @notice Swap's collateral
             /// @dev value represented in 18 decimals
             uint256 collateral;
@@ -281,10 +279,7 @@ class IPORSwap(Model):
         swap1 = IporSwapMemory(1,
                                Address('0x90ce434bA83442Dfe639d0E47fed6b96B61ba1fc').checksum,
                                1676688179,
-                               1679107379,
-                               0,
-                               1450495049504950495050,
-                               725247524752475247525000,
+                            get_uniswap_pools25247524752475247525000,
                                725247524752475247525000 * int(1e18) // ibtPrice_current,  # 718510097558899043537076
                                int(ipor_index.indexValue) + int(spreadPayFixed),  # 23870746852871384,
                                25000000000000000000,
@@ -315,9 +310,11 @@ class IPORSwap(Model):
         """
 
         miltons = None
-        for last_block_number, miltons in self.IPOR_MILTONS[self.context.network]:
+        for last_block_number, milton_list in self.IPOR_MILTONS[self.context.network]:
+            miltons = milton_list
             if self.context.block_number <= last_block_number:
                 break
+
         if miltons is None:
             raise ModelRunError(
                 f'No IPOR milton found for {input.asset} for {self.context.block_number}')
@@ -359,7 +356,7 @@ class IPORSwap(Model):
             self.context.web3.eth.default_block = default_block
 
             ipor_index_for_asset = self.context.run_model(
-                'ipor.get-index', block_number=prev_block_number)[asset.address]
+                'ipor.get-index', {}, block_number=prev_block_number)[asset.address]
             ibtPrice_current = ipor_index_for_asset['ibtPrice_current']
             ipor_index = IPORIndexValue(
                 **{f: ipor_index_for_asset[f] for f in IPORIndexValue._fields})

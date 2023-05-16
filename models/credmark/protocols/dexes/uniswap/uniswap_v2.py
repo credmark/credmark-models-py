@@ -150,10 +150,8 @@ class UniswapV2PoolMeta:
 
     @staticmethod
     def get_ref_price(_context, factory_addr: Address):
-        ring0_tokens = _context.run_model('dex.ring0-tokens',
-                                          input=EmptyInput(),
-                                          return_type=Some[Address],
-                                          local=True).some
+        ring0_tokens = _context.run_model(
+            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
 
         ratios = {}
         valid_tokens = set()
@@ -201,7 +199,7 @@ class UniswapV2PoolMeta:
                 assert len(ring0_tokens) == 3
             except AssertionError:
                 raise ModelDataError(
-                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens')
+                    'Not implemented Calculate for missing relations for more than 3 ring0 tokens') from None
             for token0_address, token1_address in missing_relations:
                 other_token = list(set(ring0_tokens) -
                                    {token0_address, token1_address})[0]
@@ -221,11 +219,11 @@ class UniswapV2PoolMeta:
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1], strict=True)) | dict(zip(ring0_token_symbols, ring0_tokens, strict=True))
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
-                version='0.5',
+                version='0.6',
                 display_name='Uniswap v2 Ring0 Reference Price',
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
@@ -238,7 +236,7 @@ class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -266,7 +264,7 @@ class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.14',
+                version='1.15',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -286,10 +284,9 @@ class UniswapPoolPriceInfo(Model):
             pool = Contract(address=input.address).set_abi(
                 abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
 
-        ring0_tokens = self.context.run_model('dex.ring0-tokens',
-                                              input=EmptyInput(),
-                                              return_type=Some[Address],
-                                              local=True).some
+        ring0_tokens = self.context.run_model(
+            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
+
         weth_address = Token('WETH').address
 
         reserves = pool.functions.getReserves().call()
@@ -346,9 +343,7 @@ class UniswapPoolPriceInfo(Model):
         if is_ring0_pool:
             if input.ref_price_slug is not None:
                 ref_price_ring0 = self.context.run_model(
-                    slug=input.ref_price_slug,
-                    input=EmptyInput(),
-                    return_type=dict)
+                    input.ref_price_slug, {}, return_type=dict)
                 # Use the reference price to scale the tick price. Note the cross-reference is used here.
                 # token0 = tick_price0 * token1 = tick_price0 * ref_price of token1
                 tick_price0 *= ref_price_ring0[token1.address]
@@ -480,10 +475,8 @@ class UniswapV2GetTokenPriceInfo(Model):
         return Some[PoolPriceInfo](some=infos)
 
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
-        pools = self.context.run_model('uniswap-v2.get-pools',
-                                       input,
-                                       return_type=Contracts,
-                                       local=True)
+        pools = self.context.run_model(
+            'uniswap-v2.get-pools', input, return_type=Contracts, local=True)
 
         return self.get_pools_info(input, pools)
 
@@ -511,7 +504,7 @@ class UniswapGetPoolInfo(Model):
     def run(self, input: Contract) -> UniswapV2PoolInfo:
         pool = input
         try:
-            pool.abi
+            _ = pool.abi
         except ModelDataError:
             pool = Contract(address=input.address).set_abi(
                 abi=UNISWAP_V2_POOL_ABI, set_loaded=True)
@@ -574,7 +567,7 @@ class UniswapV2PoolTVL(Model):
         prices = []
         for token_info, tok_price, bal in zip(pool_info.tokens,
                                               pool_info.tokens_price,
-                                              pool_info.tokens_balance):
+                                              pool_info.tokens_balance, strict=True):
             prices.append(tok_price)
             tvl += bal * tok_price.price
             positions.append(Position(asset=token_info, amount=bal))
