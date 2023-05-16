@@ -1,7 +1,9 @@
 # pylint: disable=line-too-long
+import math
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import Network, NetworkDict
 from credmark.dto import DTO, EmptyInput
 
 
@@ -149,11 +151,30 @@ class LatestBlock(DTO):
                 category='chain',
                 output=LatestBlock)
 class GetLatestBlock(Model):
+    time_between_blocks = NetworkDict(int, {
+        Network.Mainnet: 12,
+        Network.Optimism: 0.33,
+        Network.BSC: 3,
+        Network.Polygon: 2,
+        Network.Fantom: 1,
+        Network.ArbitrumOne: 0.25,
+        Network.Avalanche: 2,
+    })
+
+    offset_time = 60
+
     def run(self, _) -> LatestBlock:
+        # This takes care of {code: -32000, message: "header not found"} error
+        block_time = self.time_between_blocks[self.context.chain_id]
+        if block_time > 0:
+            offset_blocks = math.ceil(self.offset_time / block_time)
+        else:
+            offset_blocks = 0
+
         original_default_block = self.context.web3.eth.default_block
         self.context.web3.eth.default_block = 'latest'
         block = self.context.web3.eth.get_block("latest")
-        block_number = block.number  # type: ignore
-        block_timestamp = block.timestamp  # type: ignore
+        block_number = block.number - offset_blocks  # type: ignore
+        block_timestamp = self.context.web3.eth.get_block(block_number).timestamp  # type: ignore
         self.context.web3.eth.default_block = original_default_block
         return LatestBlock(blockNumber=block_number, timestamp=block_timestamp)
