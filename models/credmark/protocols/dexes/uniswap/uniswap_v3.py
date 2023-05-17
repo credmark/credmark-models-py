@@ -115,7 +115,7 @@ class UniswapV3GetPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.6',
+                version='0.7',
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',

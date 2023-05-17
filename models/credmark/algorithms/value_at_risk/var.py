@@ -40,7 +40,7 @@ class AccountsValueInput(Accounts):
 
 
 @Model.describe(slug="accounts.value",
-                version="0.2",
+                version="0.3",
                 display_name="Value for an account",
                 description="Value for an account",
                 developer="Credmark",

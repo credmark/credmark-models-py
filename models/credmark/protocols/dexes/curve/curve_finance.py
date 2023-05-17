@@ -141,7 +141,7 @@ class CurvePoolContract(Contract):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.13",
+                version="1.14",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -292,7 +292,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.29",
+                version="1.30",
                 display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -371,7 +371,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.8",
+                version="1.9",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',

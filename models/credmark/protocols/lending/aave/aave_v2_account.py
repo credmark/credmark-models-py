@@ -64,7 +64,7 @@ class AccountInfo4Reserve(Account):
 
 
 @Model.describe(slug="aave-v2.account-info-reserve",
-                version="0.3",
+                version="0.4",
                 display_name="Aave V2 user account info for one reserve token",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
@@ -381,7 +381,7 @@ class AaveV2GetAccountInfo(Model):
 
 
 @Model.describe(slug="aave-v2.account-summary",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 user account summary",
                 description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
                 category="protocol",

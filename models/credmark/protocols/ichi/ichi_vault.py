@@ -1175,7 +1175,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.27',
+                version='0.28',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

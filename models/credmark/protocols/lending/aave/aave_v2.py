@@ -558,7 +558,7 @@ class AaveV2GetTokenAsset(Model):
 
 
 @Model.describe(slug="aave-v2.reserve-config",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 reserve configuration data",
                 description="Aave V2 metadata of the inputted reserve token",
                 category="protocol",
