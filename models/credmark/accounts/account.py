@@ -171,7 +171,7 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 
 # TODO: NFT
 @Model.describe(slug='accounts.token-return-historical',
-                version='0.9',
+                version='0.10',
                 display_name='Accounts\' Token Return Historical',
                 description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
@@ -350,7 +350,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 
 @Model.describe(slug='accounts.token-historical',
-                version='0.11',
+                version='0.12',
                 display_name='Accounts\' Token Holding Historical',
                 description='Accounts\' Token Holding Historical',
                 developer="Credmark",

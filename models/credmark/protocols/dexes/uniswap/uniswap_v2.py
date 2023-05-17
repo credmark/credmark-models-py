@@ -223,7 +223,7 @@ class UniswapV2PoolMeta:
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
-                version='0.6',
+                version='0.7',
                 display_name='Uniswap v2 Ring0 Reference Price',
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
@@ -548,7 +548,7 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
