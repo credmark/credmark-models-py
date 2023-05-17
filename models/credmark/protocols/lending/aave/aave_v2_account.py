@@ -252,8 +252,8 @@ class AaveV2GetLPIncentive(Model):
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
 
         return {
-            'accrued_scaled': int(df_accrued.amount.sum()) / 10 ** staked_aave.decimals if not df_accrued.empty else 0,
-            'claimed_scaled': int(df_claimed.amount.sum()) / 10 ** staked_aave.decimals if not df_claimed.empty else 0,
+            'accrued_scaled': (df_accrued.amount / 10 ** staked_aave.decimals).sum() if not df_accrued.empty else 0,
+            'claimed_scaled': (df_claimed.amount / 10 ** staked_aave.decimals).sum() if not df_claimed.empty else 0,
             'staked_aave_address': staked_aave.address.checksum
         }
 
@@ -288,8 +288,7 @@ class AaveV2GetStakingIncentive(Model):
         if rewards_claimed_df.empty:
             rewards_claimed = 0.0
         else:
-            rewards_claimed = staked_aave.scaled(
-                rewards_claimed_df.amount.sum())
+            rewards_claimed = staked_aave.scaled(sum(rewards_claimed_df.amount.to_list()))
 
         # this does not include unclaimed rewards
         _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
