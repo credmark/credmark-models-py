@@ -288,7 +288,7 @@ class AaveV2GetStakingIncentive(Model):
         if rewards_claimed_df.empty:
             rewards_claimed = 0.0
         else:
-            rewards_claimed = staked_aave.scaled(rewards_claimed_df.amount.sum())
+            rewards_claimed = staked_aave.scaled(rewards_claimed_df.amount.astype(int).sum())
 
         # this does not include unclaimed rewards
         _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
