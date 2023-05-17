@@ -126,6 +126,23 @@ class UniV3Pool:
                 self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
                 self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
+            def _one_time_collect_refresh():
+                if self.pool.abi is None:
+                    raise ValueError(f'Pool abi missing for {self.pool.address}')
+
+                df_collect_evt = fetch_events(self.pool, self.pool.events.Collect,
+                                              'Collect', 0, self.previous_block_number,
+                                              self.pool.abi.events.Collect.args)
+
+                if df_collect_evt.empty:
+                    self.token0_collect = int(0)
+                    self.token1_collect = int(0)
+                else:
+                    self.token0_collect = sum(df_collect_evt.amount0.to_list())
+                    self.token1_collect = sum(df_collect_evt.amount1.to_list())
+
+            _one_time_collect_refresh()
+
             def _rebuild_reserve_from_liquidity():
                 # Not easy as we also need the reward
                 df_ticks = (pd.DataFrame(self.ticks).T
@@ -150,20 +167,6 @@ class UniV3Pool:
                     t0 += t0_t
                     t1 += t1_t
                     print((t0, t1, t0_t, t1_t))
-
-            if self.pool.abi is None:
-                raise ValueError(f'Pool abi missing for {self.pool.address}')
-
-            df_collect_evt = fetch_events(self.pool, self.pool.events.Collect,
-                                          'Collect', 0, self.previous_block_number,
-                                          self.pool.abi.events.Collect.args)
-
-            if df_collect_evt.empty:
-                self.token0_collect = int(0)
-                self.token1_collect = int(0)
-            else:
-                self.token0_collect = sum(df_collect_evt.amount0.to_list())
-                self.token1_collect = sum(df_collect_evt.amount1.to_list())
 
     def __del__(self):
         pass
