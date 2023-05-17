@@ -1,14 +1,14 @@
 # pylint:disable=invalid-name
 
 from decimal import Decimal, getcontext
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Network, Some, Token, Tokens
-from credmark.dto import DTO, EmptyInput
+from credmark.cmf.types import Address, Contract, Contracts, Network, Records, Some, Token, Tokens
+from credmark.dto import DTO, DTOField, EmptyInput
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
 from models.tmp_abi_lookup import BALANCER_POOL_ABI  # BALANCER_META_STABLE_POOL_ABI
@@ -53,7 +53,7 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
     b = bal_sum + divDown(invariant, ampTimesTotal)
     prevTokenBalance = 0
     tokenBalance = divUp((invariant*invariant+c), (invariant+b))
-    for i in range(255):
+    for _i in range(255):
         prevTokenBalance = tokenBalance
         tokenBalance = divUp((mulUp(tokenBalance, tokenBalance) + c),
                              ((tokenBalance*Decimal(2))+b-invariant))
@@ -66,25 +66,26 @@ def getTokenBalanceGivenInvariantAndAllOtherBalances(
 
 
 @Model.describe(slug='balancer-fi.get-all-pools',
-                version='0.4',
+                version='0.6',
                 display_name='Balancer Finance - Get all pools',
                 description='Get all pools',
                 category='protocol',
                 subcategory='balancer',
-                output=Contracts)
+                output=Records)
 class GetBalancerAllPools(Model):
     VAULT_ADDR = {
         Network.Mainnet: '0xBA12222222228d8Ba445958a75a0704d566BF2C8'}
 
-    def run(self, _) -> Contracts:
+    def run(self, _) -> Records:
         vault = Contract(address=Address(
             self.VAULT_ADDR[self.context.network]).checksum)
+
         with vault.ledger.events.PoolRegistered as q:
             df_ts = []
             offset = 0
 
             while True:
-                df_tt = q.select(columns=[q.BLOCK_NUMBER, q.EVT_POOLADDRESS],
+                df_tt = q.select(columns=[q.BLOCK_NUMBER, q.EVT_POOLADDRESS, q.EVT_POOLID],
                                  order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOLADDRESS),
                                  limit=5000,
                                  offset=offset).to_dataframe()
@@ -95,24 +96,25 @@ class GetBalancerAllPools(Model):
                 if df_tt.shape[0] < 5000:
                     break
                 offset += 5000
+        df_registered = pd.concat(df_ts)
 
-        df = pd.concat(df_ts)
+        def _verify_pool():
+            contracts = []
+            for _n, r in df_registered.iterrows():
+                pool_addr = r.evt_poolAddress
+                pool = Contract(address=pool_addr).set_abi(
+                    BALANCER_POOL_ABI, set_loaded=True)
 
-        contracts = []
-        for _n, r in df.iterrows():
-            pool_addr = r.evt_poolAddress
-            pool = Contract(address=pool_addr).set_abi(
-                BALANCER_POOL_ABI, set_loaded=True)
+                try:
+                    _pool_id = pool.functions.getPoolId().call()
+                    # print(_n, pool_addr, pool._meta.contract_name, file=sys.stderr)  # pylint:disable=protected-access
+                    contracts.append(pool)
+                except (ABIFunctionNotFound, ContractLogicError):
+                    # print(pool_addr, file=sys.stderr)
+                    pass
+            return Contracts(contracts=contracts)
 
-            try:
-                _pool_id = pool.functions.getPoolId().call()
-                # print(_n, pool_addr, pool._meta.contract_name, file=sys.stderr)  # pylint:disable=protected-access
-                contracts.append(pool)
-            except (ABIFunctionNotFound, ContractLogicError):
-                # print(pool_addr, file=sys.stderr)
-                pass
-
-        return Contracts(contracts=contracts)
+        return Records.from_dataframe(df_registered)
 
 
 class EmptyInputNoRun(EmptyInput):
@@ -123,7 +125,7 @@ class EmptyInputNoRun(EmptyInput):
 
 
 @Model.describe(slug='balancer-fi.get-all-pools-price-info',
-                version='0.3',
+                version='0.4',
                 display_name='Balancer Finance - Get all pools',
                 description='Get all pools',
                 category='protocol',
@@ -133,11 +135,12 @@ class EmptyInputNoRun(EmptyInput):
 class GetBalancerAllPoolInfo(Model):
     def run(self, _) -> Some[BalancerPoolPriceInfo]:
         pools = self.context.run_model('balancer-fi.get-all-pools',
-                                       input=EmptyInput(),
-                                       return_type=Contracts)
+                                       {},
+                                       return_type=Records).to_dataframe()
         pool_infos = []
         pool_info_slug = 'balancer-fi.get-pool-price-info'
-        for pool in pools:
+        for row in pools.itertuples():
+            pool = BalancerContract(address=row.evt_poolAddress, pool_id=row.evt_poolId)
             try:
                 pool_info_dto = self.context.run_model(
                     slug=pool_info_slug,
@@ -153,6 +156,8 @@ class GetBalancerAllPoolInfo(Model):
 
 
 class BalancerContract(Contract):
+    pool_id: Optional[str] = DTOField(description='Balancer pool id')
+
     class Config:
         schema_extra = {
             'examples': [{"address": "0x61d5dc44849c9C87b0856a2a311536205C96c7FD"},
@@ -162,7 +167,7 @@ class BalancerContract(Contract):
 
 
 @Model.describe(slug='balancer-fi.get-pool-price-info',
-                version='0.2',
+                version='0.3',
                 display_name='Balancer Finance - Get pool price info',
                 description='Get price information for a Balancer pool',
                 category='protocol',
@@ -178,7 +183,7 @@ class GetBalancerPoolPriceInfo(Model):
         balances: List[float]
         lastChangeBlock: int
 
-    def run(self, input: Contract) -> BalancerPoolPriceInfo:
+    def run(self, input: BalancerContract) -> BalancerPoolPriceInfo:
         # https://metavision-labs.gitbook.io/balancerv2cad/code-and-instructions/balancer_py_edition/stablemath.py
         # https://token-engineering-balancer.gitbook.io/balancer-simulations/additional-code-and-instructions/arbitrage-agent
         vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
@@ -191,7 +196,10 @@ class GetBalancerPoolPriceInfo(Model):
         except ModelDataError:
             pool = Contract(input.address).set_abi(BALANCER_POOL_ABI, set_loaded=True)
 
-        pool_id = pool.functions.getPoolId().call()
+        if input.pool_id is None:
+            pool_id = pool.functions.getPoolId().call()
+        else:
+            pool_id = input.pool_id
 
         try:
             pool_info = self.BalancerPoolTokens(

@@ -5,7 +5,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
 from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField
 from ens import ENS
 from web3.exceptions import ContractLogicError
 
@@ -62,10 +62,9 @@ class ChainLinkPriceByENS(Model):
         if feed_address is None:
             raise ModelRunError(
                 'Unable to resolve ENS domain name {input.domain}')
-        return self.context.run_model('chainlink.price-by-feed',
-                                      input={'address': feed_address},
-                                      return_type=Price,
-                                      local=True)
+        return self.context.run_model(
+            'chainlink.price-by-feed', input={'address': feed_address},
+            return_type=Price, local=True)
 
 
 class ChainlinkFeedContract(Contract):
@@ -127,26 +126,24 @@ class ChainLinkPriceByFeed(Model):
 class ChainLinkFeedFromRegistryMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
-            pq = self.context.run_model('chainlink.price-by-registry',
-                                        input=input,
-                                        return_type=PriceWithQuote,
-                                        local=True)
+            pq = self.context.run_model(
+                'chainlink.price-by-registry', input=input,
+                return_type=PriceWithQuote, local=True)
             return Maybe[PriceWithQuote](just=pq)
         except BlockNumberOutOfRangeError:
             return Maybe.none()
         except ModelRunError:
             try:
-                pq = self.context.run_model('chainlink.price-by-registry',
-                                            input=input.inverse(),
-                                            return_type=PriceWithQuote,
-                                            local=True)
+                pq = self.context.run_model(
+                    'chainlink.price-by-registry', input=input.inverse(),
+                    return_type=PriceWithQuote, local=True)
                 return Maybe[PriceWithQuote](just=pq.inverse(input.quote.address))
             except ModelRunError:
                 return Maybe.none()
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.5",
+                version="1.6",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
@@ -158,10 +155,8 @@ class ChainLinkPriceByRegistry(Model):
         base_address = input.base.address
         quote_address = input.quote.address
 
-        registry = self.context.run_model('chainlink.get-feed-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract,
-                                          local=True)
+        registry = self.context.run_model(
+            'chainlink.get-feed-registry', {}, return_type=Contract, local=True)
         try:
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(

@@ -16,7 +16,6 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import EmptyInput
 from web3.exceptions import BadFunctionCallOutput
 
 from models.dtos.pool import PoolPriceInfo
@@ -63,8 +62,7 @@ class DexPrimaryTokens(Model):
 
 
 def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Address, Address]]:
-    ring0_tokens = context.run_model('dex.ring0-tokens',
-                                     input=EmptyInput(),
+    ring0_tokens = context.run_model('dex.ring0-tokens', {},
                                      return_type=Some[Address],
                                      local=True).some
     primary_tokens = ring0_tokens.copy()
@@ -177,8 +175,7 @@ class DexWeightedPrice(Model):
         ...
 
     def aggregate_pool(self, model_slug, input: DexPriceTokenInput):
-        pool_price_infos = self.context.run_model(model_slug,
-                                                  input=input)
+        pool_price_infos = self.context.run_model(model_slug, input)
 
         pool_aggregator_input = DexPoolAggregationInput(**input.dict(),
                                                         **pool_price_infos)
@@ -187,7 +184,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -210,7 +207,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -255,7 +252,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='price.dex-pool',
-                version='0.7',
+                version='0.8',
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -324,7 +321,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.22',
+                version='1.23',
                 display_name='Credmark Token Price from Dex',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -438,7 +435,7 @@ class PriceFromDexModelMaybe(Model):
 
 
 @Model.describe(slug='price.dex-blended-tokens',
-                version='0.3',
+                version='0.4',
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',

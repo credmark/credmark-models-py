@@ -42,11 +42,10 @@ class TokenReturnOutput(DTO):
 # pylint:disable=too-many-branches
 def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenReturnOutput:
     if _token_list == 'cmf':
-        token_list = (_context.run_model('token.list',
-                                         return_type=Records,
-                                         block_number=0).to_dataframe()
-                      ['address']
-                      .values)
+        token_list = (_context.run_model(
+            'token.list', {}, return_type=Records, block_number=0).to_dataframe()
+            ['address']
+            .values)
     elif _token_list == 'all':
         token_list = None
     else:

@@ -27,7 +27,7 @@ from credmark.cmf.types import (
     TokenPosition,
 )
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from credmark.dto import DTOField, EmptyInput, cross_examples
+from credmark.dto import DTOField, cross_examples
 from web3.exceptions import ContractLogicError
 
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
@@ -98,7 +98,7 @@ class AccountsReturnInput(Accounts):
 
 
 @Model.describe(slug='accounts.token-return',
-                version='0.9',
+                version='0.10',
                 display_name='Accounts\' Token Return',
                 description='Accounts\' Token Return',
                 developer="Credmark",
@@ -171,7 +171,7 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 
 # TODO: NFT
 @Model.describe(slug='accounts.token-return-historical',
-                version='0.8',
+                version='0.9',
                 display_name='Accounts\' Token Return Historical',
                 description='Accounts\' ERC20 Token Return',
                 developer="Credmark",
@@ -208,12 +208,9 @@ class AccountsTokenReturnHistorical(Model):
         df_ts = get_token_transfer(self.context, input.to_address(), [], 0)
 
         if input.token_list == TokenListChoice.CMF:
-            token_list = (self.context.run_model('token.list',
-                                                 input=EmptyInput(),
-                                                 return_type=Records,
-                                                 block_number=0).to_dataframe()
-                          ['address'].str.lower()
-                          .values)
+            token_list = (self.context.run_model(
+                'token.list', {}, return_type=Records, block_number=0)
+                .to_dataframe()['address'].str.lower().values)
         else:
             token_list = None
 
@@ -259,7 +256,7 @@ class AccountsTokenReturnHistorical(Model):
                     block_number=_past_block_number
                 )
 
-                for p_maybe, (token_addr, token_value) in zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
+                for p_maybe, (token_addr, token_value) in zip(pqs_maybe, non_zero_bal_tokens_dict.items(), strict=True):
                     asset_token = Token(token_addr).as_erc20(set_loaded=True)
                     if p_maybe.just is None:
                         continue
@@ -484,7 +481,7 @@ class AccountsERC20TokenHistorical(Model):
                                 prices.insert(blk_n, new_price)
 
                 # pylint:disable=line-too-long
-                for past_block, price in zip(past_blocks, prices):
+                for past_block, price in zip(past_blocks, prices, strict=True):
                     (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
                         # type: ignore
                         .output['positions'][token_rows[token_addr][str(past_block)]]

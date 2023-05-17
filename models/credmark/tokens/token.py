@@ -39,7 +39,7 @@ def get_eip1967_proxy(context, logger, address, verbose):
 
     # trigger loading
     try:
-        token.abi
+        _ = token.abi
     except Exception:
         pass
 
@@ -111,7 +111,7 @@ class TokenUnderlying(Model):
 
     def get_underlying_proxy(self, input: Token):
         try:
-            input.abi
+            _ = input.abi
         except Exception:
             return None
 

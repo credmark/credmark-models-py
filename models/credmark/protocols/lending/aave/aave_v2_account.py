@@ -22,7 +22,7 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTOField, EmptyInput
+from credmark.dto import DTOField
 
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_DATA_PROVIDER
@@ -64,7 +64,7 @@ class AccountInfo4Reserve(Account):
 
 
 @Model.describe(slug="aave-v2.account-info-reserve",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 user account info for one reserve token",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
@@ -74,12 +74,10 @@ class AccountInfo4Reserve(Account):
                 )
 class AaveV2GetAccountInfoAsset(Model):
     def run(self, input: AccountInfo4Reserve) -> dict:
-        protocolDataProvider = self.context.run_model(
-            "aave-v2.get-protocol-data-provider",
-            input=EmptyInput(),
-            return_type=Contract,
-            local=True,
-        ).set_abi(AAVE_DATA_PROVIDER, set_loaded=True)
+        protocolDataProvider = (self.context.run_model(
+            "aave-v2.get-protocol-data-provider", {},
+            return_type=Contract, local=True)
+            .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
 
         keys_need_to_be_scaled = [
             "currentATokenBalance",
@@ -155,7 +153,7 @@ class AaveV2GetAccountInfoAsset(Model):
         token_info['tokenSymbol'] = reserve_token.symbol
         token_info['tokenAddress'] = reserve_token.address
 
-        for key, value in zip(keys, reserve_data):
+        for key, value in zip(keys, reserve_data, strict=True):
             if key in keys_need_to_be_scaled:
                 token_info[key] = aToken.scaled(value)
             else:
@@ -202,7 +200,7 @@ class AaveLPAccount(Account):
 
 
 @Model.describe(slug="aave-v2.get-lp-reward",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 - Get incentive controller",
                 description="Aave V2 - Get incentive controller",
                 category='protocol',
@@ -222,7 +220,7 @@ class AaveV2GetLPIncentive(Model):
         """
 
         incentive_controller = self.context.run_model(
-            'aave-v2.get-incentive-controller', input=EmptyInput(), local=True, return_type=Contract)
+            'aave-v2.get-incentive-controller', {}, local=True, return_type=Contract)
 
         # _accrued_rewards shall match with accrued amount from event log
         _accrued_rewards = incentive_controller.functions.getUserUnclaimedRewards(
@@ -230,7 +228,7 @@ class AaveV2GetLPIncentive(Model):
 
         # data provider gets the reserve tokens and find asset for that reserve token
         _data_provider = self.context.run_model(
-            'aave-v2.get-protocol-data-provider', input=EmptyInput(), local=True, return_type=Contract)
+            'aave-v2.get-protocol-data-provider', {}, local=True, return_type=Contract)
         # data_provider.functions.getReserveTokensAddresses().call()
         # incentive_controller.functions.getUserAssetData(input.address).call()
 
@@ -305,7 +303,7 @@ class AaveV2GetStakingIncentive(Model):
 
 
 @Model.describe(slug="aave-v2.account-info",
-                version="0.3",
+                version="0.4",
                 display_name="Aave V2 user account info",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
@@ -315,11 +313,8 @@ class AaveV2GetStakingIncentive(Model):
 class AaveV2GetAccountInfo(Model):
     def run(self, input: AaveLPAccount) -> dict:
         protocolDataProvider = self.context.run_model(
-            "aave-v2.get-protocol-data-provider",
-            input=EmptyInput(),
-            return_type=Contract,
-            local=True,
-        )
+            "aave-v2.get-protocol-data-provider", {},
+            return_type=Contract, local=True)
         reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
 
         def _use_for():
@@ -386,7 +381,7 @@ class AaveV2GetAccountInfo(Model):
 
 
 @Model.describe(slug="aave-v2.account-summary",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 user account summary",
                 description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
                 category="protocol",
@@ -396,10 +391,8 @@ class AaveV2GetAccountInfo(Model):
                 )
 class AaveV2GetAccountSummary(Model):
     def run(self, input: AaveLPAccount) -> dict:
-        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
-                                                   input=EmptyInput(),
-                                                   return_type=Contract,
-                                                   local=True)
+        aave_lending_pool = self.context.run_model(
+            'aave-v2.get-lending-pool', {}, return_type=Contract, local=True)
 
         user_account_data = {}
         account_data = aave_lending_pool.functions.getUserAccountData(
@@ -415,7 +408,7 @@ class AaveV2GetAccountSummary(Model):
         keys_need_to_be_scaled.append('healthFactor')
 
         native_token = NativeToken()
-        for key, value in zip(keys, account_data):
+        for key, value in zip(keys, account_data, strict=True):
             if key in keys_need_to_be_scaled:
                 user_account_data[key] = native_token.scaled(value)
             elif key in keys_need_to_be_decimal:
@@ -437,7 +430,7 @@ class AccountAAVEHistorical(Account):
 
 
 @Model.describe(slug="aave-v2.account-summary-historical",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 user account summary historical",
                 description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
                              "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
@@ -490,7 +483,7 @@ class AaveV2GetAccountSummaryHistorical(Model):
         result_blocks_format = []
         if last_block > first_block:
             lending_pool = Contract(
-                **self.context.run_model('aave-v2.get-lending-pool', local=True))
+                **self.context.run_model('aave-v2.get-lending-pool', {}))
 
             if lending_pool.proxy_for is None:
                 raise ModelDataError('lending pool shall be a proxy contract')

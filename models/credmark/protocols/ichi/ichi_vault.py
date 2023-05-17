@@ -1175,7 +1175,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.26',
+                version='0.27',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1184,7 +1184,7 @@ class IchiVaultPerformance(Model):
                 output=dict)
 class IchiVaultsPerformance(Model):
     def run(self, input: PerformanceInput) -> dict:
-        vaults_all = self.context.run_model('ichi.vaults')['vaults']
+        vaults_all = self.context.run_model('ichi.vaults', {})['vaults']
 
         model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
                         for vault_addr in vaults_all.keys()]
@@ -1206,7 +1206,7 @@ class IchiVaultsPerformance(Model):
                 return_type=MapInputsOutput[VaultPerformanceInput, dict])
 
             all_vault_infos = []
-            for _model_input, vault_result in zip(model_inputs, all_vault_infos_results):
+            for _model_input, vault_result in zip(model_inputs, all_vault_infos_results, strict=True):
                 if vault_result.output is not None:
                     all_vault_infos.append(vault_result.output)
                 elif vault_result.error is not None:

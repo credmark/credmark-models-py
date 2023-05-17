@@ -1,7 +1,5 @@
 # pylint:disable=locally-disabled,line-too-long
 
-import os
-
 from cmf_test import CMFTest
 
 from models.credmark.tokens.nft.nft import AZUKI_NFT
@@ -15,9 +13,7 @@ class TestNFT(CMFTest):
 
         self.run_model('nft.mint', {"address": AZUKI_NFT}, block_number=17238456)
 
-        key = os.environ.get('INFURA_IPFS_KEY')
-        secret = os.environ.get('INFURA_IPFS_SECRET')
-
-        if key is not None and secret is not None:
-            self.run_model('nft.get', {"address": AZUKI_NFT, "id": 100},
-                           block_number=17238456)
+        self.run_model('nft.get', {"address": AZUKI_NFT, "id": 100},
+                       block_number=17238456)
+        self.run_model('nft.get', {"address": '0x5663e3E096f1743e77B8F71b5DE0CF9Dfd058523', "id": 0},
+                       block_number=17238456)

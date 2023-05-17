@@ -183,10 +183,9 @@ class TLSScore(Model):
             else:
                 raise
 
-        addr_maybe = self.context.run_model('token.underlying-maybe',
-                                            input={'address': input.address},
-                                            return_type=Maybe[Address],
-                                            local=True)
+        addr_maybe = self.context.run_model(
+            'token.underlying-maybe', {'address': input.address},
+            return_type=Maybe[Address], local=True)
 
         if addr_maybe.just is not None:
             value_token_input = input.dict() | {'address': addr_maybe.just}

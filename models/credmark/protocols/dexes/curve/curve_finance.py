@@ -20,7 +20,7 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 from web3.exceptions import (
     ABIFunctionNotFound,
     BadFunctionCallOutput,
@@ -112,7 +112,7 @@ class CurveFinanceGetGauge(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.2",
+                version="1.3",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
@@ -120,8 +120,7 @@ class CurveFinanceGetGauge(Model):
                 output=Contracts)
 class CurveFinanceAllPools(Model):
     def run(self, _) -> Contracts:
-        registry = self.context.run_model('curve-fi.get-registry',
-                                          input=EmptyInput(),
+        registry = self.context.run_model('curve-fi.get-registry', {},
                                           return_type=Contract)
 
         total_pools = registry.functions.pool_count().call()
@@ -142,7 +141,7 @@ class CurvePoolContract(Contract):
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.12",
+                version="1.13",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -184,7 +183,7 @@ class CurveFinancePoolInfoTokens(Model):
             underlying, underlying_symbol = self.__class__.check_token_address(underlying_coins)
             balances_raw = balances_tokens[:len(tokens_symbol)]
 
-            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
+            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens, strict=True)]
 
         except ContractLogicError:
             try:
@@ -234,8 +233,8 @@ class CurveFinancePoolInfoTokens(Model):
         balances_token = [t.balance_of_scaled(
             input.address.checksum) for t in tokens]
 
-        admin_fees = [bal_token-bal for bal,
-                      bal_token in zip(balances, balances_token)]
+        admin_fees = [bal_token-bal
+                      for bal, bal_token in zip(balances, balances_token, strict=True)]
 
         try:
             name = input.functions.name().call()
@@ -252,9 +251,8 @@ class CurveFinancePoolInfoTokens(Model):
                 lp_token_addr = Address(input.functions.lp_token().call())
             except ABIFunctionNotFound:
                 try:
-                    provider = self.context.run_model('curve-fi.get-provider',
-                                                      input=EmptyInput(),
-                                                      return_type=Contract)
+                    provider = self.context.run_model(
+                        'curve-fi.get-provider', {}, return_type=Contract)
                     pool_info_addr = Address(provider.functions.get_address(1).call())
                     pool_info_contract = Contract(address=pool_info_addr.checksum)
                     pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum).call())
@@ -294,7 +292,7 @@ class CurveFinancePoolInfoTokens(Model):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.28",
+                version="1.29",
                 display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -350,12 +348,11 @@ class CurveFinancePoolInfo(Model):
         gauges_type = gauges_type[:len(gauges)]
 
         if len(gauges) == 0:
-            gauges = self.context.run_model('curve-fi.all-gauges',
-                                            input=EmptyInput(),
-                                            return_type=CurveFiAllGaugesOutput)
+            gauges = self.context.run_model(
+                'curve-fi.all-gauges', {}, return_type=CurveFiAllGaugesOutput)
 
             gauges = [Account(address=g.address)
-                      for g, lp in zip(gauges, gauges.lp_tokens)
+                      for g, lp in zip(gauges, gauges.lp_tokens, strict=True)
                       if lp.address == pool_info.lp_token_addr]
             gauges_type = [0] * len(gauges)
 
@@ -374,7 +371,7 @@ class CurveFinancePoolInfo(Model):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.7",
+                version="1.8",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',
@@ -390,7 +387,7 @@ class CurveFinancePoolTVL(Model):
         tvl = 0.0
         for tok, tok_price, bal in zip(pool_info.tokens.tokens,
                                        pool_info.token_prices,
-                                       pool_info.balances):
+                                       pool_info.balances, strict=True):
             positions.append(Position(amount=bal, asset=tok))
             tvl += bal * tok_price.price
 
@@ -408,7 +405,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="2.1",
+                version="2.2",
                 display_name="Curve Finance Pool Liquidity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
@@ -416,9 +413,8 @@ class CurveFinancePoolTVL(Model):
                 output=Some[CurveFiPoolInfo])
 class CurveFinanceTotalTokenLiquidity(Model):
     def run(self, _) -> Some[CurveFiPoolInfo]:
-        pool_contracts = self.context.run_model('curve-fi.all-pools',
-                                                input=EmptyInput(),
-                                                return_type=Contracts)
+        pool_contracts = self.context.run_model(
+            'curve-fi.all-pools', {}, return_type=Contracts)
 
         def _use_for():
             pool_infos = []
@@ -577,7 +573,7 @@ class CurveGaugeInput(DTO):
 
 
 @Model.describe(slug='curve-fi.gauge-yield',
-                version='1.4',
+                version='1.5',
                 category='protocol',
                 subcategory='curve',
                 input=CurveGaugeContract,
@@ -592,9 +588,8 @@ class CurveFinanceAverageGaugeYield(Model):
 
         lp_token_addr = input.functions.lp_token().call()
 
-        registry = self.context.run_model('curve-fi.get-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract)
+        registry = self.context.run_model(
+            'curve-fi.get-registry', {}, return_type=Contract)
         pool_addr = registry.functions.get_pool_from_lp_token(
             lp_token_addr).call()
         if not Address(pool_addr).is_null():
@@ -650,16 +645,15 @@ class CurveFinanceAverageGaugeYield(Model):
 
 
 @Model.describe(slug='curve-fi.all-yield',
-                version='1.5',
+                version='1.6',
                 description="Yield from all Gauges",
                 category='protocol',
                 subcategory='curve',
                 output=dict)
 class CurveFinanceAllYield(Model):
     def run(self, _) -> dict:
-        gauge_contracts = self.context.run_model('curve-fi.all-gauges',
-                                                 input=EmptyInput(),
-                                                 return_type=Contracts)
+        gauge_contracts = self.context.run_model(
+            'curve-fi.all-gauges', {}, return_type=Contracts)
 
         self.logger.info(f'There are {len(gauge_contracts.contracts)} gauges.')
 

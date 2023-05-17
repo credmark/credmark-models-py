@@ -33,7 +33,7 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.6',
+                version='1.7',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
@@ -43,10 +43,9 @@ class SushiswapV2Factory(Model):
 class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         try:
-            factory = self.context.run_model('sushiswap.get-v2-factory',
-                                             input=EmptyInput(),
-                                             return_type=Contract,
-                                             local=True)
+            factory = self.context.run_model(
+                'sushiswap.get-v2-factory', {},
+                return_type=Contract, local=True)
             return self.get_uniswap_pools(self.context, factory.address, input.address)
         except BlockNumberOutOfRangeError:
             pass
@@ -55,23 +54,22 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='sushiswap.get-ring0-ref-price',
-                version='0.5',
+                version='0.6',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
                 subcategory='uniswap-v2',
                 output=dict)
 class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
-    def run(self, input: EmptyInput) -> dict:
-        factory_addr = self.context.run_model('sushiswap.get-v2-factory',
-                                              input=EmptyInput(),
-                                              return_type=Contract,
-                                              local=True)
+    def run(self, _: EmptyInput) -> dict:
+        factory_addr = self.context.run_model(
+            'sushiswap.get-v2-factory', {},
+            return_type=Contract, local=True)
         return self.get_ref_price(self.context, factory_addr.address)
 
 
 @Model.describe(slug='sushiswap.get-pools-ledger',
-                version='0.1',
+                version='0.2',
                 display_name='Sushiswap v2 Pools',
                 description='The Sushiswap pools where a token is traded',
                 category='protocol',
@@ -81,10 +79,9 @@ class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
 class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         try:
-            factory = self.context.run_model('sushiswap.get-v2-factory',
-                                             input=EmptyInput(),
-                                             return_type=Contract,
-                                             local=True)
+            factory = self.context.run_model(
+                'sushiswap.get-v2-factory', {},
+                return_type=Contract, local=True)
             return self.get_uniswap_pools_ledger(self.context, factory.address, input.address)
         except BlockNumberOutOfRangeError:
             pass

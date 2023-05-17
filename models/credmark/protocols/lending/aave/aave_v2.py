@@ -135,7 +135,7 @@ class AaveV2GetAddressProvider(Model):
 
 
 @Model.describe(slug="aave-v2.get-protocol-data-provider",
-                version="1.1",
+                version="1.2",
                 display_name="Aave V2 - Get protocol data provider",
                 description="Query data provider from address provider",
                 category='protocol',
@@ -143,11 +143,9 @@ class AaveV2GetAddressProvider(Model):
                 output=Contract)
 class AaveV2GetProtocolDataProvider(Model):
     def run(self, _) -> Contract:
-        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
-                                                       input=EmptyInput(),
-                                                       return_type=Contract,
-                                                       local=True,
-                                                       )
+        lending_pool_provider = self.context.run_model(
+            'aave-v2.get-lending-pool-provider', {},
+            return_type=Contract, local=True)
 
         try:
             _ = lending_pool_provider.abi
@@ -167,7 +165,7 @@ class AaveV2GetProtocolDataProvider(Model):
 
 
 @Model.describe(slug="aave-v2.get-lending-pool",
-                version="1.1",
+                version="1.2",
                 display_name="Aave V2 - Get lending pool for main market",
                 description="Aave V2 - Get lending pool for main market",
                 category='protocol',
@@ -175,16 +173,15 @@ class AaveV2GetProtocolDataProvider(Model):
                 output=Contract)
 class AaveV2GetLendingPool(Model):
     def run(self, _) -> Contract:
-        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
-                                                       input=EmptyInput(),
-                                                       return_type=Contract,
-                                                       local=True)
+        lending_pool_provider = self.context.run_model(
+            'aave-v2.get-lending-pool-provider', {},
+            return_type=Contract, local=True)
         lending_pool_address = lending_pool_provider.functions.getLendingPool().call()
         return Contract(address=lending_pool_address)
 
 
 @Model.describe(slug="aave-v2.get-price-oracle",
-                version="1.1",
+                version="1.2",
                 display_name="Aave V2 - Get price oracle for main market",
                 description="Aave V2 - Get price oracle for main market",
                 category='protocol',
@@ -192,10 +189,9 @@ class AaveV2GetLendingPool(Model):
                 output=Contract)
 class AaveV2GetPriceOracle(Model):
     def run(self, _) -> Contract:
-        lending_pool_provider = self.context.run_model('aave-v2.get-lending-pool-provider',
-                                                       input=EmptyInput(),
-                                                       return_type=Contract,
-                                                       local=True)
+        lending_pool_provider = self.context.run_model(
+            'aave-v2.get-lending-pool-provider', {},
+            return_type=Contract, local=True)
         price_oracle_address = lending_pool_provider.functions.getPriceOracle().call()
         price_oracle_contract = Contract(address=price_oracle_address)
         _ = price_oracle_contract.abi
@@ -240,7 +236,7 @@ class AaveV2GetOraclePrice(Model):
 
 
 @Model.describe(slug="aave-v2.overall-liabilities-portfolio",
-                version="1.3",
+                version="1.4",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
@@ -248,10 +244,9 @@ class AaveV2GetOraclePrice(Model):
                 output=Portfolio)
 class AaveV2GetLiability(Model):
     def run(self, input) -> Portfolio:
-        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
-                                                   input=EmptyInput(),
-                                                   return_type=Contract,
-                                                   local=True)
+        aave_lending_pool = self.context.run_model(
+            'aave-v2.get-lending-pool', {},
+            return_type=Contract, local=True)
 
         aave_lending_pool = get_eip1967_proxy_err(self.context,
                                                   self.logger,
@@ -273,7 +268,7 @@ class AaveV2GetLiability(Model):
 
 
 @Model.describe(slug="aave-v2.token-liability",
-                version="1.1",
+                version="1.2",
                 display_name="Aave V2 token liability",
                 description="Aave V2 token liability at a given block number",
                 category='protocol',
@@ -283,14 +278,11 @@ class AaveV2GetLiability(Model):
 class AaveV2GetTokenLiability(Model):
 
     def run(self, input: Contract) -> Position:
-        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
-                                                   input=EmptyInput(),
-                                                   return_type=Contract,
-                                                   local=True)
-        aave_lending_pool = get_eip1967_proxy_err(self.context,
-                                                  self.logger,
-                                                  aave_lending_pool.address,
-                                                  True)
+        aave_lending_pool = self.context.run_model(
+            'aave-v2.get-lending-pool', {},
+            return_type=Contract, local=True)
+        aave_lending_pool = get_eip1967_proxy_err(
+            self.context, self.logger, aave_lending_pool.address, True)
 
         reservesData = aave_lending_pool.functions.getReserveData(
             input.address).call()
@@ -299,7 +291,7 @@ class AaveV2GetTokenLiability(Model):
         aToken = get_eip1967_proxy_err(
             self.context, self.logger, reservesData[7], True)
         try:
-            aToken.total_supply
+            _ = aToken.total_supply
         except ModelDataError:
             self.logger.error(
                 f"total supply cannot be None for {aToken.address}")
@@ -308,18 +300,17 @@ class AaveV2GetTokenLiability(Model):
 
 
 @Model.describe(slug="aave-v2.assets",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 Lending Pool Assets",
                 description="Aave V2 assets for the main lending pool",
                 category='protocol',
                 subcategory='aave-v2',
                 output=Some[Address])
 class AaveV2GetAssets(Model):
-    def run(self, __input: EmptyInput) -> Some[Address]:
-        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
-                                                   input=EmptyInput(),
-                                                   return_type=Contract,
-                                                   local=True)
+    def run(self, _) -> Some[Address]:
+        aave_lending_pool = self.context.run_model(
+            'aave-v2.get-lending-pool', {},
+            return_type=Contract, local=True)
         aave_lending_pool = get_eip1967_proxy_err(self.context,
                                                   self.logger,
                                                   aave_lending_pool.address,
@@ -330,16 +321,16 @@ class AaveV2GetAssets(Model):
 
 
 @Model.describe(slug="aave-v2.lending-pool-assets",
-                version="1.6",
+                version="1.7",
                 display_name="Aave V2 Lending Pool Assets Detail",
                 description="Aave V2 assets for the main lending pool",
                 category='protocol',
                 subcategory='aave-v2',
                 output=Some[AaveDebtInfo])
 class AaveV2GetAssetsDetail(Model):
-    def run(self, __input: EmptyInput) -> Some[AaveDebtInfo]:
+    def run(self, _) -> Some[AaveDebtInfo]:
         aave_assets_address = self.context.run_model(
-            'aave-v2.assets', input=EmptyInput(), return_type=Some[Address]).some
+            'aave-v2.assets', {}, return_type=Some[Address]).some
 
         model_slug = 'aave-v2.token-asset'
         model_inputs = [Token(address=addr)
@@ -393,17 +384,16 @@ class AaveV2GetAssetsDetail(Model):
 
 
 @Model.describe(slug="aave-v2.lending-pool-assets-portfolio",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 Lending Pool overall liabilities",
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
                 subcategory='aave-v2',
                 output=LendingPoolPortfolios)
 class AaveV2GetLiabilityInPortfolios(Model):
-    def run(self, __input: EmptyInput) -> LendingPoolPortfolios:
-        debt_pools = self.context.run_model('aave-v2.lending-pool-assets',
-                                            input=EmptyInput(),
-                                            return_type=Some[AaveDebtInfo])
+    def run(self, ___: EmptyInput) -> LendingPoolPortfolios:
+        debt_pools = self.context.run_model(
+            'aave-v2.lending-pool-assets', {}, return_type=Some[AaveDebtInfo])
 
         n_debts = len(debt_pools.some)
         positions_net = []
@@ -441,7 +431,7 @@ class AaveV2GetLiabilityInPortfolios(Model):
 
 
 @Model.describe(slug="aave-v2.token-asset",
-                version="1.4",
+                version="1.5",
                 display_name="Aave V2 token liquidity",
                 description="Aave V2 token liquidity at a given block number",
                 category='protocol',
@@ -459,10 +449,8 @@ class AaveV2GetTokenAsset(Model):
             raise
 
     def run(self, input: AaveV2Token):
-        aave_lending_pool = self.context.run_model('aave-v2.get-lending-pool',
-                                                   input=EmptyInput(),
-                                                   return_type=Contract,
-                                                   local=True)
+        aave_lending_pool = self.context.run_model(
+            'aave-v2.get-lending-pool', {}, return_type=Contract)
 
         aave_lending_pool = get_eip1967_proxy_err(self.context,
                                                   self.logger,
@@ -570,7 +558,7 @@ class AaveV2GetTokenAsset(Model):
 
 
 @Model.describe(slug="aave-v2.reserve-config",
-                version="0.1",
+                version="0.2",
                 display_name="Aave V2 reserve configuration data",
                 description="Aave V2 metadata of the inputted reserve token",
                 category="protocol",
@@ -581,11 +569,9 @@ class AaveV2GetTokenAsset(Model):
 class AaveV2GetReserveConfigurationData(Model):
     def run(self, input: AaveV2Token) -> dict:
         protocolDataProvider = self.context.run_model(
-            "aave-v2.get-protocol-data-provider",
-            input=EmptyInput(),
-            return_type=Contract,
-            local=True,
-        )
+            "aave-v2.get-protocol-data-provider", {},
+            return_type=Contract, local=True)
+
         config_data = protocolDataProvider.functions.getReserveConfigurationData(input.address).call()
 
         keys_need_to_be_decimal = ['ltv',
@@ -605,7 +591,7 @@ class AaveV2GetReserveConfigurationData(Model):
                 'isFrozen']
 
         reserve_config_data = {}
-        for key, value in zip(keys, config_data):
+        for key, value in zip(keys, config_data, strict=True):
             if key in keys_need_to_be_decimal:
                 reserve_config_data[key] = value/10000
             else:

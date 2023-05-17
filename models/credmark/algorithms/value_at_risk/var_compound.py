@@ -1,6 +1,5 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Portfolio, Position, Some
-from credmark.dto import EmptyInput
 
 from models.credmark.algorithms.value_at_risk.dto import (
     PortfolioVaRInput,
@@ -11,7 +10,7 @@ from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2Poo
 
 
 @Model.describe(slug="finance.var-compound",
-                version="1.5",
+                version="1.6",
                 display_name="Compound V2 VaR",
                 description="Calculate the VaR of Compound contract of its net asset",
                 category='protocol',
@@ -33,8 +32,7 @@ class CompoundGetVAR(Model):
     """
 
     def run(self, input: VaRInput) -> VaRHistoricalOutput:
-        pools_info = self.context.run_model('compound-v2.all-pools-info',
-                                            input=EmptyInput(),
+        pools_info = self.context.run_model('compound-v2.all-pools-info', {},
                                             return_type=Some[CompoundV2PoolInfo])
         positions = []
         for pool_info in pools_info:
