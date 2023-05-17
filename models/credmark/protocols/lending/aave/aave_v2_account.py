@@ -153,7 +153,7 @@ class AaveV2GetAccountInfoAsset(Model):
         token_info['tokenSymbol'] = reserve_token.symbol
         token_info['tokenAddress'] = reserve_token.address
 
-        for key, value in zip(keys, reserve_data, strict=True):
+        for key, value in zip(keys, reserve_data):
             if key in keys_need_to_be_scaled:
                 token_info[key] = aToken.scaled(value)
             else:
@@ -408,7 +408,7 @@ class AaveV2GetAccountSummary(Model):
         keys_need_to_be_scaled.append('healthFactor')
 
         native_token = NativeToken()
-        for key, value in zip(keys, account_data, strict=True):
+        for key, value in zip(keys, account_data):
             if key in keys_need_to_be_scaled:
                 user_account_data[key] = native_token.scaled(value)
             elif key in keys_need_to_be_decimal:

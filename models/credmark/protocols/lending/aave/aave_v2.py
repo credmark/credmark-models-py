@@ -591,7 +591,7 @@ class AaveV2GetReserveConfigurationData(Model):
                 'isFrozen']
 
         reserve_config_data = {}
-        for key, value in zip(keys, config_data, strict=True):
+        for key, value in zip(keys, config_data):
             if key in keys_need_to_be_decimal:
                 reserve_config_data[key] = value/10000
             else:

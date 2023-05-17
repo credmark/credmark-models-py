@@ -75,7 +75,7 @@ class AccountValue(Model):
         # For sequential
         # prices = portfolio
 
-        for pos, price_maybe in zip(portfolio, prices, strict=True):
+        for pos, price_maybe in zip(portfolio, prices):
             # For sequential
             # price = self.context.run_model(
             #    'price.dex-maybe',

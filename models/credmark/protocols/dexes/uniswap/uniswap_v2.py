@@ -219,7 +219,7 @@ class UniswapV2PoolMeta:
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1], strict=True)) | dict(zip(ring0_token_symbols, ring0_tokens, strict=True))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
@@ -567,7 +567,7 @@ class UniswapV2PoolTVL(Model):
         prices = []
         for token_info, tok_price, bal in zip(pool_info.tokens,
                                               pool_info.tokens_price,
-                                              pool_info.tokens_balance, strict=True):
+                                              pool_info.tokens_balance):
             prices.append(tok_price)
             tvl += bal * tok_price.price
             positions.append(Position(asset=token_info, amount=bal))

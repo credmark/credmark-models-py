@@ -183,7 +183,7 @@ class CurveFinancePoolInfoTokens(Model):
             underlying, underlying_symbol = self.__class__.check_token_address(underlying_coins)
             balances_raw = balances_tokens[:len(tokens_symbol)]
 
-            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens, strict=True)]
+            balances = [t.scaled(bal) for bal, t in zip(balances_raw, tokens)]
 
         except ContractLogicError:
             try:
@@ -234,7 +234,7 @@ class CurveFinancePoolInfoTokens(Model):
             input.address.checksum) for t in tokens]
 
         admin_fees = [bal_token-bal
-                      for bal, bal_token in zip(balances, balances_token, strict=True)]
+                      for bal, bal_token in zip(balances, balances_token)]
 
         try:
             name = input.functions.name().call()
@@ -352,7 +352,7 @@ class CurveFinancePoolInfo(Model):
                 'curve-fi.all-gauges', {}, return_type=CurveFiAllGaugesOutput)
 
             gauges = [Account(address=g.address)
-                      for g, lp in zip(gauges, gauges.lp_tokens, strict=True)
+                      for g, lp in zip(gauges, gauges.lp_tokens)
                       if lp.address == pool_info.lp_token_addr]
             gauges_type = [0] * len(gauges)
 
@@ -387,7 +387,7 @@ class CurveFinancePoolTVL(Model):
         tvl = 0.0
         for tok, tok_price, bal in zip(pool_info.tokens.tokens,
                                        pool_info.token_prices,
-                                       pool_info.balances, strict=True):
+                                       pool_info.balances):
             positions.append(Position(amount=bal, asset=tok))
             tvl += bal * tok_price.price
 

@@ -151,7 +151,7 @@ class UniswapV3GetRing0RefPrice(Model):
                     'uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
                 pools_info_sel = [[p.address,
                                    *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
-                                  for p, pi in zip(pools.contracts, pools_info, strict=True)]
+                                  for p, pi in zip(pools.contracts, pools_info)]
 
                 pool_info = pd.DataFrame(data=pools_info_sel,
                                          columns=['address', 'ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1'])
@@ -197,7 +197,7 @@ class UniswapV3GetRing0RefPrice(Model):
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1], strict=True)) | dict(zip(ring0_token_symbols, ring0_tokens, strict=True))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
