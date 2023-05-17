@@ -4,18 +4,18 @@
 Uni V3 Pool
 """
 
+import math
 import sys
 from datetime import datetime
 from typing import Optional
 
 import pandas as pd
+from credmark.cmf.model import ModelContext
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO
 
-from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    calculate_onetick_liquidity,
-)
+from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
@@ -116,6 +116,55 @@ class UniV3Pool:
         else:
             self.load(_pool_data)
 
+            # Over time token0_reserve and token1_reserve will receive more than the liquidity amount
+            # Let's sync when we update.
+            if self.previous_block_number is None:
+                raise ValueError('self.previous_block_number is None')
+
+            context = ModelContext.current_context()
+            with context.enter(self.previous_block_number):
+                self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+                self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+
+            def _rebuild_reserve_from_liquidity():
+                # Not easy as we also need the reward
+                df_ticks = (pd.DataFrame(self.ticks).T
+                            .reset_index(drop=False)
+                            .assign(liquidityGross=lambda x: [y[1] for y in x[0]],
+                                    liquidityNet=lambda x: [y[1] for y in x[1]])
+                            .drop(columns=[0, 1])
+                            .sort_values('index'))
+
+                df_ticks.loc[:, 'liquidityCumsum'] = df_ticks.liquidityNet.cumsum()
+                df_ticks.loc[:, 'upperTick'] = df_ticks['index'].shift(-1)
+
+                t0 = 0
+                t1 = 0
+                for row in df_ticks.itertuples():
+                    if math.isnan(row.upperTick):
+                        continue
+                    if row.index <= self.pool_tick < row.upperTick:
+                        t0_t, t1_t = in_range(row.liquidityCumsum, row.upperTick, row.index, self.pool_tick)
+                    else:
+                        t0_t, t1_t = out_of_range(row.liquidityCumsum, row.upperTick, row.index)
+                    t0 += t0_t
+                    t1 += t1_t
+                    print((t0, t1, t0_t, t1_t))
+
+            if self.pool.abi is None:
+                raise ValueError(f'Pool abi missing for {self.pool.address}')
+
+            df_collect_evt = fetch_events(self.pool, self.pool.events.Collect,
+                                          'Collect', 0, self.previous_block_number,
+                                          self.pool.abi.events.Collect.args)
+
+            if df_collect_evt.empty:
+                self.token0_collect = int(0)
+                self.token1_collect = int(0)
+            else:
+                self.token0_collect = int(df_collect_evt.amount0.sum())
+                self.token1_collect = int(df_collect_evt.amount1.sum())
+
     def __del__(self):
         pass
 
@@ -166,7 +215,7 @@ class UniV3Pool:
 
         self.token0_add = _pool_data['token0_add']
         self.token0_remove = _pool_data['token0_remove']
-        self.token0_collect = _pool_data['token0_collect_prot']
+        self.token0_collect = _pool_data['token0_collect']
         self.token0_collect_prot = _pool_data['token0_collect_prot']
         self.token1_add = _pool_data['token1_add']
         self.token1_remove = _pool_data['token1_remove']
@@ -187,14 +236,10 @@ class UniV3Pool:
                                       to_block, pool.abi.events.Collect.args)
         df_collect_prot_evt = fetch_events(pool, pool.events.CollectProtocol,
                                            'CollectProtocol', from_block, to_block, pool.abi.events.CollectProtocol.args)
-        df_flash_evt = fetch_events(
-            pool, pool.events.Flash, 'Flash', from_block, to_block, pool.abi.events.Flash.args)
-        df_mint_evt = fetch_events(
-            pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
-        df_burn_evt = fetch_events(
-            pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
-        df_swap_evt = fetch_events(
-            pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
+        df_flash_evt = fetch_events(pool, pool.events.Flash, 'Flash', from_block, to_block, pool.abi.events.Flash.args)
+        df_mint_evt = fetch_events(pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
+        df_burn_evt = fetch_events(pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
+        df_swap_evt = fetch_events(pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
 
         df_comb_evt = pd.concat([df_init_evt, df_mint_evt, df_burn_evt, df_swap_evt,
                                 df_collect_evt, df_collect_prot_evt, df_flash_evt])
@@ -207,6 +252,25 @@ class UniV3Pool:
         print((df_init_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0],
                df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]),
               file=sys.stderr)
+
+        def _self_check():
+            token0_balance = df_mint_evt.amount0.sum() - df_collect_evt.amount0.sum() - \
+                (0 if df_collect_prot_evt.empty else df_collect_prot_evt.amount0.sum()) + df_swap_evt.amount0.sum()
+            token1_balance = df_mint_evt.amount1.sum() - df_collect_evt.amount1.sum() - \
+                (0 if df_collect_prot_evt.empty else df_collect_prot_evt.amount1.sum()) + df_swap_evt.amount1.sum()
+
+            if not df_comb_evt.empty:
+                context = ModelContext.current_context()
+                with context.enter(int(df_comb_evt.blockNumber.max())):
+                    token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+                    token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+
+                try:
+                    assert token0_balance <= token0_reserve
+                    assert token1_balance <= token1_reserve
+                except AssertionError as err:
+                    raise err
+
         return df_comb_evt
 
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):
@@ -339,10 +403,8 @@ class UniV3Pool:
         self.token0_reserve += amount0
         self.token1_reserve += amount1
 
-        lowerTick = self.ticks.get(tickLower, Tick(
-            liquidityGross=0, liquidityNet=0))
-        upperTick = self.ticks.get(tickUpper, Tick(
-            liquidityGross=0, liquidityNet=0))
+        lowerTick = self.ticks.get(tickLower, Tick(liquidityGross=0, liquidityNet=0))
+        upperTick = self.ticks.get(tickUpper, Tick(liquidityGross=0, liquidityNet=0))
 
         lowerTick.liquidityGross = lowerTick.liquidityGross + amount
         lowerTick.liquidityNet = lowerTick.liquidityNet + amount
@@ -352,7 +414,7 @@ class UniV3Pool:
         self.ticks[tickLower] = lowerTick
         self.ticks[tickUpper] = upperTick
 
-        if tickLower <= self.pool_tick and tickUpper > self.pool_tick:
+        if tickLower <= self.pool_tick < tickUpper:
             self.pool_liquidity += amount
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
@@ -366,8 +428,7 @@ class UniV3Pool:
 
         self.token0_remove += amount0
         self.token1_remove += amount1
-        self.token0_reserve -= amount0
-        self.token1_reserve -= amount1
+        # token0_reserve / token1_reserve changes is moved to proc_collect
 
         lowerTick = self.ticks[tickLower]
         upperTick = self.ticks[tickUpper]
@@ -380,7 +441,7 @@ class UniV3Pool:
         self.ticks[tickLower] = lowerTick
         self.ticks[tickUpper] = upperTick
 
-        if tickLower <= self.pool_tick and tickUpper > self.pool_tick:
+        if tickLower <= self.pool_tick < tickUpper:
             self.pool_liquidity -= event_row['amount']
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
@@ -390,21 +451,37 @@ class UniV3Pool:
         self.pool_tick = event_row['tick']
         self.pool_sqrtPrice = event_row['sqrtPriceX96']
 
-        self.token0_in += 0 if event_row['amount0'] < 0 else event_row['amount0']
-        self.token0_out += (- event_row['amount0']) if event_row['amount0'] < 0 else 0
-        self.token1_in += 0 if event_row['amount1'] < 0 else event_row['amount1']
-        self.token1_out += (- event_row['amount1']) if event_row['amount1'] < 0 else 0
+        amount0 = event_row['amount0']
+        amount1 = event_row['amount1']
 
-        self.token0_reserve += event_row['amount0']
-        self.token1_reserve += event_row['amount1']
+        self.token0_in += 0 if amount0 < 0 else amount0
+        self.token0_out += (- amount0) if amount0 < 0 else 0
+        self.token1_in += 0 if amount1 < 0 else amount1
+        self.token1_out += (- amount1) if amount1 < 0 else 0
+
+        self.token0_reserve += amount0
+        self.token1_reserve += amount1
+
+        def _check_reserve_with_balance():
+            context = ModelContext.current_context()
+            with context.enter(event_row['blockNumber']):
+                t0_reserve = self.token0.balance_of_scaled(self.pool.address.checksum)
+                t1_reserve = self.token1.balance_of_scaled(self.pool.address.checksum)
+                assert math.isclose(self.token0.scaled(self.token0_reserve), t0_reserve, rel_tol=1e-1)
+                assert math.isclose(self.token1.scaled(self.token1_reserve), t1_reserve, rel_tol=1e-1)
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 
     def proc_collect(self, event_row):
-        self.token0_collect += event_row['amount0']
-        self.token1_collect += event_row['amount1']
+        amount0 = event_row['amount0']
+        amount1 = event_row['amount1']
 
-        # collect is part of burn. not double-count to reduce token0_reserve and token1_reserve
+        self.token0_collect += amount0
+        self.token1_collect += amount1
+
+        # collect is amount from burn + fee
+        self.token0_reserve -= amount0
+        self.token1_reserve -= amount1
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 

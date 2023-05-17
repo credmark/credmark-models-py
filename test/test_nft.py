@@ -1,7 +1,5 @@
 # pylint:disable=locally-disabled,line-too-long
 
-import os
-
 from cmf_test import CMFTest
 
 from models.credmark.tokens.nft.nft import AZUKI_NFT
@@ -17,5 +15,5 @@ class TestNFT(CMFTest):
 
         self.run_model('nft.get', {"address": AZUKI_NFT, "id": 100},
                        block_number=17238456)
-        self.run_model('nft.get', {"address": '0x5663e3E096f1743e77B8F71b5DE0CF9Dfd058523', "id": 100},
+        self.run_model('nft.get', {"address": '0x5663e3E096f1743e77B8F71b5DE0CF9Dfd058523', "id": 0},
                        block_number=17238456)
