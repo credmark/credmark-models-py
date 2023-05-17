@@ -63,7 +63,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
             self.logger.info('No funds raised')
             return {'total_raised_qty': 0}
 
-        df_group_by = df_group_by.assign(sum_value=lambda x: x.sum_value.apply(int) / 1e18)
+        df_group_by = df_group_by.assign(sum_value=lambda x: x.sum_value / 1e18)
 
         total_raised_qty_from_sum = df_group_by.sum_value.sum()
         self.logger.info(f'total raised: {total_raised_qty_from_sum}')
@@ -130,7 +130,7 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
 
         self.logger.info(f'Fetched {df_all.shape[0]} rows of transactions to Pooly NFT')
 
-        total_raised_qty = df_all.value.apply(int).sum() / 1e18
+        total_raised_qty = (df_all.value / 1e18).sum()
         total_raised_value_latest = total_raised_qty * eth_price
 
         price_series = self.context.run_model('price.dex-db-interval',

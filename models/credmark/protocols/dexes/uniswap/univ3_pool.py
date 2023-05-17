@@ -162,8 +162,8 @@ class UniV3Pool:
                 self.token0_collect = int(0)
                 self.token1_collect = int(0)
             else:
-                self.token0_collect = int(df_collect_evt.amount0.sum())
-                self.token1_collect = int(df_collect_evt.amount1.sum())
+                self.token0_collect = sum(df_collect_evt.amount0.to_list())
+                self.token1_collect = sum(df_collect_evt.amount1.to_list())
 
     def __del__(self):
         pass
@@ -254,10 +254,16 @@ class UniV3Pool:
               file=sys.stderr)
 
         def _self_check():
-            token0_balance = df_mint_evt.amount0.sum() - df_collect_evt.amount0.sum() - \
-                (0 if df_collect_prot_evt.empty else df_collect_prot_evt.amount0.sum()) + df_swap_evt.amount0.sum()
-            token1_balance = df_mint_evt.amount1.sum() - df_collect_evt.amount1.sum() - \
-                (0 if df_collect_prot_evt.empty else df_collect_prot_evt.amount1.sum()) + df_swap_evt.amount1.sum()
+            token0_balance = \
+                sum(df_mint_evt.amount0.to_list()) - \
+                sum(df_collect_evt.amount0.to_list()) - \
+                (0 if df_collect_prot_evt.empty else sum(df_collect_prot_evt.amount0.to_list())) + \
+                sum(df_swap_evt.amount0.to_list())
+            token1_balance = \
+                sum(df_mint_evt.amount1.to_list()) - \
+                sum(df_collect_evt.amount1.to_list()) - \
+                (0 if df_collect_prot_evt.empty else sum(df_collect_prot_evt.amount1.to_list())) + \
+                sum(df_swap_evt.amount1.to_list())
 
             if not df_comb_evt.empty:
                 context = ModelContext.current_context()
