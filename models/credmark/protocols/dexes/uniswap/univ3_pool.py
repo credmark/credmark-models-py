@@ -121,10 +121,10 @@ class UniV3Pool:
             if self.previous_block_number is None:
                 raise ValueError('self.previous_block_number is None')
 
-            context = ModelContext.current_context()
-            with context.enter(self.previous_block_number):
-                self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-                self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+            # context = ModelContext.current_context()
+            # with context.enter(self.previous_block_number):
+            #    self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+            #    self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
             def _one_time_collect_refresh():
                 if self.pool.abi is None:
@@ -141,7 +141,7 @@ class UniV3Pool:
                     self.token0_collect = sum(df_collect_evt.amount0.to_list())
                     self.token1_collect = sum(df_collect_evt.amount1.to_list())
 
-            _one_time_collect_refresh()
+            # _one_time_collect_refresh()
 
             def _rebuild_reserve_from_liquidity():
                 # Not easy as we also need the reward
@@ -311,6 +311,18 @@ class UniV3Pool:
 
         # Use reserve to cap the one tick liquidity
         # Example: 0xf1d2172d6c6051960a289e0d7dca9e16b65bfc64, around block 17272381, May 16 2023 8pm GMT+8
+
+        if self.block_number is None:
+            raise ValueError('Block number is not set')
+
+        # TODO: the reserve is fetched at the point of event.
+        # The reserve may change after the event (question to be answered)
+        # Token: 0xd46ba6d942050d489dbd938a2c909a5d5039a161 AMPL
+        # Pool: 0x86d257cdb7bc9c0df10e84c8709697f92770b335
+        context = ModelContext.current_context()
+        with context.enter(self.block_number):
+            self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+            self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
         reserve0_scaled = self.token0.scaled(self.token0_reserve)
         reserve1_scaled = self.token1.scaled(self.token1_reserve)
