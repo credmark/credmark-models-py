@@ -31,7 +31,7 @@ np.seterr(all='raise')
                 output=UniswapPoolVaROutput)
 class UniswapPoolVaR(Model):
     """
-    This model takes a UniV2/Sushi/UniV3 pool to extract its token information.
+    This model takes a UniswapV2/UniswapV3/Sushiswap pool to extract its token information.
     It then calculate the LP position's VaR from both price change and quantity change from IL
     for a portfolio worth of $1.
     """

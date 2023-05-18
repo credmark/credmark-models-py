@@ -1,7 +1,9 @@
 # pylint:disable=no-member
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelErrorDTO
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
+from credmark.cmf.types.compose import (
+    MapBlockTimeSeriesOutput,
+)
 from credmark.cmf.types.series import BlockSeries, BlockSeriesErrorRow, BlockSeriesRow
 from credmark.dto import EmptyInput
 

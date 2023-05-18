@@ -28,11 +28,18 @@ from models.tmp_abi_lookup import (
 )
 
 
-class V3LPInput(DTO):
+class UniswapV3LPInput(DTO):
     lp: Address = DTOField(description='Account')
 
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'lp': '0x297e12154bde98e96d475fc3a554797f7a6139d0', },
+            ],
+        }
 
-class V3LPPosition(DTO):
+
+class UniswapV3LPPosition(DTO):
     lp: Address = DTOField(description='Account')
     id: int
     pool: Address
@@ -40,9 +47,9 @@ class V3LPPosition(DTO):
     in_range: str
 
 
-class V3LPOutput(DTO):
+class UniswapV3LPOutput(DTO):
     lp: Address
-    positions: List[V3LPPosition]
+    positions: List[UniswapV3LPPosition]
 
 
 def V3NFTManager(_network_id):
@@ -52,15 +59,15 @@ def V3NFTManager(_network_id):
 
 
 @Model.describe(slug='uniswap-v3.lp',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v3 LP Position and Fee for account',
                 description='Returns position and Fee for account',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=V3LPInput,
-                output=V3LPOutput)
+                input=UniswapV3LPInput,
+                output=UniswapV3LPOutput)
 class UniswapV2LP(Model):
-    def run(self, input: V3LPInput) -> V3LPOutput:
+    def run(self, input: UniswapV3LPInput) -> UniswapV3LPOutput:
         nft_manager = V3NFTManager(self.context.network)
 
         lp = input.lp
@@ -79,7 +86,7 @@ class UniswapV2LP(Model):
                 lp_pos = self.context.run_model(
                     'uniswap-v3.id',
                     {'id': nft_id},
-                    return_type=V3LPPosition)
+                    return_type=UniswapV3LPPosition)
                 lp_poses.append(lp_pos)
             return lp_poses
 
@@ -92,35 +99,40 @@ class UniswapV2LP(Model):
             all_results = self.context.run_model(
                 slug='compose.map-inputs',
                 input=model_inputs,
-                return_type=MapInputsOutput[dict, V3LPPosition])
+                return_type=MapInputsOutput[dict, UniswapV3LPPosition])
 
             lp_poses = [
                 obj.output for obj in all_results.results if obj.output is not None]
             return lp_poses
 
         if len(nft_ids) > 4:
-            return V3LPOutput(lp=lp, positions=_use_compose())
+            return UniswapV3LPOutput(lp=lp, positions=_use_compose())
         elif len(nft_ids) > 0:
-            return V3LPOutput(lp=lp, positions=_use_for())
+            return UniswapV3LPOutput(lp=lp, positions=_use_for())
         else:
-            return V3LPOutput(lp=lp, positions=[])
+            return UniswapV3LPOutput(lp=lp, positions=[])
 
 
-class V3IDInput(DTO):
+class UniswapV3IDInput(DTO):
     id: int = DTOField(gt=0, description='V3 NFT ID')
+
+    class Config:
+        schema_extra = {
+            'examples': [{"id": 355427}]
+        }
 
 
 @Model.describe(slug='uniswap-v3.id',
-                version='0.3',
+                version='0.4',
                 display_name='Uniswap v3 LP Position and Fee for NFT ID',
                 description='Returns position and Fee for NFT ID',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=V3IDInput,
-                output=V3LPPosition)
+                input=UniswapV3IDInput,
+                output=UniswapV3LPPosition)
 class UniswapV2LPId(Model):
     # pylint:disable=line-too-long
-    def run(self, input: V3IDInput) -> V3LPPosition:
+    def run(self, input: UniswapV3IDInput) -> UniswapV3LPPosition:
         nft_manager = V3NFTManager(self.context.network)
 
         nft_id = input.id
@@ -220,7 +232,7 @@ class UniswapV2LPId(Model):
         fee_token0 = token0.scaled(fee_token0)
         fee_token1 = token1.scaled(fee_token1)
 
-        return V3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
-                            tokens=[PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
-                                    PositionWithFee(amount=a1, fee=fee_token1, asset=token1)],
-                            in_range=in_range_str)
+        return UniswapV3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
+                                   tokens=[PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
+                                           PositionWithFee(amount=a1, fee=fee_token1, asset=token1)],
+                                   in_range=in_range_str)

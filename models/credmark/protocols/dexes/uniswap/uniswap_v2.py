@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines, unsubscriptable-object, line-too-long
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -33,6 +33,25 @@ from models.dtos.pool import PoolPriceInfo
 from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
 from models.dtos.tvl import TVLInfo
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
+
+
+class UniswapV2Contract(Contract):
+    class Config:
+        schema_extra = {
+            "examples": [{"address": "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"}]
+        }
+
+
+class UniswapV2DexPricePoolInput(UniswapV2Contract, DexPricePoolInput):
+    price_slug: str
+    ref_price_slug: Optional[str]
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                          "price_slug": "uniswap-v2.get-weighted-price",
+                          "ref_price_slug": "uniswap-v2.get-ring0-ref-price"}]
+        }
 
 
 class UniswapV2PoolMeta:
@@ -264,19 +283,19 @@ class UniswapV2GetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.15',
+                version='1.16',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=DexPricePoolInput,
+                input=UniswapV2DexPricePoolInput,
                 output=Maybe[PoolPriceInfo])
 class UniswapPoolPriceInfo(Model):
     """
     Model to be shared between Uniswap V2 and SushiSwap
     """
 
-    def run(self, input: DexPricePoolInput) -> Maybe[PoolPriceInfo]:
+    def run(self, input: UniswapV2DexPricePoolInput) -> Maybe[PoolPriceInfo]:
         pool = input
         try:
             _ = pool.abi
@@ -415,7 +434,7 @@ class UniswapPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.14',
+                version='1.15',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -429,7 +448,7 @@ class UniswapV2GetTokenPriceInfo(Model):
             pools: Contracts) -> Some[PoolPriceInfo]:
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [
-            DexPricePoolInput(
+            UniswapV2DexPricePoolInput(
                 address=pool.address,
                 price_slug='uniswap-v2.get-weighted-price',
                 ref_price_slug='uniswap-v2.get-ring0-ref-price',
@@ -493,15 +512,15 @@ class UniswapV2PoolInfo(DTO):
 
 
 @Model.describe(slug="uniswap-v2.get-pool-info",
-                version="1.9",
+                version="1.10",
                 display_name="Uniswap/Sushiswap get details for a pool",
                 description="Returns the token details of the pool",
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=Contract,
+                input=UniswapV2Contract,
                 output=UniswapV2PoolInfo)
 class UniswapGetPoolInfo(Model):
-    def run(self, input: Contract) -> UniswapV2PoolInfo:
+    def run(self, input: UniswapV2Contract) -> UniswapV2PoolInfo:
         pool = input
         try:
             _ = pool.abi
@@ -548,15 +567,15 @@ class UniswapGetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
-                version='1.7',
+                version='1.8',
                 display_name='Uniswap/Sushiswap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=Contract,
+                input=UniswapV2Contract,
                 output=TVLInfo)
 class UniswapV2PoolTVL(Model):
-    def run(self, input: Contract) -> TVLInfo:
+    def run(self, input: UniswapV2Contract) -> TVLInfo:
         pool_info = self.context.run_model('uniswap-v2.get-pool-info',
                                            input=input,
                                            return_type=UniswapV2PoolInfo)
@@ -600,20 +619,20 @@ class UniswapV2PoolLPPosition(DTO):
 
 
 @Model.describe(slug='uniswap-v2.lp-amount',
-                version='0.1',
+                version='0.2',
                 display_name=('Decompose a UniswapV2Pair into its underlying tokens'),
                 description='To calculate the value of a UniswapV2 LP token from its underlying tokens',
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=Contract,
+                input=UniswapV2Contract,
                 output=UniswapV2PoolLPPosition,)
 class PriceDexUniswapV2(Model):
     """
     Return token's price from
     """
 
-    def run(self, input: Contract) -> UniswapV2PoolLPPosition:
+    def run(self, input: UniswapV2Contract) -> UniswapV2PoolLPPosition:
         pool = Token(input.address)
         if pool.contract_name == 'UniswapV2Pair':
             token0 = Token(pool.functions.token0().call())

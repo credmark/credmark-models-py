@@ -32,6 +32,23 @@ from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 np.seterr(all='raise')
 
 
+class UniswapV3Contract(Contract):
+    class Config:
+        schema_extra = {
+            "examples": [{'address': '0x59e1f901b5c33ff6fae15b61684ebf17cca7b9b3'}]
+        }
+
+
+class UniswapV3DexPricePoolInput(UniswapV3Contract, DexPricePoolInput):
+    class Config:
+        schema_extra = {
+            "examples": [{
+                'address': '0x6c6bc977e13df9b0de53b251522280bb72383700',  # DAI-USDC
+                'price_slug': 'uniswap-v3.get-weighted-price',
+                'ref_price_slug': 'uniswap-v3.get-ring0-ref-price'}]
+        }
+
+
 class UniswapV3PoolInfo(DTO):
     address: Address
     sqrtPriceX96: float
@@ -284,12 +301,12 @@ class UniswapV3AllPools(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.15',
+                version='1.16',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=Contract,
+                input=UniswapV3Contract,
                 output=UniswapV3PoolInfo)
 class UniswapV3GetPoolInfo(Model):
 
@@ -299,7 +316,7 @@ class UniswapV3GetPoolInfo(Model):
     # 60
     # 200
 
-    def run(self, input: Contract) -> UniswapV3PoolInfo:
+    def run(self, input: UniswapV3Contract) -> UniswapV3PoolInfo:
         # pylint:disable=locally-disabled, too-many-locals, too-many-statements
         primary_tokens = self.context.run_model(
             'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
@@ -310,7 +327,7 @@ class UniswapV3GetPoolInfo(Model):
         try:
             _ = input.abi
         except ModelDataError:
-            input = Contract(address=input.address).set_abi(
+            input = UniswapV3Contract(address=input.address).set_abi(
                 UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         pool = input
@@ -531,15 +548,15 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.8',
+                version='1.9',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=DexPricePoolInput,
+                input=UniswapV3DexPricePoolInput,
                 output=PoolPriceInfo)
 class UniswapV3GetTokenPoolPriceInfo(Model):
-    def run(self, input: DexPricePoolInput) -> PoolPriceInfo:
+    def run(self, input: UniswapV3DexPricePoolInput) -> PoolPriceInfo:
         info = self.context.run_model(
             'uniswap-v3.get-pool-info', input=Contract(**input.dict()),
             return_type=UniswapV3PoolInfo, local=True)
@@ -632,7 +649,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.18',
+                version='1.19',
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -645,12 +662,13 @@ class UniswapV3GetTokenPoolInfo(Model):
             'uniswap-v3.get-pools', input, return_type=Contracts, local=True)
 
         model_slug = 'uniswap-v3.get-pool-price-info'
-        model_inputs = [DexPricePoolInput(address=pool.address,
-                                          price_slug='uniswap-v3.get-weighted-price',
-                                          ref_price_slug='uniswap-v3.get-ring0-ref-price',
-                                          weight_power=input.weight_power,
-                                          debug=input.debug)
-                        for pool in pools.contracts]
+        model_inputs = [UniswapV3DexPricePoolInput(
+            address=pool.address,
+            price_slug='uniswap-v3.get-weighted-price',
+            ref_price_slug='uniswap-v3.get-ring0-ref-price',
+            weight_power=input.weight_power,
+            debug=input.debug)
+            for pool in pools.contracts]
 
         def _use_compose():
             pool_infos = self.context.run_model(

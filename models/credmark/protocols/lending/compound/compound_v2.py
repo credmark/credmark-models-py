@@ -236,13 +236,19 @@ class CompoundV2AllPoolsValue(Model):
         return ret
 
 
+class CompoundV2Token(Token):
+    class Config:
+        schema_extra = {
+            "examples": [{"address": "0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}]}  # cCOMP
+
+
 @Model.describe(slug="compound-v2.pool-info",
-                version="1.6",
+                version="1.7",
                 display_name="Compound V2 - pool/market information",
                 description="Compound V2 - pool/market information",
                 category='protocol',
                 subcategory='compound',
-                input=Token,
+                input=CompoundV2Token,
                 output=CompoundV2PoolInfo)
 class CompoundV2GetPoolInfo(Model):
     """
@@ -361,7 +367,7 @@ class CompoundV2GetPoolInfo(Model):
                                   for t, _ in self.COMPOUND_CTOKEN[chain_id].items()])
         assert compound_assets == compound_ctokens
 
-    def run(self, input: Token) -> CompoundV2PoolInfo:
+    def run(self, input: CompoundV2Token) -> CompoundV2PoolInfo:
         comptroller = get_comptroller(self)
 
         cToken = Token(address=input.address)
@@ -473,15 +479,15 @@ class CompoundV2GetPoolInfo(Model):
 
 
 @Model.describe(slug="compound-v2.pool-value",
-                version="1.8",
+                version="1.9",
                 display_name="Compound V2 - value of a market",
                 description="Compound V2 - value of a market",
                 category='protocol',
                 subcategory='compound',
-                input=Token,
+                input=CompoundV2Token,
                 output=CompoundV2PoolValue)
 class CompoundV2GetPoolValue(Model):
-    def run(self, input: Token) -> CompoundV2PoolValue:
+    def run(self, input: CompoundV2Token) -> CompoundV2PoolValue:
         pool_info = self.context.run_model(slug='compound-v2.pool-info',
                                            input=input,
                                            return_type=CompoundV2PoolInfo)

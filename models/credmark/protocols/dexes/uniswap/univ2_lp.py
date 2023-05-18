@@ -12,17 +12,23 @@ from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
 
-class V2LPInput(DTO):
+class UniswapV2LPInput(DTO):
     pool: Token
     lp: Address = DTOField(description='Account')
 
+    class Config:
+        schema_extra = {
+            "examples": [{"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
+                          "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"}]
+        }
 
-class V2LPOutput(DTO):
+
+class UniswapV2LPOutput(DTO):
     lp: Position
     tokens: List[Position]
 
 
-class V2LPFeeOutput(DTO):
+class UniswapV2LPFeeOutput(DTO):
     lp: Position
     tokens: List[PositionWithFee]
 
@@ -36,21 +42,28 @@ class V2LPFeeOutput(DTO):
                    tokens=[token0_pos, token1_pos])
 
 
-class V2LPQuantityInput(DTO):
+class UniswapV2LPQuantityInput(DTO):
     pool: Token
     lp_balance: float
 
+    class Config:
+        schema_extra = {
+            "examples": [
+                {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc", "lp_balance": 10000}
+            ]
+        }
+
 
 @Model.describe(slug='uniswap-v2.lp-pos',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v2 (Sushiswap) LP Position (inclusive of fee) for liquidity',
                 description='Returns position (inclusive of fee) for the amount of liquidity',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=V2LPQuantityInput,
-                output=V2LPOutput)
+                input=UniswapV2LPQuantityInput,
+                output=UniswapV2LPOutput)
 class UniswapV2LPQuantity(Model):
-    def run(self, input: V2LPQuantityInput) -> V2LPOutput:
+    def run(self, input: UniswapV2LPQuantityInput) -> UniswapV2LPOutput:
         pool = input.pool
         lp_balance = input.lp_balance
 
@@ -82,7 +95,7 @@ class UniswapV2LPQuantity(Model):
             scaled_reserve1 = token1.scaled(reserves[1])
 
         if math.isclose(lp_balance, 0):
-            return V2LPOutput(
+            return UniswapV2LPOutput(
                 lp=Position(amount=lp_balance, asset=pool),
                 tokens=[Position(amount=0, asset=token0), Position(amount=0, asset=token1)])
 
@@ -93,28 +106,28 @@ class UniswapV2LPQuantity(Model):
         position0 = Position(amount=lp_token0, asset=token0)
         position1 = Position(amount=lp_token1, asset=token1)
 
-        out = V2LPOutput(lp=lp_position, tokens=[position0, position1])
+        out = UniswapV2LPOutput(lp=lp_position, tokens=[position0, position1])
         return out
 
 
 @Model.describe(slug='uniswap-v2.lp',
-                version='0.3',
+                version='0.4',
                 display_name='Uniswap v2 (Sushiswap) LP Position (inclusive of fee) for account',
                 description='Returns position (inclusive of fee) for account',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=V2LPInput,
-                output=V2LPOutput)
+                input=UniswapV2LPInput,
+                output=UniswapV2LPOutput)
 class UniswapV2LP(Model):
-    def run(self, input: V2LPInput) -> V2LPOutput:
+    def run(self, input: UniswapV2LPInput) -> UniswapV2LPOutput:
         pool = input.pool
         lp = input.lp
         lp_balance = pool.functions.balanceOf(lp).call()
 
         return self.context.run_model(
             'uniswap-v2.lp-pos',
-            input=V2LPQuantityInput(pool=input.pool, lp_balance=lp_balance),
-            return_type=V2LPOutput)
+            input=UniswapV2LPQuantityInput(pool=input.pool, lp_balance=lp_balance),
+            return_type=UniswapV2LPOutput)
 
 
 # pylint: disable=invalid-name
@@ -124,8 +137,8 @@ def calculate_v2_fee(context, pool, lp, block_number, transaction_value,
     # Get the amount of tokens for a given amount of LP tokens.
     lp_in_out = context.run_model(
         'uniswap-v2.lp-pos',
-        input=V2LPQuantityInput(pool=pool, lp_balance=1e18),
-        return_type=V2LPOutput,
+        input=UniswapV2LPQuantityInput(pool=pool, lp_balance=1e18),
+        return_type=UniswapV2LPOutput,
         block_number=block_number)
 
     ratio = lp_in_out.tokens[1].amount / lp_in_out.tokens[0].amount
@@ -200,15 +213,15 @@ def uniswap_v2_fee_sample_data():
 
 # pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap v2 (Sushiswap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=V2LPInput,
+                input=UniswapV2LPInput,
                 output=Records)
 class UniswapV2LPFeeHistory(Model):
-    def run(self, input: V2LPInput) -> Records:
+    def run(self, input: UniswapV2LPInput) -> Records:
         pool = input.pool
         lp = input.lp
 
@@ -334,15 +347,15 @@ class UniswapV2LPFeeHistory(Model):
 
 
 @Model.describe(slug='uniswap-v2.lp-fee',
-                version='0.7',
+                version='0.8',
                 display_name='Uniswap v2 (Sushiswap) LP Position (split for fee) for account',
                 description='Returns position (split for fee) for account. The fee is accumulated from last position change.',
                 category='protocol',
                 subcategory='uniswap-v2',
-                input=V2LPInput,
-                output=V2LPFeeOutput)
+                input=UniswapV2LPInput,
+                output=UniswapV2LPFeeOutput)
 class UniswapV2LPFee(Model):
-    def run(self, input: V2LPInput) -> V2LPFeeOutput:
+    def run(self, input: UniswapV2LPInput) -> UniswapV2LPFeeOutput:
         pool = input.pool
         lp = input.lp
 
@@ -371,7 +384,7 @@ class UniswapV2LPFee(Model):
             ).to_dataframe()
 
         if _df.empty:
-            return V2LPFeeOutput.zero(lp, token0, token1)
+            return UniswapV2LPFeeOutput.zero(lp, token0, token1)
 
         prev_block_number = _df['block_number'].to_list()[0]
         prev_transaction_value = _df['sum_transaction_value'].to_list()[0]
@@ -380,8 +393,8 @@ class UniswapV2LPFee(Model):
             prev2_block_number = _df['block_number'].to_list()[1]
             lp_pos = self.context.run_model(
                 'uniswap-v2.lp',
-                input=V2LPInput(pool=input.pool, lp=input.lp),
-                return_type=V2LPOutput,
+                input=UniswapV2LPInput(pool=input.pool, lp=input.lp),
+                return_type=UniswapV2LPOutput,
                 block_number=prev2_block_number)
 
             lp_prev_token0, lp_prev_token1 = lp_pos.tokens[0].amount, lp_pos.tokens[1].amount
@@ -392,8 +405,8 @@ class UniswapV2LPFee(Model):
         else:
             lp_pos = self.context.run_model(
                 'uniswap-v2.lp',
-                input=V2LPInput(pool=input.pool, lp=input.lp),
-                return_type=V2LPOutput,
+                input=UniswapV2LPInput(pool=input.pool, lp=input.lp),
+                return_type=UniswapV2LPOutput,
                 block_number=prev_block_number)
 
             lp_prev_token0, lp_prev_token1 = lp_pos.tokens[0].amount, lp_pos.tokens[1].amount
@@ -414,5 +427,5 @@ class UniswapV2LPFee(Model):
             fee=v2_fee['token1_fee'],
             asset=token1)
 
-        return V2LPFeeOutput(lp=lp_position,
-                             tokens=[position0, position1])
+        return UniswapV2LPFeeOutput(lp=lp_position,
+                                    tokens=[position0, position1])

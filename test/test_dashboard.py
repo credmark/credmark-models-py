@@ -129,8 +129,7 @@ def run_test_uni(self, pool_n, pool, test_volume):
     block_number = 14830357
     self.title(f'Pool TVL/Volume/VaR - Uni/Sushi - {pool_n}')
 
-    # for pool in $univ3_pools; do
-    # for pool in $sushi_pools $univ2_pools; do
+    # uniswap-v2.get-pool-info works with both Uniswap V2 / V3 and SushiSwap
     self.run_model('uniswap-v2.get-pool-info',
                    {"address": pool}, block_number=block_number)
     self.run_model('uniswap-v2.pool-tvl',

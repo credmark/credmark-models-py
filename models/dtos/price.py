@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Contract, Currency, FiatCurrency, Some, Token, Tokens
+from credmark.cmf.types import Currency, FiatCurrency, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
@@ -88,14 +88,15 @@ class PriceWeight(DTO):
 
 
 class DexPriceTokenInput(Token, PriceWeight):
-    ...
+    class Config:
+        schema_extra = {
+            'examples': [{'address': '0x6b175474e89094c44da98b954eedeac495271d0f'},  # DAI
+                         {"symbol": "WETH"},
+                         {"symbol": "WETH", "weight_power": 4.0, "debug": False}, ]
+        }
 
 
-class DexPriceTokensInput(Tokens, PriceWeight):
-    ...
-
-
-class DexPricePoolInput(Contract, PriceWeight):
+class DexPricePoolInput(PriceWeight):
     price_slug: str
     ref_price_slug: Optional[str]
 

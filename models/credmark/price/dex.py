@@ -23,7 +23,6 @@ from models.dtos.price import (
     PRICE_DATA_ERROR_DESC,
     DexPoolAggregationInput,
     DexPriceTokenInput,
-    DexPriceTokensInput,
 )
 
 
@@ -432,54 +431,3 @@ class PriceFromDexModelMaybe(Model):
             if 'No pool to aggregate' in err.data.message:
                 return Maybe.none()
             raise
-
-
-@Model.describe(slug='price.dex-blended-tokens',
-                version='0.4',
-                display_name='Token price - Credmark',
-                description='The Current Credmark Supported Price Algorithms',
-                developer='Credmark',
-                category='price',
-                subcategory='dex',
-                tags=['dex', 'price'],
-                input=DexPriceTokensInput,
-                output=Price,
-                errors=PRICE_DATA_ERROR_DESC)
-class PriceFromDexModelTokens(Model):
-    """
-    Return token's price
-    """
-
-    def run(self, input: DexPriceTokensInput) -> Price:
-        token_input = None
-        all_pool_infos = []
-        for token in input:
-            token_input = DexPriceTokenInput(**token.dict(), **input.dict())
-
-            pool_infos = self.context.run_model('price.dex-pool',
-                                                input=token_input,
-                                                return_type=Some[PoolPriceInfo],
-                                                local=True).some
-
-            for x in pool_infos:
-                if x.token0_address == token.address:
-                    x.token0_address = input.tokens[-1].address
-                    x.token0_symbol = input.tokens[-1].symbol
-
-                if x.token1_address == token.address:
-                    x.token1_address = input.tokens[-1].address
-                    x.token1_symbol = input.tokens[-1].symbol
-
-            all_pool_infos += pool_infos
-
-        # (Some(some=all_pool_infos).to_dataframe()
-        # [['token0_address', 'token1_address', 'token0_symbol', 'token1_symbol']])
-
-        if token_input is not None:
-            pool_aggregator_input = DexPoolAggregationInput(
-                **token_input.dict(),
-                some=all_pool_infos)
-
-            return PoolPriceAggregator(self.context).run(pool_aggregator_input)
-
-        raise ModelRunError(f'No Token has been specified {input}')

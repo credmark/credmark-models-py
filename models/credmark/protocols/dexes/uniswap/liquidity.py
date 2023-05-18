@@ -19,14 +19,21 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
-class V3PoolLiquidityByTicksInput(Contract):
+class UniswapV3PoolLiquidityByTicksInput(Contract):
     min_tick: int = DTOField(
         UNISWAP_V3_MIN_TICK, description='(Optional) minimal tick to search')
     max_tick: int = DTOField(
         UNISWAP_V3_MAX_TICK, description='(Optional) maximum tick to search')
 
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                          "min_tick": 202180-1000,
+                          "max_tick": 202180+1000}]
+        }
 
-class V3PoolLiquidityByTicksOutput(DTO):
+
+class UniswapV3PoolLiquidityByTicksOutput(DTO):
     liquidity: Dict[int, int] = DTOField(
         description='Liquidity mapped to ticks')
     change_on_tick: Dict[int, int] = DTOField(
@@ -38,15 +45,15 @@ class V3PoolLiquidityByTicksOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-liquidity-by-ticks',
-                version='0.0',
+                version='0.1',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=V3PoolLiquidityByTicksInput,
-                output=V3PoolLiquidityByTicksOutput)
+                input=UniswapV3PoolLiquidityByTicksInput,
+                output=UniswapV3PoolLiquidityByTicksOutput)
 class UniswapV3LiquidityHistorical(Model):
-    def run(self, input: V3PoolLiquidityByTicksInput) -> V3PoolLiquidityByTicksOutput:
+    def run(self, input: UniswapV3PoolLiquidityByTicksInput) -> UniswapV3PoolLiquidityByTicksOutput:
         pool_contract = input
 
         try:
@@ -103,7 +110,7 @@ class UniswapV3LiquidityHistorical(Model):
             x += 1
             tick_b = tick_bottom + tick_spacing * x
 
-        return V3PoolLiquidityByTicksOutput(
+        return UniswapV3PoolLiquidityByTicksOutput(
             liquidity=liquidity_on_tick,
             change_on_tick=change_on_tick,
             liquidity_pos_on_tick=liquidity_pos_on_tick,
@@ -242,19 +249,19 @@ def get_amount_in_ticks(logger,
 
 
 @Model.describe(slug='uniswap-v3.get-amount-in-ticks',
-                version='0.0',
+                version='0.1',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
                 subcategory='uniswap-v3',
-                input=V3PoolLiquidityByTicksInput,
+                input=UniswapV3PoolLiquidityByTicksInput,
                 output=dict)
 class UniswapV3AmountInTicks(Model):
-    def run(self, input: V3PoolLiquidityByTicksInput) -> dict:
+    def run(self, input: UniswapV3PoolLiquidityByTicksInput) -> dict:
         liquidity_by_ticks = self.context.run_model(
             'uniswap-v3.get-liquidity-by-ticks',
             input,
-            return_type=V3PoolLiquidityByTicksOutput)
+            return_type=UniswapV3PoolLiquidityByTicksOutput)
 
         pool_contract = input
 
