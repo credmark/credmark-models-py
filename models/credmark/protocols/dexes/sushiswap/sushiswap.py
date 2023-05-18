@@ -1,3 +1,5 @@
+from typing import Optional
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Some, Token
@@ -8,6 +10,25 @@ from credmark.dto import DTO, EmptyInput
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolMeta
 from models.dtos.pool import PoolPriceInfo
 from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
+
+
+class SushiswapContract(Contract):
+    class Config:
+        schema_extra = {
+            "examples": [{'address': '0x6a091a3406E0073C3CD6340122143009aDac0EDa'}]
+        }
+
+
+class SushiswapDexPricePoolInput(SushiswapContract, DexPricePoolInput):
+    price_slug: str
+    ref_price_slug: Optional[str]
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x6a091a3406E0073C3CD6340122143009aDac0EDa",  # ILV-WETH
+                          "price_slug": "sushiswap.get-weighted-price",
+                          "ref_price_slug": "sushiswap.get-ring0-ref-price"}]
+        }
 
 
 @Model.describe(slug="sushiswap.get-v2-factory",
@@ -149,7 +170,7 @@ class SushiswapGetPair(Model):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.13',
+                version='1.14',
                 display_name='Sushiswap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
@@ -165,7 +186,7 @@ class SushiswapGetTokenPriceInfo(Model):
 
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [
-            DexPricePoolInput(
+            SushiswapDexPricePoolInput(
                 address=pool.address,
                 price_slug='sushiswap.get-weighted-price',
                 ref_price_slug='sushiswap.get-ring0-ref-price',

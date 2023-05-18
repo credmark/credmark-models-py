@@ -306,24 +306,26 @@ class CMKGetAllVestingBalances(Model):
         return results
 
 
-@Model.describe(
-    slug="cmk.vesting-events",
-    version="1.1",
-    display_name='CMK Vesting Events',
-    category='protocol',
-    subcategory='cmk',
-    input=Contract,
-    output=dict)
+@Model.describe(slug="cmk.vesting-events",
+                version="1.4",
+                display_name='CMK Vesting Events',
+                category='protocol',
+                subcategory='cmk',
+                output=dict)
 class CMKVestingEvents(Model):
-    def run(self, input: Contract) -> dict:
+    VESTING_SCHEDULE = '0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb'
+
+    def run(self, _) -> dict:
+        contract = Contract(self.VESTING_SCHEDULE)
+
         def _use_filter():
             # Some Eth node does not support the newer eth_newFilter method
             # allocation_claimed_events = input.events.AllocationClaimed.createFilter(
             #    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
             try:
                 # pylint:disable=locally-disabled,protected-access
-                allocation_claimed_events = input.fetch_events(
-                    input.events.AllocationClaimed,
+                allocation_claimed_events = contract.fetch_events(
+                    contract.events.AllocationClaimed,
                     from_block=0,
                     to_block=self.context.block_number)
 
@@ -335,7 +337,7 @@ class CMKVestingEvents(Model):
             return claims
 
         def _use_ledger():
-            with input.ledger.events.AllocationClaimed as q:
+            with contract.ledger.events.AllocationClaimed as q:
                 ledger_events = (q.select(
                     columns=q.columns,
                     order_by=q.ACCOUNT,

@@ -95,7 +95,7 @@ class DexPriceTokensInput(Tokens, PriceWeight):
     ...
 
 
-class DexPricePoolInput(Contract, PriceWeight):
+class DexPricePoolInput(PriceWeight):
     price_slug: str
     ref_price_slug: Optional[str]
 
