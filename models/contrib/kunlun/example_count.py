@@ -50,17 +50,17 @@ class ContribModel(Model):
                 .to_dataframe()
                 .drop_duplicates())
 
-        # Max gas
-        max_gas = int(df_rts.gas_used.max())
+            # Max gas
+            max_gas = int(df_rts.gas_used.max())
 
-        # Total gas cost
-        total_gas_cost = (df_rts.gas_used * (df_rts.effective_gas_price / 1e18)).sum()
+            # Total gas cost
+            total_gas_cost = (df_rts.gas_used * (df_rts.effective_gas_price / 1e18)).sum()
 
-        # Unique address in both from and to
-        count_address = len(set(df_txs.from_address) | set(df_txs.to_address))
+            # Unique address in both from and to
+            count_address = len(set(df_txs.from_address) | set(df_txs.to_address))
 
-        return {'block_number_count': input.block_number_count,
-                'count_txs': count.data[0]['count_tx'],
-                'max_gas': max_gas,
-                'total_gas_cost': total_gas_cost,
-                'count_address': count_address}
+            return {'block_number_count': input.block_number_count,
+                    'count_txs': count.data[0]['count_tx'],
+                    'max_gas': max_gas,
+                    'total_gas_cost': total_gas_cost,
+                    'count_address': count_address}

@@ -32,8 +32,7 @@ def create_graph_from_txn(df_txn) -> nx.DiGraph:
 
 def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
     input_nodes = {u for u, deg in dig.in_degree() if not deg}  # type: ignore
-    # type: ignore
-    output_nodes = {u for u, deg in dig.out_degree() if not deg}
+    output_nodes = {u for u, deg in dig.out_degree() if not deg}  # type: ignore
     in_and_out_nodes = ({u for u, _deg in dig.in_degree()} &  # type: ignore
                         {u for u, _deg in dig.out_degree()})  # type: ignore
 
@@ -116,10 +115,8 @@ def classify_dig(logger, dig: nx.DiGraph, df_txn, debug=False):
 def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
     _ax = plt.figure(3, figsize=figsize)
 
-    etwo = [(u, v) for (u, v, d) in dig.edges(data=True)
-            if len(d["txn_data"]) > 1]  # type: ignore
-    eone = [(u, v) for (u, v, d) in dig.edges(data=True)
-            if len(d["txn_data"]) == 1]  # type: ignore
+    etwo = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) > 1]  # type: ignore
+    eone = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) == 1]  # type: ignore
 
     # positions for all nodes - seed for reproducibility
     pos = nx.spring_layout(dig, seed=9)  # type: ignore

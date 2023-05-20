@@ -85,6 +85,10 @@ class UniV3Pool:
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 
+        self._balance = {}
+        self._call_balance = 0
+        self._call_balance_skip = 0
+
         if _pool_data is None:
             self.pool_tick = None
             self.pool_sqrtPrice = None
@@ -169,7 +173,10 @@ class UniV3Pool:
                     print((t0, t1, t0_t, t1_t))
 
     def __del__(self):
-        pass
+        if self._call_balance != 0:
+            print(f'Saved call to balance_of @ {self.block_number} '
+                  f'({self._call_balance_skip}/{self._call_balance})',
+                  file=sys.stderr, flush=True)
 
     def save(self):
         return {'pool_tick': self.pool_tick, 'pool_sqrtPrice': self.pool_sqrtPrice, 'pool_liquidity': self.pool_liquidity, 'ticks': self.ticks,
@@ -252,9 +259,10 @@ class UniV3Pool:
 
         df_comb_evt = df_comb_evt.sort_values(
             ['blockNumber', 'logIndex']).reset_index(drop=True)
-        print((df_init_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0],
-               df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0]),
-              file=sys.stderr)
+        print((df_init_evt.shape[0], df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0],
+               df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0]),
+              df_comb_evt.blockNumber.nunique(),
+              file=sys.stderr, flush=True)
 
         def _self_check():
             token0_balance = \
@@ -319,10 +327,17 @@ class UniV3Pool:
         # The reserve may change after the event (question to be answered)
         # Token: 0xd46ba6d942050d489dbd938a2c909a5d5039a161 AMPL
         # Pool: 0x86d257cdb7bc9c0df10e84c8709697f92770b335
-        context = ModelContext.current_context()
-        with context.enter(self.block_number):
-            self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-            self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+        try_balance = self._balance.get(int(self.block_number))
+        self._call_balance += 1
+        if try_balance is None:
+            context = ModelContext.current_context()
+            with context.enter(int(self.block_number)):
+                self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+                self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+                self._balance[int(self.block_number)] = self.token0_reserve, self.token1_reserve
+        else:
+            self._call_balance_skip += 1
+            self.token0_reserve, self.token1_reserve = try_balance
 
         reserve0_scaled = self.token0.scaled(self.token0_reserve)
         reserve1_scaled = self.token1.scaled(self.token1_reserve)

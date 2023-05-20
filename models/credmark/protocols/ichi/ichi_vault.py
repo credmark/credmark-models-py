@@ -1206,7 +1206,7 @@ class IchiVaultsPerformance(Model):
                 return_type=MapInputsOutput[VaultPerformanceInput, dict])
 
             all_vault_infos = []
-            for _model_input, vault_result in zip(model_inputs, all_vault_infos_results):
+            for vault_result in all_vault_infos_results:
                 if vault_result.output is not None:
                     all_vault_infos.append(vault_result.output)
                 elif vault_result.error is not None:

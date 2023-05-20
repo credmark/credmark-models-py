@@ -196,8 +196,7 @@ class UniswapV3GetRing0RefPrice(Model):
                     'Not implemented Calculate for missing relations for more than 3 ring0 tokens') from None
 
             for token0_address, token1_address in missing_relations:
-                other_token = list(set(ring0_tokens) -
-                                   {token0_address, token1_address})[0]
+                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
                 ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
                     ratios[(other_token, token1_address)]
 
