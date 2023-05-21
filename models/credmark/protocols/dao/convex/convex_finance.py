@@ -5,7 +5,7 @@ import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Account, Contract, Network, Some, Token
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 
 from models.tmp_abi_lookup import CRV_REWARD
 
@@ -34,7 +34,7 @@ class ConvexFinanceBooster(Model):
         Network.Mainnet: '0xF403C135812408BFbE8713b5A23a04b3D48AAE31'
     }
 
-    def run(self, _: EmptyInput) -> Contract:
+    def run(self, _) -> Contract:
         booster = Contract(address=self.BOOSTER[self.context.network])
         _1 = booster.abi
         return booster

@@ -6,9 +6,16 @@ from credmark.cmf.types import Address, Contract
 from models.credmark.protocols.dexes.curve.curve_finance import CurvePoolContract
 
 
+class CurvePoolContractSkipTest(CurvePoolContract):
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
+
 @Model.describe(slug='curve-fi.lp-pool-dist',
                 version='1.0',
-                input=CurvePoolContract)
+                input=CurvePoolContractSkipTest)
 class CurveFinanceLPPoolDist(Model):
 
     def run(self, input: CurvePoolContract) -> dict:

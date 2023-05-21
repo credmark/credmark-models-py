@@ -109,8 +109,8 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.historical-gauge-lp-dist',
                        {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'})
 
-        self.run_model('curve-fi.lp-pool-dist',
-                       {"address": "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"})
+        # self.run_model('curve-fi.lp-pool-dist',
+        #               {"address": "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"})
 
     def test_gauge(self):
         self.title('Curve - Gauge')

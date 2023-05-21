@@ -5,7 +5,7 @@ from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Some, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolMeta
 from models.dtos.pool import PoolPriceInfo
@@ -82,7 +82,7 @@ class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
                 subcategory='uniswap-v2',
                 output=dict)
 class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         factory_addr = self.context.run_model(
             'sushiswap.get-v2-factory', {},
             return_type=Contract, local=True)
@@ -117,7 +117,7 @@ class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
                 category='protocol',
                 subcategory='sushi')
 class SushiswapAllPairs(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         contract = Contract(
             **self.context.models(local=True).sushiswap.get_v2_factory())
         allPairsLength = contract.functions.allPairsLength().call()

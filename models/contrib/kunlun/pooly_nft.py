@@ -3,7 +3,7 @@
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import Contract, Records, Token
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField
 
 
 class PoolyNFT:
@@ -43,7 +43,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
         name = contract.functions.name().call()
         return nft, name
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         with self.context.ledger.Transaction as q:
             df_group_by = (
                 q.select(
@@ -90,7 +90,7 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
     https://dune.com/queries/887079 # count unique
     """
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         pg = 0
         dfs = []
         with self.context.ledger.Transaction as q:
@@ -237,7 +237,7 @@ class PoolyNFTSupply(Model, PoolyNFT):
         name = contract.functions.name().call()
         return supply, max_nft, name
 
-    def run(self, _: EmptyInput) -> Records:
+    def run(self, _) -> Records:
         rows = []
         for nft in [self.POOLY_JUDGE, self.POOLY_LAWYER, self.POOLY_SUPPORT]:
             supply, max_nft, name = self.fetch_supply_and_minted(nft)
@@ -264,7 +264,7 @@ class PoolyNFTFundRaiseSeries(Model, PoolyNFT):
     https://dune.com/queries/887727
     """
 
-    def run(self, _: EmptyInput) -> Records:
+    def run(self, _) -> Records:
         pg = 0
         dfs = []
         with self.context.ledger.Transaction as q:

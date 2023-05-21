@@ -12,7 +12,7 @@ from credmark.cmf.types import (
     Network,
     Token,
 )
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField
 from eth_abi.abi import encode_abi
 from eth_typing.evm import ChecksumAddress
 
@@ -35,7 +35,7 @@ class IPOROracle(Model):
 
     }
 
-    def run(self, _: EmptyInput) -> Contracts:
+    def run(self, _) -> Contracts:
         return Contracts(contracts=[Contract(address=self.IPOR_ORACLE[self.context.network]),
                                     Contract(address=self.IPOR_CALCULATOR[self.context.network]), ]
                          )
@@ -64,7 +64,7 @@ class IPORIndex(Model):
         ]
     }
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         assets = None
         for last_block_number, asset_list in self.IPOR_ASSETS[self.context.network]:
             assets = asset_list
@@ -145,7 +145,7 @@ class IPORLpExchange(Model):
         ]
     }
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         josephs = None
         for last_block_number, joseph_list in self.IPOR_JOSEPH[self.context.network]:
             josephs = joseph_list

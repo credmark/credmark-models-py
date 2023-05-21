@@ -62,7 +62,7 @@ class IchiVaultTokens(Model):
         '0x692AC1e363ae34b6B489148152b12e2785a3d8d6',
     ]
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         result = {}
         for token_addr in self.ICHI_POLYGON_COINS:
             tok = Token(token_addr).as_erc20(set_loaded=True)

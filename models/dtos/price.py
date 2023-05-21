@@ -64,9 +64,9 @@ class PriceInput(DTO):
                              '_test_multi_chain': {'chain_id': 43114, 'block_number': None}},
                          {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787",
                              '_test_multi_chain': {'chain_id': 56, 'block_number': None}},
-                         {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb",
+                         {"base": "0x5559edb74751a0ede9dea4dc23aee72cca6be3d5",
                              '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
-                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+                         {"base": 'WETH', '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
                          ],
             'test_multi_chain': True
         }

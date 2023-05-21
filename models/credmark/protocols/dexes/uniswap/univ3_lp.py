@@ -35,8 +35,7 @@ class UniswapV3LPInput(DTO):
         schema_extra = {
             'examples': [
                 {'lp': '0x297e12154bde98e96d475fc3a554797f7a6139d0', '_test_multi_chain': {'chain_id': 1}},
-                {"lp": "0x81cc7da862be71a455dd065e87e0f772184a7210",
-                    '_test_multi_chain': {'chain_id': 1, 'block_number': None}},
+                {"lp": "0x81cc7da862be71a455dd065e87e0f772184a7210", '_test_multi_chain': {'chain_id': 1}},
                 {"lp": "0x721cf5873d65556f8632feba7fb12a73a5feb22e",
                     '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
                 {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17",
@@ -125,7 +124,7 @@ class UniswapV3IDInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{"id": 355427, '_test_multi_chain': {'chain_id': 1, 'block_number': None}},
+            'examples': [{"id": 355427, '_test_multi_chain': {'chain_id': 1, }},
                          {"id": 30000, '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
                          {"id": 350000, '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
                          {"id": 347031, '_test_multi_chain': {'chain_id': 137, 'block_number': None}},

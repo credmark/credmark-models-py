@@ -5,7 +5,6 @@ from credmark.cmf.types.compose import (
     MapBlockTimeSeriesOutput,
 )
 from credmark.cmf.types.series import BlockSeries, BlockSeriesErrorRow, BlockSeriesRow
-from credmark.dto import EmptyInput
 
 from models.dtos.historical import HistoricalRunModelInput
 
@@ -18,7 +17,7 @@ from models.dtos.historical import HistoricalRunModelInput
                 subcategory='composer',
                 output=dict)
 class HistoricalEmpty(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         return {}
 
 
