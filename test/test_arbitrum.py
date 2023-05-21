@@ -24,4 +24,5 @@ class TestArbitrumOne(CMFTest):
                        chain_id=chain_id)
 
         self.run_model('price.oracle-chainlink',
-                       {"base": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f"}, block_number=block_number, chain_id=chain_id)
+                       {"base": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f"},
+                       block_number=block_number, chain_id=chain_id)

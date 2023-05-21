@@ -63,7 +63,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
             self.logger.info('No funds raised')
             return {'total_raised_qty': 0}
 
-        df_group_by = df_group_by.assign(sum_value=lambda x: x.sum_value / 1e18)
+        df_group_by = df_group_by.assign(sum_value=lambda x: x.sum_value.astype(float) / 1e18)
 
         total_raised_qty_from_sum = df_group_by.sum_value.sum()
         self.logger.info(f'total raised: {total_raised_qty_from_sum}')
@@ -124,7 +124,7 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
             pd
             .concat(dfs)
             .assign(block_timestamp_day=lambda df:
-                    df.block_timestamp.max() - ((df.block_timestamp.max() - df.block_timestamp) // (24 * 3600) * 24 * 3600)))
+                    df.block_timestamp.max() - ((df.block_timestamp.max() - df.block_timestamp) // 86400 * 86400)))
 
         eth_price = self.context.models.price.quote(base='WETH', quote='USD')['price']
 
@@ -153,6 +153,11 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
 
 class LeaderInput(DTO):
     top_n: int = DTOField(10, description='Top N leaders to return')
+
+    class Config:
+        schema_extra = {
+            'example': {'top_n': 10}
+        }
 
 
 @Model.describe(slug='contrib.pooly-fund-raise-leaderboard',

@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField, EmptyInputSkipTest
 
 from .dtos import ExampleModelOutput
 
@@ -109,6 +109,7 @@ class TestModel(Model):
     version='1.2',
     display_name='DTO Type Test 2',
     developer='Credmark',
+    input=EmptyInputSkipTest,
     output=PortfolioSummary)
 class TestModel2(Model):
     def run(self, _) -> PortfolioSummary:

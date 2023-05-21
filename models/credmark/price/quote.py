@@ -1,5 +1,4 @@
 # pylint:disable=try-except-raise, no-member, line-too-long, pointless-string-statement
-from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
@@ -20,16 +19,16 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapInputsOutput
-from credmark.dto import DTOField
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolLPPosition
 from models.dtos.price import (
     PRICE_DATA_ERROR_DESC,
+    PriceBlocksInput,
     PriceHistoricalInput,
-    PriceHistoricalInputs,
     PriceInput,
     PriceInputWithPreference,
     PriceMultipleInput,
+    PricesHistoricalInput,
     PriceSource,
 )
 from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
@@ -53,17 +52,17 @@ credmark-dev run price.dex-db -i '{"address": "0x7b0c54eaaaa1ead551d053d6c4c5f95
 
 
 @Model.describe(slug='price.quote-historical-multiple',
-                version='1.11',
+                version='1.12',
                 display_name='Token Price - Quoted - Historical',
                 description='Credmark Supported Price Algorithms',
                 developer='Credmark',
                 category='protocol',
                 tags=['token', 'price'],
-                input=PriceHistoricalInputs,
+                input=PricesHistoricalInput,
                 output=MapBlockTimeSeriesOutput[Some[PriceWithQuote]],
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuoteHistoricalMultiple(Model):
-    def run(self, input: PriceHistoricalInputs) -> MapBlockTimeSeriesOutput[Some[PriceWithQuote]]:
+    def run(self, input: PricesHistoricalInput) -> MapBlockTimeSeriesOutput[Some[PriceWithQuote]]:
         price_historical_result = self.context.run_model(
             slug='compose.map-block-time-series',
             input={"modelSlug": 'price.quote-multiple',
@@ -239,10 +238,6 @@ class PriceQuoteMultiple(Model):
             return Some[PriceWithQuote](some=prices)
 
         return _use_for()
-
-
-class PriceBlocksInput(PriceInputWithPreference):
-    block_numbers: List[int] = DTOField(description='List of blocks to run')
 
 
 @Model.describe(slug='price.quote-maybe-blocks',

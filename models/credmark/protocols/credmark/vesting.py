@@ -63,20 +63,18 @@ class CMKGetVestingContracts(Model):
                              code=ModelDataError.Codes.NO_DATA)
 
 
-@Model.describe(
-    slug="cmk.get-vesting-accounts",
-    version="1.2",
-    display_name='CMK Vesting Accounts',
-    category='protocol',
-    subcategory='cmk',
-    output=Accounts
-)
+@Model.describe(slug="cmk.get-vesting-accounts",
+                version="1.2",
+                display_name='CMK Vesting Accounts',
+                category='protocol',
+                subcategory='cmk',
+                output=Accounts
+                )
 class CMKGetVestingAccounts(Model):
     def run(self, _) -> Accounts:
         accounts = set()
         accounts_info = []
         for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-
             def _use_filter(contract):
                 try:
                     vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
@@ -120,12 +118,19 @@ class CMKGetVestingAccounts(Model):
         return Accounts(accounts=accounts_info)
 
 
+class CredmarkVestingAccount(Account):
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xd766ee3ab3952fe7846db899ce0139da06fbe459"}
+        }
+
+
 @Model.describe(slug="cmk.get-vesting-info-by-account",
-                version="1.5",
+                version="1.6",
                 display_name='CMK Vesting Info by Account',
                 category='protocol',
                 subcategory='cmk',
-                input=Account,
+                input=CredmarkVestingAccount,
                 output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
     def run(self, input: Account) -> AccountVestingInfo:

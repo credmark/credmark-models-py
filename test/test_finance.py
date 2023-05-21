@@ -89,10 +89,8 @@ class TestFinance(CMFTest):
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
                                       [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
-                                       {"amount": 10, "asset": {
-                                           "address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
-                                          {"amount": 10, "asset": {
-                                              "address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
+                                       {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
+                                       {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
                                        ]}})
 
     def test4(self):

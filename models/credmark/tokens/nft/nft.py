@@ -16,15 +16,21 @@ RTFKT_MNLTH_NFT = '0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1'
 
 # credmark-dev run nft.about -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -j --api_url http://localhost:8700
 
+class NFTContract(Contract):
+    class Config:
+        schema_extra = {
+            'examples': [{"address": AZUKI_NFT}]
+        }
+
 
 @Model.describe(slug='nft.about',
-                version='0.1',
+                version='0.2',
                 display_name='NFT about',
                 description="nft",
-                input=Contract,
+                input=NFTContract,
                 output=dict)
 class NFTAbout(Model):
-    def run(self, input: Contract) -> dict:
+    def run(self, input: NFTContract) -> dict:
         name = input.functions.name().call()
         symbol = input.functions.symbol().call()
         total_supply = input.functions.totalSupply().call()
@@ -45,10 +51,10 @@ class NFTAbout(Model):
 
 
 @Model.describe(slug='nft.mint',
-                version='0.3',
+                version='0.4',
                 display_name='NFT mint in ETH',
                 description="nft",
-                input=Contract,
+                input=NFTContract,
                 output=dict)
 class NFTMint(Model):
     def get_mint_and_tx_with_join(self, contract):
@@ -88,7 +94,7 @@ class NFTMint(Model):
         df_tx = pd.concat(dfs)
         return df_tx
 
-    def run(self, input: Contract) -> dict:
+    def run(self, input: NFTContract) -> dict:
         df_mint = self.get_mint_and_tx_with_join(input)
         if df_mint is None:
             return {'status': 'no mint'}
@@ -137,14 +143,19 @@ class NFTMint(Model):
         }
 
 
-class NFTGetInput(Contract):
+class NFTGetInput(NFTContract):
     id: int
+
+    class Config:
+        schema_extra = {
+            'examples': [{'address': AZUKI_NFT, 'id': 1123}]
+        }
 
 # credmark-dev run nft.get -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544", "id": 9638}'
 
 
 @Model.describe(slug='nft.get',
-                version='0.3',
+                version='0.4',
                 display_name='NFT Get',
                 description="nft",
                 input=NFTGetInput,

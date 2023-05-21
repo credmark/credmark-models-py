@@ -247,8 +247,10 @@ class TestToken(CMFTest):
                        {"address": "0xc3d03e4f041fd4cd388c549ee2a29a9e5075882f"})
 
         # UniSwap V3 factory: 0x1F98431c8aD98523631AE4a59f267346ea31F984
-        self.run_model("token.categorized-supply", {"categories": [{"accounts": {"accounts": [
-                       {"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": True}], "token": {"symbol": "DAI"}})
+        self.run_model("token.categorized-supply",
+                       {"categories": [
+                           {"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]}, "categoryName": "", "categoryType": "", "circulating": True}],
+                           "token": {"symbol": "DAI"}})
 
         self.run_model('token.all', {'limit': 10})
         self.run_model('token.all', {'limit': 10, 'page': 2})

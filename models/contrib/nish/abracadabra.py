@@ -135,6 +135,11 @@ class AbracadabraGetTVL(Model):
 class AbracadabraHistoricalInput(DTO):
     date_range: Tuple[date, date]
 
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
 
 @Model.describe(slug="contrib.abracadabra-tvl-historical",
                 version="1.0",
@@ -197,17 +202,24 @@ class AbracadabraPortfolio(IterableListGenericDTO[AbracadabraVaultPortfolio]):
     _iterator: str = 'abracadabra_portfolio'
 
 
+class AbracadabraContract(Contract):
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
+
 # Fetching Collateral of each market of abracadabra on ethereum chain
 @Model.describe(slug="contrib.abracadabra-vault-portfolio",
-                version="1.1",
+                version="1.2",
                 display_name="Vault portfolio for abracadabra",
                 description="Get the vault portfolio for abracadabra",
                 category='protocol',
                 subcategory='abracadabra',
-                input=Contract,
+                input=AbracadabraContract,
                 output=AbracadabraVaultPortfolio)
 class AbracadabraGetVaultPortfolio(Model):
-    def run(self, input: Contract) -> AbracadabraVaultPortfolio:
+    def run(self, input: AbracadabraContract) -> AbracadabraVaultPortfolio:
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
         # Values of ethereum_active_markets
@@ -289,7 +301,7 @@ class AbracadabraGetVaultPortfolio(Model):
                 subcategory='abracadabra',
                 output=AbracadabraPortfolio)
 class AbracadabraGetOverallPortfolio(Model):
-    def run(self, input) -> AbracadabraPortfolio:
+    def run(self, _) -> AbracadabraPortfolio:
         abracadabra_portfolio = []
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
@@ -374,8 +386,7 @@ class AbracadabraOverallLiabilities(Model):
                 subcategory='abracadabra',
                 output=AbracadabraOutput)
 class AbracadabraOverallAssets(Model):
-
-    def run(self, input) -> AbracadabraOutput:
+    def run(self, _) -> AbracadabraOutput:
         # Dict of coin balances
         balances = {}
         # Total Value Locked

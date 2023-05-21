@@ -176,7 +176,7 @@ class TokenUnderlying(Model):
 
 
 @Model.describe(slug="token.info",
-                version="1.2",
+                version="1.4",
                 display_name="Token Information",
                 developer="Credmark",
                 category='protocol',
@@ -199,6 +199,7 @@ class TokenInfoModel(Model):
 
 
 class TokenDeploymentInput(Token, ModelResultInput):
+    # Use Token as base class to accept symbol as input
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
@@ -213,7 +214,7 @@ class TokenDeploymentOutput(ModelResultOutput):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.6",
+                version="0.8",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -462,6 +463,12 @@ class TokenBalanceInput(Token):
     quote: Currency = DTOField(FiatCurrency(symbol='USD'),
                                description='Quote token address to count the value')
 
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                        "account": "0x55FE002aefF02F77364de339a1292923A15844B8"}
+        }
+
 
 class TokenBalanceOutput(DTO):
     balance: int = DTOField(description="Balance of account")
@@ -606,7 +613,7 @@ class TokenHoldersCount(Model):
 
 
 @Model.describe(slug='token.holders-all',
-                version='0.3',
+                version='0.4',
                 display_name='Token Holders All',
                 description='All holders of a Token',
                 category='protocol',
@@ -615,11 +622,11 @@ class TokenHoldersCount(Model):
                 output=dict)
 class TokenNumberHolders(Model):
     def run(self, input: Token) -> dict:
-        with self.context.ledger.TokenTransfer as q:
+        with self.context.ledger.TokenBalance as q:
             df = q.select(aggregates=[],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
-                          having=q.VALUE.sum_().gt(0)
+                          having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0)
                           ).to_dataframe()
         return df.to_dict()
 
@@ -654,6 +661,17 @@ class CategorizedSupplyRequest(IterableListGenericDTO):
     categories: List[CategorizedSupplyCategory]
     _iterator: str = 'categories'
     token: Token
+
+    class Config:
+        schema_extra = {
+            'example': {
+                "categories": [
+                    {"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]},
+                     "categoryName": "",
+                     "categoryType": "",
+                     "circulating": True}],
+                "token": {"symbol": "DAI"}}
+        }
 
 
 class CategorizedSupplyResponse(CategorizedSupplyRequest):
@@ -708,6 +726,11 @@ class TokenCirculatingSupply(Model):
 class TokenAllInput(DTO):
     limit: int = DTOField(gt=0, description='Number of tokens per page', default=5000)
     page: int = DTOField(description='Page number', default=1, gt=0)
+
+    class Config:
+        schema_extra = {
+            'example': {'limit': 10, 'page': 2}
+        }
 
 
 class TokenAllOutput(TokenAllInput):

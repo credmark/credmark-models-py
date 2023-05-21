@@ -17,11 +17,8 @@ class ExampleHistoricalPriceInput(DTO):
         schema_extra = {
             'description': ('Returns a list of prices from 1 to window + 1 '
                             '(1 more input as we need to calculate return)'),
-            'examples': [{
-                'prices': [float(i) for i in range(1, 31+1)],
-                'tokenAddress': '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
-                'src': 'finance.example-historical-price'
-            }]
+            'examples': [{'token': {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"},
+                          "window": "30 days"}]
         }
 
 

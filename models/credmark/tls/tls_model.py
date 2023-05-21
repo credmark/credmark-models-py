@@ -43,9 +43,14 @@ class TLSItem(DTO):
         use_enum_values = True
 
 
-class TLSInput(Token):
+class TLSToken(Token):
     tx_history_hours: int = DTOField(
         default=24, description='Transaction Historical Hours')
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", 'tx_history_hours': 24}]
+        }
 
 
 class TLSOutput(Account):
@@ -71,7 +76,7 @@ class TLSOutput(Account):
                 description='TLS ranges from 10 (highest, legitimate) to 0 (lowest, illegitimate)',
                 category='TLS',
                 tags=['token'],
-                input=TLSInput,
+                input=TLSToken,
                 output=TLSOutput
                 )
 class TLSScore(Model):
@@ -89,7 +94,7 @@ class TLSScore(Model):
         self.logger.info(message)
 
     # pylint: disable=too-many-return-statements
-    def run(self, input: TLSInput) -> TLSOutput:
+    def run(self, input: TLSToken) -> TLSOutput:
         items = []
 
         # 1. Currency code

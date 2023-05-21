@@ -178,6 +178,9 @@ class UniV2Pool:
 
         if df_comb_evt.empty:
             return df_comb_evt
+        print((df_sync_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0]),
+              df_comb_evt.blockNumber.nunique(),
+              file=sys.stderr, flush=True)
 
         df_comb_evt = df_comb_evt.sort_values(
             ['blockNumber', 'logIndex']).reset_index(drop=True)

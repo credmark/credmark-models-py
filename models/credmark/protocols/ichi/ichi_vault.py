@@ -24,9 +24,16 @@ from requests.exceptions import HTTPError
 from models.credmark.protocols.dexes.uniswap.univ3_math import tick_to_price
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
 
-
 # ICHI Vault
 # https://app.ichi.org/vault?token={}',
+
+
+class EmptyInputWithNetwork(EmptyInput):
+    class Config:
+        schema_extra = {
+            'examples': [{'_test_multi_chain': {'chain_id': 137, 'block_number': None}}],
+            'test_multi_chain': True
+        }
 
 
 @Model.describe(slug='ichi.vault-tokens',
@@ -34,6 +41,7 @@ from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAU
                 display_name='',
                 description='The tokens used in ICHI vaults',
                 category='protocol',
+                input=EmptyInputWithNetwork,
                 subcategory='ichi',
                 output=dict)
 class IchiVaultTokens(Model):
@@ -66,10 +74,11 @@ class IchiVaultTokens(Model):
 # credmark-dev run ichi.vaults --api_url http://localhost:8700 -c 137
 
 @Model.describe(slug='ichi.vaults',
-                version='0.8',
+                version='0.9',
                 display_name='',
                 description='ICHI vaults',
                 category='protocol',
+                input=EmptyInputWithNetwork,
                 subcategory='ichi',
                 output=dict)
 class IchiVaults(Model):
@@ -97,7 +106,7 @@ class IchiVaults(Model):
         '0x21e6910A769d10ef4236107493406a9788C758a3'   # TRADE-USDT', TRADE
     ]
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         latest_run = self.context.models.get_result(
             self.slug, self.version,
             self.context.__dict__['original_input'],
@@ -155,16 +164,24 @@ class IchiVaults(Model):
         return vault_info
 
 
+class IchiVaultContract(Contract):
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7", "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
+            'test_multi_chain': True
+        }
+
+
 @Model.describe(slug='ichi.vault-info',
-                version='0.13',
+                version='0.14',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=Contract,
+                input=IchiVaultContract,
                 output=dict)
 class IchiVaultInfo(Model):
-    def run(self, input: Contract) -> dict:
+    def run(self, input: IchiVaultContract) -> dict:
         latest_run = self.context.models.get_result(
             self.slug,
             self.version,
@@ -283,15 +300,15 @@ class IchiVaultInfo(Model):
 
 
 @Model.describe(slug='ichi.vault-info-full',
-                version='0.4',
+                version='0.5',
                 display_name='ICHI vault info (full)',
                 description='Get the vault info from ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=Contract,
+                input=IchiVaultContract,
                 output=dict)
 class IchiVaultInfoFull(Model):
-    def run(self, input: Contract) -> dict:
+    def run(self, input: IchiVaultContract) -> dict:
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
@@ -393,15 +410,15 @@ class IchiVaultFirstDepositOutput(DTO):
 
 
 @Model.describe(slug='ichi.vault-first-deposit',
-                version='0.4',
+                version='0.5',
                 display_name='ICHI vault first deposit',
                 description='Get the block_number of the first deposit of an ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=Contract,
+                input=IchiVaultContract,
                 output=IchiVaultFirstDepositOutput)
 class IchiVaultFirstDeposit(Model):
-    def run(self, input: Contract) -> IchiVaultFirstDepositOutput:
+    def run(self, input: IchiVaultContract) -> IchiVaultFirstDepositOutput:
         latest_run = self.context.models.get_result(
             self.slug,
             self.version,
@@ -455,6 +472,15 @@ class IchiVaultFirstDeposit(Model):
 class ContractEventsInput(Contract, ModelResultInput):
     event_name: str = DTOField(description='Event name')
     event_abi: Optional[Any] = DTOField(None, description='ABI of the event')
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974",
+                          "event_name": "Deposit",
+                          "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {"indexed": False, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Deposit", "type": "event"}],
+                          '_test_multi_chain': {'chain_id': 137, 'block_number': 40100090}}],
+            'test_multi_chain': True
+        }
 
 
 class ContractEventsOutput(ModelResultOutput):
@@ -557,7 +583,7 @@ class ContractEvents(Model):
         )
 
 
-class ContractWithUseModelResult(Contract, ModelResultInput):
+class IchiVaultContractWithUseModelResult(IchiVaultContract, ModelResultInput):
     pass
 
 # credmark-dev run ichi.vault-cashflow -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137 --api_url=http://localhost:8700 -j -b 42454582
@@ -565,12 +591,12 @@ class ContractWithUseModelResult(Contract, ModelResultInput):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.16',
+                version='0.17',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=ContractWithUseModelResult,
+                input=IchiVaultContractWithUseModelResult,
                 output=Records)
 class IchiVaultCashflow(Model):
     ICHI_VAULT_DEPOSIT_GUARD = {
@@ -601,7 +627,7 @@ class IchiVaultCashflow(Model):
                 df_deposit_forwarded.rename(columns={'amount': 'amount1'}, inplace=True)
                 df_deposit_forwarded = df_deposit_forwarded.assign(amount0=0)
 
-    def run(self, input: ContractWithUseModelResult) -> Records:
+    def run(self, input: IchiVaultContractWithUseModelResult) -> Records:
         _prev_result_block = 0
         prev_result = pd.DataFrame()
 
@@ -719,14 +745,29 @@ class IchiVaultCashflow(Model):
         return Records.from_dataframe(df_cash_flow_comb)
 
 
-class PerformanceInput(DTO):
+class IchiPerformanceInput(DTO):
     days_horizon: List[int] = DTOField(
         [], description='Time horizon in days')
     base: int = DTOField(1000, description='Base amount to calculate value')
 
+    class Config:
+        schema_extra = {
+            'examples': [{"days_horizon": [7],
+                          "base": 1000,
+                          "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
+            'test_multi_chain': True
+        }
 
-class VaultPerformanceInput(Contract, PerformanceInput):
-    pass
+
+class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7",
+                          "days_horizon": [7],
+                          "base": 1000,
+                          "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
+            'test_multi_chain': True
+        }
 
 # credmark-dev run ichi.vault-performance -i '{"address": "0x711901e4b9136119fb047abe8c43d49339f161c3", "days_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j -b 42488937
 # credmark-dev run ichi.vault-performance -i '{"address": "0x711901e4b9136119fb047abe8c43d49339f161c3", "days_horizon":[]}' -c 137 --api_url=http://localhost:8700 -j -b 42488937
@@ -741,12 +782,12 @@ class VaultPerformanceInput(Contract, PerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.33',
+                version='0.34',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=VaultPerformanceInput,
+                input=IchiVaultPerformanceInput,
                 output=dict)
 class IchiVaultPerformance(Model):
     """
@@ -1046,13 +1087,12 @@ class IchiVaultPerformance(Model):
 
         return current_value
 
-    def run(self, input: VaultPerformanceInput) -> dict:
+    def run(self, input: IchiVaultPerformanceInput) -> dict:
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         # _vault_pool_addr = Address(vault_ichi.functions.pool().call())
 
-        deployment = self.context.run_model(
-            'token.deployment', {'address': vault_addr, 'ignore_proxy': True})
+        deployment = self.context.run_model('token.deployment', {'address': vault_addr, 'ignore_proxy': True})
 
         deployed_block_number = deployment['deployed_block_number']
         deployed_block_timestamp = deployment['deployed_block_timestamp']
@@ -1180,10 +1220,10 @@ class IchiVaultPerformance(Model):
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
                 subcategory='ichi',
-                input=PerformanceInput,
+                input=IchiPerformanceInput,
                 output=dict)
 class IchiVaultsPerformance(Model):
-    def run(self, input: PerformanceInput) -> dict:
+    def run(self, input: IchiPerformanceInput) -> dict:
         vaults_all = self.context.run_model('ichi.vaults', {})['vaults']
 
         model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
@@ -1203,10 +1243,10 @@ class IchiVaultsPerformance(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'ichi.vault-performance',
                        'modelInputs': model_inputs},
-                return_type=MapInputsOutput[VaultPerformanceInput, dict])
+                return_type=MapInputsOutput[IchiVaultPerformanceInput, dict])
 
             all_vault_infos = []
-            for _model_input, vault_result in zip(model_inputs, all_vault_infos_results):
+            for vault_result in all_vault_infos_results:
                 if vault_result.output is not None:
                     all_vault_infos.append(vault_result.output)
                 elif vault_result.error is not None:

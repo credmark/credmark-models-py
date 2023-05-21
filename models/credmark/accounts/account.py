@@ -252,18 +252,17 @@ class AccountsTokenReturnHistorical(Model):
                     slug='price.quote-multiple-maybe',
                     input=Some(some=[{'base': addr}
                                for addr in non_zero_bal_tokens_addrs]),
+                    block_number=_past_block_number,
                     return_type=Some[Maybe[PriceWithQuote]],
-                    block_number=_past_block_number
                 )
 
-                for p_maybe, (token_addr, token_value) in zip(pqs_maybe, non_zero_bal_tokens_dict.items()):
+                for p_maybe, (token_addr, token_value) in zip(pqs_maybe.some, non_zero_bal_tokens_dict.items()):
                     asset_token = Token(token_addr).as_erc20(set_loaded=True)
-                    if p_maybe.just is None:
+                    if p_maybe.is_just():
                         continue
                     try:
-                        _assets.append(
-                            Position(amount=asset_token.scaled(token_value),
-                                     asset=asset_token))
+                        _assets.append(Position(amount=asset_token.scaled(token_value),
+                                                asset=asset_token))
                     except (ModelDataError, ContractLogicError):
                         # NFT: ContractLogicError
                         continue
