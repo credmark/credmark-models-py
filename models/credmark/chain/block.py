@@ -21,7 +21,7 @@ class TimestampOutput(DTO):
 
 
 @Model.describe(slug="chain.get-block-timestamp",
-                version="0.3",
+                version="0.2",  # DO NOT CHANGE THIS VERSION
                 display_name="Obtain block timestamp",
                 description='In UTC',
                 category='chain',
@@ -59,7 +59,7 @@ class Block(DTO):
 
 
 @Model.describe(slug="chain.get-block",
-                version="0.4",
+                version="0.3",  # CAN CHANGE THIS VERSION
                 display_name="Obtain block from timestamp",
                 description='In UTC',
                 category='chain',
@@ -154,7 +154,7 @@ class LatestBlock(DTO):
 
 
 @Model.describe(slug="chain.get-latest-block",
-                version="0.2",
+                version="0.1",  # DO NOT CHANGE THIS VERSION
                 display_name="Obtain latest block",
                 description='block number and timestamp',
                 category='chain',
