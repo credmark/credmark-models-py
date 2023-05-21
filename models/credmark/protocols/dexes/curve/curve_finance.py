@@ -126,9 +126,9 @@ class CurveFinanceAllPools(Model):
         total_pools = registry.functions.pool_count().call()
         pool_contracts = [None] * total_pools
         for i in range(0, total_pools):
-            pool_contracts[i] = Contract(
-                address=registry.functions.pool_list(i).call())
-            _ = pool_contracts[i].abi
+            pool_contracts[i] = (Contract(address=registry.functions.pool_list(i).call())
+                                 .set_abi(CURVE_VYPER_POOL, set_loaded=True))
+            _abi = pool_contracts[i].abi
 
         return Contracts(contracts=pool_contracts)
 
@@ -136,7 +136,8 @@ class CurveFinanceAllPools(Model):
 class CurvePoolContract(Contract):
     class Config:
         schema_extra = {
-            'examples': [{'address': '0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c'}]
+            'examples': [{'address': '0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c'},
+                         {'address': '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46'}]
         }
 
 
@@ -506,7 +507,8 @@ class CurveGaugeContract(Contract):
         schema_extra = {
             'examples': [{'address': '0x824F13f1a2F29cFEEa81154b46C0fc820677A637'},
                          {'address': '0x72E158d38dbd50A483501c24f792bDAAA3e7D55C'},
-                         {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'}]
+                         {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'},
+                         {'address': '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'}]
         }
 
 

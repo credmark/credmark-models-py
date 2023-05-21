@@ -9,6 +9,18 @@ class ConvexPoolInput(DTO):
     lp_token: Address
     reward: Address
 
+    class Config:
+        schema_extra = {
+            'examples': [
+                {
+                    'lp_token': '0x5b5cfe992adac0c9d48e05854b2d91c73a003858',
+                    'reward': '0x353e489311b21355461353fec2d02b73ef0ede7f'},
+                {
+                    'lp_token': '0xd632f22692fac7611d2aa1c0d552930d43caed3b',
+                    'reward': '0xb900ef131301b307db5efcbed9dbb50a3e209b2e'
+                }
+            ]}
+
 
 @Model.describe(slug="contrib.curve-convex-yield",
                 display_name="APR for Convex pool",

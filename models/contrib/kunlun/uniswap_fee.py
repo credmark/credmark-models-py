@@ -4,13 +4,18 @@ from datetime import datetime
 
 import pandas as pd
 from credmark.cmf.model import Model, ModelContext
-from credmark.cmf.types import Address, BlockNumber, Contract, Token
-from credmark.dto import DTO, DTOField
+from credmark.cmf.types import BlockNumber, Contract, Token
+from credmark.dto import DTOField
 
 
-class UniswapFeeInput(DTO):
+class UniswapFeeInput(Contract):
     interval: int = DTOField(gt=0, description='Block interval to gather the fees')
-    pool_address: Address = Address('0xcbcdf9626bc03e24f779434178a73a0b4bad62ed')
+
+    class Config:
+        schema_extra = {
+            'example': {"interval": 500, 'address': '0xcbcdf9626bc03e24f779434178a73a0b4bad62ed'},
+            'skip_test': True
+        }
 
 
 class UniswapFeeOutput(UniswapFeeInput):
@@ -51,7 +56,7 @@ class UniswapFeeOutput(UniswapFeeInput):
 class UniswapFee(Model):
     def run(self, input: UniswapFeeInput) -> UniswapFeeOutput:
         # pylint:disable=invalid-name
-        uni_pool_addr = input.pool_address
+        uni_pool_addr = input.address
         univ3_btcweth_pool = Contract(address=uni_pool_addr)
         t0 = Token(address=univ3_btcweth_pool.functions.token0().call())
         t1 = Token(address=univ3_btcweth_pool.functions.token1().call())

@@ -10,7 +10,6 @@ from credmark.cmf.types import (
     Accounts,
     Address,
     BlockNumber,
-    Contract,
     Contracts,
     Currency,
     FiatCurrency,
@@ -177,7 +176,7 @@ class TokenUnderlying(Model):
 
 
 @Model.describe(slug="token.info",
-                version="1.3",
+                version="1.4",
                 display_name="Token Information",
                 developer="Credmark",
                 category='protocol',
@@ -199,7 +198,8 @@ class TokenInfoModel(Model):
         return token_info
 
 
-class TokenDeploymentInput(Contract, ModelResultInput):
+class TokenDeploymentInput(Token, ModelResultInput):
+    # Use Token as base class to accept symbol as input
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
@@ -214,7 +214,7 @@ class TokenDeploymentOutput(ModelResultOutput):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.7",
+                version="0.8",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',

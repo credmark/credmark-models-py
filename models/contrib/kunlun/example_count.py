@@ -7,6 +7,11 @@ class ApeCountInput(DTO):
     block_number_count: int = DTOField(
         1, gt=0, description='Number of blocks to look back')
 
+    class Config:
+        schema_extra = {
+            'examples': [{'block_number_count': 42}]
+        }
+
 
 @Model.describe(slug='contrib.ape-count',
                 version='1.0',

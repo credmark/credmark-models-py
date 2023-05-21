@@ -1,16 +1,16 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Price, Some, Token
+from credmark.cmf.types import Price, Some
 
 from models.dtos.pool import PoolPriceInfo
-from models.dtos.price import DexPoolAggregationInput
+from models.dtos.price import DexPoolAggregationInput, DexPriceTokenInput
 
 
 @Model.describe(slug='contrib.example-token-price',
-                version='1.0',
+                version='1.1',
                 display_name='Token Price - weighted by liquidity',
                 description='The Current Credmark Supported Price Algorithm',
                 developer='Credmark',
-                input=Token,
+                input=DexPriceTokenInput,
                 output=Price)
 class TokenPriceModel(Model):
     """
@@ -19,7 +19,7 @@ class TokenPriceModel(Model):
 
     WEIGHT_POWER = 4
 
-    def run(self, input: Token) -> Price:
+    def run(self, input: DexPriceTokenInput) -> Price:
         all_pool_infos = self.context.run_model('price.dex-pool',
                                                 input=input,
                                                 return_type=Some[PoolPriceInfo])
@@ -31,9 +31,7 @@ class TokenPriceModel(Model):
 
         pool_aggregator_input = DexPoolAggregationInput(
             **all_pool_infos.dict(),
-            **input.dict(),
-            weight_power=self.WEIGHT_POWER,
-            debug=False)
+            **input.dict())
 
         return self.context.run_model('price.pool-aggregator',
                                       input=pool_aggregator_input,

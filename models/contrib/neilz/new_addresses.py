@@ -9,16 +9,20 @@ class BlockNumberInput(DTO):
     start_block: int
     unique: bool = DTOField(False, describe='filter for unique address')
 
+    class Config:
+        schema_extra = {
+            'example': {"start_block": -100, "unique": True}
+        }
 
-@Model.describe(
-    slug='contrib.neilz-new-addresses',
-    display_name='New Addresses in the past interval',
-    description="",
-    version='1.0',
-    developer='neilz.eth',
-    input=BlockNumberInput,
-    output=dict
-)
+
+@Model.describe(slug='contrib.neilz-new-addresses',
+                display_name='New Addresses in the past interval',
+                description="",
+                version='1.0',
+                developer='neilz.eth',
+                input=BlockNumberInput,
+                output=dict
+                )
 class MyModel(Model):
     def run(self, input: BlockNumberInput) -> dict:
         if input.start_block > 0:

@@ -5,14 +5,21 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Contract
 
-
 # credmark-dev run contrib.nft-tx -i '{"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}' -b 17_000_000
+
+
+class NFTContract(Contract):
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xED5AF388653567Af2F388E6224dC7C4b3241C544"}
+        }
+
 
 @Model.describe(slug='contrib.nft-tx',
                 version='0.3',
                 display_name='NFT mint in ETH',
                 description="nft",
-                input=Contract,
+                input=NFTContract,
                 output=dict)
 class NFTTx(Model):
     """
@@ -94,7 +101,7 @@ class NFTTx(Model):
         self.logger.info(f'{sum(df_mint_merged.value.to_list())} {df_mint_merged.shape}')
         return df_mint_merged
 
-    def run(self, input: Contract) -> dict:
+    def run(self, input: NFTContract) -> dict:
         df_mint = self.get_mint_and_tx(input)
         if df_mint is None:
             return {'status': 'no mint'}

@@ -9,20 +9,20 @@ from credmark.cmf.types import (
     PriceWithQuote,
     Token,
 )
-from credmark.dto import EmptyInput
+from credmark.dto import EmptyInputSkipTest
 
 
-@Model.describe(
-    slug='contrib.neilz-redacted-votium-cashflow',
-    version='1.2',
-    display_name='Redacted Cartel Votium Cashflow',
-    description='Redacted Cartel Votium Cashflow',
-    category='protocol',
-    subcategory='votium',
-    output=dict
-)
+@Model.describe(slug='contrib.neilz-redacted-votium-cashflow',
+                version='1.2',
+                display_name='Redacted Cartel Votium Cashflow',
+                description='Redacted Cartel Votium Cashflow',
+                category='protocol',
+                subcategory='votium',
+                input=EmptyInputSkipTest,
+                output=dict
+                )
 class RedactedVotiumCashflow(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         votium_claim_address = Address(
             "0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A")
         redacted_multisig_address = Address(
@@ -55,14 +55,14 @@ class RedactedVotiumCashflow(Model):
         return transfers.dict()
 
 
-@Model.describe(
-    slug='contrib.neilz-redacted-convex-cashflow',
-    version='1.4',
-    display_name='Redacted Cartel Convex Cashflow',
-    description='Redacted Cartel Convex Cashflow',
-    category='protocol',
-    subcategory='votium',
-    output=dict)
+@Model.describe(slug='contrib.neilz-redacted-convex-cashflow',
+                version='1.4',
+                display_name='Redacted Cartel Convex Cashflow',
+                description='Redacted Cartel Convex Cashflow',
+                category='protocol',
+                input=EmptyInputSkipTest,
+                subcategory='votium',
+                output=dict)
 class RedactedConvexCashflow(Model):
     CONVEX_ADDRESSES = [
         Address("0x72a19342e8F1838460eBFCCEf09F6585e32db86E"),
@@ -71,7 +71,7 @@ class RedactedConvexCashflow(Model):
     REDACTED_MULTISIG_ADDRESS = Address(
         "0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         with self.context.ledger.TokenTransfer as q:
             transfers = q.select(columns=[
                 q.BLOCK_NUMBER,
