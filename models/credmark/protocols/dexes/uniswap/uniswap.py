@@ -8,16 +8,23 @@ from models.credmark.protocols.dexes.uniswap.constant import (
 )
 
 
+class QuoterToken(Token):
+    class Config:
+        schema_extra = {
+            'example': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'}
+        }
+
+
 @Model.describe(slug='uniswap.quoter-price-dai',
                 version='1.3',
                 display_name='The Price of a Token on Uniswap in USD',
                 description='The Trading Price with respect to USD on Uniswap\'s Frontend)',
                 category='protocol',
                 subcategory='uniswap',
-                input=Token,
+                input=QuoterToken,
                 output=PriceWithQuote)
 class UniswapRouterPricePair(Model):
-    def run(self, input: Token) -> PriceWithQuote:
+    def run(self, input: QuoterToken) -> PriceWithQuote:
         """
         We should be able to hit the IQuoter Interface to get the quoted price from Uniswap.
         Block_number should be taken care of.

@@ -16,7 +16,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 
 from models.dtos.tvl import LendingPoolPortfolios
 
@@ -108,7 +108,7 @@ def get_comptroller(model):
                 output=Contract)
 class CompoundV2Comptroller(Model):
     # pylint:disable=locally-disabled,protected-access
-    def run(self, __: EmptyInput) -> Contract:
+    def run(self, __) -> Contract:
         comptroller = get_comptroller(self)
         if comptroller._meta.proxy_implementation is not None:
             cc = comptroller._meta.proxy_implementation
@@ -126,7 +126,7 @@ class CompoundV2Comptroller(Model):
                 subcategory='compound',
                 output=Some[Address])
 class CompoundV2GetAllPools(Model):
-    def run(self, _: EmptyInput) -> Some[Address]:
+    def run(self, _) -> Some[Address]:
         comptroller = get_comptroller(self)
         cTokens = comptroller.functions.getAllMarkets().call()
 
@@ -144,7 +144,7 @@ class CompoundV2GetAllPools(Model):
                 subcategory='compound',
                 output=Some[CompoundV2PoolInfo])
 class CompoundV2AllPoolsInfo(Model):
-    def run(self, _: EmptyInput) -> Some[CompoundV2PoolInfo]:
+    def run(self, _) -> Some[CompoundV2PoolInfo]:
         pools = self.context.run_model('compound-v2.get-pools', {})
 
         model_slug = 'compound-v2.pool-info'

@@ -10,7 +10,7 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Price, Some, Token
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 from scipy.optimize import minimize
 from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
@@ -141,7 +141,7 @@ class UniswapV3GetPools(Model):
 class UniswapV3GetRing0RefPrice(Model):
     WEIGHT_POWER = 4.0
 
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         factory_addr = V3_FACTORY_ADDRESS[self.context.network]
 
         ring0_tokens = self.context.run_model(
@@ -273,7 +273,7 @@ class UniswapV3GetPoolsLedger(Model):
                 subcategory='uniswap-v3',
                 output=Contracts)
 class UniswapV3AllPools(Model):
-    def run(self, _: EmptyInput) -> Contracts:
+    def run(self, _) -> Contracts:
         deployer = Contract(V3_FACTORY_ADDRESS[self.context.network])
 
         with deployer.ledger.events.PoolCreated as q:

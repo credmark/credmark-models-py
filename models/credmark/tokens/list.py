@@ -3,7 +3,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Records
 from credmark.cmf.types.data.fungible_token_data import FUNGIBLE_TOKEN_DATA_BY_SYMBOL
-from credmark.dto import EmptyInput
 
 
 @Model.describe(slug='token.list',
@@ -14,7 +13,7 @@ from credmark.dto import EmptyInput
                 tags=['token'],
                 output=Records)
 class TokenList(Model):
-    def run(self, _: EmptyInput) -> Records:
+    def run(self, _) -> Records:
         existing_tokens = [
             (v['address'], v['symbol'], v['name'], v['decimals'])
             for v in FUNGIBLE_TOKEN_DATA_BY_SYMBOL[self.context.chain_id].values()]

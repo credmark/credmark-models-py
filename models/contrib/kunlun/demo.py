@@ -12,7 +12,7 @@ from credmark.dto import EmptyInput
                 input=EmptyInput,
                 output=dict)
 class ContribModel(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         usdc = Token('USDC')
         usdc_addr: Address = usdc.address
         block_datetime = self.context.block_number.timestamp_datetime

@@ -16,7 +16,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
@@ -273,7 +273,7 @@ class CMKGetVestingByAccount(Model):
                 subcategory='cmk',
                 output=dict)
 class CMKGetAllVestingBalances(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         accounts = Accounts(**self.context.models.cmk.get_vesting_accounts())
 
         def _use_for():

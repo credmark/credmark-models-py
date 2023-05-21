@@ -17,7 +17,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
 from web3 import Web3
 from web3.exceptions import ABIFunctionNotFound  # , Web3ValidationError
 
@@ -391,7 +391,7 @@ class AaveV2GetAssetsDetail(Model):
                 subcategory='aave-v2',
                 output=LendingPoolPortfolios)
 class AaveV2GetLiabilityInPortfolios(Model):
-    def run(self, ___: EmptyInput) -> LendingPoolPortfolios:
+    def run(self, _) -> LendingPoolPortfolios:
         debt_pools = self.context.run_model(
             'aave-v2.lending-pool-assets', {}, return_type=Some[AaveDebtInfo])
 
