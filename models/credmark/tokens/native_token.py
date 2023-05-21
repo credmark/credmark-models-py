@@ -37,7 +37,7 @@ class NativeTokenBalance(DTO):
 
 
 @Model.describe(slug='account.native-balance',
-                version='0.2',
+                version='0.3',
                 display_name='Account - Native balance',
                 description='balance of native token in an account',
                 developer='Credmark',
@@ -53,7 +53,7 @@ class NativeBalance4Account(Model):
 
 
 @Model.describe(slug='accounts.native-balance',
-                version='0.2',
+                version='0.3',
                 display_name='Accounts - Native balance',
                 description='balance of native token in some accounts',
                 developer='Credmark',
