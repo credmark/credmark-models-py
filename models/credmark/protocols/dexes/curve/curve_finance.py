@@ -20,7 +20,7 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO
+from credmark.dto import DTO, EmptyInputSkipTest
 from web3.exceptions import (
     ABIFunctionNotFound,
     BadFunctionCallOutput,
@@ -512,6 +512,58 @@ class CurveGaugeContract(Contract):
         }
 
 
+@Model.describe(slug='curve-fi.gauge-lp-dist',
+                version='1.1',
+                input=CurveGaugeContract)
+class CurveFinanceLPDist(Model):
+    def run(self, input: CurveGaugeContract) -> dict:
+        with self.context.ledger.Transaction as q:
+            _addrs = q.select(
+                columns=[q.FROM_ADDRESS],
+                where=q.TO_ADDRESS.eq(input.address)).to_dataframe()['from_address']
+
+        gaugeAddress = input.address
+        _gauge = Contract(address=gaugeAddress)
+
+        dist = []
+
+        for addr in _addrs:
+            balanceOf = _gauge.functions.balanceOf(
+                Address(addr).checksum).call()
+            dist.append({
+                "balanceOf": balanceOf,
+                "from_address": addr
+            })
+        return {'lp_balance': dist}
+
+
+@Model.describe(slug='curve-fi.historical-gauge-lp-dist',
+                version='1.1',
+                display_name='Curve Finance Pool LP Distribution Historically',
+                description='gets the historical dist of LP holders for a given pool',
+                input=CurvePoolContract,
+                output=dict)
+class CurveFinanceHistoricalLPDist(Model):
+    def run(self, input: CurvePoolContract) -> dict:
+        res = self.context.run_model(
+            'historical.run-model',
+            {'model_slug': 'curve-fi.gauge-lp-dist',
+             'window': '60 days',
+             'interval': '7 days',
+             'model_input': {'address': input.address}},
+            return_type=BlockSeries[dict])
+
+        info_i_want = []
+        for r in res.series:
+            info_i_want.append({
+                # "name": r.output['lp_balance']['name'],
+                "blockNumber": r.blockNumber,
+                "lp_balance": r.output['lp_balance']
+            })
+
+        return {'historical-lp-dist': info_i_want}
+
+
 @Model.describe(slug='curve-fi.gauge-claim-addresses',
                 version='1.5',
                 category='protocol',
@@ -651,6 +703,7 @@ class CurveFinanceAverageGaugeYield(Model):
                 description="Yield from all Gauges",
                 category='protocol',
                 subcategory='curve',
+                input=EmptyInputSkipTest,
                 output=dict)
 class CurveFinanceAllYield(Model):
     def run(self, _) -> dict:

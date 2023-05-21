@@ -76,10 +76,20 @@ class DuneBaseInput(DTO):
 class DuneQueryInput(DuneBaseInput):
     query_id: str
 
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
 
 class DuneExecuteQueryInput(DuneQueryInput):
     performance: Optional[DunePerformanceTier]
     query_parameters: Optional[dict]
+
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
 
 
 class DuneExecuteQueryOutput(DTO):
@@ -112,6 +122,11 @@ class DuneExecuteQuery(Model, DuneClient):
 
 class DuneExecutionInput(DuneBaseInput):
     execution_id: str
+
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
 
 
 class DuneResultMetadata(DTO):
@@ -227,6 +242,11 @@ class DuneRunQueryInput(DuneQueryInput):
         5, gt=5, lt=1800, description="Duration (in seconds) to sleep between status checks.")
     timeout: int = DTOField(
         120, gt=5, lt=1800, description="Timeout (in seconds)")
+
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
 
 
 @Model.describe(

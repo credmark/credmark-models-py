@@ -57,7 +57,7 @@ def fix_crv_reward(crv_rewards):
                 subcategory='convex',
                 output=Some[ConvexPoolInfo])
 class ConvexFinanceAllPools(Model):
-    def run(self, _: EmptyInput) -> Some[ConvexPoolInfo]:
+    def run(self, _) -> Some[ConvexPoolInfo]:
         booster = Contract(**self.context.models.convex_fi.booster())
         pool_length = booster.functions.poolLength().call()
 
@@ -91,13 +91,20 @@ class ConvexPoolEarning(DTO):
     user_reward_per_token_paid: float
 
 
+class ConvexAccount(Account):
+    class Config:
+        schema_extra = {
+            'example': {'address': '0x5291fBB0ee9F51225f0928Ff6a83108c86327636'}
+        }
+
+
 @Model.describe(slug="convex-fi.earned",
                 version="0.2",
                 display_name="Convex Finance - Earned for a user",
                 description="Get all earned for an account",
                 category='protocol',
                 subcategory='convex',
-                input=Account,
+                input=ConvexAccount,
                 output=Some[ConvexPoolEarning])
 class ConvexFinanceEarning(Model):
     def run(self, input: Account) -> Some[ConvexPoolEarning]:
