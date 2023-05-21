@@ -38,7 +38,7 @@ if __name__ == '__main__':
                 'price.dex-blended',
                 input={'symbol': symbol},
                 return_type=PriceWithQuote,
-                block_number=block).price
+                block_number=block).price  # type: ignore
 
             updated = local_context.run_model(
                 'price.dex-blended',

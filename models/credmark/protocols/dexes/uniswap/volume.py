@@ -12,21 +12,28 @@ from models.dtos.volume import TokenTradingVolume, VolumeInput, VolumeInputHisto
 from models.tmp_abi_lookup import CURVE_VYPER_POOL, UNISWAP_V3_POOL_ABI
 
 
+class DexPoolContract(Contract):
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"}
+        }
+
+
 @Model.describe(slug='dex.pool-volume-block-range',
-                version='1.0',
+                version='1.1',
                 display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
                 category='protocol',
-                subcategory='uniswap-v2',
-                input=Contract,
+                subcategory='dex',
+                input=DexPoolContract,
                 output=dict)
 class DexPoolSwapBlockRange(Model):
-    def run(self, input: Contract) -> dict:
+    def run(self, input: DexPoolContract) -> dict:
         try:
             _ = input.abi
         except ModelDataError:
-            input = Contract(input.address).set_abi(
+            input = DexPoolContract(address=input.address).set_abi(
                 UNISWAP_V3_POOL_ABI, set_loaded=True)
 
         def _use_ledger():
@@ -43,6 +50,20 @@ class DexPoolSwapBlockRange(Model):
                         'max':   df['max'][0]}
 
         return _use_ledger()
+
+
+@Model.describe(slug='token.swap-pool-volume',
+                version='1.1',
+                display_name='Token Volume',
+                description='The current volume for a swap pool',
+                category='protocol',
+                tags=['token'],
+                input=DexPoolContract,
+                output=dict)
+class TokenSwapPoolVolume(Model):
+    def run(self, input: Token) -> dict:
+        # TODO: Get All Credmark Supported swap Pools for a token
+        return {"result": 0}
 
 
 def new_trading_volume(_tokens: List[Token]):

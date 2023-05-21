@@ -14,6 +14,11 @@ class ExampleContractInput(DTO):
     disable_function_ledger: bool = DTOField(
         False, description="Disable function ledger queries")
 
+    class Config:
+        schema_extra = {
+            'example': {'disable_function_ledger': True}
+        }
+
 
 @Model.describe(slug='example.contract',
                 version='1.4',
@@ -51,7 +56,7 @@ class ExampleContract(Model):
                         order_by=q.BLOCK_NUMBER,
                         limit=5))
 
-    def run(self, input: ExampleContractInput) -> ExampleModelOutput:
+    def run(self, _: ExampleContractInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
             title="5. Example - Contract",
             description="This model gives examples of the functionality available on the "

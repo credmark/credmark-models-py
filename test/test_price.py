@@ -213,7 +213,7 @@ class TestPrice(CMFTest):
             "base": {"address": "0x028171bCA77440897B824Ca71D1c56caC55b68A3"}})
 
         self.run_model('price.quote-historical', {"base": {"symbol": "AAVE"},
-                                                  "interval": 86400, "count": 1, "exclusive": True})
+                       "interval": 86400, "count": 1, "exclusive": True})
         self.run_model('price.quote-multiple',
                        {"some": [{"base": {"symbol": "EUR"}}, {"base": {"symbol": "JPY"}}]})
         self.run_model('price.quote-historical-multiple',

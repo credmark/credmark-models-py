@@ -7,8 +7,7 @@ class TestIPOR(CMFTest):
     def test(self):
         self.title('IPOR')
 
-        self.run_model('ipor.get-oracle-and-calculator',
-                       {}, block_number=16812845)
+        self.run_model('ipor.get-oracle-and-calculator', {}, block_number=16812845)
         self.run_model('ipor.get-index', {}, block_number=16812845)
         self.run_model('ipor.get-lp-exchange', {}, block_number=16812845)
 

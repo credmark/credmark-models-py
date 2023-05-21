@@ -94,6 +94,12 @@ class ExampleModelOutput(_ExampleModelOutput):
 class ExampleEchoInput(DTO):
     message: str = DTOField('Hello', description='A message')
 
+    class Config:
+        schema_extra = {
+            'examples': [{'message': 'Hello'}]
+
+        }
+
 
 class ExampleEchoOutput(ExampleModelOutput):
     echo: str
@@ -102,16 +108,34 @@ class ExampleEchoOutput(ExampleModelOutput):
 class ExampleAddressInput(DTO):
     address: Address = Address("0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf")
 
+    class Config:
+        schema_extra = {
+            'examples': [{'address': '0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf'}]
+        }
+
 
 class ExampleAccountInput(DTO):
     address_1: Address = Address('0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf')
     address_2: Address = Address('0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB')
+
+    class Config:
+        schema_extra = {
+            'examples': [{
+                'address_1': '0xeB2629a2734e272Bcc07BDA959863f316F4bD4Cf',
+                'address_2': '0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB'}]
+        }
 
 
 class ExampleTokenInput(DTO):
     address: Address = DTOField(default=Address(
         '0x68cfb82eacb9f198d508b514d898a403c449533e'))
     symbol: str = DTOField(default='AAVE')
+
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'address': '0x68CFb82Eacb9f198d508B514d898a403c449533E'}, {'symbol': 'AAVE'}]
+        }
 
 
 class ExampleLedgerOutput(ExampleModelOutput):
@@ -129,10 +153,20 @@ class ExampleBlockTimeInput(DTO):
         default_factory=lambda: datetime(2022, 2, 19)
     )
 
+    class Config:
+        schema_extra = {
+            'examples': [{'blockTime': '2022-02-19 00:00:00'}]
+        }
+
 
 class ExampleHistoricalInput(DTO):
     model_slug: str = 'example.model'
     model_input: dict = {}
+
+    class Config:
+        schema_extra = {
+            'examples': [{'model_slug': 'example.model', 'model_input': {}}]
+        }
 
 
 class ExampleHistoricalOutput(ExampleModelOutput):

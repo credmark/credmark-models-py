@@ -206,6 +206,15 @@ class IndexCoopFeeMonthInput(IndexCoopFee):
     year: int
     month: int
 
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b", "streaming_rate": 0.0095,
+                        "coop_streaming_rate": 0.7, "mint_redeem_rate": 0, "coop_mint_redeem_rate": 0,
+                        "use_last_price": True, "year": 2022, "month": 9,
+                        '_test_multi_chain': {'chain_id': 1, 'block_number': 16_000_000}},
+            'test_multi_chain': True
+        }
+
 
 class IndexCoopFeeInput(IndexCoopFee):
     start_block: BlockNumber
@@ -259,6 +268,15 @@ class IndexCoopStreamingFeeInput(Contract):
         description='Coop\'s share in Mint and redeem')
     use_last_price: bool = DTOField(
         False, description='Use end_block\'s price (true) or every block\'s price (false, default)')
+
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b", "streaming_rate": 0.0095,
+                        "coop_streaming_rate": 0.7, "mint_redeem_rate": 0, "coop_mint_redeem_rate": 0,
+                        "use_last_price": True, "start_block": 15_449_618,
+                        '_test_multi_chain': {'chain_id': 1, 'block_number': 15_649_594}},
+            'test_multi_chain': True
+        }
 
 
 @Model.describe(slug='indexcoop.fee',

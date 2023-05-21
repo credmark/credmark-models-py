@@ -34,6 +34,13 @@ class TokenNetflowBlockInput(DTO):
             data['address'] = Token(**data).address
         super().__init__(**data)
 
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "block_number": -1000,
+                        "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"}
+        }
+
 
 class TokenNetflowBlockRange(DTO):
     inflow: int
@@ -175,6 +182,12 @@ class TokenNetflowWindowInput(DTO):
         if 'address' not in data:
             data['address'] = Token(**data).address
         super().__init__(**data)
+
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "window": "1 day", "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43"}
+        }
 
 
 @Model.describe(slug='token.netflow-window',
@@ -384,6 +397,13 @@ class TokenVolumeSegmentBlock(Model):
 
 class TokenNetflowSegmentWindowInput(TokenNetflowWindowInput):
     n: int = DTOField(2, ge=1, description='Number of interval to count')
+
+    class Config:
+        schema_extra = {
+            'example': {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+                        "netflow_address": "0xA9D1e08C7793af67e9d92fe308d5697FB81d3E43",
+                        "window": "1 day", "n": 4}
+        }
 
 
 @Model.describe(slug='token.netflow-segment-window',

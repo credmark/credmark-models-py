@@ -8,7 +8,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Contracts, Network, Records, Some, Token, Tokens
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField, EmptyInputSkipTest
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
 from models.tmp_abi_lookup import BALANCER_POOL_ABI  # BALANCER_META_STABLE_POOL_ABI
@@ -117,20 +117,13 @@ class GetBalancerAllPools(Model):
         return Records.from_dataframe(df_registered)
 
 
-class EmptyInputNoRun(EmptyInput):
-    class Config:
-        schema_extra = {
-            'skip_test': True  # Too long to run
-        }
-
-
 @Model.describe(slug='balancer-fi.get-all-pools-price-info',
                 version='0.4',
                 display_name='Balancer Finance - Get all pools',
                 description='Get all pools',
                 category='protocol',
                 subcategory='balancer',
-                input=EmptyInputNoRun,
+                input=EmptyInputSkipTest,
                 output=Some[BalancerPoolPriceInfo])
 class GetBalancerAllPoolInfo(Model):
     def run(self, _) -> Some[BalancerPoolPriceInfo]:

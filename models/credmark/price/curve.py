@@ -20,18 +20,25 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code_desc='Not supported by Curve')
 
 
+class CurveToken(Token):
+    class Config:
+        schema_extra = {
+            'examples': [{'address': '0xFEEf77d3f69374f66429C91d732A244f074bdf74'}]  # cvxFXS
+        }
+
+
 @Model.describe(slug="price.dex-curve-fi-maybe",
-                version="1.4",
+                version="1.7",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description=("For those tokens primarily traded in curve - "
                              "return None if cannot price"),
                 category='protocol',
                 subcategory='curve',
                 tags=['price'],
-                input=Token,
+                input=CurveToken,
                 output=Maybe[Price])
 class CurveFinanceMaybePrice(Model):
-    def run(self, input: Token) -> Maybe[Price]:
+    def run(self, input: CurveToken) -> Maybe[Price]:
         if input.address in CurveFinancePrice.supported_coins(self.context.network):
             try:
                 price = self.context.run_model('price.dex-curve-fi',
@@ -45,13 +52,13 @@ class CurveFinanceMaybePrice(Model):
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.6",
+                version="1.7",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 category='protocol',
                 subcategory='curve',
                 tags=['price'],
-                input=Token,
+                input=CurveToken,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class CurveFinancePrice(Model):
@@ -116,7 +123,7 @@ class CurveFinancePrice(Model):
             list(CurveFinancePrice.CRV_DERIVED[network].keys()) +
             list(CurveFinancePrice.CRV_LP[network]))
 
-    def run(self, input: Token) -> Price:
+    def run(self, input: CurveToken) -> Price:
         if input.address in self.CRV_CTOKENS[self.context.network].values():
             ctoken = Token(address=input.address)
             ctoken_decimals = ctoken.decimals

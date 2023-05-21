@@ -222,6 +222,13 @@ class IPORSwapInput(DTO):
     leverage: int = DTOField(default=10)
     asset: Address
 
+    class Config:
+        schema_extra = {
+            'example': {"timestamp": 1676688179,
+                        "asset": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                        "notional": 1000000}
+        }
+
 
 @Model.describe(slug='ipor.get-swap',
                 version='0.3',

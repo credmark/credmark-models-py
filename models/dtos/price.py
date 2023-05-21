@@ -1,3 +1,5 @@
+#pylint: disable=line-too-long
+
 from enum import Enum
 from typing import List, Optional
 
@@ -48,10 +50,25 @@ class PriceInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{"base": {"symbol": "CRV"}},
+            'examples': [{"base": {"symbol": "CRV"}, '_test_multi_chain': {'chain_id': 1}},
                          {'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
-                          'quote': {'symbol': 'USD'}}]
+                          'quote': {'symbol': 'USD'}},
+                         {"base": "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819",
+                             '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
+                         {"base": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
+                             '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
+                         {"base": "0xabc9547b534519ff73921b1fba6e672b5f58d083",
+                             '_test_multi_chain': {'chain_id': 43114, 'block_number': None}},
+                         {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787",
+                             '_test_multi_chain': {'chain_id': 56, 'block_number': None}},
+                         {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb",
+                             '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+                         ],
+            'test_multi_chain': True
         }
 
 
@@ -69,17 +86,39 @@ class PriceMultipleInput(DTO):
     slug: str = DTOField(description='Slug of the price model')
     some: List[PriceInputWithPreference]
 
+    class Config:
+        schema_extra = {
+            'examples': [{
+                'slug': 'price.quote-maybe',
+                'some': [{'base': {'symbol': 'CRV'}},
+                         {'base': {'symbol': 'AAVE', "quote": "JPY"}},
+                         {'base': {'address': '0x6b175474e89094c44da98b954eedeac495271d0f',
+                                   "quote": "CNY"}}]}]
+        }
+
 
 class PriceHistoricalInput(PriceInputWithPreference, MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
 
+    class Config:
+        schema_extra = {
+            "examples": [{"base": {"symbol": "AAVE"}, "interval": 86400, "count": 1, "exclusive": True}]
+        }
 
-class PriceHistoricalInputs(Some[PriceInputWithPreference], MapBlockTimeSeriesInput):
+
+class PricesHistoricalInput(Some[PriceInputWithPreference], MapBlockTimeSeriesInput):
     modelSlug: str = DTOField('price.quote', hidden=True)
     modelInput: dict = DTOField({}, hidden=True)
     endTimestamp: int = DTOField(0, hidden=True)
+
+    class Config:
+        schema_extra = {
+            "examples": [{"some": [{"base": {"symbol": "AAVE"}},
+                                   {"base": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"}}],
+                          "interval": 86400, "count": 20, "exclusive": True}],
+        }
 
 
 class PriceWeight(DTO):
@@ -102,9 +141,39 @@ class DexPricePoolInput(PriceWeight):
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
-    ...
+    class Config:
+        schema_extra = {
+            'examples': [
+                {"some": [
+                    {"src": "uniswap-v2.get-weighted-price", "price0": 0.9528107174897676, "price1": 1.0495263976821705,
+                     "one_tick_liquidity0": 0.001685478240180313, "one_tick_liquidity1": 0.0016060220264204467,
+                     "full_tick_liquidity0": 33.712093, "full_tick_liquidity1": 32.12124351941178,
+                        "token0_address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "token1_address": "0xd533a949740bb3306d119cc777fa900ba034cd52",
+                        "token0_symbol": "USDC", "token1_symbol": "CRV", "pool_address": "0x210a97ba874a8e279c95b350ae8ba143a143c159",
+                        "ref_price": 1.0006473790684685, "tick_spacing": 1},
+                    {"src": "uniswap-v2.get-weighted-price", "price0": 0.9511103469743591, "price1": 1.0514027138713893,
+                     "one_tick_liquidity0": 0.0003462790926172877, "one_tick_liquidity1": 0.00032936609499925525,
+                     "full_tick_liquidity0": 6.926101266677137, "full_tick_liquidity1": 6.58748657892884,
+                        "token0_address": "0x6b175474e89094c44da98b954eedeac495271d0f", "token1_address": "0xd533a949740bb3306d119cc777fa900ba034cd52",
+                        "token0_symbol": "DAI", "token1_symbol": "CRV", "pool_address": "0xf00f7a64b170d41789c6f16a7eb680a75a050e6d",
+                        "ref_price": 0.99962940609268, "tick_spacing": 1},
+                ],
+                    "weight_power": 4.0, "debug": False, "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"}
+            ]
+        }
 
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='No pool to aggregate for token price')
+
+
+class PriceBlocksInput(PriceInputWithPreference):
+    block_numbers: List[int] = DTOField(description='List of blocks to run')
+
+    class Config:
+        schema_extra = {
+            "examples": [
+                {'base': {'symbol': 'CRV'}, 'quote': {'symbol': 'USD'}, 'block_numbers': [16_000_000, 16_001_000]},
+            ]
+        }

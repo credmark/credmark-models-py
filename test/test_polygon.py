@@ -13,8 +13,7 @@ class TestPolygon(CMFTest):
             'chain.get-latest-block', {}, block_number=None, chain_id=137)
         last_block = last_block_output['output']['blockNumber'] - 100
 
-        self.run_model('chain.get-block',
-                       {"timestamp": 1591824836}, chain_id=137)
+        self.run_model('chain.get-block', {"timestamp": 1591824836}, chain_id=137)
 
         self.run_model('price.oracle-chainlink',
                        {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb"}, block_number=last_block-10000, chain_id=137)

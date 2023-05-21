@@ -115,16 +115,21 @@ class ChainLinkPriceByFeed(Model):
                           f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
 
 
+class PriceInputWithRegistry(PriceInput):
+    class Config:
+        schema_extra = {'example': {"base": {"symbol": "CRV"}}}
+
+
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.3",
+                version="1.4",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
-                input=PriceInput,
+                input=PriceInputWithRegistry,
                 output=Maybe[PriceWithQuote])
 class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+    def run(self, input: PriceInputWithRegistry) -> Maybe[PriceWithQuote]:
         try:
             pq = self.context.run_model(
                 'chainlink.price-by-registry', input=input,
@@ -143,15 +148,15 @@ class ChainLinkFeedFromRegistryMaybe(Model):
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.6",
+                version="1.7",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
-                input=PriceInput,
+                input=PriceInputWithRegistry,
                 output=PriceWithQuote)
 class ChainLinkPriceByRegistry(Model):
-    def run(self, input: PriceInput) -> Price:
+    def run(self, input: PriceInputWithRegistry) -> Price:
         base_address = input.base.address
         quote_address = input.quote.address
 

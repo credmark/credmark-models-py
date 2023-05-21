@@ -4,7 +4,7 @@ import math
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Network, NetworkDict
-from credmark.dto import DTO
+from credmark.dto import DTO, EmptyInput
 
 
 class TimestampInput(DTO):
@@ -21,7 +21,7 @@ class TimestampOutput(DTO):
 
 
 @Model.describe(slug="chain.get-block-timestamp",
-                version="0.2",
+                version="0.3",
                 display_name="Obtain block timestamp",
                 description='In UTC',
                 category='chain',
@@ -39,7 +39,11 @@ class BlockInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{'timestamp': 1683726143}]
+            'examples': [
+                {'timestamp': 1683726143, '_test_multi_chain': {'chain_id': 1}}] +
+            [{"timestamp": 1628599999, '_test_multi_chain': {'chain_id': chain_id, 'block_number': None}}
+                for chain_id in [137, 10, 42161, 56, 250, 43114]],
+            'test_multi_chain': True,
         }
 
 
@@ -55,7 +59,7 @@ class Block(DTO):
 
 
 @Model.describe(slug="chain.get-block",
-                version="0.3",
+                version="0.4",
                 display_name="Obtain block from timestamp",
                 description='In UTC',
                 category='chain',
@@ -135,16 +139,26 @@ class GetBlock(Model):
                            sample_timestamp=input.timestamp)
 
 
+class EmptyInputForLatestBlock(EmptyInput):
+    class Config:
+        schema_extra = {
+            'examples': [{'_test_multi_chain': {'chain_id': chain_id, 'block_number': None}}
+                         for chain_id in [1, 137, 10, 42161, 56, 250, 43114]],
+            'test_multi_chain': True
+        }
+
+
 class LatestBlock(DTO):
     blockNumber: int
     timestamp: int
 
 
 @Model.describe(slug="chain.get-latest-block",
-                version="0.1",
+                version="0.2",
                 display_name="Obtain latest block",
                 description='block number and timestamp',
                 category='chain',
+                input=EmptyInputForLatestBlock,
                 output=LatestBlock)
 class GetLatestBlock(Model):
     time_between_blocks = NetworkDict(int, {

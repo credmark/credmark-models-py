@@ -6,6 +6,28 @@ from credmark.cmf.types import Account, Accounts, Address, NativeToken
 from credmark.dto import DTO
 
 
+class MultiChainAccount(Account):
+    class Config:
+        schema_extra = {
+            'examples': [
+                {"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57",
+                 "_test_multi_chain": {"chain_id": chain_id, 'block_number': None}}
+                for chain_id in [1, 137, 10, 42161, 56, 250, 43114]],
+            'test_multi_chain': True
+        }
+
+
+class MultiChainAccounts(Accounts):
+    class Config:
+        schema_extra = {
+            'examples': [
+                {"accounts": [{"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"}],
+                 "_test_multi_chain": {"chain_id": chain_id, 'block_number': None}}
+                for chain_id in [1, 137, 10, 42161, 56, 250, 43114]],
+            'test_multi_chain': True
+        }
+
+
 class NativeTokenBalance(DTO):
     native_token: NativeToken
     native_token_decimals: int
@@ -15,32 +37,32 @@ class NativeTokenBalance(DTO):
 
 
 @Model.describe(slug='account.native-balance',
-                version='0.1',
+                version='0.2',
                 display_name='Account - Native balance',
                 description='balance of native token in an account',
                 developer='Credmark',
                 category='account',
                 tags=['token', 'native'],
-                input=Account,
+                input=MultiChainAccount,
                 output=NativeTokenBalance)
 class NativeBalance4Account(Model):
-    def run(self, input: Account) -> NativeTokenBalance:
+    def run(self, input: MultiChainAccount) -> NativeTokenBalance:
         return self.context.run_model('accounts.native-balance',
                                       Accounts(accounts=[Account(input.address)]),
                                       return_type=NativeTokenBalance)
 
 
 @Model.describe(slug='accounts.native-balance',
-                version='0.1',
+                version='0.2',
                 display_name='Accounts - Native balance',
                 description='balance of native token in some accounts',
                 developer='Credmark',
                 category='account',
                 tags=['token', 'native'],
-                input=Accounts,
+                input=MultiChainAccounts,
                 output=NativeTokenBalance)
 class NativeBalance4Accounts(Model):
-    def run(self, input: Accounts) -> NativeTokenBalance:
+    def run(self, input: MultiChainAccounts) -> NativeTokenBalance:
         native_token = NativeToken()
         total_balance = 0
         balance_for_accounts = {}

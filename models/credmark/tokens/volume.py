@@ -6,27 +6,12 @@ from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (
     Address,
     BlockNumber,
-    Contract,
     JoinType,
     NativeToken,
     PriceWithQuote,
     Token,
 )
 from credmark.dto import DTO, DTOField
-
-
-@Model.describe(slug='token.swap-pool-volume',
-                version='1.0',
-                display_name='Token Volume',
-                description='The current volume for a swap pool',
-                category='protocol',
-                tags=['token'],
-                input=Contract,
-                output=dict)
-class TokenSwapPoolVolume(Model):
-    def run(self, input: Token) -> dict:
-        # TODO: Get All Credmark Supported swap Pools for a token
-        return {"result": 0}
 
 
 class TokenVolumeBlockInput(DTO):
@@ -46,6 +31,11 @@ class TokenVolumeBlockInput(DTO):
         if 'address' not in data:
             data['address'] = Token(**data).address
         super().__init__(**data)
+
+    class Config:
+        schema_extra = {
+            'example': {"symbol": "USDC", "block_number": -1000}
+        }
 
 
 class TokenVolumeBlockRange(DTO):
@@ -141,6 +131,11 @@ class TokenVolumeWindowInput(DTO):
         if 'address' not in data:
             data['address'] = Token(**data).address
         super().__init__(**data)
+
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "window": "1 day"}
+        }
 
 
 @Model.describe(slug='token.overall-volume-window',
@@ -295,6 +290,11 @@ class TokenVolumeSegmentBlock(Model):
 
 class TokenVolumeSegmentWindowInput(TokenVolumeWindowInput):
     n: int = DTOField(2, ge=1, description='Number of interval to count')
+
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
 
 
 @Model.describe(slug='token.volume-segment-window',
