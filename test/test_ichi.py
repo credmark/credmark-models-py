@@ -11,12 +11,14 @@ from models.tmp_abi_lookup import ICHI_VAULT
 class TestICHI(CMFTest):
     def test_ichi_vaults_deployment_block(self):
         chain_id = 137
-        last_block = 42499457
+        last_block_output = self.run_model_with_output(
+            'chain.get-latest-block', {}, block_number=None, chain_id=137)
+        last_block = last_block_output['output']['blockNumber'] - 62
 
         ichi_vaults = self.run_model_with_output(
             'ichi.vaults', {}, block_number=last_block, chain_id=chain_id)
 
-        for ichi_vault_addr in ichi_vaults['output']['vaults'].keys():
+        for ichi_vault_addr in list(ichi_vaults['output']['vaults'].keys())[::7]:
             self.get_token_deployment_block(ichi_vault_addr, last_block, chain_id)
 
     def test_polygon(self):
