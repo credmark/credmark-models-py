@@ -705,6 +705,8 @@ class IchiVaultCashflow(Model):
         # fetch results
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
 
+        self.logger.info(f'[{self.slug}] Deposit/Withdraw events: {len(df_comb)}={len(df_deposit)}+{len(df_withdraw)}')
+
         if df_comb.empty:
             return Records.from_dataframe(prev_result)
 
@@ -788,7 +790,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.37',
+                version='0.38',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1224,7 +1226,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.31',
+                version='0.32',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, no-member, line-too-long
+# pylint: disable=locally-disabled, no-member, line-too-long, invalid-name
 
 from typing import List, Optional
 
@@ -214,7 +214,7 @@ class TokenDeploymentOutput(ModelResultOutput):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.9",
+                version="0.10",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -266,11 +266,13 @@ class TokenInfoDeployment(Model):
                 LookupType.FORWARD_FIRST)
 
             if latest_run is not None:
-                if latest_run['result']['deployed_block_number'] <= self.context.block_number:
+                latest_run_deployed_block_number = latest_run['result']['deployed_block_number']
+                if latest_run_deployed_block_number <= self.context.block_number:
                     return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
                                                    'model_result_direction': LookupType.FORWARD_FIRST.value}
                 else:
-                    raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+                    raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number} '
+                                         f'because it would be deployed on {latest_run_deployed_block_number}.')
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
             raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
