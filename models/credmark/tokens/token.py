@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, no-member, line-too-long
+# pylint: disable=locally-disabled, no-member, line-too-long, invalid-name
 
 from typing import List, Optional
 
