@@ -702,6 +702,9 @@ class IchiVaultCashflow(Model):
         # fetch results
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
 
+        if df_comb.empty:
+            return Records.from_dataframe(prev_result)
+
         self.logger.info(f'Using {_prev_result_block=}')
         df_comb = (df_comb
                    .query('blockNumber >= @_prev_result_block')
