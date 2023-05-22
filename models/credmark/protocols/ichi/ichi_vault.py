@@ -488,7 +488,7 @@ class ContractEventsOutput(ModelResultOutput):
 
 
 @Model.describe(slug='contract.events',
-                version='0.9',
+                version='0.10',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -586,7 +586,7 @@ class ContractEvents(Model):
         return ContractEventsOutput(
             records=Records.from_dataframe(df_comb),
             model_result_block=start_block,
-            model_result_direction=LookupType.BACKWARD_LAST.value
+            model_result_direction='original'
         )
 
 

@@ -9,6 +9,16 @@ from models.tmp_abi_lookup import ICHI_VAULT
 
 
 class TestICHI(CMFTest):
+    def test_ichi_vaults_deployment_block(self):
+        chain_id = 137
+        last_block = 42499457
+
+        ichi_vaults = self.run_model_with_output(
+            'ichi.vaults', {}, block_number=last_block, chain_id=chain_id)
+
+        for ichi_vault_addr in ichi_vaults['output']['vaults'].keys():
+            self.get_token_deployment_block(ichi_vault_addr, last_block, chain_id)
+
     def test_polygon(self):
         self.title('ICHI - Polygon')
 
@@ -74,6 +84,14 @@ class TestICHI(CMFTest):
                 'token.deployment',
                 {"address": address, "ignore_proxy": True},
                 block_number=last_block, chain_id=chain_id)
+
+            deployed_info_compare = self.run_model_with_output(
+                'token.deployment',
+                {"address": address, "ignore_proxy": True, 'use_model_result': False},
+                block_number=last_block, chain_id=chain_id)
+
+            self.assertEqual(deployed_info["output"]["deployed_block_number"],
+                             deployed_info_compare["output"]["deployed_block_number"])
 
             return deployed_info["output"]["deployed_block_number"]
         except AssertionError:
