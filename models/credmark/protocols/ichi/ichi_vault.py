@@ -488,7 +488,7 @@ class ContractEventsOutput(ModelResultOutput):
 
 
 @Model.describe(slug='contract.events',
-                version='0.7',
+                version='0.8',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -529,6 +529,9 @@ class ContractEvents(Model):
                 start_block = int(backward_last_run['blockNumber'])
                 prev_result = Records(**backward_last_run['result']['records']).to_dataframe()
 
+        self.logger.info(f'[{self.slug}] Fetching {input.event_name} events from {input.address} '
+                         f'from block {start_block} on {self.context.block_number}')
+
         if input.event_abi is not None:
             input_contract = Contract(input.address).set_abi(input.event_abi, set_loaded=True)
         else:
@@ -560,10 +563,10 @@ class ContractEvents(Model):
                 to_block=int(self.context.block_number),
                 contract_address=input_contract.address.checksum,
                 by_range=10_000)))
-            self.logger.info('USe by_range=10_000')
+            self.logger.info('Use by_range=10_000')
 
         self.logger.info(
-            f'Finished fetching event {input.event_name} from {max(deployed_block_number, start_block+1)} '
+            f'[{self.slug}] Finished fetching event {input.event_name} from {max(deployed_block_number, start_block+1)} '
             f'to {int(self.context.block_number)} on {datetime.now()}')
 
         if not df_events.empty:
@@ -591,7 +594,7 @@ class IchiVaultContractWithUseModelResult(IchiVaultContract, ModelResultInput):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.19',
+                version='0.21',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -785,7 +788,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.36',
+                version='0.37',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1165,11 +1168,14 @@ class IchiVaultPerformance(Model):
                                                 days_from_first_deposit,
                                                 first_deposit_date,
                                                 current_block_date)
-        result['irr_cashflow'], result['irr_cashflow_non_zero'] = self.irr_cashflow(vault_ichi,
-                                                                                    df_cashflow,
-                                                                                    start_block=first_deposit_block_number,
-                                                                                    end_block=self.context.block_number,
-                                                                                    vault_info=vault_info_current)
+        if not df_cashflow.empty:
+            result['irr_cashflow'], result['irr_cashflow_non_zero'] = self.irr_cashflow(vault_ichi,
+                                                                                        df_cashflow,
+                                                                                        start_block=first_deposit_block_number,
+                                                                                        end_block=self.context.block_number,
+                                                                                        vault_info=vault_info_current)
+        else:
+            result['irr_cashflow'], result['irr_cashflow_non_zero'] = None, None
 
         result['qty_hold'], result['qty_vault'] = self.qty_hold_and_vault(
             vault_info_first_deposit, vault_info_current, input.base)
@@ -1218,7 +1224,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.30',
+                version='0.31',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
