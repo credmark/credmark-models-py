@@ -488,7 +488,7 @@ class ContractEventsOutput(ModelResultOutput):
 
 
 @Model.describe(slug='contract.events',
-                version='0.6',
+                version='0.7',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -526,7 +526,7 @@ class ContractEvents(Model):
                 self.context.__dict__['original_input'],
                 LookupType.BACKWARD_LAST_EXCLUDE)
             if backward_last_run is not None:
-                start_block = int(backward_last_run['blockNumber']) + 1
+                start_block = int(backward_last_run['blockNumber'])
                 prev_result = Records(**backward_last_run['result']['records']).to_dataframe()
 
         if input.event_abi is not None:
