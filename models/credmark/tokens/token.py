@@ -176,7 +176,7 @@ class TokenUnderlying(Model):
 
 
 @Model.describe(slug="token.info",
-                version="1.4",
+                version="1.5",
                 display_name="Token Information",
                 developer="Credmark",
                 category='protocol',
@@ -214,7 +214,7 @@ class TokenDeploymentOutput(ModelResultOutput):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.10",
+                version="0.11",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
@@ -256,6 +256,7 @@ class TokenInfoDeployment(Model):
                 self.slug, self.version,
                 self.context.__dict__['original_input'],
                 LookupType.BACKWARD_LAST)
+
             if latest_run is not None:
                 return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
                                                'model_result_direction': LookupType.BACKWARD_LAST.value}
@@ -271,16 +272,17 @@ class TokenInfoDeployment(Model):
                     return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
                                                    'model_result_direction': LookupType.FORWARD_FIRST.value}
                 else:
-                    raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number} '
-                                         f'because it would be deployed on {latest_run_deployed_block_number}.')
+                    raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number} '
+                                        f'because it would be deployed on {latest_run_deployed_block_number}.')
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
-            raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+            raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         res = self.binary_search(
             0, int(self.context.block_number), input.address.checksum)
+
         if res == -1:
-            raise ModelDataError(
+            raise ModelRunError(
                 f'Can not find deployment information for {input.address}')
 
         block = self.context.web3.eth.get_block(res)
@@ -316,7 +318,7 @@ class TokenInfoDeployment(Model):
             deployer=Address(str(deployer)) if deployer is not None else None,
             proxy_deployer=None,
             model_result_block=self.context.block_number,
-            model_result_direction=LookupType.BACKWARD_LAST.value)
+            model_result_direction='original')
 
 
 class TokenLogoOutput(DTO):
