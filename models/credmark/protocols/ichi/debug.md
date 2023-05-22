@@ -47,3 +47,20 @@ credmark-dev run ichi.vault-performance -i '{"address":"0xc9c785d61455a44e9281c6
 ```bash
 credmark-dev run ichi.vaults-performance -i '{}' -b 39527975 -j -c 137 -l -
 ```
+
+# token.deployment
+
+```bash
+credmark-dev --model_path x run token.deployment -j -i '{"address": "0x692437de2cae5addd26ccf6650cad722d914d974", "ignore_proxy": true}' -l - -c 137
+
+"type": "ModelDataError",
+    "message": "0x692437de2cae5addd26ccf6650cad722d914d974 is not an EOA account on block 28197291 because it would be deployed on 39530703.",
+    "stack": [
+        {
+            "slug": "token.deployment",
+
+```
+
+```bash
+credmark-dev --model_path x run token.deployment -j -i '{"address": "0xe5bf5d33c617556b91558aafb7beadb68e9cea81", "ignore_proxy": true}' -l - -c 137
+```
