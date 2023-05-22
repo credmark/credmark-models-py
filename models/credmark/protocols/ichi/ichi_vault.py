@@ -504,7 +504,7 @@ class ContractEvents(Model):
         prev_result = pd.DataFrame()
 
         if input.use_model_result:
-            # disable forward search
+            # disable forward search for web3 related models
             def _get_model_result_forward_first():
                 forward_first_run = self.context.models.get_result(
                     self.slug,
@@ -1242,6 +1242,8 @@ class IchiVaultPerformance(Model):
 class IchiVaultsPerformance(Model):
     def run(self, input: IchiPerformanceInput) -> dict:
         vaults_all = self.context.run_model('ichi.vaults', {})['vaults']
+
+        breakpoint()
 
         model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
                         for vault_addr in vaults_all.keys()]
