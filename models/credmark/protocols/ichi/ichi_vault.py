@@ -1243,8 +1243,6 @@ class IchiVaultsPerformance(Model):
     def run(self, input: IchiPerformanceInput) -> dict:
         vaults_all = self.context.run_model('ichi.vaults', {})['vaults']
 
-        breakpoint()
-
         model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
                         for vault_addr in vaults_all.keys()]
 
