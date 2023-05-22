@@ -488,7 +488,7 @@ class ContractEventsOutput(ModelResultOutput):
 
 
 @Model.describe(slug='contract.events',
-                version='0.8',
+                version='0.9',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -504,21 +504,25 @@ class ContractEvents(Model):
         prev_result = pd.DataFrame()
 
         if input.use_model_result:
-            forward_first_run = self.context.models.get_result(
-                self.slug,
-                self.version,
-                self.context.__dict__['original_input'],
-                LookupType.FORWARD_FIRST)
+            # disable forward search
+            def _get_model_result_forward_first():
+                forward_first_run = self.context.models.get_result(
+                    self.slug,
+                    self.version,
+                    self.context.__dict__['original_input'],
+                    LookupType.FORWARD_FIRST)
 
-            if forward_first_run is not None:
-                _current_block = int(self.context.block_number)
-                prev_result = (Records(**forward_first_run['result']['records']).to_dataframe())
-                if not prev_result.empty:
-                    prev_result = prev_result.query('blockNumber <= @_current_block')
-                return ContractEventsOutput(
-                    records=Records.from_dataframe(prev_result),
-                    model_result_block=forward_first_run['blockNumber'],
-                    model_result_direction=LookupType.FORWARD_FIRST.value)
+                if forward_first_run is not None:
+                    _current_block = int(self.context.block_number)
+                    prev_result = (Records(**forward_first_run['result']['records']).to_dataframe())
+                    if not prev_result.empty:
+                        prev_result = prev_result.query('blockNumber <= @_current_block')
+                        return ContractEventsOutput(
+                            records=Records.from_dataframe(prev_result),
+                            model_result_block=forward_first_run['blockNumber'],
+                            model_result_direction=LookupType.FORWARD_FIRST.value)
+
+                return None
 
             backward_last_run = self.context.models.get_result(
                 self.slug,
@@ -594,7 +598,7 @@ class IchiVaultContractWithUseModelResult(IchiVaultContract, ModelResultInput):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.21',
+                version='0.22',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -656,6 +660,8 @@ class IchiVaultCashflow(Model):
             if backward_last_run is not None:
                 _prev_result_block = int(backward_last_run['blockNumber']) + 1
                 prev_result = Records(**backward_last_run['result']).to_dataframe()
+
+        self.logger.info(f'[{self.slug}] loaded result from {_prev_result_block} for {prev_result.shape[0]} records')
 
         vault_ichi = Contract(input.address).set_abi(ICHI_VAULT, set_loaded=True)
         vault_ichi_decimals = vault_ichi.functions.decimals().call()
@@ -790,7 +796,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.38',
+                version='0.39',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1226,7 +1232,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.32',
+                version='0.33',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
