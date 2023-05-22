@@ -214,7 +214,7 @@ class TokenDeploymentOutput(ModelResultOutput):
 
 
 @Model.describe(slug="token.deployment",
-                version="0.8",
+                version="0.9",
                 display_name="Token Information - deployment",
                 developer="Credmark",
                 category='protocol',
