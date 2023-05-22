@@ -591,7 +591,7 @@ class IchiVaultContractWithUseModelResult(IchiVaultContract, ModelResultInput):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.17',
+                version='0.18',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -782,7 +782,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.34',
+                version='0.35',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1215,7 +1215,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.28',
+                version='0.29',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
