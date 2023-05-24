@@ -7,7 +7,7 @@ import numpy.linalg as nplin
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Price, Some, Token
+from credmark.cmf.types import Address, Contract, Contracts, Price, Some, Token, Tokens
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
@@ -92,7 +92,7 @@ class UniswapV3PoolInfo(DTO):
     primary_address: Address
 
 
-def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -> Contracts:
+def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -> list[Address]:
     uniswap_factory = Contract(address=factory_addr)
     pools = []
     for token_pair in token_pairs:
@@ -110,12 +110,12 @@ def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -
                 except ModelDataError:
                     pass
 
-                pools.append(cc)
-    return Contracts(contracts=pools)
+                pools.append(Address(pool_addr))
+    return pools
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
-                version='1.6',
+                version='1.7',
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -125,14 +125,31 @@ def get_uniswap_v3_pools_by_pair(_context, factory_addr: Address, token_pairs) -
 class UniswapV3GetPools(Model):
     def run(self, input: Token) -> Contracts:
         try:
-            token_pairs = get_primary_token_tuples(self.context, input.address)
-            return get_uniswap_v3_pools_by_pair(self.context, V3_FACTORY_ADDRESS[self.context.network], token_pairs)
+            token_pairs = get_primary_token_tuples(self.context, [input.address])
+            pools = get_uniswap_v3_pools_by_pair(self.context, V3_FACTORY_ADDRESS[self.context.network], token_pairs)
+            return Contracts(contracts=[Contract(addr) for addr in pools])
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
-            return Contracts(contracts=[])
+            return Contracts.empty()
+
+
+@Model.describe(slug='uniswap-v3.get-pools-tokens',
+                version='1.7',
+                display_name='Uniswap v3 Token Pools',
+                description='The Uniswap v3 pools that support a token contract',
+                category='protocol',
+                subcategory='uniswap-v3',
+                input=Tokens,
+                output=Contracts)
+class UniswapV3GetPoolsTokens(Model):
+    def run(self, input: Tokens) -> Contracts:
+        token_pairs = get_primary_token_tuples(self.context, [tok.address for tok in input.tokens])
+        pools = get_uniswap_v3_pools_by_pair(
+            self.context, V3_FACTORY_ADDRESS[self.context.network], token_pairs)
+        return Contracts.from_addresses(list(set(pools)))
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.7',
+                version='0.8',
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
@@ -159,16 +176,15 @@ class UniswapV3GetRing0RefPrice(Model):
                 pools = get_uniswap_v3_pools_by_pair(
                     self.context, factory_addr, token_pairs)
 
-                if len(pools.contracts) == 0:
+                if len(pools) == 0:
                     missing_relations.extend(
                         [(token0_address, token1_address), (token1_address, token0_address)])
                     continue
 
-                pools_info = [self.context.run_model(
-                    'uniswap-v3.get-pool-info', input=p) for p in pools.contracts]
-                pools_info_sel = [[p.address,
+                pools_info = [self.context.run_model('uniswap-v3.get-pool-info', input={'address': p}) for p in pools]
+                pools_info_sel = [[p,
                                    *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
-                                  for p, pi in zip(pools.contracts, pools_info)]
+                                  for p, pi in zip(pools, pools_info)]
 
                 pool_info = pd.DataFrame(data=pools_info_sel,
                                          columns=['address', 'ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1'])
@@ -228,7 +244,7 @@ class UniswapV3GetPoolsLedger(Model):
     def run(self, input: Token) -> Contracts:
         factory = Contract(V3_FACTORY_ADDRESS[self.context.network])
         input_address = input.address
-        token_pairs = get_primary_token_tuples(self.context, input_address)
+        token_pairs = get_primary_token_tuples(self.context, [input_address])
         token_pairs_fee = [(*tp, V3_POOL_FEES) for tp in token_pairs]
 
         with factory.ledger.events.PoolCreated as q:

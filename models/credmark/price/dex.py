@@ -60,7 +60,7 @@ class DexPrimaryTokens(Model):
         return Some(some=valid_tokens)
 
 
-def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Address, Address]]:
+def get_primary_token_tuples(context, input_addresses: list[Address]) -> List[Tuple[Address, Address]]:
     ring0_tokens = context.run_model('dex.ring0-tokens', {},
                                      return_type=Some[Address],
                                      local=True).some
@@ -71,6 +71,14 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
     # _wbtc_address = Token('WBTC').address
     ring1_tokens = [weth_address]
 
+    primary_tokens_ring1 = primary_tokens.copy()
+    primary_tokens_ring1.extend(ring1_tokens)
+
+    primary_tokens_ring1_step = {}
+    for step in range(len(ring1_tokens)):
+        primary_tokens_ring1_step[step] = primary_tokens.copy()
+        primary_tokens_ring1_step[step].extend(ring1_tokens[:step])
+
     """
     TODO:
     # 1. In ring0 => all pair without self.
@@ -78,28 +86,29 @@ def get_primary_token_tuples(context, input_address: Address) -> List[Tuple[Addr
     # e.g. When ring1+ has [wbtc, wbtc2] => for wbtc, add weth; for wbtc2, add weth and wbtc2.
     # 3. _ => include all ring0 and ring1+
     """
-    if input_address not in ring0_tokens:
-        if input_address not in ring1_tokens:
-            primary_tokens.extend(ring1_tokens)
-        else:
-            primary_tokens.extend(
-                ring1_tokens[:ring1_tokens.index(input_address)])
-
     token_pairs = []
 
-    for token_address in primary_tokens:
-        if token_address == input_address:
-            continue
-        if input_address.to_int() < token_address.to_int():
-            token_pairs.append(
-                (input_address.checksum, token_address.checksum))
-            # TEST
-            # token_pairs.append((Token(input_address).symbol, Token(token_address).symbol))
-        else:
-            token_pairs.append(
-                (token_address.checksum, input_address.checksum))
-            # TEST
-            # token_pairs.append((Token(token_address).symbol, Token(input_address).symbol))
+    for input_address in input_addresses:
+        primary_tokens_in_use = primary_tokens
+        if input_address not in ring0_tokens:
+            if input_address not in ring1_tokens:
+                primary_tokens_in_use = primary_tokens_ring1
+            else:
+                primary_tokens_in_use = primary_tokens_ring1_step[ring1_tokens.index(input_address)]
+
+        for token_address in primary_tokens_in_use:
+            if token_address == input_address:
+                continue
+            if input_address.to_int() < token_address.to_int():
+                token_pairs.append(
+                    (input_address.checksum, token_address.checksum))
+                # TEST
+                # token_pairs.append((Token(input_address).symbol, Token(token_address).symbol))
+            else:
+                token_pairs.append(
+                    (token_address.checksum, input_address.checksum))
+                # TEST
+                # token_pairs.append((Token(token_address).symbol, Token(input_address).symbol))
 
     return token_pairs
 

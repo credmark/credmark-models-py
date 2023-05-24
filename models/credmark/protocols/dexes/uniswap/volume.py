@@ -21,7 +21,7 @@ class DexPoolContract(Contract):
 
 @Model.describe(slug='dex.pool-volume-block-range',
                 version='1.1',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
                 category='protocol',
@@ -74,7 +74,7 @@ def new_trading_volume(_tokens: List[Token]):
 
 @Model.describe(slug='dex.pool-volume-historical',
                 version='1.13',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
                 category='protocol',
@@ -189,7 +189,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 @Model.describe(slug='dex.pool-volume-historical-ledger',
                 version='1.11',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes - Historical',
+                display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
                 category='protocol',
@@ -440,7 +440,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
 
 @Model.describe(slug='dex.pool-volume',
                 version='1.11',
-                display_name='Uniswap/Sushiswap/Curve Pool Swap Volumes',
+                display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current'),
                 category='protocol',

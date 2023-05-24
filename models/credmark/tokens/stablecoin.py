@@ -1,7 +1,7 @@
 # pylint: disable=locally-disabled
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import Network, Token, Tokens
+from credmark.cmf.types import Address, Network, Tokens
 
 
 @Model.describe(slug='token.stablecoins',
@@ -20,6 +20,6 @@ class StableCoins(Model):
         }
     }
 
-    def run(self, _input: Token) -> Tokens:
-        return Tokens(tokens=[Token(address=addr)
-                              for addr in self.STABLECOINS[self.context.network].values()])
+    def run(self, _) -> Tokens:
+        return Tokens.from_addresses(
+            [Address(addr) for addr in self.STABLECOINS[self.context.network].values()])
