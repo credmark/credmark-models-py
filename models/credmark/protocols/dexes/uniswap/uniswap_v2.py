@@ -153,24 +153,24 @@ class UniswapV2PoolMeta:
 
         try:
             tick_price0 = scaled_reserve1 / scaled_reserve0
-            tick_price1 = 1 / tick_price0
+            tick_price1 = 1. / tick_price0
         except (FloatingPointError, ZeroDivisionError):
-            tick_price0 = 0
-            tick_price1 = 0
+            tick_price0 = 0.
+            tick_price1 = 0.
 
         full_tick_liquidity0 = scaled_reserve0
         one_tick_liquidity0 = np.abs(
-            1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
+            1. / np.sqrt(1. + 0.0001) - 1.) * full_tick_liquidity0
 
         full_tick_liquidity1 = scaled_reserve1
-        one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
+        one_tick_liquidity1 = (np.sqrt(1. + 0.0001) - 1.) * full_tick_liquidity1
 
         return (tick_price0, one_tick_liquidity0, tick_price1, one_tick_liquidity1)
 
     @staticmethod
     def get_ref_price(_context, factory_addr: Address):
-        ring0_tokens = _context.run_model(
-            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
+        ring0_tokens = sorted(_context.run_model('dex.ring0-tokens', {},
+                                                 return_type=Some[Address], local=True).some)
 
         ratios = {}
         valid_tokens = set()
@@ -211,7 +211,7 @@ class UniswapV2PoolMeta:
                 valid_tokens.add(token0_address)
                 valid_tokens.add(token1_address)
 
-        valid_tokens_list = list(valid_tokens)
+        valid_tokens_list = sorted(list(valid_tokens))
         if len(valid_tokens_list) == len(ring0_tokens):
             try:
                 assert len(ring0_tokens) == 3
@@ -219,10 +219,15 @@ class UniswapV2PoolMeta:
                 raise ModelDataError(
                     'Not implemented Calculate for missing relations for more than 3 ring0 tokens') from None
             for token0_address, token1_address in missing_relations:
-                other_token = list(set(ring0_tokens) -
-                                   {token0_address, token1_address})[0]
+                other_token = list(set(ring0_tokens) - {token0_address, token1_address})[0]
                 ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
                     ratios[(other_token, token1_address)]
+
+        corr_mat = np.ones((len(valid_tokens_list), len(valid_tokens_list)))
+        for tok1_n, tok1 in enumerate(valid_tokens_list):
+            for tok2_n, tok2 in enumerate(valid_tokens_list):
+                if tok2_n != tok1_n and (tok1, tok2) in ratios:
+                    corr_mat[tok1_n, tok2_n] = ratios[(tok1, tok2)]
 
         candidate_prices = []
         for pivot_token in valid_tokens_list:
@@ -230,8 +235,9 @@ class UniswapV2PoolMeta:
                                         if token != pivot_token else 1
                                         for token in valid_tokens_list])
             candidate_prices.append(
-                ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),
-                 candidate_price / candidate_price.max()))
+                ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),  # sort key
+                 candidate_price / candidate_price.max())  # normalized price
+            )
 
         ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
 

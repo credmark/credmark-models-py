@@ -161,8 +161,8 @@ class UniswapV3GetRing0RefPrice(Model):
     def run(self, _) -> dict:
         factory_addr = V3_FACTORY_ADDRESS[self.context.network]
 
-        ring0_tokens = self.context.run_model(
-            'dex.ring0-tokens', {}, return_type=Some[Address], local=True).some
+        ring0_tokens = sorted(self.context.run_model('dex.ring0-tokens', {},
+                                                     return_type=Some[Address], local=True).some)
 
         ratios = {}
         valid_tokens = set()
@@ -203,7 +203,8 @@ class UniswapV3GetRing0RefPrice(Model):
                 valid_tokens.add(token0_address)
                 valid_tokens.add(token1_address)
 
-        valid_tokens_list = list(valid_tokens)
+        valid_tokens_list = sorted(list(valid_tokens))
+
         if len(valid_tokens_list) == len(ring0_tokens):
             try:
                 assert len(ring0_tokens) == 3
@@ -216,14 +217,21 @@ class UniswapV3GetRing0RefPrice(Model):
                 ratios[(token0_address, token1_address)] = ratios[(token0_address, other_token)] * \
                     ratios[(other_token, token1_address)]
 
+        corr_mat = np.ones((len(valid_tokens_list), len(valid_tokens_list)))
+        for tok1_n, tok1 in enumerate(valid_tokens_list):
+            for tok2_n, tok2 in enumerate(valid_tokens_list):
+                if tok2_n != tok1_n and (tok1, tok2) in ratios:
+                    corr_mat[tok1_n, tok2_n] = ratios[(tok1, tok2)]
+
         candidate_prices = []
         for pivot_token in valid_tokens_list:
             candidate_price = np.array([ratios[(token, pivot_token)]
                                         if token != pivot_token else 1
                                         for token in valid_tokens_list])
-            candidate_prices.append(
-                ((candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),
-                 candidate_price / candidate_price.max()))
+            candidate_prices.append((
+                (candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),  # sort key
+                candidate_price / candidate_price.max())  # normalized price
+            )
 
         ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
 
