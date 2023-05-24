@@ -474,8 +474,15 @@ class UniV3Pool:
         upperTick.liquidityGross = upperTick.liquidityGross - amount
         upperTick.liquidityNet = upperTick.liquidityNet + amount
 
-        self.ticks[tickLower] = lowerTick
-        self.ticks[tickUpper] = upperTick
+        if lowerTick.liquidityGross == 0 and lowerTick.liquidityNet == 0:
+            del self.ticks[tickLower]
+        else:
+            self.ticks[tickLower] = lowerTick
+
+        if upperTick.liquidityGross == 0 and upperTick.liquidityNet == 0:
+            del self.ticks[tickUpper]
+        else:
+            self.ticks[tickUpper] = upperTick
 
         if tickLower <= self.pool_tick < tickUpper:
             self.pool_liquidity -= event_row['amount']
