@@ -23,7 +23,7 @@ np.seterr(all='raise')
 @Model.describe(slug="finance.var-dex-lp",
                 version="1.9",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
-                description="Working for UniV2, V3 and Sushiswap pools",
+                description="Working for UniV2, V3 and SushiSwap pools",
                 category='protocol',
                 subcategory='uniswap',
                 tags=['var'],
@@ -31,7 +31,7 @@ np.seterr(all='raise')
                 output=UniswapPoolVaROutput)
 class UniswapPoolVaR(Model):
     """
-    This model takes a UniswapV2/UniswapV3/Sushiswap pool to extract its token information.
+    This model takes a UniswapV2/UniswapV3/SushiSwap pool to extract its token information.
     It then calculate the LP position's VaR from both price change and quantity change from IL
     for a portfolio worth of $1.
     """

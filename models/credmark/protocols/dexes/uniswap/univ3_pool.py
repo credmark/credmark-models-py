@@ -31,6 +31,9 @@ class Tick(DTO):
     liquidityGross: int
     liquidityNet: int
 
+    def is_zero(self):
+        return self.liquidityGross == 0 and self.liquidityNet == 0
+
 
 def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
     start_t = datetime.now()
@@ -122,33 +125,31 @@ class UniV3Pool:
 
             # Over time token0_reserve and token1_reserve will receive more than the liquidity amount
             # Let's sync when we update.
-            if self.previous_block_number is None:
-                raise ValueError('self.previous_block_number is None')
+            if self.previous_block_number is not None:
+                # context = ModelContext.current_context()
+                # with context.enter(self.previous_block_number):
+                #    self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+                #    self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
-            # context = ModelContext.current_context()
-            # with context.enter(self.previous_block_number):
-            #    self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-            #    self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+                def _one_time_collect_refresh():
+                    if self.pool.abi is None:
+                        raise ValueError(f'Pool abi missing for {self.pool.address}')
 
-            def _one_time_collect_refresh():
-                if self.pool.abi is None:
-                    raise ValueError(f'Pool abi missing for {self.pool.address}')
+                    df_collect_evt = fetch_events(self.pool, self.pool.events.Collect,
+                                                  'Collect', 0, self.previous_block_number,
+                                                  self.pool.abi.events.Collect.args)
 
-                df_collect_evt = fetch_events(self.pool, self.pool.events.Collect,
-                                              'Collect', 0, self.previous_block_number,
-                                              self.pool.abi.events.Collect.args)
+                    if df_collect_evt.empty:
+                        self.token0_collect = int(0)
+                        self.token1_collect = int(0)
+                    else:
+                        self.token0_collect = sum(df_collect_evt.amount0.to_list())
+                        self.token1_collect = sum(df_collect_evt.amount1.to_list())
 
-                if df_collect_evt.empty:
-                    self.token0_collect = int(0)
-                    self.token1_collect = int(0)
-                else:
-                    self.token0_collect = sum(df_collect_evt.amount0.to_list())
-                    self.token1_collect = sum(df_collect_evt.amount1.to_list())
-
-            # _one_time_collect_refresh()
+                # _one_time_collect_refresh()
 
             def _rebuild_reserve_from_liquidity():
-                # Not easy as we also need the reward
+                # INCOMPLET: Not easy as we also need the reward
                 df_ticks = (pd.DataFrame(self.ticks).T
                             .reset_index(drop=False)
                             .assign(liquidityGross=lambda x: [y[1] for y in x[0]],
@@ -474,12 +475,12 @@ class UniV3Pool:
         upperTick.liquidityGross = upperTick.liquidityGross - amount
         upperTick.liquidityNet = upperTick.liquidityNet + amount
 
-        if lowerTick.liquidityGross == 0 and lowerTick.liquidityNet == 0:
+        if lowerTick.is_zero():
             del self.ticks[tickLower]
         else:
             self.ticks[tickLower] = lowerTick
 
-        if upperTick.liquidityGross == 0 and upperTick.liquidityNet == 0:
+        if upperTick.is_zero():
             del self.ticks[tickUpper]
         else:
             self.ticks[tickUpper] = upperTick

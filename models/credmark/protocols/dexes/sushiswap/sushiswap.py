@@ -2,7 +2,7 @@ from typing import Optional
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Some, Token
+from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Some, Token, Tokens
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
@@ -12,14 +12,14 @@ from models.dtos.pool import PoolPriceInfo
 from models.dtos.price import DexPricePoolInput, DexPriceTokenInput
 
 
-class SushiswapContract(Contract):
+class SushiSwapContract(Contract):
     class Config:
         schema_extra = {
             "examples": [{'address': '0x6a091a3406E0073C3CD6340122143009aDac0EDa'}]
         }
 
 
-class SushiswapDexPricePoolInput(SushiswapContract, DexPricePoolInput):
+class SushiSwapDexPricePoolInput(SushiSwapContract, DexPricePoolInput):
     price_slug: str
     ref_price_slug: Optional[str]
 
@@ -33,12 +33,12 @@ class SushiswapDexPricePoolInput(SushiswapContract, DexPricePoolInput):
 
 @Model.describe(slug="sushiswap.get-v2-factory",
                 version="1.0",
-                display_name="Sushiswap - get factory",
-                description="Returns the address of Sushiswap factory contract",
+                display_name="SushiSwap - get factory",
+                description="Returns the address of SushiSwap factory contract",
                 category='protocol',
                 subcategory='sushi',
                 output=Contract)
-class SushiswapV2Factory(Model):
+class SushiSwapV2Factory(Model):
     SUSHISWAP_V2_FACTORY_ADDRESS = {
         Network.Mainnet: Address('0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'),
     } | {
@@ -54,24 +54,44 @@ class SushiswapV2Factory(Model):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.7',
-                display_name='Sushiswap v2 Pools',
-                description='The Sushiswap pools where a token is traded',
+                version='1.8',
+                display_name='SushiSwap v2 Pools',
+                description='The SushiSwap pools where a token is traded',
                 category='protocol',
                 subcategory='sushi',
                 input=Token,
                 output=Contracts)
-class SushiswapGetPoolsForToken(Model, UniswapV2PoolMeta):
+class SushiSwapGetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         try:
             factory = self.context.run_model(
                 'sushiswap.get-v2-factory', {},
                 return_type=Contract, local=True)
-            return self.get_uniswap_pools(self.context, factory.address, input.address)
+            pools = self.get_uniswap_pools(self.context, factory.address, [input.address])
+            return Contracts.from_addresses(pools)
         except BlockNumberOutOfRangeError:
             pass
 
-        return Contracts(contracts=[])
+        return Contracts.empty()
+
+
+@Model.describe(slug='sushiswap.get-pools-tokens',
+                version='1.8',
+                display_name='SushiSwap v2 Pools for Tokens',
+                description='The SushiSwap pools where a token is traded',
+                category='protocol',
+                subcategory='sushi',
+                input=Tokens,
+                output=Contracts)
+class SushiSwapGetPoolsForTokens(Model, UniswapV2PoolMeta):
+    def run(self, input: Tokens) -> Contracts:
+        factory = self.context.run_model(
+            'sushiswap.get-v2-factory', {},
+            return_type=Contract, local=True)
+        pools = self.get_uniswap_pools(self.context,
+                                       factory.address,
+                                       [tok.address for tok in input.tokens])
+        return Contracts.from_addresses(list(set(pools)))
 
 
 @Model.describe(slug='sushiswap.get-ring0-ref-price',
@@ -91,13 +111,13 @@ class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
 
 @Model.describe(slug='sushiswap.get-pools-ledger',
                 version='0.2',
-                display_name='Sushiswap v2 Pools',
-                description='The Sushiswap pools where a token is traded',
+                display_name='SushiSwap v2 Pools',
+                description='The SushiSwap pools where a token is traded',
                 category='protocol',
                 subcategory='sushi',
                 input=Token,
                 output=Contracts)
-class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
+class SushiSwapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         try:
             factory = self.context.run_model(
@@ -107,16 +127,16 @@ class SushiswapGetPoolsForTokenLedger(Model, UniswapV2PoolMeta):
         except BlockNumberOutOfRangeError:
             pass
 
-        return Contracts(contracts=[])
+        return Contracts.empty()
 
 
 @Model.describe(slug="sushiswap.all-pools",
                 version="1.2",
-                display_name="Sushiswap all pairs",
-                description="Returns the addresses of all pairs on Sushiswap protocol",
+                display_name="SushiSwap all pairs",
+                description="Returns the addresses of all pairs on SushiSwap protocol",
                 category='protocol',
                 subcategory='sushi')
-class SushiswapAllPairs(Model):
+class SushiSwapAllPairs(Model):
     def run(self, _) -> dict:
         contract = Contract(
             **self.context.models(local=True).sushiswap.get_v2_factory())
@@ -147,13 +167,13 @@ class SushiSwapPool(DTO):
 
 @Model.describe(slug="sushiswap.get-pool",
                 version="1.0",
-                display_name="Sushiswap get pool for a pair of tokens",
+                display_name="SushiSwap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of "
-                             "both tokens on Sushiswap protocol"),
+                             "both tokens on SushiSwap protocol"),
                 category='protocol',
                 subcategory='sushi',
                 input=SushiSwapPool)
-class SushiswapGetPair(Model):
+class SushiSwapGetPair(Model):
     def run(self, input: SushiSwapPool):
         self.logger.info(f'{input=}')
         contract = Contract(
@@ -171,13 +191,13 @@ class SushiswapGetPair(Model):
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
                 version='1.14',
-                display_name='Sushiswap Token Pools Price ',
+                display_name='SushiSwap Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
                 subcategory='sushi',
                 input=DexPriceTokenInput,
                 output=Some[PoolPriceInfo])
-class SushiswapGetTokenPriceInfo(Model):
+class SushiSwapGetTokenPriceInfo(Model):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         pools = self.context.run_model('sushiswap.get-pools',
                                        input,
@@ -186,7 +206,7 @@ class SushiswapGetTokenPriceInfo(Model):
 
         model_slug = 'uniswap-v2.get-pool-price-info'
         model_inputs = [
-            SushiswapDexPricePoolInput(
+            SushiSwapDexPricePoolInput(
                 address=pool.address,
                 price_slug='sushiswap.get-weighted-price',
                 ref_price_slug='sushiswap.get-ring0-ref-price',

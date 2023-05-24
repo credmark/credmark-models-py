@@ -645,7 +645,7 @@ class TokenNumberHolders(Model):
                 output=Contracts)
 class TokenSwapPools(Model):
     def run(self, input: Token) -> Contracts:
-        response = Contracts(contracts=[])
+        response = Contracts.empty()
         response.contracts.extend(
             Contracts(**self.context.models.uniswap_v3.get_pools(input)))
         response.contracts.extend(

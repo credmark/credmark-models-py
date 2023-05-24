@@ -56,7 +56,7 @@ class UniswapV2DexPricePoolInput(UniswapV2Contract, DexPricePoolInput):
 
 class UniswapV2PoolMeta:
     @staticmethod
-    def get_uniswap_pools_by_pair(_context, factory_addr: Address, token_pairs) -> Contracts:
+    def get_uniswap_pools_by_pair(_context, factory_addr: Address, token_pairs) -> list[Address]:
         factory = Contract(address=factory_addr)
 
         contracts = []
@@ -73,23 +73,23 @@ class UniswapV2PoolMeta:
                         continue  # before its creation
                     except ModelDataError:
                         pass
-                    contracts.append(cc)
+                    contracts.append(Address(pair_addr))
 
-            return Contracts(contracts=contracts)
+            return contracts
         except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
             # Or use this condition: if self.context.block_number < 10000835 # Uniswap V2
             # Or use this condition: if self.context.block_number < 10794229 # SushiSwap
-            return Contracts(contracts=[])
+            return []
 
     @staticmethod
-    def get_uniswap_pools(_context, factory_addr: Address, input_address: Address) -> Contracts:
-        token_pairs = get_primary_token_tuples(_context, input_address)
+    def get_uniswap_pools(_context, factory_addr: Address, input_addresses: list[Address]) -> list[Address]:
+        token_pairs = get_primary_token_tuples(_context, input_addresses)
         return UniswapV2PoolMeta.get_uniswap_pools_by_pair(_context, factory_addr, token_pairs)
 
     @staticmethod
     def get_uniswap_pools_ledger(context, factory_addr: Address, input_address: Address) -> Contracts:
         factory = Contract(address=factory_addr)
-        token_pairs = get_primary_token_tuples(context, input_address)
+        token_pairs = get_primary_token_tuples(context, [input_address])
 
         with factory.ledger.events.PairCreated as q:
             tp = token_pairs[0]
@@ -184,15 +184,14 @@ class UniswapV2PoolMeta:
                 pools = UniswapV2PoolMeta.get_uniswap_pools_by_pair(
                     _context, factory_addr, token_pairs)
 
-                if len(pools.contracts) == 0:
+                if len(pools) == 0:
                     missing_relations.extend(
                         [(token0_address, token1_address), (token1_address, token0_address)])
                     continue
 
                 # print((token1_address, token2_address, len(pools.contracts), pools))
                 pool_info = pd.DataFrame(
-                    data=[UniswapV2PoolMeta.get_uniswap_pool_info(
-                        _context, c.address) for c in pools.contracts],
+                    data=[UniswapV2PoolMeta.get_uniswap_pool_info(_context, addr) for addr in pools],
                     columns=['tick_price0', 'one_tick_liquidity0',
                              'tick_price1', 'one_tick_liquidity1'])
 
@@ -255,7 +254,7 @@ class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.9',
+                version='1.10',
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -265,7 +264,25 @@ class UniswapV2GetRing0RefPrice(Model, UniswapV2PoolMeta):
 class UniswapV2GetPoolsForToken(Model, UniswapV2PoolMeta):
     def run(self, input: Token) -> Contracts:
         factory_addr = V2_FACTORY_ADDRESS[self.context.network]
-        return self.get_uniswap_pools(self.context, factory_addr, input.address)
+        pools = self.get_uniswap_pools(self.context, factory_addr, [input.address])
+        return Contracts.from_addresses(pools)
+
+
+@Model.describe(slug='uniswap-v2.get-pools-tokens',
+                version='1.10',
+                display_name='Uniswap v2 Pools for Tokens',
+                description='The Uniswap v2 pools that support token contract',
+                category='protocol',
+                subcategory='uniswap-v2',
+                input=Tokens,
+                output=Contracts)
+class UniswapV2GetPoolsForTokens(Model, UniswapV2PoolMeta):
+    def run(self, input: Tokens) -> Contracts:
+        factory_addr = V2_FACTORY_ADDRESS[self.context.network]
+        pools = self.get_uniswap_pools(self.context,
+                                       factory_addr,
+                                       [tok.address for tok in input.tokens])
+        return Contracts.from_addresses(list(set(pools)))
 
 
 @Model.describe(slug='uniswap-v2.get-pools-ledger',
@@ -513,7 +530,7 @@ class UniswapV2PoolInfo(DTO):
 
 @Model.describe(slug="uniswap-v2.get-pool-info",
                 version="1.10",
-                display_name="Uniswap/Sushiswap get details for a pool",
+                display_name="Uniswap/SushiSwap get details for a pool",
                 description="Returns the token details of the pool",
                 category='protocol',
                 subcategory='uniswap-v2',
@@ -568,7 +585,7 @@ class UniswapGetPoolInfo(Model):
 
 @Model.describe(slug='uniswap-v2.pool-tvl',
                 version='1.8',
-                display_name='Uniswap/Sushiswap Token Pool TVL',
+                display_name='Uniswap/SushiSwap Token Pool TVL',
                 description='Gather price and liquidity information from pools',
                 category='protocol',
                 subcategory='uniswap-v2',
