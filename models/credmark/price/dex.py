@@ -270,9 +270,10 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                 input=DexPriceTokenInput,
                 output=Some[PoolPriceInfo])
 class PriceInfoFromDex(Model):
-    DEX_POOL_PRICE_INFO_MODELS: List[str] = ['uniswap-v2.get-pool-info-token-price',
-                                             'sushiswap.get-pool-info-token-price',
-                                             'uniswap-v3.get-pool-info-token-price']
+    DEX_POOL_PRICE_INFO_MODELS: dict[Network, list[str]] = {
+        Network.Mainnet: ['uniswap-v2.get-pool-info-token-price',
+                          'sushiswap.get-pool-info-token-price',
+                          'uniswap-v3.get-pool-info-token-price']}
 
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         # For testing with other power, set this = default power for the token here
@@ -281,8 +282,9 @@ class PriceInfoFromDex(Model):
         # if input.address == '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9':  # AAVE
         #    input.weight_power = 4.0
 
-        model_inputs = [{"modelSlug": slug, "modelInputs": [input]}
-                        for slug in self.DEX_POOL_PRICE_INFO_MODELS]
+        model_inputs = [{"modelSlug": slug,
+                         "modelInputs": [input]}
+                        for slug in self.DEX_POOL_PRICE_INFO_MODELS[self.context.network]]
 
         def _use_compose():
             all_pool_infos_results = self.context.run_model(
