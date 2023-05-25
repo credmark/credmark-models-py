@@ -98,7 +98,7 @@ class PriceOracleChainlink(Model):
         if base == quote:
             return PriceWithQuote(price=1, src=f'{self.slug}|Equal', quoteAddress=quote.address)
 
-        if self.context.chain_id == Network.Mainnet:
+        if self.context.network == Network.Mainnet:
             price_maybe = self.context.run_model('chainlink.price-from-registry-maybe',
                                                  input=new_input,
                                                  return_type=Maybe[PriceWithQuote],

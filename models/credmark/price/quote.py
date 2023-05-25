@@ -1,5 +1,8 @@
 # pylint:disable=try-except-raise, no-member, line-too-long, pointless-string-statement
 
+from contextlib import nullcontext
+from typing import List, Tuple
+from operator import itemgetter
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
     ModelDataError,
@@ -19,6 +22,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapInputsOutput
+from credmark.cmf.types.token_erc20 import get_token_from_configuration
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolLPPosition
 from models.dtos.price import (
@@ -98,7 +102,8 @@ class PriceQuoteHistorical(Model):
             input={"modelSlug": 'price.quote',
                    "modelInput": PriceInputWithPreference(base=input.base,
                                                           quote=input.quote,
-                                                          prefer=input.prefer),
+                                                          prefer=input.prefer,
+                                                          try_other_chains=input.try_other_chains),
                    "endTimestamp": self.context.block_number.timestamp,
                    "interval": input.interval,
                    "count": input.count,
@@ -263,7 +268,7 @@ class PriceQuoteMaybeBlock(Model):
                                 f'larger than current block number {self.context.block_number}')
 
         pi = PriceInputWithPreference(
-            base=input.base, quote=input.quote, prefer=input.prefer)
+            base=input.base, quote=input.quote, prefer=input.prefer, try_other_chains=input.try_other_chains)
         pp = self.context.run_model('compose.map-blocks',
                                     {"modelSlug": "price.quote-maybe",
                                      "modelInput": pi,
@@ -309,37 +314,65 @@ class PriceQuoteMaybe(Model):
                 output=PriceWithQuote,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
-    def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
-        pi = {"base": input.base.address, "quote": input.quote.address}
-        if input.prefer == PriceSource.CEX:
-            model1, label1 = 'price.cex-maybe', 'cex'
-            model2, label2 = 'price.dex-maybe', 'dex'
-        else:
-            model1, label1 = 'price.dex-maybe', 'dex'
-            model2, label2 = 'price.cex-maybe', 'cex'
+    def tries_for_network(
+            self,
+            network: Network,
+            base_address: str) -> List[Tuple[Network, PriceSource, str]]:
+        tries = []
+        if network.has_ledger:
+            tries.append((network, PriceSource.DEX, base_address))
+        tries.append((network, PriceSource.CEX, base_address))
+        return tries
 
-        try:
-            price_maybe1 = self.context.run_model(model1, pi, return_type=Maybe[PriceWithQuote])
-            if price_maybe1.just is not None:
-                price = price_maybe1.just
-                price.src = label1 + '|' + (price.src if price.src is not None else '')
-                return price
-            else:
-                price_maybe2 = self.context.run_model(model2, pi, return_type=Maybe[PriceWithQuote])
-                if price_maybe2.just is not None:
-                    price = price_maybe2.just
-                    price.src = label2 + '|' + (price.src if price.src is not None else '')
+    def run(self, input: PriceInputWithPreference) -> PriceWithQuote:
+        cross_chain_networks = [
+            Network.Mainnet,
+            Network.BSC,
+            Network.Polygon,
+            Network.ArbitrumOne,
+            Network.Optimism,
+            Network.Avalanche,
+            Network.Fantom,
+        ] if input.try_other_chains else []
+
+        tries = self.tries_for_network(self.context.network, input.base.address)
+        cross_chain_tries = []
+        for network in cross_chain_networks:
+            if network is self.context.network:
+                continue
+            token_data = get_token_from_configuration(network.chain_id, input.base.symbol)
+            if token_data is None:
+                continue
+            base_address = Address(token_data['address'])
+            cross_chain_tries.extend(self.tries_for_network(network, base_address))
+
+        tries = sorted(tries,
+                       key=itemgetter(1), reverse=input.prefer is PriceSource.DEX)
+        tries.extend(sorted(cross_chain_tries,
+                            key=itemgetter(1), reverse=input.prefer is PriceSource.DEX))
+
+        for (network, src, base_address) in tries:
+            with self.context.fork(chain_id=network.chain_id) \
+                if network is not self.context.network \
+                    else nullcontext(self.context) as context:
+
+                (model, label) = ('price.dex-maybe', 'dex') \
+                    if src is PriceSource.DEX else ('price.cex-maybe', 'cex')
+
+                price_maybe = context.run_model(
+                    model,
+                    {"base": base_address, "quote": input.quote.address},
+                    return_type=Maybe[PriceWithQuote]
+                )
+
+                if price_maybe.just is not None:
+                    price = price_maybe.just
+                    if network is not self.context.network:
+                        label = f'{network.chain_id}-{network.name}:{int(context.block_number)}:{base_address}:{label}'
+                    price.src = label + '|' + (price.src if price.src is not None else '')
                     return price
-                else:
-                    raise ModelRunError(
-                        f'[{self.context.block_number}] No price can be found from both {label1} and {label2} for {input}.')
-        except ModelRunError:
-            # shall not come here as both maybe models can catch both ModelRunError and ModelDataError
-            raise
-            # cex_cross = PriceCexCross(self.context)
-            # price = cex_cross.run(input)
-            # price.src = 'dex|' + (price.src if price.src is not None else '')
-            # return price
+
+        raise ModelRunError(f'No price can be found for {input}.')
 
 
 class PriceCommon:
@@ -617,12 +650,6 @@ class PriceCexMaybe(Model):
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError):
             return Maybe.none()
-
-
-class PriceCexCross(PriceCexModel, AllowDEX):
-    """
-    Return token's price and fiat conversion for non-USD from Chainlink
-    """
 
 
 @Model.describe(slug='price.dex-maybe',
