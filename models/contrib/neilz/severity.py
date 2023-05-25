@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Accounts, Portfolio
+from credmark.dto import DTOField
 
 # Next Steps:
 
@@ -7,11 +8,15 @@ from credmark.cmf.types import Accounts, Portfolio
 # Add code to the run() method.
 
 
+class AccountsWithOffset(Accounts):
+    offset: int = DTOField(200, description='Block_number offset')
+
+
 @Model.describe(slug='contrib.exploited-value',
                 version='1.0',
                 display_name='My Model',
                 description="Description of the model.",
-                input=Accounts,
+                input=AccountsWithOffset,
                 output=dict)
 class ExploitedValue(Model):
     """
@@ -38,14 +43,15 @@ class ExploitedValue(Model):
         # of this function. Then change this function to return an
         # instance of the DTO class.
 
-        portfolio_now = self.context.models.account.portfolio_aggregate(input=input,
-                                                                        return_type=Portfolio)
+        portfolio_now = self.context.models.accounts.portfolio(input=input,
+                                                               return_type=Portfolio)
 
-        portfolio_two_blocks_ago = self.context.models.account.portfolio_aggregate(
-            input=input, return_type=Portfolio,
-            block_number=self.context.block_number - 2)
+        portfolio_two_blocks_ago: Portfolio = self.context.models.accounts.portfolio(
+            input=input,
+            return_type=Portfolio,
+            block_number=self.context.block_number - 200)  # type: ignore
 
-        # pylint:disable=line-too-long
-        value_diff = portfolio_two_blocks_ago.get_value() - portfolio_now.get_value()  # type: ignore
+        value_diff = portfolio_two_blocks_ago.get_value() - \
+            portfolio_now.get_value()  # type: ignore
 
         return {"exploited_value": value_diff}

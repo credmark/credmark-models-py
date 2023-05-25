@@ -24,7 +24,13 @@ class VolumeInput(Contract):
         block_start = block_end - block_interval + 1
         len_list = block_end - block_start + 1
         for i in range(0, len_list, chunk_size):
-            yield block_start + i, min(block_end, block_start + i + chunk_size-1)
+            yield block_start + i, min(block_end, block_start + i + chunk_size)
+
+    class Config:
+        schema_extra = {
+            'example': {"pool_info_model": "curve-fi.pool-tvl",
+                        "interval": 7200, "address": '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022'}
+        }
 
 
 class VolumeInputHistorical(VolumeInput):

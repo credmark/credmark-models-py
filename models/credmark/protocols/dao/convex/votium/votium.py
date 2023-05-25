@@ -1,10 +1,10 @@
 # pylint:disable=unused-import
+# ruff: noqa: F401
 
 from typing import List
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import (Account, Address, Contract, Contracts, Token,
-                                Tokens)
+from credmark.cmf.types import Account, Address, Contract, Contracts, Token, Tokens
 from credmark.dto import DTO
 
 

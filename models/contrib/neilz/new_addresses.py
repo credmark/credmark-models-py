@@ -9,16 +9,20 @@ class BlockNumberInput(DTO):
     start_block: int
     unique: bool = DTOField(False, describe='filter for unique address')
 
+    class Config:
+        schema_extra = {
+            'example': {"start_block": -100, "unique": True}
+        }
 
-@Model.describe(
-    slug='contrib.neilz-new-addresses',
-    display_name='New Addresses in the past interval',
-    description="",
-    version='1.0',
-    developer='neilz.eth',
-    input=BlockNumberInput,
-    output=dict
-)
+
+@Model.describe(slug='contrib.neilz-new-addresses',
+                display_name='New Addresses in the past interval',
+                description="",
+                version='1.0',
+                developer='neilz.eth',
+                input=BlockNumberInput,
+                output=dict
+                )
 class MyModel(Model):
     def run(self, input: BlockNumberInput) -> dict:
         if input.start_block > 0:
@@ -38,7 +42,8 @@ class MyModel(Model):
             while True:
                 df_tt = (q.select(
                     columns=[q.FROM_ADDRESS],
-                    where=q.NONCE.eq(0).and_(q.BLOCK_NUMBER.gt(actual_start_block)),
+                    where=q.NONCE.eq(0).and_(
+                        q.BLOCK_NUMBER.gt(actual_start_block)),
                     order_by=q.BLOCK_NUMBER,
                     offset=offset)
                     .to_dataframe())
@@ -53,7 +58,8 @@ class MyModel(Model):
             return {"accounts": [], "count": 0}
 
         if input.unique:
-            addresses = pd.concat(df_ts)['from_address'].unique().tolist()  # type: ignore
+            addresses = pd.concat(
+                df_ts)['from_address'].unique().tolist()  # type: ignore
         else:
             addresses = pd.concat(df_ts)['from_address'].to_list()
         return {"accounts": addresses, "count": len(addresses)}

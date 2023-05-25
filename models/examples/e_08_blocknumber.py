@@ -1,25 +1,23 @@
+# pylint: disable=line-too-long
+
 from datetime import datetime, timedelta, timezone
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError, ModelRunError
-from credmark.cmf.types.block_number import (BlockNumber,
-                                             BlockNumberOutOfRangeError)
-from credmark.dto import EmptyInput
+from credmark.cmf.types.block_number import BlockNumber, BlockNumberOutOfRangeError
 
 from .dtos import ExampleBlockTimeInput, ExampleModelOutput
 
 
-@Model.describe(
-    slug='example.block-number',
-    version='1.2',
-    display_name='Example - BlockNumber',
-    description='This model gives examples of '
-    'the functionality available on the BlockNumber class',
-    developer='Credmark',
-    category='example',
-    tags=['block-number'],
-    input=EmptyInput,
-    output=ExampleModelOutput)
+@Model.describe(slug='example.block-number',
+                version='1.2',
+                display_name='Example - BlockNumber',
+                description='This model gives examples of '
+                'the functionality available on the BlockNumber class',
+                developer='Credmark',
+                category='example',
+                tags=['block-number'],
+                output=ExampleModelOutput)
 class ExampleBlockNumber(Model):
 
     def run(self, _) -> ExampleModelOutput:
@@ -60,8 +58,7 @@ class ExampleBlockNumber(Model):
 
         try:
             # pylint: disable=pointless-statement
-            # pyright: reportUnusedExpression=false
-            block_number + 1
+            _ = block_number + 1
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
                 'an exception was NOT caught, and the example has FAILED')
@@ -72,26 +69,23 @@ class ExampleBlockNumber(Model):
 
         try:
             BlockNumber(-1)
-            raise ModelRunError(
-                message="BlockNumbers cannot be negative, an exception was NOT caught, "
-                "and the example has FAILED")
+            raise ModelRunError(message="BlockNumbers cannot be negative, an exception was NOT caught, "
+                                "and the example has FAILED")
         except BlockNumberOutOfRangeError as _e:
             output.log_error(_e)
-            output.log_error(
-                "Attempting to create a BlockNumber object with a negative block number "
-                "raises BlockNumberOutOfRangeError")
+            output.log_error("Attempting to create a BlockNumber object with a negative block number "
+                             "raises BlockNumberOutOfRangeError")
 
         return output
 
 
-@Model.describe(
-    slug='example.block-time',
-    version='1.2',
-    display_name='Example - BlockTime',
-    description='This model demonstrates the conversion between block_number, '
-    'timestamp and Python datetime',
-    input=ExampleBlockTimeInput,
-    output=ExampleModelOutput)
+@Model.describe(slug='example.block-time',
+                version='1.2',
+                display_name='Example - BlockTime',
+                description='This model demonstrates the conversion between block_number, '
+                'timestamp and Python datetime',
+                input=ExampleBlockTimeInput,
+                output=ExampleModelOutput)
 class ExampleBlockTime(Model):
     def run(self, input: ExampleBlockTimeInput) -> ExampleModelOutput:
         output = ExampleModelOutput(
@@ -109,7 +103,7 @@ class ExampleBlockTime(Model):
         block_time = input.blockTime.replace(tzinfo=timezone.utc)
         output.log_io(input="Input blockTime", output=block_time)
 
-        output.log("CMF's BlockNumber is used to get Block Number from datetime or timestamp")
+        output.log("CMF object BlockNumber is used to get Block Number from datetime or timestamp")
         block_number = BlockNumber.from_timestamp(block_time)
         output.log("BlockNumber's timestamp might be different from the input timestamp,")
         output.log("as the last block before the datetime is returned")
@@ -128,13 +122,15 @@ class ExampleBlockTime(Model):
         if self.context.web3.eth.get_block_number() - self.context.block_number < 100:
             output.log("Querying block number for a future timestamp "
                        "returns the latest block number")
-            future_block_time = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(days=10)
+            future_block_time = datetime.utcnow().replace(
+                tzinfo=timezone.utc) + timedelta(days=10)
             output.log_io(input="future_block_time", output=future_block_time)
             output.log_io(input=f"BlockNumber.from_timestamp({future_block_time})",
                           output=BlockNumber.from_timestamp(future_block_time))
 
         block_time_without_tz = block_time.replace(tzinfo=None)
-        output.log_io(input="block_time_without_tz", output=block_time_without_tz)
+        output.log_io(input="block_time_without_tz",
+                      output=block_time_without_tz)
 
         try:
             BlockNumber.from_timestamp(block_time_without_tz)

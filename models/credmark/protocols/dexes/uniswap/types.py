@@ -1,4 +1,4 @@
-from credmark.cmf.types import (Position)
+from credmark.cmf.types import Position
 
 
 class PositionWithFee(Position):

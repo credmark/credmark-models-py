@@ -1,8 +1,9 @@
 from credmark.cmf.engine.mocks import ModelMock, ModelMockConfig
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
-from .dtos import ExampleLedgerOutput
+
 from models.tmp_abi_lookup import CMK_ADDRESS
+
+from .dtos import ExampleLedgerOutput
 
 
 @Model.describe(
@@ -13,7 +14,6 @@ from models.tmp_abi_lookup import CMK_ADDRESS
     description="This model demonstrates the functionality of Ledger's blocks",
     category='example',
     tags=['ledger'],
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerBlocks(Model):
     def run(self, _):
@@ -67,14 +67,14 @@ ledger_transactions_mocks = ModelMockConfig(
     developer="Credmark",
     display_name="Example - Ledger Transactions",
     description="This model demonstrates the functionality of Ledger's transactions",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTransactions(Model):
     def run(self, _):
         with self.context.ledger.Transaction as txn:
             ledger_output = txn.select(
                 columns=[txn.HASH],
-                where=txn.BLOCK_TIMESTAMP.eq(self.context.block_number.timestamp),
+                where=txn.BLOCK_TIMESTAMP.eq(
+                    txn.field(self.context.block_number.timestamp).to_timestamp()),
                 limit=10,
                 order_by=txn.GAS)
 
@@ -87,7 +87,8 @@ class ExampleLedgerTransactions(Model):
                 "components.html#ledger",
                 ledger_output=ledger_output)
 
-            output.log("To fetch 10 transactions hashes mined in the requested block:")
+            output.log(
+                "To fetch 10 transactions hashes mined in the requested block:")
             output.log_io(input="""
 with self.context.ledger.Transaction as txn:
     ledger_output = txn.select(
@@ -101,21 +102,21 @@ with self.context.ledger.Transaction as txn:
         return output
 
 
-@Model.describe(
-    slug='example.ledger-aggregates',
-    version="1.3",
-    developer="Credmark",
-    display_name="Example - Ledger Aggregates",
-    description="This model demonstrates the functionality of aggregates in Ledger",
-    input=EmptyInput,
-    output=ExampleLedgerOutput)
+@Model.describe(slug='example.ledger-aggregates',
+                version="1.3",
+                developer="Credmark",
+                display_name="Example - Ledger Aggregates",
+                description="This model demonstrates the functionality of aggregates in Ledger",
+                output=ExampleLedgerOutput)
 class ExampleLedgerAggregates(Model):
     def run(self, _):
         with self.context.ledger.Transaction as txn:
             ledger_output = txn.select(
                 aggregates=[(txn.GAS.min_(), 'min_gas'),
                             (txn.GAS.max_(), 'max_gas'),
-                            (txn.GAS.avg_(), 'avg_gas')])
+                            (txn.GAS.avg_(), 'avg_gas')],
+                where=txn.BLOCK_NUMBER.gt(self.context.block_number - 10000),
+                bigint_cols=['min_gas', 'max_gas', 'avg_gas'])
 
         output = ExampleLedgerOutput(
             title="7c. Example - Ledger Aggregates",
@@ -132,10 +133,11 @@ class ExampleLedgerAggregates(Model):
         output.log_io(input="""
 with self.context.ledger.Transaction as txn:
     ledger_output = txn.select(
-        aggregates=[(txn.GAS.min_(), 'min_gas'),
-                    (txn.GAS.max_(), 'max_gas'),
-                    (txn.GAS.avg_(), 'avg_gas')])
-
+                aggregates=[(txn.GAS.min_(), 'min_gas'),
+                            (txn.GAS.max_(), 'max_gas'),
+                            (txn.GAS.avg_(), 'avg_gas')],
+                where=txn.BLOCK_NUMBER.gt(self.context.block_number - 10000),
+                bigint_cols=['min_gas', 'max_gas', 'avg_gas'])
 """,
                       output=ledger_output)
 
@@ -148,7 +150,6 @@ with self.context.ledger.Transaction as txn:
     developer="Credmark",
     display_name="Example - Ledger Receipts",
     description="This model demonstrates the functionality of Ledger's receipts",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerReceipts(Model):
     def run(self, _):
@@ -193,7 +194,6 @@ with self.context.ledger.Receipt as rec:
     developer="Credmark",
     display_name="Example - Ledger Token transfers",
     description="This model demonstrates the functionality of Ledger's ERC20 token transfers",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTokenTransfers(Model):
 
@@ -204,8 +204,7 @@ class ExampleLedgerTokenTransfers(Model):
                 where=ttf.FROM_ADDRESS.eq(CMK_ADDRESS).or_(
                     ttf.TO_ADDRESS.eq(CMK_ADDRESS)
                 ),
-                order_by=ttf.BLOCK_NUMBER.desc(),
-                limit=10)
+                order_by=ttf.BLOCK_NUMBER.desc())
 
         output = ExampleLedgerOutput(
             title="7e. Example - Ledger Token transfers",
@@ -232,6 +231,14 @@ with self.context.ledger.TokenTransfer as ttf:
 """,
                       output=ledger_output)
 
+        with self.context.ledger.TokenBalance as tb:
+            ledger_output = tb.select(
+                columns=tb.columns,
+                where=tb.FROM_ADDRESS.eq(CMK_ADDRESS).or_(
+                    tb.TO_ADDRESS.eq(CMK_ADDRESS)
+                ),
+                order_by=tb.BLOCK_NUMBER.desc())
+
         return output
 
 
@@ -241,7 +248,6 @@ with self.context.ledger.TokenTransfer as ttf:
     developer="Credmark",
     display_name="Example - Ledger Tokens",
     description="This model demonstrates the functionality of Ledger's ERC20 tokens",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTokens(Model):
     def run(self, _):
@@ -276,7 +282,6 @@ with ledger.Token as q:
     developer="Credmark",
     display_name="Example - Ledger Logs",
     description="This model demonstrates the functionality of Ledger's logs",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerLogs(Model):
     def run(self, _):
@@ -319,7 +324,6 @@ with ledger.Log as q:
     developer="Credmark",
     display_name="Example - Ledger Contracts",
     description="This model demonstrates the functionality of Ledger's contracts",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerContracts(Model):
     def run(self, _):
@@ -358,7 +362,6 @@ with self.context.ledger.Contract as q:
     developer="Credmark",
     display_name="Example - Ledger Traces",
     description="This model demonstrates the functionality of Ledger's traces",
-    input=EmptyInput,
     output=ExampleLedgerOutput)
 class ExampleLedgerTraces(Model):
 

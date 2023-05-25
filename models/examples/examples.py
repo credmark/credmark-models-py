@@ -1,10 +1,11 @@
 from credmark.cmf.model import Model
+
 from .dtos import ExampleAllModelsOutput
 
 
 @Model.describe(
     slug='example.all',
-    version='1.2',
+    version='1.3',
     display_name='Example - All',
     description='This model runs all of the Credmark Example Models',
     developer='Credmark',
@@ -36,7 +37,7 @@ class AllExample(Model):
             'example.ledger-transactions',
             'example.ledger-aggregates',
             'example.ledger-receipts',
-            # 'example.ledger-token-transfers',
+            'example.ledger-token-transfers',
             'example.ledger-tokens',
             'example.ledger-logs',
             'example.ledger-contracts',
@@ -57,7 +58,7 @@ class AllExample(Model):
             output.log(f"Running {model_slug}")
             output.log("----------------------------------------"
                        "----------------------------------------")
-            model_output = self.context.run_model(model_slug)
+            model_output = self.context.run_model(model_slug, {})
             output.log("----------------------------------------"
                        "----------------------------------------")
             model_outputs.append({

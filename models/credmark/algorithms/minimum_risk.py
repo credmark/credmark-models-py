@@ -1,9 +1,9 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Some, Tokens
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO
+
 from models.credmark.protocols.lending.aave.aave_v2 import AaveDebtInfo
-from models.credmark.protocols.lending.compound.compound_v2 import \
-    CompoundV2PoolInfo
+from models.credmark.protocols.lending.compound.compound_v2 import CompoundV2PoolInfo
 
 
 class MinRiskOutput(DTO):
@@ -11,12 +11,11 @@ class MinRiskOutput(DTO):
 
 
 @Model.describe(slug="finance.min-risk-rate",
-                version="1.1",
+                version="1.2",
                 display_name="Calculate minimal risk rate",
                 description='Rates from stablecoins\' loans to Aave and Compound, '
                             'then weighted by their debt size and total supply',
                 category='financial',
-                input=EmptyInput,
                 output=MinRiskOutput)
 class MinRisk(Model):
     """
@@ -25,9 +24,8 @@ class MinRisk(Model):
     """
 
     def run(self, _) -> MinRiskOutput:
-        aave_debts = self.context.run_model('aave-v2.lending-pool-assets',
-                                            input=EmptyInput(),
-                                            return_type=Some[AaveDebtInfo])
+        aave_debts = self.context.run_model(
+            'aave-v2.lending-pool-assets', {}, return_type=Some[AaveDebtInfo])
 
         stable_coins = Tokens(**self.context.models.token.stablecoins())
         sb_debt_infos = {}
@@ -41,9 +39,8 @@ class MinRisk(Model):
                 sb_debt_infos[token.address] = dbt_info + [(rate, supply_qty)]
                 sb_tokens[token.address] = dbt.token
 
-        compound_debts = self.context.run_model('compound-v2.all-pools-info',
-                                                input=EmptyInput(),
-                                                return_type=Some[CompoundV2PoolInfo])
+        compound_debts = self.context.run_model(
+            'compound-v2.all-pools-info', {}, return_type=Some[CompoundV2PoolInfo])
 
         for dbt in compound_debts:
             token = dbt.token

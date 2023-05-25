@@ -1,9 +1,17 @@
 import numpy as np
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Maybe, Network, Price, PriceWithQuote, Token
-from models.credmark.protocols.dexes.curve.curve_finance import \
-    CurveFiPoolInfoToken
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Maybe,
+    Network,
+    Price,
+    PriceWithQuote,
+    Token,
+)
+
+from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
 
 np.seterr(all='raise')
 
@@ -12,18 +20,25 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code_desc='Not supported by Curve')
 
 
+class CurveToken(Token):
+    class Config:
+        schema_extra = {
+            'examples': [{'address': '0xFEEf77d3f69374f66429C91d732A244f074bdf74'}]  # cvxFXS
+        }
+
+
 @Model.describe(slug="price.dex-curve-fi-maybe",
-                version="1.4",
+                version="1.7",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description=("For those tokens primarily traded in curve - "
                              "return None if cannot price"),
                 category='protocol',
                 subcategory='curve',
                 tags=['price'],
-                input=Token,
+                input=CurveToken,
                 output=Maybe[Price])
 class CurveFinanceMaybePrice(Model):
-    def run(self, input: Token) -> Maybe[Price]:
+    def run(self, input: CurveToken) -> Maybe[Price]:
         if input.address in CurveFinancePrice.supported_coins(self.context.network):
             try:
                 price = self.context.run_model('price.dex-curve-fi',
@@ -37,13 +52,13 @@ class CurveFinanceMaybePrice(Model):
 
 
 @Model.describe(slug="price.dex-curve-fi",
-                version="1.6",
+                version="1.7",
                 display_name="Curve Finance Pool - Price for stablecoins and LP",
                 description="For those tokens primarily traded in curve",
                 category='protocol',
                 subcategory='curve',
                 tags=['price'],
-                input=Token,
+                input=CurveToken,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
 class CurveFinancePrice(Model):
@@ -92,8 +107,11 @@ class CurveFinancePrice(Model):
 
     CRV_LP = {
         Network.Mainnet: {
+            # Curve.fi DAI/USDC/USDT (3Crv)
             Address('0x6c3f90f043a72fa612cbac8115ee7e52bde6e490'),
+            # Curve.fi renBTC/wBTC/sBTC (crvRenWSB...)
             Address('0x075b1bb99792c9e1041ba13afef80c91a1e70fb3'),
+            # Curve.fi USD-BTC-ETH (crv3crypto)
             Address('0xc4ad29ba4b3c580e6d59105fff484999997675ff'),
         }
     }
@@ -105,7 +123,7 @@ class CurveFinancePrice(Model):
             list(CurveFinancePrice.CRV_DERIVED[network].keys()) +
             list(CurveFinancePrice.CRV_LP[network]))
 
-    def run(self, input: Token) -> Price:
+    def run(self, input: CurveToken) -> Price:
         if input.address in self.CRV_CTOKENS[self.context.network].values():
             ctoken = Token(address=input.address)
             ctoken_decimals = ctoken.decimals
@@ -118,10 +136,12 @@ class CurveFinancePrice(Model):
             exchange_rate = exchange_rate_stored / 10**mantissa
 
             if underlying_token.address in self.supported_coins(self.context.network):
-                raise ModelRunError(f'{underlying_token=} is self-referenced in {self.slug}')
+                raise ModelRunError(
+                    f'{underlying_token=} is self-referenced in {self.slug}')
 
             price_underlying = self.context.run_model('price.quote',
-                                                      input={'base': underlying_token},
+                                                      input={
+                                                          'base': underlying_token},
                                                       return_type=PriceWithQuote)
 
             price_underlying.price *= exchange_rate
@@ -129,14 +149,16 @@ class CurveFinancePrice(Model):
                 price_underlying.src = price_underlying.src + f'|cToken*{exchange_rate:.3f}'
             return price_underlying
 
-        derived_info = self.CRV_DERIVED[self.context.network].get(input.address)
+        derived_info = self.CRV_DERIVED[self.context.network].get(
+            input.address)
         if derived_info is not None:
             pool = Contract(address=derived_info['pool_address'])
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
                                                return_type=CurveFiPoolInfoToken)
 
-            n_token_input = np.where([tok == input for tok in pool_info.tokens])[0].tolist()
+            n_token_input = np.where([tok == input for tok in pool_info.tokens])[
+                0].tolist()
             if len(n_token_input) != 1:
                 raise ModelRunError(
                     f'{self.slug} does not find {input=} in pool {pool.address=}')
@@ -154,13 +176,15 @@ class CurveFinancePrice(Model):
                                               10**input.decimals  # amount of the token to send
                                               ).call())
                     price_other = self.context.run_model('price.quote',
-                                                         input={'base': other_token},
+                                                         input={
+                                                             'base': other_token},
                                                          return_type=PriceWithQuote).price
                     price_to_others.append(ratio_to_other * price_other)
                     ratio_to_others.append(ratio_to_other)
                     price_others.append(price_other)
 
-            n_price_min = np.where(price_to_others == np.min(price_to_others))[0][0]
+            n_price_min = np.where(
+                price_to_others == np.min(price_to_others))[0][0]
             return Price(
                 price=np.min(price_to_others),
                 src=(f'{self.slug}|{pool.address}|'
@@ -171,8 +195,10 @@ class CurveFinancePrice(Model):
             if input.abi is not None and 'minter' in input.abi.functions:
                 pool_addr = input.functions.minter().call()
             else:
-                registry = Contract(**self.context.models.curve_fi.get_registry())
-                pool_addr = registry.functions.get_pool_from_lp_token(input.address.checksum).call()
+                registry = Contract(
+                    **self.context.models.curve_fi.get_registry())
+                pool_addr = registry.functions.get_pool_from_lp_token(
+                    input.address.checksum).call()
             pool = Contract(address=Address(pool_addr))
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
@@ -192,7 +218,8 @@ class CurveFinancePrice(Model):
 
             virtual_price = pool.functions.get_virtual_price().call()
             lp_token_price = input.scaled(min(price_tokens) * virtual_price)
-            n_min_token_symbol = np.where(np.isclose(min(price_tokens), price_tokens))[0][0]
+            n_min_token_symbol = np.where(np.isclose(
+                min(price_tokens), price_tokens))[0][0]
             min_token_symbol = pool_info.tokens_symbol[n_min_token_symbol]
 
             return Price(price=lp_token_price,

@@ -1,52 +1,88 @@
+from typing import Optional
+
 import numpy as np
 import scipy.stats as sps
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (Account, Accounts, Currency, Maybe, Portfolio,
-                                PriceList, PriceWithQuote, Some, Token,
-                                TokenPosition)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    BlockNumber,
+    Currency,
+    Maybe,
+    Portfolio,
+    PriceList,
+    PriceWithQuote,
+    Some,
+    Token,
+    TokenPosition,
+)
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
+
 from models.credmark.accounts.curve_lp import CurveLPPosition
-from models.credmark.algorithms.value_at_risk.dto import (AccountVaRInput,
-                                                          PortfolioVaRInput,
-                                                          VaRHistoricalInput,
-                                                          VaRHistoricalOutput)
+from models.credmark.algorithms.value_at_risk.dto import (
+    AccountVaRInput,
+    PortfolioVaRInput,
+    VaRHistoricalInput,
+    VaRHistoricalOutput,
+)
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 
 np.seterr(all='raise')
 
 
-class AccountValueInput(Accounts):
-    quote: Currency = DTOField(Currency("USD", description='Quote currency for the value'))
+class AccountsValueInput(Accounts):
+    quote: Currency = DTOField(
+        Currency("USD"), description='Quote currency for the value')
+    timestamp: Optional[int] = DTOField(
+        None, description='block timestamp to query')
 
 
-@Model.describe(
-    slug="account.value",
-    version="0.1",
-    display_name="Value for an account",
-    description="Value for an account",
-    developer="Credmark",
-    category='financial',
-    input=AccountValueInput,
-    output=dict)
+@Model.describe(slug="accounts.value",
+                version="0.3",
+                display_name="Value for an account",
+                description="Value for an account",
+                developer="Credmark",
+                category='financial',
+                input=AccountsValueInput,
+                output=dict)
 class AccountValue(Model):
-    def run(self, input: AccountValueInput) -> dict:
-        portfolio = self.context.run_model('account.portfolio-aggregate',
+    def run(self, input: AccountsValueInput) -> dict:
+        if input.timestamp is not None:
+            block_number = BlockNumber.from_timestamp(input.timestamp)
+            return self.context.run_model(
+                self.slug,
+                AccountsValueInput(accounts=input.accounts,
+                                   quote=input.quote, timestamp=None),
+                block_number=block_number)
+
+        portfolio = self.context.run_model('accounts.portfolio',
                                            Accounts(accounts=input.accounts),
                                            return_type=Portfolio)
-
         values = []
         total_value = 0
 
         def zero_price():
             return PriceWithQuote.usd(price=0.0, src='Cannot find price')
 
-        for pos in portfolio:
-            price = self.context.run_model(
-                'price.quote-maybe',
-                input={'base': pos.asset, 'quote': input.quote},
-                return_type=Maybe[PriceWithQuote]).get_just(zero_price())
+        prices = self.context.run_model(
+            'price.multiple-maybe',
+            {'slug': 'price.dex-maybe',
+                'some': [{'base': pos.asset, 'quote': input.quote} for pos in portfolio]},
+            return_type=Some[Maybe[PriceWithQuote]])
+
+        # For sequential
+        # prices = portfolio
+
+        for pos, price_maybe in zip(portfolio, prices):
+            # For sequential
+            # price = self.context.run_model(
+            #    'price.dex-maybe',
+            #    input={'base': pos.asset, 'quote': input.quote},
+            #    return_type=Maybe[PriceWithQuote]).get_just(zero_price())
+
+            price = price_maybe.get_just(zero_price())
 
             pos_value = pos.amount * price.price
             values.append({
@@ -60,15 +96,14 @@ class AccountValue(Model):
                 'total_value': total_value}
 
 
-@Model.describe(
-    slug="account.var",
-    version="0.2",
-    display_name="VaR for an account",
-    description="VaR for an account",
-    developer="Credmark",
-    category='financial',
-    input=AccountVaRInput,
-    output=VaRHistoricalOutput)
+@Model.describe(slug="account.var",
+                version="0.3",
+                display_name="VaR for an account",
+                description="VaR for an account",
+                developer="Credmark",
+                category='financial',
+                input=AccountVaRInput,
+                output=VaRHistoricalOutput)
 class AccountVaR(Model):
     def run(self, input: AccountVaRInput) -> VaRHistoricalOutput:
         portfolio = self.context.run_model('account.portfolio',
@@ -86,7 +121,7 @@ class AccountVaR(Model):
 
 
 @Model.describe(slug='finance.var-portfolio-historical',
-                version='1.7',
+                version='1.9',
                 display_name='Value at Risk - for a portfolio',
                 description='Calculate VaR based on input portfolio',
                 input=PortfolioVaRInput,
@@ -104,12 +139,13 @@ class VaRPortfolio(Model):
             if position.asset.address not in assets_to_quote:
                 assets_to_quote.add(position.asset.address)
 
-        t_unit, count = self.context.historical.parse_timerangestr(input.window)
+        t_unit, count = self.context.historical.parse_timerangestr(
+            input.window)
         interval = self.context.historical.range_timestamp(t_unit, 1)
 
         assets_to_quote_list = list(assets_to_quote)
 
-        # TODO: kept two versions to see how r8unner's performance can avoid timeout
+        # TODO: kept two versions to see how runner's performance can avoid timeout
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',
@@ -121,6 +157,9 @@ class VaRPortfolio(Model):
                 return_type=MapBlockTimeSeriesOutput[Some[PriceWithQuote]])
 
             price_lists = []
+            price_lists_skip = []
+
+            # TODO: add error handling, the same as _use_for()
             for tok_n, asset_addr in enumerate(assets_to_quote_list):
                 ps = (tok_hp.to_dataframe(fields=[('price', lambda p, n=tok_n:p[n].price),
                                                   ('src', lambda p, n=tok_n:p.some[n].src), ])
@@ -132,39 +171,48 @@ class VaRPortfolio(Model):
                                        src=ps['src'].to_list()[0])
 
                 price_lists.append(price_list)
-            return price_lists
+            return price_lists, price_lists_skip
 
         def _use_for():
             price_lists = []
+            price_lists_skip = []
             for asset_addr in assets_to_quote_list:
-                tok_hp = self.context.run_model(
-                    slug='price.quote-historical',
-                    input={'base': {'address': asset_addr},
-                           "interval": interval,
-                           "count": count,
-                           "exclusive": False},
-                    return_type=MapBlockTimeSeriesOutput[PriceWithQuote])
+                try:
+                    tok_hp = self.context.run_model(
+                        slug='price.quote-historical',
+                        input={'base': {'address': asset_addr},
+                               "interval": interval,
+                               "count": count,
+                               "exclusive": False},
+                        return_type=MapBlockTimeSeriesOutput[PriceWithQuote])
 
-                ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
-                                                  ('src', lambda p:p.src), ])
-                      .sort_values('blockNumber', ascending=False)
-                      .reset_index(drop=True))
+                    ps = (tok_hp.to_dataframe(fields=[('price', lambda p:p.price),
+                                                      ('src', lambda p:p.src), ])
+                          .sort_values('blockNumber', ascending=False)
+                          .reset_index(drop=True))
 
-                price_list = PriceList(prices=ps['price'].to_list(),
-                                       tokenAddress=asset_addr,
-                                       src=ps['src'].to_list()[0])
+                    price_list = PriceList(prices=ps['price'].to_list(),
+                                           tokenAddress=asset_addr,
+                                           src=ps['src'].to_list()[0])
 
-                price_lists.append(price_list)
+                    price_lists.append(price_list)
+                except ModelRunError:
+                    price_lists_skip.append(asset_addr)
 
-            return price_lists
+            return price_lists, price_lists_skip
 
-        price_lists = _use_compose()
+        price_lists, price_lists_skip = _use_for()
 
-        var_input = {
-            'portfolio': portfolio,
-            'priceLists': price_lists,
-            'interval': input.interval,
-            'confidence': input.confidence}
+        portfolio_with_skip = Portfolio(
+            positions=[p for p in portfolio
+                       if p.asset.address not in price_lists_skip])
+
+        var_input = VaRHistoricalInput(
+            portfolio=portfolio_with_skip,
+            priceLists=price_lists,
+            interval=input.interval,
+            confidence=input.confidence
+        )
 
         return self.context.run_model(slug='finance.var-engine-historical',
                                       input=var_input,
@@ -182,7 +230,7 @@ class VaREngineHistorical(Model):
     """
     This is the final step that consumes portfolio and the prices
     to calculate VaR(s) according to the VaR parameters.
-    The prices in priceLists is asssumed be sorted in descending order in time.
+    The prices in priceLists is assumed be sorted in descending order in time.
     """
 
     value_list = []
@@ -190,10 +238,12 @@ class VaREngineHistorical(Model):
     all_ppl_arr = np.array([])
 
     def calculate_ppl(self, token, amount, input):
-        priceLists = [pl for pl in input.priceLists if pl.tokenAddress == token.address]
+        priceLists = [
+            pl for pl in input.priceLists if pl.tokenAddress == token.address]
 
         if len(priceLists) != 1:
-            raise ModelRunError(f'There is no or more than 1 pricelist for {token.address=}')
+            raise ModelRunError(
+                f'There is no or more than 1 price list for {token.address=}')
 
         np_priceList = np.array(priceLists[0].prices)
 
@@ -258,11 +308,13 @@ class VaREngineHistorical(Model):
         weights = np.ones(len(input.portfolio.positions))
         for i in range(len(input.portfolio.positions)):
             try:
-                linreg_result = sps.linregress(all_ppl_vec, self.all_ppl_arr[:, i])
+                linreg_result = sps.linregress(
+                    all_ppl_vec, self.all_ppl_arr[:, i])
                 weights[i] = linreg_result.slope  # type: ignore
             except ValueError as err:
-                if 'Cannot calcualte a linear regression if all x values are identical' in str(err):
+                if 'Cannot calculate a linear regression if all x values are identical' in str(err):
                     weights[i] = 0
+
         weights /= weights.sum()
 
         output.cvar = weights

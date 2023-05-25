@@ -1,5 +1,6 @@
 from credmark.cmf.model import Model
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField, EmptyInputSkipTest
+
 from .dtos import ExampleModelOutput
 
 
@@ -10,7 +11,6 @@ from .dtos import ExampleModelOutput
     description='An example model to demonstrate DTO type',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleModelOutput)
 class ExampleDto(Model):
     def run(self, _) -> ExampleModelOutput:
@@ -40,7 +40,8 @@ class Animal(DTO):
         animal = Animal(name='Dog')
         output.log_io(input="Animal(name='Dog')", output=animal)
         output.log_io(input="animal.dict()", output=animal.dict())
-        output.log_io(input="animal.schema_json()", output=animal.schema_json())
+        output.log_io(input="animal.schema_json()",
+                      output=animal.schema_json())
 
         output.log("To declare a field as required, you may declare it using just"
                    " an annotation, or you may use an ellipsis (...) as the value:")
@@ -52,7 +53,8 @@ class Animal(DTO):
 """,
                       output="")
 
-        output.log("You can use default_factory to declare field with dynamic value")
+        output.log(
+            "You can use default_factory to declare field with dynamic value")
         output.log_io(input="""
 class Animal(DTO):
     uid: UUID = DTOField(default_factory=uuid4)
@@ -83,7 +85,6 @@ class PortfolioSummary(ExampleModelOutput):
     version='1.2',
     display_name='DTO Type Test 1',
     developer='Credmark',
-    input=EmptyInput,
     output=PortfolioSummary)
 class TestModel(Model):
 
@@ -108,7 +109,7 @@ class TestModel(Model):
     version='1.2',
     display_name='DTO Type Test 2',
     developer='Credmark',
-    input=EmptyInput,
+    input=EmptyInputSkipTest,
     output=PortfolioSummary)
 class TestModel2(Model):
     def run(self, _) -> PortfolioSummary:

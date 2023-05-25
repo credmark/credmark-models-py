@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
+
 from .dtos import ExampleHistoricalOutput
 
 
@@ -12,7 +12,6 @@ from .dtos import ExampleHistoricalOutput
     description='This model demonstrates how to run a model over a period of time',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleHistoricalOutput)
 class ExampleHistorical(Model):
     def run(self, _) -> ExampleHistoricalOutput:
@@ -81,7 +80,6 @@ class ExampleHistorical(Model):
     description='This model demonstrates how to run a model over a series of historical blocks',
     developer='Credmark',
     category='example',
-    input=EmptyInput,
     output=ExampleHistoricalOutput)
 class ExampleHistoricalBlock(Model):
     def run(self, _) -> ExampleHistoricalOutput:
@@ -122,11 +120,13 @@ class ExampleHistoricalBlock(Model):
                    "----------------------------------------")
         output.log_io(input="", output=model_historical_output)
 
-        output.log("You can get historical elements by index, blocknumber as well as time")
+        output.log(
+            "You can get historical elements by index, blocknumber as well as time")
         output.log_io(input="model_historical_output[2]",
                       output=model_historical_output[2])
 
-        output.log(f"To get model result at block number {model_historical_output[1].blockNumber}")
+        output.log(
+            f"To get model result at block number {model_historical_output[1].blockNumber}")
         output.log_io(input=f"model_historical_output.get("
                       f"block_number={model_historical_output[1].blockNumber})",
                       output=model_historical_output.get(

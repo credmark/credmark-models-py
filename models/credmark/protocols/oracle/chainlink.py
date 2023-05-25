@@ -1,14 +1,16 @@
 import sys
+from typing import Any, cast
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError, ModelEngineError
+from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
 from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
-from credmark.dto import DTO, DTOField, EmptyInput
+from credmark.dto import DTO, DTOField
 from ens import ENS
+from web3.exceptions import ContractLogicError
+
 from models.dtos.price import PriceInput
 from models.tmp_abi_lookup import CHAINLINK_AGG
-from web3.exceptions import ContractLogicError
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -17,7 +19,6 @@ from web3.exceptions import ContractLogicError
                 description="Supports multi-chain",
                 category='protocol',
                 subcategory='chainlink',
-                input=EmptyInput,
                 output=Contract)
 class ChainLinkFeedRegistry(Model):
     CHAINLINK_REGISTRY = {
@@ -26,13 +27,17 @@ class ChainLinkFeedRegistry(Model):
     }
 
     def run(self, _) -> Contract:
-        registry = Contract(address=self.CHAINLINK_REGISTRY[self.context.network])
+        registry = Contract(
+            address=self.CHAINLINK_REGISTRY[self.context.network])
         _ = registry.abi
         return registry
 
 
 class ENSDomainName(DTO):
     domain: str = DTOField(description='ENS Domain nam')
+
+    class Config:
+        schema_extra = {'examples': [{"domain": "eth-usd.data.eth"}]}
 
 
 # TODO: implement shortest path
@@ -46,32 +51,45 @@ class ENSDomainName(DTO):
                 output=Price)
 class ChainLinkPriceByENS(Model):
     def run(self, input: ENSDomainName) -> Price:
-        ns = ENS.fromWeb3(self.context.web3)
+        try:
+            # type: ignore # pylint: disable=no-member
+            ns = ENS.fromWeb3(self.context.web3)
+        except AttributeError:
+            # type: ignore  # pylint: disable=no-member
+            ns = cast(Any, ENS).from_web3(self.context.web3)
+
         feed_address = ns.address(input.domain)
         if feed_address is None:
-            raise ModelRunError('Unable to resolve ENS domain name {input.domain}')
-        return self.context.run_model('chainlink.price-by-feed',
-                                      input={'address': feed_address},
-                                      return_type=Price,
-                                      local=True)
+            raise ModelRunError(
+                'Unable to resolve ENS domain name {input.domain}')
+        return self.context.run_model(
+            'chainlink.price-by-feed', input={'address': feed_address},
+            return_type=Price, local=True)
+
+
+class ChainlinkFeedContract(Contract):
+    class Config:
+        schema_extra = {'examples':
+                        [{"address": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"},
+                         {"address": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"}]}
 
 
 @Model.describe(slug='chainlink.price-by-feed',
-                version="1.3",
+                version="1.4",
                 display_name="Chainlink - Price by feed",
                 description="Input a Chainlink valid feed",
                 category='protocol',
                 subcategory='chainlink',
-                input=Contract,
+                input=ChainlinkFeedContract,
                 output=Price)
 class ChainLinkPriceByFeed(Model):
-    def run(self, input: Contract) -> Price:
+    def run(self, input: ChainlinkFeedContract) -> Price:
         feed_contract = input
         try:
-            feed_contract.abi
-        except ModelEngineError:
-            feed_contract._loaded = True  # pylint:disable=protected-access
-            feed_contract.set_abi(CHAINLINK_AGG)
+            _ = feed_contract.abi
+        except (ModelDataError, ModelEngineError):
+            feed_contract = feed_contract.set_abi(
+                CHAINLINK_AGG, set_loaded=True)
 
         (_roundId, answer,
             _startedAt, _updatedAt,
@@ -81,9 +99,13 @@ class ChainLinkPriceByFeed(Model):
         version = feed_contract.functions.version().call()
 
         feed = input.address
-        if feed_contract.abi is not None:
-            if 'aggregator'.lower() in feed_contract.abi.functions:
+        if feed_contract.abi is not None and 'aggregator' in feed_contract.abi.functions:
+            try:
                 feed = feed_contract.functions.aggregator().call()
+            except Exception:
+                # Exception might occur when ABI is set manually
+                pass
+
         isFeedEnabled = None
 
         time_diff = self.context.block_number.timestamp - _updatedAt
@@ -93,63 +115,68 @@ class ChainLinkPriceByFeed(Model):
                           f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'))
 
 
+class PriceInputWithRegistry(PriceInput):
+    class Config:
+        schema_extra = {'example': {"base": {"symbol": "CRV"}}}
+
+
 @Model.describe(slug='chainlink.price-from-registry-maybe',
-                version="1.3",
+                version="1.4",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
-                input=PriceInput,
+                input=PriceInputWithRegistry,
                 output=Maybe[PriceWithQuote])
 class ChainLinkFeedFromRegistryMaybe(Model):
-    def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
+    def run(self, input: PriceInputWithRegistry) -> Maybe[PriceWithQuote]:
         try:
-            pq = self.context.run_model('chainlink.price-by-registry',
-                                        input=input,
-                                        return_type=PriceWithQuote,
-                                        local=True)
+            pq = self.context.run_model(
+                'chainlink.price-by-registry', input=input,
+                return_type=PriceWithQuote, local=True)
             return Maybe[PriceWithQuote](just=pq)
         except BlockNumberOutOfRangeError:
             return Maybe.none()
-        except ModelRunError as _err:
+        except ModelRunError:
             try:
-                pq = self.context.run_model('chainlink.price-by-registry',
-                                            input=input.inverse(),
-                                            return_type=PriceWithQuote,
-                                            local=True)
+                pq = self.context.run_model(
+                    'chainlink.price-by-registry', input=input.inverse(),
+                    return_type=PriceWithQuote, local=True)
                 return Maybe[PriceWithQuote](just=pq.inverse(input.quote.address))
-            except ModelRunError as _err2:
+            except ModelRunError:
                 return Maybe.none()
 
 
 @Model.describe(slug='chainlink.price-by-registry',
-                version="1.5",
+                version="1.7",
                 display_name="Chainlink - Price by Registry",
                 description="Looking up Registry for two tokens' addresses",
                 category='protocol',
                 subcategory='chainlink',
-                input=PriceInput,
+                input=PriceInputWithRegistry,
                 output=PriceWithQuote)
 class ChainLinkPriceByRegistry(Model):
-    def run(self, input: PriceInput) -> Price:
+    def run(self, input: PriceInputWithRegistry) -> Price:
         base_address = input.base.address
         quote_address = input.quote.address
 
-        registry = self.context.run_model('chainlink.get-feed-registry',
-                                          input=EmptyInput(),
-                                          return_type=Contract,
-                                          local=True)
+        registry = self.context.run_model(
+            'chainlink.get-feed-registry', {}, return_type=Contract, local=True)
         try:
             sys.tracebacklimit = 0
-            feed = registry.functions.getFeed(base_address, quote_address).call()
+            feed = registry.functions.getFeed(
+                base_address, quote_address).call()
             (_roundId, answer,
                 _startedAt, _updatedAt,
                 _answeredInRound) = (registry.functions
                                      .latestRoundData(base_address, quote_address)
                                      .call())
-            decimals = registry.functions.decimals(base_address, quote_address).call()
-            description = registry.functions.description(base_address, quote_address).call()
-            version = registry.functions.version(base_address, quote_address).call()
+            decimals = registry.functions.decimals(
+                base_address, quote_address).call()
+            description = registry.functions.description(
+                base_address, quote_address).call()
+            version = registry.functions.version(
+                base_address, quote_address).call()
             isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
 
             time_diff = self.context.block_number.timestamp - _updatedAt
@@ -160,8 +187,10 @@ class ChainLinkPriceByRegistry(Model):
                                   quoteAddress=quote_address)
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
-                self.logger.debug(f'No feed found for {base_address}/{quote_address}')
-                raise ModelRunError(f'No feed found for {base_address}/{quote_address}')
+                self.logger.debug(
+                    f'No feed found for {base_address}/{quote_address}')
+                raise ModelRunError(
+                    f'No feed found for {base_address}/{quote_address}') from err
             raise err
         finally:
             del sys.tracebacklimit

@@ -1,9 +1,10 @@
+# pylint: disable=line-too-long
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import Price, Token, Address
+from credmark.cmf.types import Address, Price, Token
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTO
 
@@ -14,6 +15,33 @@ class SharpRatioInput(DTO):
     token: Token
     prices: BlockSeries[Price]
     risk_free_rate: float
+
+    class Config:
+        schema_extra = {
+            'example': {"token": {"address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"},
+                        "prices": {"series": [
+                            {"blockNumber": "10", "blockTimestamp": "10",
+                             "sampleTimestamp": "10", "output": {"price": 4.2, "src": ""}},
+                            {"blockNumber": "9", "blockTimestamp": "9",
+                             "sampleTimestamp": "9", "output": {"price": 3.2, "src": ""}},
+                            {"blockNumber": "8", "blockTimestamp": "8",
+                             "sampleTimestamp": "8", "output": {"price": 6.2, "src": ""}},
+                            {"blockNumber": "7", "blockTimestamp": "7",
+                             "sampleTimestamp": "7", "output": {"price": 3.2, "src": ""}},
+                            {"blockNumber": "6", "blockTimestamp": "6",
+                             "sampleTimestamp": "6", "output": {"price": 1.2, "src": ""}},
+                            {"blockNumber": "5", "blockTimestamp": "5",
+                             "sampleTimestamp": "5", "output": {"price": 8.2, "src": ""}},
+                            {"blockNumber": "4", "blockTimestamp": "4",
+                             "sampleTimestamp": "4", "output": {"price": 5.2, "src": ""}},
+                            {"blockNumber": "3", "blockTimestamp": "3",
+                             "sampleTimestamp": "3", "output": {"price": 7.2, "src": ""}},
+                            {"blockNumber": "2", "blockTimestamp": "2",
+                             "sampleTimestamp": "2", "output": {"price": 3.2, "src": ""}},
+                            {"blockNumber": "1", "blockTimestamp": "1", "sampleTimestamp": "1",
+                             "output": {"price": 9.2, "src": ""}}],
+                "errors": []}, "risk_free_rate": 0.02}
+        }
 
 
 class SharpRatioOutput(DTO):
@@ -29,7 +57,7 @@ class SharpRatioOutput(DTO):
 
 
 @Model.describe(slug="finance.sharpe-ratio-token",
-                version="1.3",
+                version="1.4",
                 display_name="Sharpe ratio for a token's historical price performance",
                 description=("Sharpe ratio is return (averaged returns, annualized) "
                              "versus risk (std. dev. of return)"),
@@ -61,7 +89,8 @@ class SharpeRatioToken(Model):
         df_pl = (pd.DataFrame(input.prices.dict()['series'])
                  .sort_values(['blockNumber'], ascending=False))
         df_pl.loc[:, 'price'] = df_pl.output.apply(lambda p: p['price'])
-        df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(datetime.utcfromtimestamp)
+        df_pl.loc[:, 'blockTime'] = df_pl.blockTimestamp.apply(
+            datetime.utcfromtimestamp)
         df_pl = (df_pl.loc[:, ['blockNumber', 'blockTimestamp', 'blockTime', 'price']]
                  .reset_index(drop=True))
 

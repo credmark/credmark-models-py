@@ -1,10 +1,19 @@
 
 import numpy as np
 from credmark.cmf.model import Model
-from credmark.cmf.types import (Account, Accounts, Address,
-                                Contract, Network,
-                                Portfolio, Position, Records,
-                                Token, TokenPosition, Tokens)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Address,
+    Contract,
+    Network,
+    Portfolio,
+    Position,
+    Records,
+    Token,
+    TokenPosition,
+    Tokens,
+)
 
 
 class CurveLPPosition(Position):
@@ -35,7 +44,7 @@ class GetCurveLPPositionAccounts(Model):
 
 
 @Model.describe(slug="curve.lp",
-                version="1.5",
+                version="1.7",
                 display_name="Account position in Curve LP",
                 description="All the positions in Curve LP",
                 developer="Credmark",
@@ -66,9 +75,9 @@ class GetCurveLPPosition(Model):
             df_tx = df.query('transaction_hash == @_tx')
             if df_tx.shape[0] == 2:
                 tx_in = df_tx.query('token_address not in @_lp_tokens')
-                in_token = Token(address=tx_in['token_address'].iloc[0])
-                in_token_amount = in_token.scaled(tx_in['value'].iloc[0])
-                if tx_in['from_address'].iloc[0] == input.address:
+                in_token = Token(address=tx_in.token_address.iloc[0])
+                in_token_amount = in_token.scaled(tx_in.value.iloc[0])
+                if tx_in.from_address.iloc[0] == input.address:
                     in_token_amount = abs(in_token_amount)
                 else:
                     in_token_amount = -abs(in_token_amount)
@@ -82,23 +91,28 @@ class GetCurveLPPosition(Model):
                 else:
                     lp_token_amount = -abs(lp_token_amount)
 
-                pool_info = self.context.run_model('curve-fi.pool-info', lp_token)
+                pool_info = self.context.run_model(
+                    'curve-fi.pool-info', lp_token)
                 pool_contract = Contract(address=pool_info['address'])
                 pool_tokens = Tokens(**pool_info['tokens'])
                 withdraw_token_amount = np.zeros(len(pool_tokens.tokens))
                 np_balances = np.array(pool_info['balances'])
-                for tok_n, tok in enumerate(pool_tokens):
-                    withdraw_one = [0] * len(pool_tokens.tokens)
+
+                len_pool_tokens_tokens = len(pool_tokens.tokens)
+                for tok_n in range(len_pool_tokens_tokens):
+                    withdraw_one = [0] * len_pool_tokens_tokens
                     withdraw_one[tok_n] = 1
-                    withdraw_token_amount[tok_n] = pool_contract.functions.calc_token_amount(
-                        withdraw_one, False).call()
-                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens.tokens[tok_n].scaled(1)
+                    withdraw_token_amount[tok_n] = (pool_contract.functions
+                                                    .calc_token_amount(withdraw_one, False).call())
+                    np_balances[tok_n] = np_balances[tok_n] / pool_tokens[tok_n].scaled(1)
 
                 for tok_n, tok in enumerate(pool_tokens.tokens):
                     ratio = np_balances.dot(withdraw_token_amount) / np_balances[tok_n]
                     amount = lp_token_amount / ratio
-                    lp_position.append(Position(asset=tok,
-                                                amount=pool_tokens.tokens[tok_n].scaled(amount)))
+                    lp_position.append(
+                        Position(
+                            asset=tok,
+                            amount=pool_tokens[tok_n].scaled(amount)))
 
                 _ = CurveLPPosition(
                     asset=lp_token,

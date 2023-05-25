@@ -1,14 +1,22 @@
+#pylint: disable=line-too-long
+
 import matplotlib.pyplot as plt
 import networkx as nx
-import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token
+from credmark.cmf.types import Records, Token
 from credmark.dto import DTO
 
 
 class TransactionTagInput(DTO):
     hash: str
     block_number: int
+
+    class Config:
+        schema_extra = {
+            'example': {
+                "hash": "0x7ee67c4b2b5540a503fdf3b2f3a44c955c22884c0e286f5d89e67d4d8989264a",
+                        "block_number": 13984858}
+        }
 
 
 def create_graph_from_txn(df_txn) -> nx.DiGraph:
@@ -23,7 +31,8 @@ def create_graph_from_txn(df_txn) -> nx.DiGraph:
                 raise ValueError('Missing edge data')
             data = data['txn_data']
             dig.remove_edge(r.from_address, r.to_address)
-            dig.add_edge(r.from_address, r.to_address, txn_data=data + txn_data)
+            dig.add_edge(r.from_address, r.to_address,
+                         txn_data=data + txn_data)
         else:
             dig.add_edge(r.from_address, r.to_address, txn_data=txn_data)
     return dig
@@ -117,23 +126,25 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
     etwo = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) > 1]  # type: ignore
     eone = [(u, v) for (u, v, d) in dig.edges(data=True) if len(d["txn_data"]) == 1]  # type: ignore
 
-    pos = nx.spring_layout(dig, seed=9)  # positions for all nodes - seed for reproducibility
+    # positions for all nodes - seed for reproducibility
+    pos = nx.spring_layout(dig, seed=9)  # type: ignore
 
     # nodes
-    nx.draw_networkx_nodes(dig, pos, node_size=1400, node_color='#FFFFFF', edgecolors='#000000')
+    nx.draw_networkx_nodes(dig, pos, node_size=1400,  # type: ignore
+                           node_color='#FFFFFF', edgecolors='#000000')
 
     # edges
-    nx.draw_networkx_edges(dig, pos, edgelist=etwo, width=3,
+    nx.draw_networkx_edges(dig, pos, edgelist=etwo, width=3,  # type: ignore
                            edge_color="black", connectionstyle='Arc3, rad=0.2', arrowsize=20)
-    nx.draw_networkx_edges(dig, pos, edgelist=eone, width=3,
+    nx.draw_networkx_edges(dig, pos, edgelist=eone, width=3,  # type: ignore
                            edge_color="blue", connectionstyle='Arc3, rad=0.2', arrowsize=20)
 
     # node labels
-    nx.draw_networkx_labels(dig, pos, labels={n: n[:5] for n in dig},
+    nx.draw_networkx_labels(dig, pos, labels={n: n[:5] for n in dig},  # type: ignore
                             font_size=11, font_family="sans-serif")
 
     # edge weight labels
-    edge_labels = nx.get_edge_attributes(dig, "txn_data")
+    edge_labels = nx.get_edge_attributes(dig, "txn_data")  # type: ignore
     edge_set = set()
     new_edge_labels = {}
     for e, v in edge_labels.items():
@@ -148,7 +159,8 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
                                      for x in v])
                        for e, v in new_edge_labels.items()}
 
-    nx.draw_networkx_edge_labels(dig, pos, edge_labels=new_edge_labels, rotate=False, font_size=11)
+    nx.draw_networkx_edge_labels(  # type: ignore
+        dig, pos, edge_labels=new_edge_labels, rotate=False, font_size=11)
 
     # ax = plt.gca()
     # ax.margins(0.08)
@@ -157,9 +169,11 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
     plt.show()
 
 
+# credmark-dev run token.transaction -i '{"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867}'
+
 @Model.describe(slug='token.transaction',
-                version='0.1',
-                display_name='Token Transactin',
+                version='0.2',
+                display_name='Token Transaction',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
                 category='transaction',
@@ -179,29 +193,50 @@ class TokenTransferTransactionTag(Model):
 
     def run(self, input: TransactionTagInput) -> dict:
         input_block_number = input.block_number
+
         if input_block_number != int(self.context.block_number):
-            return self.context.run_model(self.slug, input=input, block_number=input.block_number)
+            return self.context.run_model(self.slug, input=input, block_number=input_block_number)
 
         with self.context.ledger.TokenTransfer as q:
             df_txn = q.select(columns=q.columns,
                               where=q.TRANSACTION_HASH.eq(input.hash).and_(
-                                  q.BLOCK_NUMBER.eq(input.block_number))).to_dataframe()
+                                  q.BLOCK_NUMBER.eq(input_block_number))).to_dataframe()
 
-        return self.context.run_model('token.txn-classify', input=df_txn.to_dict())
+        return self.context.run_model('token.txn-classify', input=Records.from_dataframe(df_txn))
+
+
+class TxnRecords(Records):
+    class Config:
+        schema_extra = {
+            'example': {'records':
+                        [('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0x08f68110f1e0ca67c80a24b4bd206675610f445d', '1',
+                          '0x0ab87046fbb341d058f17cbc4c1133f25a20a52f', '0xeef86c2e49e11345f1a693675df9a38f7d880c8f', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 1844102876259671339),
+                         ('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0xeef86c2e49e11345f1a693675df9a38f7d880c8f', '2',
+                          '0x0ab87046fbb341d058f17cbc4c1133f25a20a52f', '0x0000000000000000000000000000000000000000', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 1844102691849383713),
+                         ('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0xb63cac384247597756545b500253ff8e607a8020', '3',
+                          '0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5', '0x055475920a8c93cffb64d039a8205f7acc7722d3', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 345335597976),
+                         ('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0x055475920a8c93cffb64d039a8205f7acc7722d3', '4',
+                          '0x6b175474e89094c44da98b954eedeac495271d0f', '0x5777d92f208679db4b9778590fa3cab3ac9e2168', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 4835471113735542742314),
+                         ('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0x5777d92f208679db4b9778590fa3cab3ac9e2168', '0',
+                          '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0xeef86c2e49e11345f1a693675df9a38f7d880c8f', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 4835192242),
+                         ('0xccd114339b0fd76fbb94d6f19c7fdc6fea928cce66cfd57d9a2508325aff8dfa', '15125867', '2022-07-12T05:03:39.000Z', '0xeef86c2e49e11345f1a693675df9a38f7d880c8f', '7',
+                          '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0x08f68110f1e0ca67c80a24b4bd206675610f445d', '0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34', 4820143723)],
+                        'fields': ['block_hash', 'block_number', 'block_timestamp', 'from_address', 'log_index', 'token_address', 'to_address', 'transaction_hash', 'value'], 'n_rows': 6, 'fix_int_columns': []}
+        }
 
 
 @Model.describe(slug='token.txn-classify',
-                version='0.0',
-                display_name='Token Transactin',
+                version='0.2',
+                display_name='Token Transaction',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
                 category='transaction',
                 tags=['token'],
-                input=dict,
+                input=TxnRecords,
                 output=dict)
 class ClassifyTxn(Model):
-    def run(self, input: dict) -> dict:
-        df_txn = pd.DataFrame.from_dict(input)
+    def run(self, input: TxnRecords) -> dict:
+        df_txn = input.to_dataframe()
         df_txn.value = df_txn.value.astype(float)
         df_txn.log_index = df_txn.log_index.astype(float)
         df_txn.log_index = df_txn.log_index.astype(float)

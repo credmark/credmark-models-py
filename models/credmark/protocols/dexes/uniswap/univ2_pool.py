@@ -1,16 +1,18 @@
+# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long
+
 """
 Uni V2 Pool
 """
 
-# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, unused-import
-
+import sys
+from datetime import datetime
 from typing import Optional
 
-from datetime import datetime
 import numpy as np
 import pandas as pd
-from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import Address, Contract, Token
+
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
@@ -22,7 +24,8 @@ def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
         from_block=_from_block,
         to_block=_to_block))
     end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block, _to_block, end_t, df.shape))
+    print((event_name, 'node', pool.address, _from_block,
+          _to_block, end_t, df.shape), file=sys.stderr)
 
     if df.empty:
         return pd.DataFrame()
@@ -40,28 +43,30 @@ class UniV2Pool:
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
         self.pool = Contract(address=pool_addr)
-        self.pool.set_abi(UNISWAP_V2_POOL_ABI)
+        self.pool.set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True)
         self.protocol = _protocol
         self.tick_spacing = 1
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
-        self.token0 = Token(address=Address(self.token0_addr).checksum)
-        self.token1 = Token(address=Address(self.token1_addr).checksum)
 
         try:
+            self.token0 = Token(Address(self.token0_addr).checksum)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except ModelDataError:
-            self.token0 = self.token0.as_erc20()
+            self.token0 = Token(
+                Address(self.token0_addr).checksum).as_erc20(set_loaded=True)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
 
         try:
+            self.token1 = Token(Address(self.token1_addr).checksum)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except ModelDataError:
-            self.token1 = self.token1.as_erc20()
+            self.token1 = Token(address=Address(
+                self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
 
@@ -96,8 +101,7 @@ class UniV2Pool:
             self.load(_pool_data)
 
     def __del__(self):
-        del self.token0
-        del self.token1
+        pass
 
     def save(self):
         return {'block_number': self.block_number, 'log_index': self.log_index,
@@ -160,25 +164,36 @@ class UniV2Pool:
         if pool.abi is None:
             raise ValueError(f'Pool abi missing for {pool.address}')
 
-        df_sync_evt = fetch_events(pool, pool.events.Sync, 'Sync', from_block, to_block, pool.abi.events.Sync.args)
-        df_swap_evt = fetch_events(pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
-        df_mint_evt = fetch_events(pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
-        df_burn_evt = fetch_events(pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
+        df_sync_evt = fetch_events(
+            pool, pool.events.Sync, 'Sync', from_block, to_block, pool.abi.events.Sync.args)
+        df_swap_evt = fetch_events(
+            pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
+        df_mint_evt = fetch_events(
+            pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
+        df_burn_evt = fetch_events(
+            pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
 
-        df_comb_evt = pd.concat([df_sync_evt, df_swap_evt, df_mint_evt, df_burn_evt])
+        df_comb_evt = pd.concat(
+            [df_sync_evt, df_swap_evt, df_mint_evt, df_burn_evt])
 
         if df_comb_evt.empty:
             return df_comb_evt
+        print((df_sync_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0]),
+              df_comb_evt.blockNumber.nunique(),
+              file=sys.stderr, flush=True)
 
-        df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
+        df_comb_evt = df_comb_evt.sort_values(
+            ['blockNumber', 'logIndex']).reset_index(drop=True)
         print(('Sync', df_sync_evt.shape[0], 'Swap', df_swap_evt.shape[0],
-               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]))
+               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]),
+              file=sys.stderr)
         return df_comb_evt
 
     def get_pool_price_info(self):
         full_tick_liquidity0 = self.token0.scaled(self.reserve0)
         full_tick_liquidity1 = self.token1.scaled(self.reserve1)
-        one_tick_liquidity0 = np.abs(1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
+        one_tick_liquidity0 = np.abs(
+            1 / np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity0
         one_tick_liquidity1 = (np.sqrt(1 + 0.0001) - 1) * full_tick_liquidity1
 
         # When both liquidity are low, we set price to 0

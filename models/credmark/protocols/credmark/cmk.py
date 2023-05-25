@@ -31,7 +31,7 @@ class TotalSupplyCMK(Model):
 
 
 @Model.describe(slug='cmk.circulating-supply',
-                version='1.0',
+                version='1.1',
                 display_name='CMK Circulating Supply',
                 description='This is the Circulating Supply of CMK.',
                 developer='Credmark',
@@ -39,9 +39,9 @@ class TotalSupplyCMK(Model):
                 subcategory='cmk')
 class CirculatingCMK(Model):
 
-    def run(self, input) -> dict:
+    def run(self, _) -> dict:
 
-        supply = self.context.run_model("cmk.total-supply")['total_supply']
+        supply = self.context.run_model("cmk.total-supply", {})['total_supply']
         cmk_token = Token(symbol='CMK')
 
         for addr in lockedAddresses:

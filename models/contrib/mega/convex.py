@@ -1,30 +1,39 @@
-# pylint:disable=unused-import, invalid-name
+# pylint:disable=invalid-name
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import Token, Network, Contract, Address
-from credmark.dto import DTO, DTOField
+from credmark.cmf.types import Address, Contract, Network, Token
+from credmark.dto import DTO
 
 
 class ConvexPoolInput(DTO):
     lp_token: Address
     reward: Address
 
+    class Config:
+        schema_extra = {
+            'examples': [
+                {
+                    'lp_token': '0x5b5cfe992adac0c9d48e05854b2d91c73a003858',
+                    'reward': '0x353e489311b21355461353fec2d02b73ef0ede7f'},
+                {
+                    'lp_token': '0xd632f22692fac7611d2aa1c0d552930d43caed3b',
+                    'reward': '0xb900ef131301b307db5efcbed9dbb50a3e209b2e'
+                }
+            ]}
 
-@Model.describe(
-    slug="contrib.curve-convex-yield",
-    display_name="APR for Convex pool",
-    description=(
-        "base, crv, cvx apr for convex pool"
-    ),
-    input=ConvexPoolInput,
-    version="1.0",
-    developer="megaflare14",
-    category="protocol",
-    subcategory="curve",
-    output=dict,
-)
+
+@Model.describe(slug="contrib.curve-convex-yield",
+                display_name="APR for Convex pool",
+                description="base, crv, cvx apr for convex pool",
+                input=ConvexPoolInput,
+                version="1.1",
+                developer="megaflare14",
+                category="protocol",
+                subcategory="curve",
+                output=dict,
+                )
 class ConvexPoolApr(Model):
-    # This is a re-implmentation of the convex subgraph from:
+    # This is a re-implementation of the convex subgraph from:
     # https://github.com/convex-community/convex-subgraph/blob/e9c5cdfae055802af99b545739d9cf67a2a4c2cd/subgraphs/curve-pools/src/services/pools.ts#L253
     CRV_ADDRESS = {Network.Mainnet: "0xD533a949740bb3306d119CC777fa900bA034cd52"}
     CVX_ADDRESS = {Network.Mainnet: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B"}
@@ -68,11 +77,12 @@ class ConvexPoolApr(Model):
         return (currentVirtualPrice - previous_vprice) / previous_vprice
 
     def run(self, input: ConvexPoolInput) -> dict:
-        v_price = self.get_lptoken_price(input.lp_token, self.context.block_number)
+        v_price = self.get_lptoken_price(
+            input.lp_token, self.context.block_number)
         reward_contract = Contract(address=input.reward)
         finish_period = reward_contract.functions.periodFinish().call()
         supply = reward_contract.functions.totalSupply().call() / 1e18
-        virtual_suppy = supply * v_price
+        virtual_supply = supply * v_price
 
         base_apr = self.get_base_apr(input.lp_token, v_price)
 
@@ -99,8 +109,8 @@ class ConvexPoolApr(Model):
         if block_number < finish_period:
             rate = reward_contract.functions.rewardRate().call() / 1e18
             crvPerUnderlying = 0
-            if virtual_suppy > 0:
-                crvPerUnderlying = rate / virtual_suppy
+            if virtual_supply > 0:
+                crvPerUnderlying = rate / virtual_supply
             crv_per_year = crvPerUnderlying * self.SECONDS_IN_YEAR
             cvx_per_year = self.get_cvx_mint_amount(crv_per_year)
             crv_apr = crv_per_year * crv_price

@@ -1,19 +1,33 @@
-# pylint: disable=locally-disabled, unused-import, no-member
-from typing import List
+# pylint: disable=locally-disabled, no-member, line-too-long, invalid-name
+
+from typing import List, Optional
 
 import requests
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelInputError,
-                                       ModelRunError)
-from credmark.cmf.types import (Accounts, Address, Contracts, Currency, FiatCurrency, Maybe,
-                                NativeToken, Network, Price, PriceWithQuote,
-                                Token)
+from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
+from credmark.cmf.model.models import LookupType, ModelResultInput, ModelResultOutput
+from credmark.cmf.types import (
+    Accounts,
+    Address,
+    BlockNumber,
+    Contracts,
+    Currency,
+    FiatCurrency,
+    Maybe,
+    NativeToken,
+    Network,
+    NetworkDict,
+    Price,
+    PriceWithQuote,
+    Some,
+    Token,
+)
 from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
-from models.tmp_abi_lookup import ERC_20_ABI
 from web3 import Web3
 
-SLOT_EIP1967 = hex(int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
+SLOT_EIP1967 = hex(
+    int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1)
 
 
 def get_eip1967_proxy(context, logger, address, verbose):
@@ -25,7 +39,7 @@ def get_eip1967_proxy(context, logger, address, verbose):
 
     # trigger loading
     try:
-        token.abi
+        _ = token.abi
     except Exception:
         pass
 
@@ -36,26 +50,28 @@ def get_eip1967_proxy(context, logger, address, verbose):
     # Token(address='0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca').is_transparent_proxy
     # https://etherscan.io/address/0xfe8f19b17ffef0fdbfe2671f248903055afaa8ca#code
     # token.contract_name == 'InitializableImmutableAdminUpgradeabilityProxy'
-    proxy_address = Address(context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
+    proxy_address = Address(
+        context.web3.eth.get_storage_at(token.address, SLOT_EIP1967))
     if not proxy_address.is_null():
-        token_implemenation = Token(address=proxy_address)
+        token_implementation = Token(address=proxy_address)
         # TODO: Work around before we can load proxy in the past based on block number.
         if (token._meta.is_transparent_proxy and
             token.proxy_for is not None and
                 proxy_address != token.proxy_for.address):
             logger.debug(
-                f'token\'s implmentation is corrected to '
+                f'token\'s implementation is corrected to '
                 f'{proxy_address} from {token.proxy_for.address} for {token.address}')
         else:
             logger.debug(
-                f'token\'s implmentation is corrected to '
+                f'token\'s implementation is corrected to '
                 f'{proxy_address} from no-proxy for {token.address}')
 
         token._meta.is_transparent_proxy = True
-        token._meta.proxy_implementation = token_implemenation
+        token._meta.proxy_implementation = token_implementation
     else:
         if verbose:
-            logger.info(f'Unable to retrieve proxy implementation for {address}')
+            logger.info(
+                f'Unable to retrieve proxy implementation for {address}')
         return None
     return token
 
@@ -63,7 +79,8 @@ def get_eip1967_proxy(context, logger, address, verbose):
 def get_eip1967_proxy_err(context, logger, address, verbose):
     res = get_eip1967_proxy(context, logger, address, verbose)
     if res is None:
-        raise ModelInputError(f'Unable to retrieve proxy implementation for {address}')
+        raise ModelInputError(
+            f'Unable to retrieve proxy implementation for {address}')
     return res
 
 
@@ -92,9 +109,15 @@ class TokenUnderlying(Model):
     Return token's underlying token's address
     """
 
-    def run(self, input: Token) -> Maybe[Address]:
+    def get_underlying_proxy(self, input: Token):
+        try:
+            _ = input.abi
+        except Exception:
+            return None
+
         # pylint: disable=too-many-return-statements)
-        try_eip1967 = get_eip1967_proxy(self.context, self.logger, input.address, False)
+        try_eip1967 = get_eip1967_proxy(
+            self.context, self.logger, input.address, False)
         if try_eip1967 is not None:
             input = try_eip1967
         if input.abi is not None:
@@ -103,7 +126,8 @@ class TokenUnderlying(Model):
                     abi_functions = input.proxy_for.abi.functions
                 except BlockNumberOutOfRangeError as err:
                     raise BlockNumberOutOfRangeError(
-                        err.data.message + f' This is the proxy for Contract({input.address})')
+                        err.data.message +
+                        f' This is the proxy for Contract({input.address})') from err
             else:
                 abi_functions = input.abi.functions
 
@@ -113,76 +137,244 @@ class TokenUnderlying(Model):
             if 'underlyingAssetAddress' in abi_functions:
                 return Maybe(just=input.functions.underlyingAssetAddress().call())
 
-        # TODO: iearn DAI
-        if input.address == Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'):
-            return Maybe(just=Token(symbol='DAI').address)
+        return None
 
-        if input.address == Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'):
-            return Maybe(just=Token(symbol='DAI').address)
+    address_to_symbol = {
+        int(Network.Mainnet): {
+            # TODO: iearn DAI
+            Address('0xc2cb1040220768554cf699b0d863a3cd4324ce32'): 'DAI',
+            Address('0x16de59092dae5ccf4a1e6439d611fd0653f0bd01'): 'DAI',
+            # TODO: iearn USDC
+            Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'): 'USDC',
+            Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'): 'USDC',
+            Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'): 'USDT',
+            Address('0x83f798e925bcd4017eb265844fddabb448f1707d'): 'USDT',
+            Address('0x73a052500105205d34daf004eab301916da8190f'): 'TUSD',
+            Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'): 'BUSD',
+            Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'): 'LINK',
+            Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'): 'LINK',
+            # TODO: ycDAI
+            Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'): 'DAI',
+            Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'): 'USDC',
+            Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'): 'USDT',
+            # stkAAVE
+            Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5'): 'AAVE',
+        }
+    }
 
-        # TODO: iearn USDC
-        if input.address == Address('0x26ea744e5b887e5205727f55dfbe8685e3b21951'):
-            return Maybe(just=Token(symbol='USDC').address)
+    def run(self, input: Token) -> Maybe[Address]:
+        underlying_proxy = self.get_underlying_proxy(input)
+        if underlying_proxy is not None:
+            return underlying_proxy
 
-        if input.address == Address('0xd6ad7a6750a7593e092a9b218d66c0a814a3436e'):
-            return Maybe(just=Token(symbol='USDC').address)
-
-        if input.address == Address('0xe6354ed5bc4b393a5aad09f21c46e101e692d447'):
-            return Maybe(just=Token(symbol='USDT').address)
-
-        if input.address == Address('0x83f798e925bcd4017eb265844fddabb448f1707d'):
-            return Maybe(just=Token(symbol='USDT').address)
-
-        if input.address == Address('0x73a052500105205d34daf004eab301916da8190f'):
-            return Maybe(just=Token(symbol='TUSD').address)
-
-        if input.address == Address('0x04bc0ab673d88ae9dbc9da2380cb6b79c4bca9ae'):
-            return Maybe(just=Token(symbol='BUSD').address)
-
-        if input.address == Address('0xbbc455cb4f1b9e4bfc4b73970d360c8f032efee6'):
-            return Maybe(just=Token(symbol='LINK').address)
-
-        if input.address == Address('0x0e2ec54fc0b509f445631bf4b91ab8168230c752'):
-            return Maybe(just=Token(symbol='LINK').address)
-
-        # TODO: ycDAI
-        if input.address == Address('0x99d1fa417f94dcd62bfe781a1213c092a47041bc'):
-            return Maybe(just=Token(symbol='DAI').address)
-
-        if input.address == Address('0x9777d7e2b60bb01759d0e2f8be2095df444cb07e'):
-            return Maybe(just=Token(symbol='USDC').address)
-
-        if input.address == Address('0x1be5d71f2da660bfdee8012ddc58d024448a0a59'):
-            return Maybe(just=Token(symbol='USDT').address)
+        if input.address in self.address_to_symbol.get(self.context.chain_id, {}):
+            token = Token(
+                symbol=self.address_to_symbol[self.context.chain_id][input.address])
+            return Maybe(just=token.address)
 
         return Maybe(just=None)
 
 
-@Model.describe(
-    slug="token.info",
-    version="1.1",
-    display_name="Token Information",
-    developer="Credmark",
-    category='protocol',
-    tags=['token'],
-    input=Token,
-    output=Token
-)
+@Model.describe(slug="token.info",
+                version="1.5",
+                display_name="Token Information",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=Token,
+                output=Token
+                )
 class TokenInfoModel(Model):
     """
     Return token's information
     """
 
     def run(self, input: Token) -> Token:
-        return input.info
+        token_info = input.info
+        if token_info.deployed_block_number is None:
+            # pylint:disable=protected-access
+            token_info._meta.deployed_block_number = self.context.run_model(
+                'token.deployment', input)['deployed_block_number']
+        return token_info
+
+
+class TokenDeploymentInput(Token, ModelResultInput):
+    # Use Token as base class to accept symbol as input
+    ignore_proxy: bool = DTOField(False, description='Ignore proxy')
+
+
+class TokenDeploymentOutput(ModelResultOutput):
+    deployed_block_number: BlockNumber = DTOField(
+        description='Block number of deployment')
+    deployed_block_timestamp: Optional[int] = DTOField(
+        description='Timestamp of deployment')
+    deployer: Optional[Address] = DTOField(description='Deployer address')
+    proxy_deployer: Optional[dict] = DTOField(
+        description='Proxy deployment')
+
+
+@Model.describe(slug="token.deployment",
+                version="0.11",
+                display_name="Token Information - deployment",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=TokenDeploymentInput,
+                output=TokenDeploymentOutput)
+class TokenInfoDeployment(Model):
+    """
+    Return token's information on deployment
+    """
+
+    code_by_block = {}
+
+    def binary_search(self, low, high, contract_address):
+        # Check base case
+        if high >= low:
+            mid = (high + low)//2
+            if high == low:
+                return low
+
+            if self.code_by_block.get(hex(mid)) is None:
+                try_get_code = self.context.web3.eth.get_code(
+                    contract_address, hex(mid)).hex()
+                self.code_by_block[hex(mid)] = try_get_code
+            else:
+                try_get_code = self.code_by_block[hex(mid)]
+            if try_get_code != '0x':
+                return self.binary_search(low, mid, contract_address)
+            elif try_get_code == '0x':
+                return self.binary_search(mid+1, high, contract_address)
+            else:
+                return -1
+        else:
+            return -1
+
+    def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
+        if input.use_model_result:
+            latest_run = self.context.models.get_result(
+                self.slug, self.version,
+                self.context.__dict__['original_input'],
+                LookupType.BACKWARD_LAST)
+
+            if latest_run is not None:
+                return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
+                                               'model_result_direction': LookupType.BACKWARD_LAST.value}
+
+            latest_run = self.context.models.get_result(
+                self.slug, self.version,
+                self.context.__dict__['original_input'],
+                LookupType.FORWARD_FIRST)
+
+            if latest_run is not None:
+                latest_run_deployed_block_number = latest_run['result']['deployed_block_number']
+                if latest_run_deployed_block_number <= self.context.block_number:
+                    return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
+                                                   'model_result_direction': LookupType.FORWARD_FIRST.value}
+                else:
+                    raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number} '
+                                        f'because it would be deployed on {latest_run_deployed_block_number}.')
+
+        if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
+            raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+
+        res = self.binary_search(
+            0, int(self.context.block_number), input.address.checksum)
+
+        if res == -1:
+            raise ModelRunError(
+                f'Can not find deployment information for {input.address}')
+
+        block = self.context.web3.eth.get_block(res)
+        txs = block['transactions'] if 'transactions' in block else []
+        deployer = None
+        for tx in txs:
+            receipt = self.context.web3.eth.get_transaction_receipt(
+                tx.hex())  # type: ignore
+            if receipt['contractAddress'] == input.address:
+                deployer = receipt['from']
+                break
+            for log in receipt['logs']:
+                if log['address'] == input.address:
+                    deployer = receipt['from']
+                    break
+
+        # TODO: remove when we have loaded ABI for non-mainnet chains
+        if self.context.chain_id == Network.Mainnet and not input.ignore_proxy:
+            if input.proxy_for is not None:
+                proxy_deployer = self.context.run_model(
+                    self.slug, input.proxy_for)
+                return TokenDeploymentOutput(
+                    deployed_block_number=BlockNumber(res),
+                    deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
+                    deployer=Address(str(deployer)),
+                    proxy_deployer=proxy_deployer,
+                    model_result_block=self.context.block_number,
+                    model_result_direction=LookupType.BACKWARD_LAST.value)
+
+        return TokenDeploymentOutput(
+            deployed_block_number=BlockNumber(res),
+            deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
+            deployer=Address(str(deployer)) if deployer is not None else None,
+            proxy_deployer=None,
+            model_result_block=self.context.block_number,
+            model_result_direction='original')
 
 
 class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
 
 
+logos = {
+    "trustwallet_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanchec",
+        Network.Fantom: "fantom"
+    }),
+    "uniswap_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanchec",
+        Network.Fantom: "fantom"
+    }),
+    "sushiswap_assets": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanche",
+        Network.Fantom: "fantom"
+    }),
+    "sushiswap_logos": NetworkDict(str, {
+        Network.Mainnet: "ethereum",
+        Network.BSC: "binance",
+        Network.Polygon: "polygon",
+        Network.Optimism: "optimism",
+        Network.ArbitrumOne: "arbitrum",
+        Network.Avalanche: "avalanche",
+        Network.Fantom: "fantom"
+    }),
+    "curve_assets": NetworkDict(str, {
+        Network.Mainnet: "assets",
+        Network.Polygon: "assets-polygon",
+        Network.Optimism: "assets-optimism",
+        Network.ArbitrumOne: "assets-arbitrum",
+        Network.Avalanche: "assets-avalanche",
+        Network.Fantom: "assets-fantom"
+    })
+}
+
+
 @Model.describe(slug="token.logo",
-                version="1.2",
+                version="2.0",
                 display_name="Token Logo",
                 developer="Credmark",
                 category='protocol',
@@ -196,35 +388,44 @@ class TokenLogoModel(Model):
     """
 
     def run(self, input: Token) -> TokenLogoOutput:
-        if self.context.chain_id != Network.Mainnet:
-            raise ModelDataError(message="Logos are only available for ethereum mainnet",
-                                 code=ModelDataError.Codes.NO_DATA)
-
         if self.context.block_number != 0:
             return self.context.run_model(self.slug,
                                           input,
                                           block_number=0,
                                           return_type=TokenLogoOutput)
 
+        network = self.context.network
+
+        try_urls = []
         # Handle native token
         if input.address == NativeToken().address:
-            return TokenLogoOutput(
-                logo_url="https://raw.githubusercontent.com/trustwallet/assets/master"
-                "/blockchains/ethereum/info/logo.png"
-            )
+            try_urls.append("https://raw.githubusercontent.com/trustwallet/assets/master"
+                            f"/blockchains/{logos['trustwallet_assets'][network]}/info/logo.png")
 
-        try_urls = [
-            ("https://raw.githubusercontent.com/trustwallet/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/uniswap/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/sushiswap/logos/main"
-             f"/network/ethereum/{input.address.checksum}.jpg"),
-            ("https://raw.githubusercontent.com/sushiswap/assets/master"
-             f"/blockchains/ethereum/assets/{input.address.checksum}/logo.png"),
-            ("https://raw.githubusercontent.com/curvefi/curve-assets/main"
-             f"/images/assets/{input.address}.png")
-        ]
+        if self.context.network in logos['trustwallet_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/trustwallet/assets/master"
+                             f"/blockchains/{logos['trustwallet_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['uniswap_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/uniswap/assets/master"
+                             f"/blockchains/{logos['uniswap_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['sushiswap_logos']:
+            try_urls.append(("https://raw.githubusercontent.com/sushiswap/list/master/logos/token-logos"
+                             f"/network/{logos['sushiswap_logos'][network]}"
+                             f"/{input.address.checksum}.jpg"))
+
+        if self.context.network in logos['sushiswap_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/sushiswap/assets/master"
+                             f"/blockchains/{logos['sushiswap_assets'][network]}"
+                             f"/assets/{input.address.checksum}/logo.png"))
+
+        if self.context.network in logos['curve_assets']:
+            try_urls.append(("https://raw.githubusercontent.com/curvefi/curve-assets/main"
+                             f"/images/{logos['curve_assets'][network]}"
+                             f"/{input.address}.png"))
 
         for url in try_urls:
             # Return the first URL that exists
@@ -262,17 +463,21 @@ class TokenTotalSupplyModel(Model):
 
 
 class TokenBalanceInput(Token):
-    account: Address = \
-        DTOField(
-            description=('Account address for which to fetch balance.'))
-    quote: Currency = \
-        DTOField(FiatCurrency(symbol='USD'),
-                 description='Quote token address to count the value')
+    account: Address = DTOField(description='Account address for which to fetch balance.')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Quote token address to count the value')
+
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                        "account": "0x55FE002aefF02F77364de339a1292923A15844B8"}
+        }
 
 
 class TokenBalanceOutput(DTO):
     balance: int = DTOField(description="Balance of account")
-    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    balance_scaled: float = DTOField(
+        description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
     price: Price = DTOField(description="Token price")
 
@@ -307,32 +512,34 @@ class TokenBalanceModel(Model):
 
 
 class TokenHolderInput(Token):
-    limit: int = DTOField(100, gt=0, description="Limit the number of holders that are returned")
-    offset: int = \
-        DTOField(0, ge=0,
-                 description="Omit a specified number of holders from beginning of result set")
-    quote: Currency = \
-        DTOField(FiatCurrency(symbol='USD'),
-                 description='Quote token address to count the value')
+    limit: int = DTOField(100,
+                          gt=0, description="Limit the number of holders that are returned")
+    offset: int = DTOField(0,
+                           ge=0,
+                           description="Omit a specified number of holders from beginning of result set")
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Quote token address to count the value')
 
 
 class TokenHolder(DTO):
     address: Address = DTOField(description="Address of holder")
     balance: int = DTOField(description="Balance of account")
-    balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+    balance_scaled: float = DTOField(
+        description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
 
 
 class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
     price: PriceWithQuote = DTOField(description="Token price")
-    holders: List[TokenHolder] = DTOField(default=[], description='List of holders')
+    holders: List[TokenHolder] = DTOField(
+        default=[], description='List of holders')
     total_holders: int = DTOField(description='Total number of holders')
 
     _iterator: str = PrivateAttr('positions')
 
 
 @Model.describe(slug='token.holders',
-                version='1.2',
+                version='1.4',
                 display_name='Token Holders',
                 description='Holders of a Token',
                 category='protocol',
@@ -343,14 +550,15 @@ class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> TokenHoldersOutput:
         with self.context.ledger.TokenBalance as q:
             df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'balance'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.field('balance').dquote().desc(),
-                having=q.field('balance').dquote().gt(0),
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
+                order_by=q.field('balance').dquote().desc().comma_(q.ADDRESS),
                 limit=input.limit,
-                offset=input.offset
+                offset=input.offset,
+                bigint_cols=['balance', 'total_holders']
             ).to_dataframe()
 
             token_price_maybe = Maybe[PriceWithQuote](**self.context.models.price.quote_maybe({
@@ -363,14 +571,15 @@ class TokenHolders(Model):
             if total_holders is None:
                 total_holders = 0
 
-            return TokenHoldersOutput(price=token_price,
-                                      holders=[TokenHolder(
-                                          address=Address(row['address']),
-                                          balance=row['balance'],
-                                          balance_scaled=input.scaled(row['balance']),
-                                          value=token_price.price * input.scaled(row['balance']))
-                                          for _, row in df.iterrows()],
-                                      total_holders=total_holders)
+            return TokenHoldersOutput(
+                price=token_price,
+                holders=[TokenHolder(
+                    address=Address(row['address']),
+                    balance=row['balance'],
+                    balance_scaled=input.scaled(row['balance']),
+                    value=token_price.price * input.scaled(row['balance']))
+                    for _, row in df.iterrows()],
+                total_holders=total_holders)
 
 
 class TokenHoldersCountOutput(DTO):
@@ -378,7 +587,7 @@ class TokenHoldersCountOutput(DTO):
 
 
 @Model.describe(slug='token.holders-count',
-                version='1.0',
+                version='1.1',
                 display_name='Token Holders count',
                 description='Total number of holders of a Token',
                 category='protocol',
@@ -389,24 +598,26 @@ class TokenHoldersCount(Model):
     def run(self, input: Token) -> TokenHoldersCountOutput:
         with self.context.ledger.TokenBalance as q:
             df = q.select(
-                aggregates=[(q.TRANSACTION_VALUE.sum_(), 'balance'),
+                aggregates=[(q.TRANSACTION_VALUE.as_numeric().sum_(), 'balance'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.field('balance').dquote().desc(),
-                having=q.field('balance').dquote().gt(0),
-                limit=1,
+                order_by=q.TRANSACTION_VALUE.as_numeric().sum_().desc(),
+                having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0)
             ).to_dataframe()
 
-            total_holders = df['total_holders'].values[0]
-            if total_holders is None:
+            if df.empty:
                 total_holders = 0
+            else:
+                total_holders = df['total_holders'].values[0]
+                if total_holders is None:
+                    total_holders = 0
 
             return TokenHoldersCountOutput(count=total_holders)
 
 
 @Model.describe(slug='token.holders-all',
-                version='0.3',
+                version='0.4',
                 display_name='Token Holders All',
                 description='All holders of a Token',
                 category='protocol',
@@ -415,11 +626,11 @@ class TokenHoldersCount(Model):
                 output=dict)
 class TokenNumberHolders(Model):
     def run(self, input: Token) -> dict:
-        with self.context.ledger.TokenTransfer as q:
+        with self.context.ledger.TokenBalance as q:
             df = q.select(aggregates=[],
                           group_by=[q.ADDRESS],
                           where=q.TOKEN_ADDRESS.eq(input.address),
-                          having=q.VALUE.sum_().gt(0)
+                          having=q.TRANSACTION_VALUE.as_numeric().sum_().gt(0)
                           ).to_dataframe()
         return df.to_dict()
 
@@ -434,10 +645,13 @@ class TokenNumberHolders(Model):
                 output=Contracts)
 class TokenSwapPools(Model):
     def run(self, input: Token) -> Contracts:
-        response = Contracts(contracts=[])
-        response.contracts.extend(Contracts(**self.context.models.uniswap_v3.get_pools(input)))
-        response.contracts.extend(Contracts(**self.context.models.uniswap_v2.get_pools(input)))
-        response.contracts.extend(Contracts(**self.context.models.sushiswap.get_pools(input)))
+        response = Contracts.empty()
+        response.contracts.extend(
+            Contracts(**self.context.models.uniswap_v3.get_pools(input)))
+        response.contracts.extend(
+            Contracts(**self.context.models.uniswap_v2.get_pools(input)))
+        response.contracts.extend(
+            Contracts(**self.context.models.sushiswap.get_pools(input)))
         return response
 
 
@@ -451,6 +665,17 @@ class CategorizedSupplyRequest(IterableListGenericDTO):
     categories: List[CategorizedSupplyCategory]
     _iterator: str = 'categories'
     token: Token
+
+    class Config:
+        schema_extra = {
+            'example': {
+                "categories": [
+                    {"accounts": {"accounts": [{"address": "0x1F98431c8aD98523631AE4a59f267346ea31F984"}]},
+                     "categoryName": "",
+                     "categoryType": "",
+                     "circulating": True}],
+                "token": {"symbol": "DAI"}}
+        }
 
 
 class CategorizedSupplyResponse(CategorizedSupplyRequest):
@@ -475,12 +700,14 @@ class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
         total_supply_scaled = input.token.scaled(input.token.total_supply)
-        token_price = PriceWithQuote(**self.context.models.price.quote({'base': input.token}))
+        token_price = PriceWithQuote(
+            **self.context.models.price.quote({'base': input.token}))
         if token_price is None:
             raise ModelRunError(f"No Price for {response.token}")
         for c in response.categories:
             for account in c.accounts:
-                bal = response.token.functions.balanceOf(account.address).call()
+                bal = response.token.functions.balanceOf(
+                    account.address).call()
                 c.amountScaled += response.token.scaled(bal)
             if token_price is not None and token_price.price is not None:
                 c.valueUsd = c.amountScaled * token_price.price
@@ -489,7 +716,8 @@ class TokenCirculatingSupply(Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled - sum(c.amountScaled for c in response.categories)
+            amountScaled=total_supply_scaled -
+            sum(c.amountScaled for c in response.categories)
         ))
         response.circulatingSupplyScaled = sum(
             c.amountScaled for c in response.categories if c.circulating)
@@ -497,3 +725,45 @@ class TokenCirculatingSupply(Model):
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
         return response
+
+
+class TokenAllInput(DTO):
+    limit: int = DTOField(gt=0, description='Number of tokens per page', default=5000)
+    page: int = DTOField(description='Page number', default=1, gt=0)
+
+    class Config:
+        schema_extra = {
+            'example': {'limit': 10, 'page': 2}
+        }
+
+
+class TokenAllOutput(TokenAllInput):
+    total: int = DTOField(description='Total number of tokens')
+    result: Some[Token] = DTOField(description='List of token addresses')
+
+
+@Model.describe(slug='token.all',
+                version='0.3',
+                display_name='All tokens',
+                description='Return all tokens by page',
+                category='protocol',
+                tags=['token'],
+                input=TokenAllInput,
+                output=TokenAllOutput)
+class TokenAll(Model):
+    def run(self, input: TokenAllInput) -> TokenAllOutput:
+        with self.context.ledger.Token as token:
+            rows = token.select(aggregates=[(token.ADDRESS.count_(), 'count_token_address')],
+                                bigint_cols=['count_token_address'])
+            count_token_address = int(rows[0]['count_token_address'])
+
+            df = token.select([token.ADDRESS],
+                              where=token.BLOCK_NUMBER.le(self.context.block_number),
+                              order_by=token.ADDRESS,
+                              limit=input.limit,
+                              offset=(input.page-1)*input.limit).to_dataframe()
+
+        return TokenAllOutput(total=count_token_address,
+                              limit=input.limit,
+                              page=input.page,
+                              result=Some[Token](some=df.address.to_list()))

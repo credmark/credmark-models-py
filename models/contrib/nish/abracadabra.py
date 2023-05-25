@@ -4,7 +4,8 @@ from typing import List, Tuple
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Token
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, EmptyInput, IterableListGenericDTO
+from credmark.dto import DTO, IterableListGenericDTO
+
 from models.tmp_abi_lookup import ABRACADABRA_CAULDRON_ABI
 
 # Function to catch value error in Cauldron v1while fetching mandatory data
@@ -18,8 +19,10 @@ def try_or(func, default=0, expected_exc=(Exception,)):
 
 
 # Vaults' addresses on ethereum chain
-BENTOBOX_ADDRESS_ETH = Address("0xF5BCE5077908a1b7370B9ae04AdC565EBd643966").checksum
-DEGENBOX_ADDRESS_ETH = Address("0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce").checksum
+BENTOBOX_ADDRESS_ETH = Address(
+    "0xF5BCE5077908a1b7370B9ae04AdC565EBd643966").checksum
+DEGENBOX_ADDRESS_ETH = Address(
+    "0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce").checksum
 
 
 # Contract address of various markets of abracadabra
@@ -72,7 +75,6 @@ class AbracadabraOutput(DTO):
                 category='protocol',
                 subcategory='abracadabra',
                 tags=['tvl'],
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraGetTVL(Model):
     def run(self, input) -> AbracadabraOutput:
@@ -90,14 +92,17 @@ class AbracadabraGetTVL(Model):
             market_address = Address(ethereum_active_markets[key]).checksum
 
             # Contract Instance
-            market_contract = Contract(address=market_address, abi=ABRACADABRA_CAULDRON_ABI)
+            market_contract = Contract(address=market_address)
+            market_contract.set_abi(ABRACADABRA_CAULDRON_ABI, set_loaded=True)
 
             # Contract address of collateral
-            collateral = Address(market_contract.functions.collateral().call()).checksum
+            collateral = Address(
+                market_contract.functions.collateral().call()).checksum
             # decimals
             decimals = Token(address=collateral).decimals
             # Token Price
-            _exchange_rate = float(market_contract.functions.exchangeRate().call())
+            _exchange_rate = float(
+                market_contract.functions.exchangeRate().call())
             _price = 1 / _exchange_rate * pow(10, decimals)
 
             collateral_instance = Token(address=collateral)
@@ -105,11 +110,13 @@ class AbracadabraGetTVL(Model):
             # Balance of BENTOBOX
 
             bento_balance = collateral_instance.scaled(
-                collateral_instance.functions.balanceOf(BENTOBOX_ADDRESS_ETH).call()
+                collateral_instance.functions.balanceOf(
+                    BENTOBOX_ADDRESS_ETH).call()
             )
             # Balance OF DEGENBOX
             degen_balance = collateral_instance.scaled(
-                collateral_instance.functions.balanceOf(DEGENBOX_ADDRESS_ETH).call()
+                collateral_instance.functions.balanceOf(
+                    DEGENBOX_ADDRESS_ETH).call()
             )
             # Total Balance
             _balance = bento_balance + degen_balance
@@ -128,6 +135,11 @@ class AbracadabraGetTVL(Model):
 class AbracadabraHistoricalInput(DTO):
     date_range: Tuple[date, date]
 
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
 
 @Model.describe(slug="contrib.abracadabra-tvl-historical",
                 version="1.0",
@@ -144,8 +156,10 @@ class AbracadabraGetTVLHistorical(Model):
         if d_start > d_end:
             d_start, d_end = d_end, d_start
 
-        dt_start = datetime.combine(d_start, datetime.max.time(), tzinfo=timezone.utc)
-        dt_end = datetime.combine(d_end, datetime.max.time(), tzinfo=timezone.utc)
+        dt_start = datetime.combine(
+            d_start, datetime.max.time(), tzinfo=timezone.utc)
+        dt_end = datetime.combine(
+            d_end, datetime.max.time(), tzinfo=timezone.utc)
 
         interval = (dt_end - dt_start).days + 1
         window = f'{interval} days'
@@ -157,14 +171,12 @@ class AbracadabraGetTVLHistorical(Model):
 
         output = self.context.run_model(
             'historical.run-model',
-            dict(
-                model_slug='contrib.abracadabra-tvl',
-                model_input={},
-                model_return_type=AbracadabraOutput,
-                window=window,
-                interval=interval,
-                end_timestamp=ts_as_of_end_dt
-            ),
+            {'model_slug': 'contrib.abracadabra-tvl',
+             'model_input': {},
+             'model_return_type': AbracadabraOutput,
+             'window': window,
+             'interval': interval,
+             'end_timestamp': ts_as_of_end_dt},
             return_type=BlockSeries[AbracadabraOutput])
 
         return output
@@ -190,49 +202,63 @@ class AbracadabraPortfolio(IterableListGenericDTO[AbracadabraVaultPortfolio]):
     _iterator: str = 'abracadabra_portfolio'
 
 
+class AbracadabraContract(Contract):
+    class Config:
+        schema_extra = {
+            'skip_test': True
+        }
+
+
 # Fetching Collateral of each market of abracadabra on ethereum chain
 @Model.describe(slug="contrib.abracadabra-vault-portfolio",
-                version="1.0",
+                version="1.2",
                 display_name="Vault portfolio for abracadabra",
                 description="Get the vault portfolio for abracadabra",
                 category='protocol',
                 subcategory='abracadabra',
-                input=Contract,
+                input=AbracadabraContract,
                 output=AbracadabraVaultPortfolio)
 class AbracadabraGetVaultPortfolio(Model):
-    def run(self, input: Contract) -> AbracadabraVaultPortfolio:
+    def run(self, input: AbracadabraContract) -> AbracadabraVaultPortfolio:
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
         # Values of ethereum_active_markets
-        ethereum_active_markets_vaules = list(ethereum_active_markets.values())
-        ethereum_active_markets_vaules = [value.lower() for value in ethereum_active_markets_vaules]
+        ethereum_active_markets_values = list(ethereum_active_markets.values())
+        ethereum_active_markets_values = [
+            value.lower() for value in ethereum_active_markets_values]
         # Name of vault
-        position = ethereum_active_markets_vaules.index(str(input.address).lower())
+        position = ethereum_active_markets_values.index(
+            str(input.address).lower())
         vault_name = ethereum_active_markets_keys[position]
 
         # Contract address of market
         market_address = Address(input.address)
 
         # Contract Instance
-        market_contract = Contract(address=market_address, abi=ABRACADABRA_CAULDRON_ABI)
+        market_contract = Contract(address=market_address)
+        market_contract.set_abi(ABRACADABRA_CAULDRON_ABI, set_loaded=True)
 
         # Borrow Fee
         borrow_fee = try_or(
-            lambda: float(market_contract.functions.BORROW_OPENING_FEE().call()) / pow(10, 3)
+            lambda: float(
+                market_contract.functions.BORROW_OPENING_FEE().call()) / pow(10, 3)
         )
-        # Maximum Colletaral Ratio
+        # Maximum Collateral Ratio
         maximum_collateral_ratio = try_or(
-            lambda: float(market_contract.functions.COLLATERIZATION_RATE().call()) / pow(10, 3)
+            lambda: float(
+                market_contract.functions.COLLATERIZATION_RATE().call()) / pow(10, 3)
         )
         # Liquidation Fee
         liquidation_fee = try_or(
             lambda: float(
-                str(market_contract.functions.LIQUIDATION_MULTIPLIER().call())[1:]
+                str(market_contract.functions.LIQUIDATION_MULTIPLIER().call())[
+                    1:]
             ) / pow(10, 3)
         )
         # Interest
         interest_ps = try_or(
-            lambda: float(market_contract.functions.accrueInfo().call()[2]) / pow(10, 3)
+            lambda: float(market_contract.functions.accrueInfo().call()[
+                          2]) / pow(10, 3)
         )
         interest = try_or(lambda: interest_ps / (60*60*24*365))
 
@@ -273,10 +299,9 @@ class AbracadabraGetVaultPortfolio(Model):
                 description="Get the overall portfolio abracadabra",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraPortfolio)
 class AbracadabraGetOverallPortfolio(Model):
-    def run(self, input) -> AbracadabraPortfolio:
+    def run(self, _) -> AbracadabraPortfolio:
         abracadabra_portfolio = []
         # Keys of ethereum_active_markets
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
@@ -286,7 +311,8 @@ class AbracadabraGetOverallPortfolio(Model):
             # Contract address of market
             market_address = Address(ethereum_active_markets[key]).checksum
             vault_portfolio = self.context.run_model('contrib.abracadabra-vault-portfolio',
-                                                     input=Contract(address=market_address),
+                                                     input=Contract(
+                                                         address=market_address),
                                                      return_type=AbracadabraVaultPortfolio)
             abracadabra_portfolio.append(vault_portfolio)
         return AbracadabraPortfolio(abracadabra_portfolio=abracadabra_portfolio)
@@ -298,7 +324,6 @@ class AbracadabraGetOverallPortfolio(Model):
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallLiabilities(Model):
 
@@ -308,7 +333,8 @@ class AbracadabraOverallLiabilities(Model):
         # Total Debt
         debt = float(0)
         # MIM Token
-        mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
+        mim_token = Token(address=Address(
+            "0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
             slug='price.quote',
@@ -323,7 +349,9 @@ class AbracadabraOverallLiabilities(Model):
             market_address = Address(ethereum_active_markets[key]).checksum
 
             # Contract Instance
-            market_contract = Contract(address=market_address, abi=ABRACADABRA_CAULDRON_ABI)
+            market_contract = Contract(address=market_address)
+            market_contract.set_abi(ABRACADABRA_CAULDRON_ABI, set_loaded=True)
+
             # Contract address of collateral
             collateral = Token(
                 address=Address(market_contract.functions.collateral().call()).checksum)
@@ -333,7 +361,8 @@ class AbracadabraOverallLiabilities(Model):
             collateral_deposited = float(
                 market_contract.functions.totalCollateralShare().call()) / pow(10, decimals)
             # Token Price
-            _exchange_rate = float(market_contract.functions.exchangeRate().call())
+            _exchange_rate = float(
+                market_contract.functions.exchangeRate().call())
             price = 1 / _exchange_rate * pow(10, decimals)
             # Value of Total Collateral deposited
             collateral_value = collateral_deposited * price
@@ -355,11 +384,9 @@ class AbracadabraOverallLiabilities(Model):
                 description="Aave V2 liabilities for the main lending pool",
                 category='protocol',
                 subcategory='abracadabra',
-                input=EmptyInput,
                 output=AbracadabraOutput)
 class AbracadabraOverallAssets(Model):
-
-    def run(self, input) -> AbracadabraOutput:
+    def run(self, _) -> AbracadabraOutput:
         # Dict of coin balances
         balances = {}
         # Total Value Locked
@@ -368,7 +395,8 @@ class AbracadabraOverallAssets(Model):
         ethereum_active_markets_keys = list(ethereum_active_markets.keys())
 
         # MIM Token
-        mim_token = Token(address=Address("0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
+        mim_token = Token(address=Address(
+            "0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3").checksum)
         # MIM Price
         mim_price = self.context.run_model(
             slug='price.quote',
@@ -381,7 +409,9 @@ class AbracadabraOverallAssets(Model):
             market_address = Address(ethereum_active_markets[key]).checksum
 
             # Contract Instance
-            market_contract = Contract(address=market_address, abi=ABRACADABRA_CAULDRON_ABI)
+            market_contract = Contract(address=market_address)
+            market_contract.set_abi(ABRACADABRA_CAULDRON_ABI, set_loaded=True)
+
             # Total MIM Borrowed
             mim_borrowed = float(
                 market_contract.functions.totalBorrow().call()[1]) / pow(10, mim_decimals)

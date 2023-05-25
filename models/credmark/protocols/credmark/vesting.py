@@ -1,16 +1,24 @@
 from datetime import datetime
 from typing import List
 
+from credmark.cmf.model import Model
+from credmark.cmf.model.errors import (
+    ModelDataError,
+    ModelRunError,
+    create_instance_from_error_dict,
+)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Contract,
+    Contracts,
+    PriceWithQuote,
+    Token,
+)
+from credmark.cmf.types.compose import MapInputsOutput
+from credmark.dto import DTO
 from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
-
-from credmark.cmf.model import Model
-from credmark.cmf.model.errors import (ModelDataError, ModelRunError,
-                                       create_instance_from_error_dict)
-from credmark.cmf.types import (Account, Accounts, Contract, Contracts, Price,
-                                PriceWithQuote, Token)
-from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO, EmptyInput
 
 
 class VestingInfo(DTO):
@@ -30,14 +38,12 @@ class AccountVestingInfo(DTO):
     claims: List[dict]
 
 
-@Model.describe(
-    slug="cmk.vesting-contracts",
-    version="1.0",
-    display_name='CMK Vesting Contracts',
-    category='protocol',
-    subcategory='cmk',
-    input=EmptyInput,
-    output=Contracts)
+@Model.describe(slug="cmk.vesting-contracts",
+                version="1.0",
+                display_name='CMK Vesting Contracts',
+                category='protocol',
+                subcategory='cmk',
+                output=Contracts)
 class CMKGetVestingContracts(Model):
     def run(self, input) -> Contracts:
         if self.context.chain_id == 1:
@@ -57,37 +63,34 @@ class CMKGetVestingContracts(Model):
                              code=ModelDataError.Codes.NO_DATA)
 
 
-@Model.describe(
-    slug="cmk.get-vesting-accounts",
-    version="1.2",
-    display_name='CMK Vesting Accounts',
-    category='protocol',
-    subcategory='cmk',
-    output=Accounts
-)
+@Model.describe(slug="cmk.get-vesting-accounts",
+                version="1.2",
+                display_name='CMK Vesting Accounts',
+                category='protocol',
+                subcategory='cmk',
+                output=Accounts
+                )
 class CMKGetVestingAccounts(Model):
     def run(self, _) -> Accounts:
         accounts = set()
         accounts_info = []
         for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-
             def _use_filter(contract):
                 try:
                     vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
                         fromBlock=0,
                         toBlock=self.context.block_number
                     ).get_all_entries()
-
-                except ValueError:
-                    # Some Eth node does not support the newer eth_newFilter method
+                except (ValueError, AttributeError):
                     try:
                         vesting_added_events = contract.fetch_events(
                             contract.events.VestingScheduleAdded,
                             from_block=0,
                             to_block=self.context.block_number)
-                    except (ReadTimeoutError, ReadTimeout):
+                    except (ReadTimeoutError, ReadTimeout) as err:
                         raise ModelRunError(
-                            f'There was timeout error when reading logs for {contract.address}')
+                            'There was timeout error '
+                            f'when reading logs for {contract.address}') from err
 
                 for vae in vesting_added_events:
                     acc = vae['args']['account']
@@ -115,22 +118,29 @@ class CMKGetVestingAccounts(Model):
         return Accounts(accounts=accounts_info)
 
 
-@Model.describe(
-    slug="cmk.get-vesting-info-by-account",
-    version="1.4",
-    display_name='CMK Vesting Info by Account',
-    category='protocol',
-    subcategory='cmk',
-    input=Account,
-    output=AccountVestingInfo)
+class CredmarkVestingAccount(Account):
+    class Config:
+        schema_extra = {
+            'example': {"address": "0xd766ee3ab3952fe7846db899ce0139da06fbe459"}
+        }
+
+
+@Model.describe(slug="cmk.get-vesting-info-by-account",
+                version="1.6",
+                display_name='CMK Vesting Info by Account',
+                category='protocol',
+                subcategory='cmk',
+                input=CredmarkVestingAccount,
+                output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
     def run(self, input: Account) -> AccountVestingInfo:
-        vesting_contracts = Contracts(**self.context.models.cmk.vesting_contracts())
+        vesting_contracts = Contracts(
+            **self.context.models.cmk.vesting_contracts())
         result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
 
-        current_price = Price(**self.context.models.uniswap_v3.get_weighted_price(
-            input={"symbol": "CMK"})).price
+        current_price = PriceWithQuote(**self.context.models.price.quote(
+            input={"base": "CMK"})).price
 
         claims = []
         for vesting_contract in vesting_contracts:
@@ -153,11 +163,13 @@ class CMKGetVestingByAccount(Model):
                 unvested_amount=token.scaled(
                     vesting_contract.functions.getUnvestedAmount(input.address).call()),
                 claimable_amount=token.scaled(
-                    vesting_contract.functions.getClaimableAmount(input.address).call()
+                    vesting_contract.functions.getClaimableAmount(
+                        input.address).call()
                 ),
                 claimed_amount=token.scaled(
                     vesting_contract.functions.getVestedAmount(input.address).call() -
-                    vesting_contract.functions.getClaimableAmount(input.address).call()
+                    vesting_contract.functions.getClaimableAmount(
+                        input.address).call()
                 ))
             result.vesting_infos.append(vesting_info)
 
@@ -168,18 +180,19 @@ class CMKGetVestingByAccount(Model):
                         vesting_contract.events.AllocationClaimed
                         .createFilter(fromBlock=0, toBlock=self.context.block_number)
                         .get_all_entries())
-                except ValueError:
+                except (ValueError, AttributeError):
                     try:
                         allocation_claimed_events = vesting_contract.fetch_events(
                             vesting_contract.events.AllocationClaimed,
                             from_block=0,
                             to_block=self.context.block_number)
 
-                    except (ReadTimeoutError, ReadTimeout):
+                    except (ReadTimeoutError, ReadTimeout) as err:
                         raise ModelRunError(
-                            f'There was timeout error when reading logs for {input.address}')
+                            'There was timeout error '
+                            f'when reading logs for {input.address}') from err
 
-                claims_all = [dict(d['args']) for d in allocation_claimed_events]
+                claims_all = [{**d['args']} for d in allocation_claimed_events]
 
                 for c in claims_all:
                     if c['account'] == input.address:
@@ -187,7 +200,8 @@ class CMKGetVestingByAccount(Model):
                         c['value_at_claim_time'] = c['amount'] * self.context.run_model(
                             slug="price.quote",
                             input={"base": "CMK"},
-                            block_number=self.context.block_number.from_timestamp(c['timestamp']),
+                            block_number=self.context.block_number.from_timestamp(
+                                c['timestamp']),
                             return_type=PriceWithQuote).price
                         c['value_now'] = c['amount'] * current_price
                         vesting_claims.append(c)
@@ -210,7 +224,8 @@ class CMKGetVestingByAccount(Model):
                     price = self.context.run_model(
                         slug="price.quote",
                         input={"base": "CMK"},
-                        block_number=self.context.block_number.from_timestamp(timestamp),
+                        block_number=self.context.block_number.from_timestamp(
+                            timestamp),
                         return_type=PriceWithQuote).price
                     return price
 
@@ -251,23 +266,22 @@ class CMKGetVestingByAccount(Model):
         return result
 
 
-@Model.describe(
-    slug="cmk.get-all-vesting-balances",
-    version="1.1",
-    display_name='CMK Vesting Balances',
-    category='protocol',
-    subcategory='cmk',
-    input=EmptyInput,
-    output=dict)
+@Model.describe(slug="cmk.get-all-vesting-balances",
+                version="1.1",
+                display_name='CMK Vesting Balances',
+                category='protocol',
+                subcategory='cmk',
+                output=dict)
 class CMKGetAllVestingBalances(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         accounts = Accounts(**self.context.models.cmk.get_vesting_accounts())
 
         def _use_for():
             results = {"vesting_infos": []}
             for account in accounts:
                 results['vesting_infos'].append(
-                    self.context.models.cmk.get_vesting_info_by_account(account)
+                    self.context.models.cmk.get_vesting_info_by_account(
+                        account)
                 )
             return results
 
@@ -277,7 +291,8 @@ class CMKGetAllVestingBalances(Model):
 
             accounts_run = self.context.run_model(
                 slug='compose.map-inputs',
-                input={'modelSlug': model_slug, 'modelInputs': model_inputs.accounts},
+                input={'modelSlug': model_slug,
+                       'modelInputs': model_inputs.accounts},
                 return_type=MapInputsOutput[Account, dict])
 
             results = {"vesting_infos": []}
@@ -288,45 +303,46 @@ class CMKGetAllVestingBalances(Model):
                     self.logger.error(p.error)
                     raise create_instance_from_error_dict(p.error.dict())
                 else:
-                    raise ModelRunError('compose.map-inputs: output/error cannot be both None')
+                    raise ModelRunError(
+                        'compose.map-inputs: output/error cannot be both None')
             return results
 
         results = _use_compose()
         return results
 
 
-@Model.describe(
-    slug="cmk.vesting-events",
-    version="1.1",
-    display_name='CMK Vesting Events',
-    category='protocol',
-    subcategory='cmk',
-    input=Contract,
-    output=dict)
+@Model.describe(slug="cmk.vesting-events",
+                version="1.4",
+                display_name='CMK Vesting Events',
+                category='protocol',
+                subcategory='cmk',
+                output=dict)
 class CMKVestingEvents(Model):
-    def run(self, input: Contract) -> dict:
-        def _use_filter():
-            try:
-                allocation_claimed_events = input.events.AllocationClaimed.createFilter(
-                    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
-            except ValueError:
-                # Some Eth node does not support the newer eth_newFilter method
-                try:
-                    # pylint:disable=locally-disabled,protected-access
-                    allocation_claimed_events = input.fetch_events(
-                        input.events.AllocationClaimed,
-                        from_block=0,
-                        to_block=self.context.block_number)
+    VESTING_SCHEDULE = '0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb'
 
-                except (ReadTimeoutError, ReadTimeout):
-                    raise ModelRunError(
-                        f'There was timeout error when reading logs for {input.address}')
+    def run(self, _) -> dict:
+        contract = Contract(self.VESTING_SCHEDULE)
+
+        def _use_filter():
+            # Some Eth node does not support the newer eth_newFilter method
+            # allocation_claimed_events = input.events.AllocationClaimed.createFilter(
+            #    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
+            try:
+                # pylint:disable=locally-disabled,protected-access
+                allocation_claimed_events = contract.fetch_events(
+                    contract.events.AllocationClaimed,
+                    from_block=0,
+                    to_block=self.context.block_number)
+
+            except (ReadTimeoutError, ReadTimeout) as err:
+                raise ModelRunError(
+                    f'There was timeout error when reading logs for {input.address}') from err
 
             claims = [dict(d['args']) for d in allocation_claimed_events]
             return claims
 
         def _use_ledger():
-            with input.ledger.events.AllocationClaimed as q:
+            with contract.ledger.events.AllocationClaimed as q:
                 ledger_events = (q.select(
                     columns=q.columns,
                     order_by=q.ACCOUNT,

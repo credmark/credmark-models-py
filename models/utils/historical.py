@@ -1,9 +1,11 @@
+# pylint:disable=no-member
 from credmark.cmf.model import Model
-from credmark.dto import EmptyInput
 from credmark.cmf.model.errors import ModelErrorDTO
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from credmark.cmf.types.series import (BlockSeries, BlockSeriesErrorRow,
-                                       BlockSeriesRow)
+from credmark.cmf.types.compose import (
+    MapBlockTimeSeriesOutput,
+)
+from credmark.cmf.types.series import BlockSeries, BlockSeriesErrorRow, BlockSeriesRow
+
 from models.dtos.historical import HistoricalRunModelInput
 
 
@@ -13,10 +15,9 @@ from models.dtos.historical import HistoricalRunModelInput
                 description="",
                 category='utility',
                 subcategory='composer',
-                input=EmptyInput,
                 output=dict)
 class HistoricalEmpty(Model):
-    def run(self, _: EmptyInput) -> dict:
+    def run(self, _) -> dict:
         return {}
 
 
@@ -35,7 +36,8 @@ class HistoricalRunModel(Model):
 
     def run(self, input: HistoricalRunModelInput) -> BlockSeries:
         window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(input.interval)
+        interval_in_seconds = self.context.historical.to_seconds(
+            input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(
@@ -82,6 +84,6 @@ class HistoricalRunModel(Model):
                                      blockTimestamp=result.blockNumber.timestamp,
                                      sampleTimestamp=result.blockNumber.timestamp,
                                      output=result.output)
-            results.series.append(out_row)  # type: ignore #pylint:disable=no-member
+            results.series.append(out_row)  # type: ignore
 
         return results

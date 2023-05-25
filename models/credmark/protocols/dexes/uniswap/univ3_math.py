@@ -5,6 +5,7 @@ UniV3 Math
 # pylint:disable=invalid-name, missing-function-docstring
 
 from math import log
+
 import numpy as np
 
 # out-of-range
@@ -63,7 +64,7 @@ def calculate_onetick_liquidity(
     # tick = log(p_current) / log(1.0001)
     p_current = tick_to_price(current_tick)
 
-    # lets say currentTick is 5 , then Liquiditys are like this:
+    # Let's say currentTick is 5, the liquidity profile looks like this:
     #             2  -> Liquidity = Liquidity at tick3  - LiquidityNet at tick2
     #             3  -> Liquidity = Liquidity at tick4  - LiquidityNet at tick3
     #             4  -> Liquidity = Liquidity at tick5  - LiquidityNet at tick4
@@ -110,18 +111,20 @@ def calculate_onetick_liquidity(
 
     # Liquidity in 1 tick
     if current_tick == tick_bottom:
-        __tick1_amount0, tick1_amount1 = out_of_range(liquidity-_liquidityNet, sp, sa_p)
+        __tick1_amount0, tick1_amount1 = out_of_range(
+            liquidity-_liquidityNet, sp, sa_p)
         tick1_amount0, __tick1_amount1 = in_range(liquidity, sb_p, sp, sp)
     elif current_tick == tick_top:
         __tick1_amount0, tick1_amount1 = in_range(liquidity, sp, sa_p, sp)
-        tick1_amount0, __tick1_amount1 = out_of_range(liquidity+_liquidityNet, sb_p, sp)
+        tick1_amount0, __tick1_amount1 = out_of_range(
+            liquidity+_liquidityNet, sb_p, sp)
     else:
         tick1_amount0, tick1_amount1 = in_range(liquidity, sb_p, sa_p, sp)
         # equivalent to
         # _tick1_amount0 == 0, _tick1_amount1 = in_range(liquidity, sp, sa_p, sp)
         # tick1_amount0, _tick1_amount1 == 0 = in_range(liquidity, sb_p, sp, sp)
 
-    # We match the two tokens' liquidity for the minimal available, a fix for the iliquid pools.
+    # We match the two tokens' liquidity for the minimal available, a fix for the illiquid pools.
     tick1_amount0_adj = min(tick1_amount0, tick1_amount1 / sp / sp)
     tick1_amount1_adj = min(tick1_amount0 * sp * sp, tick1_amount1)
 

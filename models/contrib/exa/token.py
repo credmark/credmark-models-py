@@ -1,5 +1,5 @@
 from credmark.cmf.model import Model
-from credmark.cmf.types import Address, Token, BlockNumber
+from credmark.cmf.types import Address, Token
 from credmark.dto import DTO, DTOField
 
 
@@ -7,24 +7,35 @@ class TokenBalanceInput(DTO):
     token: Address = DTOField(default=Address('0xD533a949740bb3306d119CC777fa900bA034cd52'))
     wallet: Address = Address('0xd2d43555134dc575bf7279f4ba18809645db0f1d')
 
+    class Config:
+        schema_extra = {
+            'example': {'token': '0xD533a949740bb3306d119CC777fa900bA034cd52',
+                        'wallet': '0xd2d43555134dc575bf7279f4ba18809645db0f1d'}
+        }
+
 
 class TokenNetInflowInput(DTO):
     from_addr: Address = Address('0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9')
     token: Address = Address('0xdac17f958d2ee523a2206206994597c13d831ec7')
-    blocks: BlockNumber
+    blocks: int = DTOField(gt=0, description='Number of blocks to look back')
+
+    class Config:
+        schema_extra = {
+            'example': {'from_addr': '0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9',
+                        'token': '0xdac17f958d2ee523a2206206994597c13d831ec7',
+                        'blocks': 10000}
+        }
 
 
-@Model.describe(
-    slug='contrib.token-balance-of',
-    display_name='fetch balance of a specified token and wallet',
-    description=("dynamically fetch balance of an ERC20 token and address"),
-    input=TokenBalanceInput,
-    version='1.0',
-    developer='exa256',
-    output=dict
-)
+@Model.describe(slug='contrib.token-balance-of',
+                version='1.0',
+                developer='exa256',
+                display_name='fetch balance of a specified token and wallet',
+                description=("dynamically fetch balance of an ERC20 token and address"),
+                input=TokenBalanceInput,
+                output=dict
+                )
 class TokenBalanceOf(Model):
-
     def run(self, input: TokenBalanceInput):
         token = Token(address=input.token)
         balance = token.functions.balanceOf(input.wallet).call()
@@ -38,17 +49,16 @@ class TokenBalanceOf(Model):
         }
 
 
-@Model.describe(
-    slug='contrib.token-net-inflow',
-    display_name='net inflow of tokens from an address',
-    description=("return net token outflow from an address on a given time range"
-                 "net inflow is total token inflow - total token outflow"
-                 ),
-    input=TokenNetInflowInput,
-    version='1.1',
-    developer='exa256',
-    output=dict
-)
+@Model.describe(slug='contrib.token-net-inflow',
+                display_name='net inflow of tokens from an address',
+                description=("return net token outflow from an address on a given time range"
+                             "net inflow is total token inflow - total token outflow"
+                             ),
+                version='1.1',
+                developer='exa256',
+                input=TokenNetInflowInput,
+                output=dict
+                )
 class TokenNetInflow(Model):
     def run(self, input: TokenNetInflowInput):
         from_addr = input.from_addr
@@ -74,8 +84,10 @@ class TokenNetInflow(Model):
                 order_by=q.BLOCK_NUMBER.desc(),
             ).to_dataframe()
 
-        inflow = transfers.query('to_address == @from_addr')['value'].astype(float).sum()
-        outflow = transfers.query('from_address == @from_addr')['value'].astype(float).sum()
+        inflow = transfers.query(
+            'to_address == @from_addr')['value'].astype(float).sum()
+        outflow = transfers.query(
+            'from_address == @from_addr')['value'].astype(float).sum()
 
         return {
             'inflow': token.scaled(inflow),

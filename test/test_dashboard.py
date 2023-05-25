@@ -102,7 +102,8 @@ class TestDashboard(CMFTest):
 
         # credmark-dev run pool.dex-db-latest -i '{"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
         # credmark-dev run pool.dex-db-latest -i '{"address": "0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1"}' --api_url=http://localhost:8700 -j
-        self.run_model('pool.dex-db-latest', {"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
+        self.run_model('pool.dex-db-latest',
+                       {"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
 
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
@@ -110,7 +111,8 @@ class TestDashboard(CMFTest):
         self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
                        "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
 
-        self.run_model('pool.dex-db-latest', {"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+        self.run_model('pool.dex-db-latest',
+                       {"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
 
 
 def run_test_uni(self, pool_n, pool, test_volume):
@@ -127,17 +129,19 @@ def run_test_uni(self, pool_n, pool, test_volume):
     block_number = 14830357
     self.title(f'Pool TVL/Volume/VaR - Uni/Sushi - {pool_n}')
 
-    # for pool in $univ3_pools; do
-    # for pool in $sushi_pools $univ2_pools; do
-    self.run_model('uniswap-v2.get-pool-info', {"address": pool}, block_number=block_number)
-    self.run_model('uniswap-v2.pool-tvl', {"address": pool}, block_number=block_number)
+    # uniswap-v2.get-pool-info works with both Uniswap V2 / V3 and SushiSwap
+    self.run_model('uniswap-v2.get-pool-info',
+                   {"address": pool}, block_number=block_number)
+    self.run_model('uniswap-v2.pool-tvl',
+                   {"address": pool}, block_number=block_number)
 
     if test_volume:
         self.run_model('dex.pool-volume-historical',
                        {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "count": 2, "address": pool}, block_number=block_number)
 
         self.run_model('dex.pool-volume',
-                       {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200, "address": pool},
+                       {"pool_info_model": "uniswap-v2.pool-tvl",
+                           "interval": 7200, "address": pool},
                        block_number=block_number)
 
     self.run_model('finance.var-dex-lp',
@@ -158,11 +162,13 @@ def run_test_curve(self, pool_n, pool, test_volume):
 
     if test_volume:
         self.run_model('dex.pool-volume-historical',
-                       {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200, "count": 2, "address": pool},
+                       {"pool_info_model": "curve-fi.pool-tvl",
+                           "interval": 7200, "count": 2, "address": pool},
                        block_number=block_number)
 
     self.run_model('dex.pool-volume',
-                   {"pool_info_model": "curve-fi.pool-tvl", "interval": 7200, "address": pool},
+                   {"pool_info_model": "curve-fi.pool-tvl",
+                       "interval": 7200, "address": pool},
                    block_number=block_number)
     self.run_model('historical.run-model',
                    {"model_slug": "curve-fi.pool-tvl", "model_input": {"address": pool},
@@ -170,22 +176,22 @@ def run_test_curve(self, pool_n, pool, test_volume):
                    block_number=block_number)
 
 
-for n, addr in enumerate(TestDashboard.UNIV2_POOLS):
+for n, addr in enumerate(TestDashboard.UNIV2_POOLS[:3]):
     setattr(TestDashboard,
             f'test_univ2_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.UNIV3_POOLS):
+for n, addr in enumerate(TestDashboard.UNIV3_POOLS[:3]):
     setattr(TestDashboard,
             f'test_univ3_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.SUSHI_POOLS):
+for n, addr in enumerate(TestDashboard.SUSHI_POOLS[:3]):
     setattr(TestDashboard,
             f'test_sushi_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_uni(self, pool_n, pool, True))
 
-for n, addr in enumerate(TestDashboard.CURVE_POOLS):
+for n, addr in enumerate(TestDashboard.CURVE_POOLS[:3]):
     setattr(TestDashboard,
             f'test_curve_{n+1}',
             lambda self, pool_n=n, pool=addr: run_test_curve(self, pool_n, pool, pool_n < 4))

@@ -26,11 +26,10 @@ class ExampleIteration(Model):
                    "\"IterableListGenericDTO\" and override \"_iterator\" attribute")
 
         output.log("To create iterable Tokens:")
-        output.log_io(
-            input="class Tokens(IterableListGenericDTO[Token]):\n"
-            "\ttokens: List[Token] = []\n"
-            "\t_iterator: str = PrivateAttr('tokens')",
-            output="")
+        output.log_io(input="class Tokens(IterableListGenericDTO[Token]):\n"
+                      "\ttokens: List[Token] = []\n"
+                      "\t_iterator: str = PrivateAttr('tokens')",
+                      output="")
 
         output.log_io(input="tokens = Tokens(tokens=[Token(symbol=\"CMK\")])", output=tokens)
 

@@ -9,11 +9,16 @@ class TestChainlink(CMFTest):
     def test_ens(self):
         self.title('Chainlink - ENS')
 
-        self.run_model('chainlink.price-by-ens', {"domain": "eth-usd.data.eth"}, block_number=self.block_number)
-        self.run_model('chainlink.price-by-ens', {"domain": "comp-eth.data.eth"}, block_number=self.block_number)
-        self.run_model('chainlink.price-by-ens', {"domain": "avax-usd.data.eth"}, block_number=self.block_number)
-        self.run_model('chainlink.price-by-ens', {"domain": "bnb-usd.data.eth"}, block_number=self.block_number)
-        self.run_model('chainlink.price-by-ens', {"domain": "sol-usd.data.eth"}, block_number=self.block_number)
+        self.run_model('chainlink.price-by-ens',
+                       {"domain": "eth-usd.data.eth"}, block_number=self.block_number)
+        self.run_model('chainlink.price-by-ens',
+                       {"domain": "comp-eth.data.eth"}, block_number=self.block_number)
+        self.run_model('chainlink.price-by-ens',
+                       {"domain": "avax-usd.data.eth"}, block_number=self.block_number)
+        self.run_model('chainlink.price-by-ens',
+                       {"domain": "bnb-usd.data.eth"}, block_number=self.block_number)
+        self.run_model('chainlink.price-by-ens',
+                       {"domain": "sol-usd.data.eth"}, block_number=self.block_number)
 
     def test_price_by_registry(self):
         self.title('Chainlink - registry')
@@ -58,9 +63,12 @@ class TestChainlink(CMFTest):
                        {"base": {"address": "0x64aa3364F17a4D01c6f1751Fd97C2BD3D7e7f1D5"}}, block_number=self.block_number)
         self.run_model('price.oracle-chainlink',
                        {"base": {"address": "0x383518188C0C6d7730D91b2c03a03C837814a899"}}, block_number=self.block_number)
-        self.run_model('price.oracle-chainlink', {"base": {"symbol": "AAVE"}}, block_number=self.block_number)
-        self.run_model('price.oracle-chainlink', {"base": {"symbol": "WETH"}}, block_number=self.block_number)
-        self.run_model('price.oracle-chainlink', {"base": {"symbol": "WBTC"}}, block_number=self.block_number)
+        self.run_model('price.oracle-chainlink',
+                       {"base": {"symbol": "AAVE"}}, block_number=self.block_number)
+        self.run_model('price.oracle-chainlink',
+                       {"base": {"symbol": "WETH"}}, block_number=self.block_number)
+        self.run_model('price.oracle-chainlink',
+                       {"base": {"symbol": "WBTC"}}, block_number=self.block_number)
         self.run_model('price.oracle-chainlink',
                        {"base": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}}, block_number=self.block_number)
         self.run_model('price.oracle-chainlink',

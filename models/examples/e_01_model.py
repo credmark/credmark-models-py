@@ -1,4 +1,5 @@
 from credmark.cmf.model import Model
+
 from .dtos import ExampleEchoInput, ExampleEchoOutput
 
 
@@ -24,7 +25,8 @@ class ExampleEcho(Model):
         )
 
         output.log("This is a basic model")
-        output.log("You can supply a message (str) as input with default value of Hello")
+        output.log(
+            "You can supply a message (str) as input with default value of Hello")
         output.log_io(input="input.message", output=input.message)
 
         output.log("It echoes back the input message with execution context's block number "
