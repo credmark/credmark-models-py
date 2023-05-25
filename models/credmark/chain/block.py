@@ -129,8 +129,9 @@ class GetBlock(Model):
 
         end = self.get_latest_block()
         if input.timestamp > end.timestamp:
-            raise ModelDataError(f'{input.timestamp=} is after the the latest block '
-                                 f'({end.block_number} @ {end.timestamp})')
+            return BlockOutput(block_number=end.block_number,
+                               block_timestamp=end.timestamp,
+                               sample_timestamp=input.timestamp)
 
         closest_block = self.get_closest_block(input.timestamp, start, end)
 

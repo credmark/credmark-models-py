@@ -730,7 +730,7 @@ class IchiVaultCashflow(Model):
                 token0_amount = row['amount0']
                 token1_amount = row['amount1']
 
-                with self.context.enter(past_block_number) as past_context:
+                with self.context.fork(block_number=past_block_number) as past_context:
                     past_block_timestamp = past_context.block_number.timestamp
                     past_block_date = past_context.block_number.timestamp_datetime
 
@@ -888,19 +888,19 @@ class IchiVaultPerformance(Model):
 
         self.logger.info(f'Trimmed df_cashflow from {df_cashflow.shape[0]} to {df_cashflow_trim.shape[0]}')
         if df_cashflow_trim.block_number.isin([start_block]).any():
-            with self.context.enter(start_block - 1) as cc:
+            with self.context.fork(block_number=start_block - 1) as cc:
                 df_row_start_block = pd.DataFrame(
                     [self.vault_current(cc, vault_ichi, scale_multiplier, token0_decimals,
                                         token1_decimals, allow_token0, 'Start', make_negative=True)],
                     columns=df_cashflow_trim.columns)
         else:
-            with self.context.enter(start_block) as cc:
+            with self.context.fork(block_number=start_block) as cc:
                 df_row_start_block = pd.DataFrame(
                     [self.vault_current(cc, vault_ichi, scale_multiplier, token0_decimals,
                                         token1_decimals, allow_token0, 'Start', make_negative=True)],
                     columns=df_cashflow_trim.columns)
 
-        with self.context.enter(end_block) as cc:
+        with self.context.fork(block_number=end_block) as cc:
             df_row_end_block = pd.DataFrame(
                 [self.vault_current(cc, vault_ichi, scale_multiplier, token0_decimals,
                                     token1_decimals, allow_token0, 'Final', make_negative=False)],

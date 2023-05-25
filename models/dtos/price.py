@@ -1,4 +1,4 @@
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 
 from enum import Enum
 from typing import List, Optional
@@ -80,6 +80,8 @@ class PriceSource(str, Enum):
 class PriceInputWithPreference(PriceInput):
     prefer: PriceSource = DTOField(
         PriceSource.CEX, description='Preferred source')
+    try_other_chains: bool = DTOField(
+        False, description='If prices are not found on the input chain, try other chains for prices.')
 
 
 class PriceMultipleInput(DTO):

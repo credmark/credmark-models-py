@@ -279,7 +279,7 @@ class UniV3Pool:
 
             if not df_comb_evt.empty:
                 context = ModelContext.current_context()
-                with context.enter(int(df_comb_evt.blockNumber.max())):
+                with context.fork(block_number=int(df_comb_evt.blockNumber.max())):
                     token0_reserve = self.token0.balance_of(self.pool.address.checksum)
                     token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
@@ -332,7 +332,7 @@ class UniV3Pool:
         self._call_balance += 1
         if try_balance is None:
             context = ModelContext.current_context()
-            with context.enter(int(self.block_number)):
+            with context.fork(block_number=int(self.block_number)):
                 self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
                 self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
                 self._balance[int(self.block_number)] = self.token0_reserve, self.token1_reserve
@@ -508,7 +508,7 @@ class UniV3Pool:
 
         def _check_reserve_with_balance():
             context = ModelContext.current_context()
-            with context.enter(event_row['blockNumber']):
+            with context.fork(block_number=event_row['blockNumber']):
                 t0_reserve = self.token0.balance_of_scaled(self.pool.address.checksum)
                 t1_reserve = self.token1.balance_of_scaled(self.pool.address.checksum)
                 assert math.isclose(self.token0.scaled(self.token0_reserve), t0_reserve, rel_tol=1e-1)
