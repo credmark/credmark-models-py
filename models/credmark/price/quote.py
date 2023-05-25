@@ -1,8 +1,9 @@
 # pylint:disable=try-except-raise, no-member, line-too-long, pointless-string-statement
 
 from contextlib import nullcontext
-from typing import List, Tuple
 from operator import itemgetter
+from typing import List, Tuple
+
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import (
     ModelDataError,
@@ -314,8 +315,8 @@ class PriceQuoteMaybe(Model):
                 output=PriceWithQuote,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceQuote(Model):
+    @staticmethod
     def tries_for_network(
-            self,
             network: Network,
             base_address: str) -> List[Tuple[Network, PriceSource, str]]:
         tries = []
