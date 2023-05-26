@@ -4,6 +4,19 @@ from cmf_test import CMFTest
 
 
 class TestSushiSwap(CMFTest):
+    def test_v2(self):
+        default_block_number = 17_001_000
+
+        self.run_model('sushiswap.get-factory', {}, block_number=default_block_number)
+        self.run_model('sushiswap.get-pool', {"token0": {"symbol": "USDC"},
+                       "token1": {"symbol": "WETH"}}, block_number=default_block_number)
+        self.run_model('sushiswap.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model('sushiswap.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model('sushiswap.get-pools-tokens',
+                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
+        self.run_model('sushiswap.get-ring0-ref-price', {}, block_number=default_block_number)
+        self.run_model('sushiswap.get-pool-info-token-price', {"symbol": "USDC"}, block_number=default_block_number)
+
     def test(self):
         self.title('SushiSwap')
 

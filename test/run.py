@@ -31,6 +31,7 @@ from test_index_coop import TestIndexCoop
 from test_ipor import TestIPOR
 from test_nft import TestNFT
 from test_optimism import TestOptimism
+from test_pancake import TestPancakeSwap
 from test_polygon import TestPolygon
 from test_price import TestPrice
 from test_speed import TestSpeed

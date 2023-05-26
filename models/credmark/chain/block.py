@@ -40,10 +40,11 @@ class BlockInput(DTO):
     class Config:
         schema_extra = {
             'examples': [
-                {'timestamp': 1683726143, '_test_multi_chain': {'chain_id': 1}}] +
-            [{"timestamp": 1628599999, '_test_multi_chain': {'chain_id': chain_id, 'block_number': None}}
+                {'timestamp': 1683726143, '_test_multi': {'chain_id': 1}}] +
+            [{"timestamp": 1628599999, '_test_multi': {'chain_id': chain_id, 'block_number': None}}
                 for chain_id in [137, 10, 42161, 56, 250, 43114]],
-            'test_multi_chain': True,
+            'test_multi': True,
+            'skip_test': True
         }
 
 
@@ -143,9 +144,10 @@ class GetBlock(Model):
 class EmptyInputForLatestBlock(EmptyInput):
     class Config:
         schema_extra = {
-            'examples': [{'_test_multi_chain': {'chain_id': chain_id, 'block_number': None}}
+            'examples': [{'_test_multi': {'chain_id': chain_id, 'block_number': None}}
                          for chain_id in [1, 137, 10, 42161, 56, 250, 43114]],
-            'test_multi_chain': True
+            'test_multi': True,
+            'skip_test': True,
         }
 
 

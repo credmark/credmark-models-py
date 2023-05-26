@@ -23,16 +23,19 @@ from models.dtos.price import (
     PRICE_DATA_ERROR_DESC,
     DexPoolAggregationInput,
     DexPriceTokenInput,
+    DexProtocol,
+    DexProtocolInput,
 )
 
 
 @Model.describe(slug='dex.ring0-tokens',
-                version='0.2',
+                version='0.3',
                 display_name='DEX Tokens - Primary, or Ring0',
                 description='Tokens to form primary trading pairs for new token issuance',
                 category='protocol',
                 subcategory='dex',
-                tags=['uniswap-v2', 'uniswap-v3', 'sushiswap'],
+                tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'pancakeswap-v2', 'pancakeswap-v3'],
+                input=DexProtocolInput,
                 output=Some[Address])
 class DexPrimaryTokens(Model):
     """
@@ -45,12 +48,31 @@ class DexPrimaryTokens(Model):
     """
 
     RING0_TOKENS = {
-        Network.Mainnet: (lambda: [Token('USDC'), Token('DAI'), Token('USDT')])
+        Network.Mainnet: {
+            **{protocol: (lambda: [Token('USDC'), Token('DAI'), Token('USDT')])
+               for protocol in [DexProtocol.UniswapV2,
+                                DexProtocol.UniswapV3,
+                                DexProtocol.SushiSwap]},
+
+            **{protocol: (lambda: [Token('USDC'), Token('USDT')])
+               for protocol in [DexProtocol.PancakeSwapV2,
+                                DexProtocol.PancakeSwapV3]},
+        },
+        Network.BSC: {
+            **{protocol: (lambda: [Token('USDT'), Token('BUSD'), Token('USDC')])
+               for protocol in [DexProtocol.UniswapV3,
+                                DexProtocol.PancakeSwapV2,
+                                DexProtocol.PancakeSwapV3]},
+        },
+        Network.Polygon: {
+            **{protocol: (lambda: [Token('USDT'), Token('USDC'), Token('DAI'), Token('miMATIC')])
+               for protocol in [DexProtocol.UniswapV3]}
+        }
     }
 
-    def run(self, _) -> Some[Address]:
+    def run(self, input: DexProtocolInput) -> Some[Address]:
         valid_tokens = []
-        for t in self.RING0_TOKENS[self.context.network]():
+        for t in self.RING0_TOKENS[self.context.network][input.protocol]():
             try:
                 _ = (t.deployed_block_number is not None and
                      t.deployed_block_number >= self.context.block_number)
@@ -60,16 +82,62 @@ class DexPrimaryTokens(Model):
         return Some(some=valid_tokens)
 
 
-def get_primary_token_tuples(context, input_addresses: list[Address]) -> List[Tuple[Address, Address]]:
-    ring0_tokens = context.run_model('dex.ring0-tokens', {},
+@Model.describe(slug='dex.ring1-tokens',
+                version='0.1',
+                display_name='DEX Tokens - Secondary, or Ring1',
+                description='Tokens to form secondary trading pairs for new token issuance',
+                category='protocol',
+                subcategory='dex',
+                tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'pancakeswap-v2', 'pancakeswap-v3'],
+                input=DexProtocolInput,
+                output=Some[Address])
+class DexSecondaryTokens(Model):
+    RING1_TOKENS = {
+        Network.Mainnet: {
+            **{protocol: (lambda: [Token('WETH')])
+               for protocol in [DexProtocol.UniswapV2,
+                                DexProtocol.UniswapV3,
+                                DexProtocol.SushiSwap]},
+
+            **{protocol: (lambda: [Token('WETH')])
+               for protocol in [DexProtocol.PancakeSwapV2,
+                                DexProtocol.PancakeSwapV3]},
+        },
+        Network.BSC: {
+            # TODO: multi-ring1 tokens to be added
+            **{protocol: (lambda: [Token('WBNB')])  # **{protocol: (lambda: [Token('WBNB'), Token('BTCB'), Token('ETH')])
+               for protocol in [DexProtocol.UniswapV3,
+                                DexProtocol.PancakeSwapV2,
+                                DexProtocol.PancakeSwapV3]},
+        },
+        Network.Polygon: {
+            **{protocol: (lambda: [Token('WETH')])  # MATIC, WBTC
+               for protocol in [DexProtocol.UniswapV3]}
+        }
+    }
+
+    def run(self, input: DexProtocolInput) -> Some[Address]:
+        valid_tokens = []
+        for t in self.RING1_TOKENS[self.context.network][input.protocol]():
+            try:
+                _ = (t.deployed_block_number is not None and
+                     t.deployed_block_number >= self.context.block_number)
+                valid_tokens.append(t.address)
+            except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
+                pass
+        return Some(some=valid_tokens)
+
+
+def get_primary_token_tuples(context, _protocol, input_addresses: list[Address]) -> List[Tuple[Address, Address]]:
+    ring0_tokens = context.run_model('dex.ring0-tokens', DexProtocolInput(protocol=_protocol),
                                      return_type=Some[Address],
                                      local=True).some
     primary_tokens = ring0_tokens.copy()
 
-    # WETH or native token's address
-    weth_address = Token('WETH').address
     # _wbtc_address = Token('WBTC').address
-    ring1_tokens = [weth_address]
+    ring1_tokens = context.run_model('dex.ring1-tokens', DexProtocolInput(protocol=_protocol),
+                                     return_type=Some[Address],
+                                     local=True).some
 
     primary_tokens_ring1 = primary_tokens.copy()
     primary_tokens_ring1.extend(ring1_tokens)
@@ -192,7 +260,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.12',
+                version='1.15',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -215,7 +283,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.12',
+                version='1.15',
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -230,7 +298,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.11',
+                version='1.15',
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -245,8 +313,8 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.11',
-                display_name='Sushi v2 (Uniswap V2) - get price weighted by liquidity',
+                version='1.15',
+                display_name='Sushi (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 category='protocol',
                 subcategory='sushi-v2',
@@ -259,9 +327,9 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
         return self.aggregate_pool('sushiswap.get-pool-info-token-price', input)
 
 
-@Model.describe(slug='pancakeswap.get-weighted-price',
-                version='1.8',
-                display_name='Pancakeswap (Uniswap V2) - get price weighted by liquidity',
+@Model.describe(slug='pancakeswap-v2.get-weighted-price',
+                version='1.15',
+                display_name='PancakeSwap V2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Pancake pools that support a token contract',
                 category='protocol',
                 subcategory='pancake',
@@ -271,7 +339,53 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                 errors=PRICE_DATA_ERROR_DESC)
 class PancakeGetAveragePrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
-        return self.aggregate_pool('pancakeswap.get-pool-info-token-price', input)
+        return self.aggregate_pool('pancakeswap-v2.get-pool-info-token-price', input)
+
+
+@Model.describe(slug='price.dex-blended',
+                version='1.26',
+                display_name='Credmark Token Price from Dex',
+                description='The Current Credmark Supported Price Algorithms',
+                developer='Credmark',
+                category='price',
+                subcategory='dex',
+                tags=['dex', 'price'],
+                input=DexPriceTokenInput,
+                output=PriceWithQuote,
+                errors=PRICE_DATA_ERROR_DESC)
+class PriceFromDexModel(Model):
+    """
+    Return token's price
+    """
+
+    def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
+        try:
+            all_pool_infos = self.context.run_model('price.dex-pool',
+                                                    input=input,
+                                                    return_type=Some[PoolPriceInfo],
+                                                    local=True).some
+
+            pool_aggregator_input = DexPoolAggregationInput(**input.dict(), some=all_pool_infos)
+
+            price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
+
+            # Above code replaced code below as a saving to a model call
+            # price = self.context.run_model('price.pool-aggregator',
+            #                              input=pool_aggregator_input,
+            #                              return_type=Price,
+            #                              local=True)
+
+            return PriceWithQuote.usd(**price.dict())
+        except (ModelDataError, ModelRunError):
+            addr_maybe = self.context.run_model('token.underlying-maybe',
+                                                input=input,
+                                                return_type=Maybe[Address],
+                                                local=True)
+            if addr_maybe.just is not None:
+                input.address = addr_maybe.just
+                return self.context.run_model(self.slug, input, return_type=PriceWithQuote)
+
+            raise
 
 
 @Model.describe(slug='price.dex-pool',
@@ -343,52 +457,6 @@ class PriceInfoFromDex(Model):
             return all_pool_infos
 
         return Some[PoolPriceInfo](some=_use_for(local=False))
-
-
-@Model.describe(slug='price.dex-blended',
-                version='1.23',
-                display_name='Credmark Token Price from Dex',
-                description='The Current Credmark Supported Price Algorithms',
-                developer='Credmark',
-                category='price',
-                subcategory='dex',
-                tags=['dex', 'price'],
-                input=DexPriceTokenInput,
-                output=PriceWithQuote,
-                errors=PRICE_DATA_ERROR_DESC)
-class PriceFromDexModel(Model):
-    """
-    Return token's price
-    """
-
-    def run(self, input: DexPriceTokenInput) -> PriceWithQuote:
-        try:
-            all_pool_infos = self.context.run_model('price.dex-pool',
-                                                    input=input,
-                                                    return_type=Some[PoolPriceInfo],
-                                                    local=True).some
-
-            pool_aggregator_input = DexPoolAggregationInput(**input.dict(), some=all_pool_infos)
-
-            price = PoolPriceAggregator(self.context).run(pool_aggregator_input)
-
-            # Above code replaced code below as a saving to a model call
-            # price = self.context.run_model('price.pool-aggregator',
-            #                              input=pool_aggregator_input,
-            #                              return_type=Price,
-            #                              local=True)
-
-            return PriceWithQuote.usd(**price.dict())
-        except (ModelDataError, ModelRunError):
-            addr_maybe = self.context.run_model('token.underlying-maybe',
-                                                input=input,
-                                                return_type=Maybe[Address],
-                                                local=True)
-            if addr_maybe.just is not None:
-                input.address = addr_maybe.just
-                return self.context.run_model(self.slug, input, return_type=PriceWithQuote)
-
-            raise
 
 
 @Model.describe(slug='price.dex-db-prefer',

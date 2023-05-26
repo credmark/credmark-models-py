@@ -16,7 +16,7 @@ imports:
     - models.dtos.pool.PoolPriceInfoWithVolume
     - models.dtos.price.DexPoolAggregationInput
     - models.dtos.price.DexPriceTokenInput
-    - models.dtos.price.DexPricePoolInput
+    - models.dtos.price.DexPoolPriceInput
     - models.credmark.ledger.transfers.get_token_transfer
     - models.credmark.ledger.transfers.get_native_transfer
     - models.credmark.protocols.dexes.uniswap.univ2_pool.UniV2Pool

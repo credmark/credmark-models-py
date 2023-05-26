@@ -149,7 +149,7 @@ class UniV3Pool:
                 # _one_time_collect_refresh()
 
             def _rebuild_reserve_from_liquidity():
-                # INCOMPLET: Not easy as we also need the reward
+                # INCOMPLETE: Not easy as we also need the reward
                 df_ticks = (pd.DataFrame(self.ticks).T
                             .reset_index(drop=False)
                             .assign(liquidityGross=lambda x: [y[1] for y in x[0]],

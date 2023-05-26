@@ -1,4 +1,4 @@
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long, invalid-name
 
 from enum import Enum
 from typing import List, Optional
@@ -10,6 +10,26 @@ from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
 from models.dtos.pool import PoolPriceInfo
+
+
+class DexProtocol(str, Enum):
+    UniswapV2 = 'uniswap-v2'
+    UniswapV3 = 'uniswap-v3'
+    SushiSwap = 'sushiswap'
+    PancakeSwapV2 = 'pancakeswap-v2'
+    PancakeSwapV3 = 'pancakeswap-v3'
+
+
+class DexProtocolInput(DTO):
+    protocol: DexProtocol = DTOField(description='Protocol to use for fetching ring0 tokens')
+
+    class Config():
+        schema_extra = {
+            'examples': [
+                {'protocol': 'uniswap-v3', '_test_multi': {'chain_id': 1, 'block_number': None}},
+                {'protocol': 'pancakeswap-v2', '_test_multi': {'chain_id': 56, 'block_number': None}}],
+            'test_multi': True,
+        }
 
 
 class PriceInput(DTO):
@@ -50,25 +70,25 @@ class PriceInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{"base": {"symbol": "CRV"}, '_test_multi_chain': {'chain_id': 1}},
+            'examples': [{"base": {"symbol": "CRV"}, '_test_multi': {'chain_id': 1}},
                          {'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
                           'quote': {'symbol': 'USD'}},
                          {"base": "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819",
-                             '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
-                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
+                             '_test_multi': {'chain_id': 10, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi': {'chain_id': 10, 'block_number': None}},
                          {"base": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
-                             '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
-                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
+                             '_test_multi': {'chain_id': 42161, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi': {'chain_id': 42161, 'block_number': None}},
                          {"base": "0xabc9547b534519ff73921b1fba6e672b5f58d083",
-                             '_test_multi_chain': {'chain_id': 43114, 'block_number': None}},
+                             '_test_multi': {'chain_id': 43114, 'block_number': None}},
                          {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787",
-                             '_test_multi_chain': {'chain_id': 56, 'block_number': None}},
+                             '_test_multi': {'chain_id': 56, 'block_number': None}},
                          {"base": "0x5559edb74751a0ede9dea4dc23aee72cca6be3d5",
-                             '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
-                         {"base": 'WETH', '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+                             '_test_multi': {'chain_id': 137, 'block_number': None}},
+                         {"base": 'WETH', '_test_multi': {'chain_id': 137, 'block_number': None}},
                          ],
-            'test_multi_chain': True
+            'test_multi': True
         }
 
 
@@ -137,9 +157,9 @@ class DexPriceTokenInput(Token, PriceWeight):
         }
 
 
-class DexPricePoolInput(PriceWeight):
+class DexPoolPriceInput(PriceWeight, DexProtocolInput):
     price_slug: str
-    ref_price_slug: Optional[str]
+    ref_price_slug: Optional[str] = DTOField(description='Set to None for not using reference price')
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):

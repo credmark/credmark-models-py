@@ -286,7 +286,10 @@ class IPORSwap(Model):
         swap1 = IporSwapMemory(1,
                                Address('0x90ce434bA83442Dfe639d0E47fed6b96B61ba1fc').checksum,
                                1676688179,
-                            get_uniswap_pools25247524752475247525000,
+                               1679107379,
+                               0,
+                               1450495049504950495050,
+                               725247524752475247525000,
                                725247524752475247525000 * int(1e18) // ibtPrice_current,  # 718510097558899043537076
                                int(ipor_index.indexValue) + int(spreadPayFixed),  # 23870746852871384,
                                25000000000000000000,

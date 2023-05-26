@@ -4,6 +4,19 @@ from cmf_test import CMFTest
 
 
 class TestUniswap(CMFTest):
+    def test_v2(self):
+        default_block_number = 17_001_000
+
+        self.run_model('uniswap-v2.get-factory', {}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-pool', {"token0": {"symbol": "USDC"},
+                       "token1": {"symbol": "WETH"}}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-pools-tokens',
+                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-ring0-ref-price', {}, block_number=default_block_number)
+        self.run_model('uniswap-v2.get-pool-info-token-price', {"symbol": "USDC"}, block_number=default_block_number)
+
     def test(self):
         self.title("Uniswap")
 
@@ -74,12 +87,14 @@ class TestUniswap(CMFTest):
         self.run_model("uniswap-v2.get-pool-price-info",
                        {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
                         "price_slug": "uniswap-v2.get-weighted-price",
-                        "ref_price_slug": "uniswap-v2.get-ring0-ref-price"})
+                        "ref_price_slug": "uniswap-v2.get-ring0-ref-price",
+                        "protocol": "uniswap-v2"})
 
         self.run_model("uniswap-v2.get-pool-price-info",
                        {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
                         "price_slug": "uniswap-v2.get-weighted-price",
-                        "ref_price_slug": None})
+                        "ref_price_slug": None,
+                        "protocol": "uniswap-v2"})
 
         # pool Swap events
         # if "--api_url=http://localhost:8700" in self.post_flag:
@@ -138,7 +153,7 @@ class TestUniswap(CMFTest):
 
         self.run_model('uniswap-v3.get-ring0-ref-price', {})
 
-    def test_v2(self):
+    def test_v2_lp(self):
         # credmark-dev run uniswap-v2.lp-amount -i '{"address": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
         # credmark-dev run price.quote -i '{"base": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
         # credmark-dev run price.cex -i '{"base": "0xce84867c3c02b05dc570d0135103d3fb9cc19433"}' -j -b 17153464 --api_url=http://localhost:8700
