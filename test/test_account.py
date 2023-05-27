@@ -151,7 +151,7 @@ class TestAccount(CMFTest):
 
         for chain_id in [1, 137, 10, 42161, 56, 250, 43114]:
             latest_block_number = self.run_model_with_output(
-                'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 100
+                'chain.get-latest-block', {}, chain_id=chain_id)['output']['blockNumber'] - 20000
 
             self.run_model('account.native-balance',
                            {"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"},

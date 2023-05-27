@@ -157,7 +157,7 @@ class UniswapV2GetPoolsForTokens(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 class UniswapV2GetRing0RefPrice(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, _) -> dict:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_ref_price(factory_addr, self.PROTOCOL)
+        return self.get_ref_price(factory_addr, self.PROTOCOL, self.WEIGHT_POWER)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
