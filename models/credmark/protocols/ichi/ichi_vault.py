@@ -1277,7 +1277,7 @@ class IchiVaultsPerformance(Model):
 
         try:
             results = _use_compose(model_inputs)
-        except ModelEngineError as err:
+        except (ModelRunError, ModelEngineError) as err:
             if '429 Client Error: Too Many Requests for url' in err.data.message:
                 results = _use_for(model_inputs)
             else:
