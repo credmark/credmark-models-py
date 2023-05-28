@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Currency, FiatCurrency, Some, Token
+from credmark.cmf.types import Address, Contract, Currency, FiatCurrency, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
@@ -26,10 +26,26 @@ class DexProtocolInput(DTO):
     class Config():
         schema_extra = {
             'examples': [
-                {'protocol': 'uniswap-v3', '_test_multi': {'chain_id': 1, 'block_number': None}},
+                {'protocol': 'uniswap-v3', '_test_multi': {'chain_id': 1}},
                 {'protocol': 'pancakeswap-v2', '_test_multi': {'chain_id': 56, 'block_number': None}}],
             'test_multi': True,
         }
+
+
+class PrimaryTokenPairsInput(DexProtocolInput):
+    addresses: list[Address]
+
+    class Config:
+        schema_extra = {
+            'example': {'addresses': ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+                                      '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'],
+                        "protocol": "uniswap-v3", }
+        }
+
+
+class PrimaryTokenPairsOutput(DTO):
+    pairs: list[tuple[Address, Address]] = DTOField(
+        description='Pairs of tokens between input and primary tokens (ring0/ring1)')
 
 
 class PriceInput(DTO):
@@ -144,8 +160,12 @@ class PricesHistoricalInput(Some[PriceInputWithPreference], MapBlockTimeSeriesIn
 
 
 class PriceWeight(DTO):
-    weight_power: float = DTOField(4.0, ge=0.0)
-    debug: bool = DTOField(False, description='Turn on debug log')
+    weight_power: float = DTOField(4.0, ge=0.0, description='Weight for power for the liquidity')
+
+    class Config:
+        schema_extra = {
+            'examples': [{'weight_power': 4.0}]
+        }
 
 
 class DexPriceTokenInput(Token, PriceWeight):
@@ -153,13 +173,19 @@ class DexPriceTokenInput(Token, PriceWeight):
         schema_extra = {
             'examples': [{'address': '0x6b175474e89094c44da98b954eedeac495271d0f'},  # DAI
                          {"symbol": "WETH"},
-                         {"symbol": "WETH", "weight_power": 4.0, "debug": False}, ]
+                         {"symbol": "WETH", "weight_power": 4.0}, ]
         }
 
 
 class DexPoolPriceInput(PriceWeight, DexProtocolInput):
     price_slug: str
     ref_price_slug: Optional[str] = DTOField(description='Set to None for not using reference price')
+
+
+class PoolDexPoolPriceInput(Contract, DexPoolPriceInput):
+    """
+    A generic input DTO for get-pool-price-info models.
+    """
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
@@ -180,7 +206,7 @@ class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
                         "token0_symbol": "DAI", "token1_symbol": "CRV", "pool_address": "0xf00f7a64b170d41789c6f16a7eb680a75a050e6d",
                         "ref_price": 0.99962940609268, "tick_spacing": 1},
                 ],
-                    "weight_power": 4.0, "debug": False, "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"}
+                    "weight_power": 4.0, "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"}
             ]
         }
 

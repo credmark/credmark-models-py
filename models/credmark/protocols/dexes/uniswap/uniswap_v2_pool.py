@@ -42,20 +42,18 @@ class UniswapV2DexPoolPriceInput(UniswapV2Pool, DexPoolPriceInput):
                           "price_slug": "uniswap-v2.get-weighted-price",
                           "ref_price_slug": "uniswap-v2.get-ring0-ref-price",
                           "weight_power": 4.0,
-                          "debug": False,
                           "protocol": "uniswap-v2"},
 
                          {"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
                           "price_slug": "uniswap-v2.get-weighted-price",
                           "ref_price_slug": None,  # use None to not use reference price
                           "weight_power": 4.0,
-                          "debug": False,
                           "protocol": "uniswap-v2"}]
         }
 
 
 @Model.describe(slug='uniswap-v2.get-pool-price-info',
-                version='1.18',
+                version='1.21',
                 display_name='Uniswap v2 Token Pool Price Info',
                 description='Gather price and liquidity information from pool',
                 category='protocol',
@@ -80,6 +78,7 @@ class UniswapPoolPriceInfo(Model):
             return_type=Some[Address], local=True).some
 
         assert self.context.chain_id == 1  # TODO: make ring1 token from model, not hard code.
+
         weth_address = Token('WETH').address
 
         reserves = pool.functions.getReserves().call()
@@ -144,8 +143,7 @@ class UniswapPoolPriceInfo(Model):
                 slug=input.price_slug,
                 input=DexPriceTokenInput(
                     **token1.dict(),
-                    weight_power=input.weight_power,
-                    debug=input.debug),
+                    weight_power=input.weight_power),
                 return_type=Price,
                 local=True).price
         elif token1.address == weth_address and token0.address in ring0_tokens:
@@ -153,8 +151,7 @@ class UniswapPoolPriceInfo(Model):
                 slug=input.price_slug,
                 input=DexPriceTokenInput(
                     **token0.dict(),
-                    weight_power=input.weight_power,
-                    debug=input.debug),
+                    weight_power=input.weight_power),
                 return_type=Price,
                 local=True).price
         # elif token0.address == weth_address and token1.address == wbtc_address:
@@ -174,8 +171,7 @@ class UniswapPoolPriceInfo(Model):
                     slug=input.price_slug,
                     input=DexPriceTokenInput(
                         address=primary_address,
-                        weight_power=input.weight_power,
-                        debug=input.debug),
+                        weight_power=input.weight_power),
                     return_type=Price,
                     local=True).price
                 if ref_price is None:
@@ -216,8 +212,8 @@ class UniswapV2PoolInfo(DTO):
     ratio: float
 
 
-@Model.describe(slug="uniswap-v2.get-pool-info",
-                version="1.10",
+@Model.describe(slug='uniswap-v2.get-pool-info',
+                version="1.11",
                 display_name="Uniswap/SushiSwap get details for a pool",
                 description="Returns the token details of the pool",
                 category='protocol',
@@ -255,7 +251,10 @@ class UniswapGetPoolInfo(Model):
         value0 = prices[0].price * token0_balance
         value1 = prices[1].price * token1_balance
 
-        balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
+        if value0 == 0 and value1 == 0:
+            balance_ratio = 0
+        else:
+            balance_ratio = value0 * value1 / (((value0 + value1)/2)**2)
 
         pool_info = UniswapV2PoolInfo(
             pool_address=input.address,

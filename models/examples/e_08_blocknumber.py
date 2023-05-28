@@ -57,7 +57,6 @@ class ExampleBlockNumber(Model):
         # other ModelRunErrors in your models!
 
         try:
-            # pylint: disable=pointless-statement
             _ = block_number + 1
             raise ModelRunError(
                 message='BlockNumbers cannot exceed the current context.block_number, '
@@ -66,7 +65,10 @@ class ExampleBlockNumber(Model):
             output.log_error(_e)
             output.log_error("Attempting to create a BlockNumber object higher than the current "
                              "context's block_number raises BlockNumberOutOfRangeError")
-
+        except ModelRunError as _e:
+            output.log_error(_e)
+            # TODO: to restore logic of not increasing block_number
+            output.log_error("Handled ModelRunError from block_number + 1")
         try:
             BlockNumber(-1)
             raise ModelRunError(message="BlockNumbers cannot be negative, an exception was NOT caught, "

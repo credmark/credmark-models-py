@@ -16,6 +16,8 @@ from credmark.dto import DTO, DTOField
 from eth_abi.abi import encode_abi
 from eth_typing.evm import ChecksumAddress
 
+from models.tmp_abi_lookup import IPOR_JOSEPH_ABI, IPOR_MILTON_ABI
+
 
 @Model.describe(slug='ipor.get-oracle-and-calculator',
                 version='0.1',
@@ -128,7 +130,7 @@ class IPORIndex(Model):
 
 
 @Model.describe(slug='ipor.get-lp-exchange',
-                version='0.2',
+                version='0.3',
                 display_name='IPOR LP token exchange rate',
                 description='The ratio between LP Token exchange rate and the underlying assets',
                 category='protocol',
@@ -158,7 +160,7 @@ class IPORLpExchange(Model):
         exchange_rates = {}
 
         for address in josephs:
-            joseph = Contract(address=address)
+            joseph = Contract(address=address).set_abi(IPOR_JOSEPH_ABI, set_loaded=True)
             asset = Token(joseph.functions.getAsset().call())
             lp_token = Token(joseph.functions.getIpToken().call())
             exchange_rate = joseph.functions.calculateExchangeRate().call() / 1e18
@@ -231,7 +233,7 @@ class IPORSwapInput(DTO):
 
 
 @Model.describe(slug='ipor.get-swap',
-                version='0.3',
+                version='0.6',
                 display_name='IPOR LP token exchange rate',
                 description='Calculate the fair price of an IPOR swap',
                 category='protocol',
@@ -332,6 +334,9 @@ class IPORSwap(Model):
         milton_addr = None
         for milton_address in miltons:
             try_milton = Contract(address=milton_address)
+            if try_milton.proxy_for is not None:
+                try_milton.proxy_for.set_abi(IPOR_MILTON_ABI, set_loaded=True)
+
             try_asset = try_milton.functions.getAsset().call()
             if try_asset == Address(input.asset).checksum:
                 milton_addr = try_milton.address
@@ -373,6 +378,9 @@ class IPORSwap(Model):
             return spreadPayFixed, spreadReceiveFixed, ipor_index, ibtPrice_current
 
         milton = Contract(milton_addr)
+        if milton.proxy_for is not None:
+            milton.proxy_for.set_abi(IPOR_MILTON_ABI, set_loaded=True)
+
         oracle = Contract(milton.functions.getIporOracle().call())
         ipor_index_current = IPORIndexValue(
             *oracle.functions.getIndex(input.asset.checksum).call())

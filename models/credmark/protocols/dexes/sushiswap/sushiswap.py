@@ -1,14 +1,12 @@
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Records, Some, Token, Tokens
 from credmark.dto import EmptyInputSkipTest
 
-from models.credmark.protocols.dexes.uniswap.uniswap_v2_meta import (
-    UniswapV2PoolMeta,
-)
+from models.credmark.protocols.dexes.uniswap.uniswap_v2_meta import UniswapV2PoolMeta
 from models.dtos.pool import DexPoolInput, PoolPriceInfo
-from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol
+from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol, PriceWeight
 
 
 class SushiSwapFactoryMeta:
@@ -19,7 +17,6 @@ class SushiSwapFactoryMeta:
         for k in [Network.Rinkeby, Network.Görli, Network.Kovan]
     }
     PROTOCOL = DexProtocol.SushiSwap
-    WEIGHT_POWER = 4.0
 
 
 class SushiSwapPool(Contract):
@@ -36,7 +33,6 @@ class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
                           "price_slug": "sushiswap.get-weighted-price",
                           "ref_price_slug": "sushiswap.get-ring0-ref-price",
                           "weight_power": 4.0,
-                          "debug": False,
                           "protocol": "sushiswap"}]
         }
 
@@ -50,12 +46,11 @@ class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
                 output=Contract)
 class SushiSwapGetFactory(UniswapV2PoolMeta, SushiSwapFactoryMeta):
     def run(self, _) -> Contract:
-        cc = self.get_factory(self.FACTORY_ADDRESS[self.context.network])
-        return cc
+        return self.get_factory(self.FACTORY_ADDRESS[self.context.network])
 
 
-@Model.describe(slug="sushiswap.get-pool",
-                version="1.3",
+@Model.describe(slug="sushiswap.get-pool-by-pair",
+                version="0.3",
                 display_name="SushiSwap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
@@ -93,7 +88,8 @@ class SushiSwapAllPairs(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 class SushiSwapAllPairsEvents(UniswapV2PoolMeta, SushiSwapFactoryMeta):
     def run(self, _) -> Records:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_all_pairs_events(factory_addr, _from_block=0, _to_block=self.context.block_number)
+        return self.get_all_pairs_events(
+            factory_addr, _from_block=0, _to_block=self.context.block_number)
 
 
 @Model.describe(slug='sushiswap.all-pools-ledger',
@@ -135,7 +131,8 @@ class SushiSwapGetPoolsForToken(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 class SushiSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, SushiSwapFactoryMeta):
     def run(self, input: Token) -> Contracts:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_pools_for_tokens_ledger(factory_addr, self.PROTOCOL, input.address)
+        return self.get_pools_for_tokens_ledger(
+            factory_addr, self.PROTOCOL, input.address)
 
 
 @Model.describe(slug='sushiswap.get-pools-tokens',
@@ -149,8 +146,8 @@ class SushiSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, SushiSwapFactoryMeta)
 class SushiSwapGetPoolsForTokens(UniswapV2PoolMeta, SushiSwapFactoryMeta):
     def run(self, input: Tokens) -> Contracts:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        pools = self.get_pools_for_tokens(factory_addr, self.PROTOCOL,
-                                          [tok.address for tok in input.tokens])
+        pools = self.get_pools_for_tokens(
+            factory_addr, self.PROTOCOL, [tok.address for tok in input.tokens])
         return Contracts.from_addresses(list(set(pools)))
 
 
@@ -160,15 +157,16 @@ class SushiSwapGetPoolsForTokens(UniswapV2PoolMeta, SushiSwapFactoryMeta):
                 description='The SushiSwap pools that support the ring0 tokens',
                 category='protocol',
                 subcategory='sushi',
+                input=PriceWeight,
                 output=dict)
 class SushiSwapGetRing0RefPrice(UniswapV2PoolMeta, SushiSwapFactoryMeta):
-    def run(self, _) -> dict:
+    def run(self, input: PriceWeight) -> dict:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_ref_price(factory_addr, self.PROTOCOL, self.WEIGHT_POWER)
+        return self.get_ref_price(factory_addr, self.PROTOCOL, input.weight_power)
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.16',
+                version='1.20',
                 display_name='SushiSwap Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -177,8 +175,7 @@ class SushiSwapGetRing0RefPrice(UniswapV2PoolMeta, SushiSwapFactoryMeta):
                 output=Some[PoolPriceInfo])
 class SushiSwapGetTokenPriceInfo(UniswapV2PoolMeta, SushiSwapFactoryMeta):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
-        pools = self.context.run_model('sushiswap.get-pools',
-                                       input,
+        pools = self.context.run_model('sushiswap.get-pools', input,
                                        return_type=Contracts)
         return self.get_pools_info(input,
                                    pools,

@@ -3,22 +3,50 @@
 from cmf_test import CMFTest
 
 
-class TestUniswap(CMFTest):
-    def test_v2(self):
-        default_block_number = 17_001_000
-
-        self.run_model('uniswap-v2.get-factory', {}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-pool', {"token0": {"symbol": "USDC"},
-                       "token1": {"symbol": "WETH"}}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-pools-tokens',
+class TestUniswapPools(CMFTest):
+    def v2_pools(self, model_prefix, default_block_number):
+        self.run_model(f'{model_prefix}.get-factory', {}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pool-by-pair',
+                       {"token0": {"symbol": "USDC"}, "token1": {"symbol": "WETH"}},
+                       block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "MKR"})
+        self.run_model(f'{model_prefix}.get-pools-tokens',
                        {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-ring0-ref-price', {}, block_number=default_block_number)
-        self.run_model('uniswap-v2.get-pool-info-token-price', {"symbol": "USDC"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pool-info-token-price',
+                       {"symbol": "USDC"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-weighted-price', {"symbol": "WETH"}, block_number=default_block_number)
 
+    def v3_pools(self, model_prefix, default_block_number):
+        self.run_model(f'{model_prefix}.get-factory', {}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools-by-pair',
+                       {"token0": {"symbol": "USDC"}, "token1": {"symbol": "WETH"}},
+                       block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools', {"symbol": "MKR"})
+        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "MKR"})
+        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pools-tokens',
+                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-pool-info-token-price',
+                       {"symbol": "USDC"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-weighted-price', {"symbol": "WETH"}, block_number=default_block_number)
+
+
+class TestUniswap(TestUniswapPools):
     def test(self):
         self.title("Uniswap")
+
+        default_block_number = 17_001_000
+        model_prefix = 'uniswap-v2'
+        self.v2_pools(model_prefix, default_block_number)
+
+        default_block_number = 17_010_000
+        model_prefix = 'uniswap-v3'
+        self.v3_pools(model_prefix, default_block_number)
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")
@@ -102,12 +130,6 @@ class TestUniswap(CMFTest):
                        {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"})
         self.run_model("dex.pool-volume-block-range",
                        {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})
-
-        self.run_model("uniswap-v3.get-all-pools")
-
-        self.run_model("uniswap-v2.get-pools-ledger", {"symbol": "MKR"})
-
-        self.run_model("uniswap-v3.get-pools-ledger", {"symbol": "MKR"})
 
     def test_lp(self):
         self.run_model("uniswap-v2.lp-pos",

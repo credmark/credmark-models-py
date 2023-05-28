@@ -66,9 +66,9 @@ class VaRInput(DTO):
     class Config:
         schema_extra = {
             'examples': [
-                {'window': '10 days',
+                {'window': '3 days',
                  'interval': 1,
-                 'confidence': 0.05
+                 'confidence': 0.5
                  }]
         }
 

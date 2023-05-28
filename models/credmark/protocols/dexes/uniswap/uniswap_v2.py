@@ -1,16 +1,17 @@
-# pylint: disable=too-many-lines, unsubscriptable-object, line-too-long
+# pylint: disable=line-too-long
+
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Records, Some, Token, Tokens
 from credmark.dto import EmptyInputSkipTest
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2_meta import UniswapV2PoolMeta
 from models.dtos.pool import DexPoolInput, PoolPriceInfo
-from models.dtos.price import DexPriceTokenInput, DexProtocol
+from models.dtos.price import DexPriceTokenInput, DexProtocol, PriceWeight
 
 # uniswap-v2 / sushiswap / pancakeswap-v2
 
 # - .get-factory
-# - .get-pool
+# - .get-pool-by-pair
 # - .all-pools
 # - .all-pools-events
 # - .all-pools-ledger
@@ -20,16 +21,14 @@ from models.dtos.price import DexPriceTokenInput, DexProtocol
 # - .get-ring0-ref-price
 # - .get-pool-info-token-price
 
-# For mainnet, Ropsten, Rinkeby, Görli, and Kovan
-
 
 class UniswapV2FactoryMeta:
+    # For mainnet, Ropsten, Rinkeby, Görli, and Kovan
     FACTORY_ADDRESS = {
         k: Address('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f')
         for k in
         [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
     PROTOCOL = DexProtocol.UniswapV2
-    WEIGHT_POWER = 4.0
 
 
 @Model.describe(slug="uniswap-v2.get-factory",
@@ -41,19 +40,18 @@ class UniswapV2FactoryMeta:
                 output=Contract)
 class UniswapV2GetFactory(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, _) -> Contract:
-        cc = self.get_factory(self.FACTORY_ADDRESS[self.context.network])
-        return cc
+        return self.get_factory(self.FACTORY_ADDRESS[self.context.network])
 
 
-@Model.describe(slug="uniswap-v2.get-pool",
-                version="1.3",
+@Model.describe(slug="uniswap-v2.get-pool-by-pair",
+                version="0.3",
                 display_name="Uniswap V2 get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=DexPoolInput,
                 output=Maybe[Contract])
-class UniswapV2GetPair(UniswapV2PoolMeta, UniswapV2FactoryMeta):
+class UniswapV2GetPool(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, input: DexPoolInput) -> Maybe[Contract]:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
         return self.get_pair(factory_addr, input.token0.address, input.token1.address)
@@ -61,13 +59,13 @@ class UniswapV2GetPair(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 @Model.describe(slug="uniswap-v2.all-pools",
                 version="1.4",
-                display_name="Uniswap V2 all pairs",
-                description="Returns the addresses of all pairs on Uniswap V2 protocol",
+                display_name="Uniswap V2 all pools",
+                description="Returns the addresses of all pools on Uniswap V2 protocol",
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=EmptyInputSkipTest,
                 output=Some[Address])
-class UniswapV2AllPairs(UniswapV2PoolMeta, UniswapV2FactoryMeta):
+class UniswapV2AllPools(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, _) -> Some[Address]:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
         return self.get_all_pairs(factory_addr)
@@ -75,13 +73,13 @@ class UniswapV2AllPairs(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 @Model.describe(slug="uniswap-v2.all-pools-events",
                 version="0.1",
-                display_name="Uniswap V2 all pairs",
-                description="Returns the addresses of all pairs on Uniswap V2 protocol",
+                display_name="Uniswap V2 all pools",
+                description="Returns the addresses of all pools on Uniswap V2 protocol",
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=EmptyInputSkipTest,
                 output=Records)
-class UniswapV2AllPairsEvents(UniswapV2PoolMeta, UniswapV2FactoryMeta):
+class UniswapV2AllPoolsEvents(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, _) -> Records:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
         return self.get_all_pairs_events(
@@ -89,14 +87,14 @@ class UniswapV2AllPairsEvents(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.all-pools-ledger',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v2 Token Pools - from ledger',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
                 subcategory='uniswap-v2',
                 input=EmptyInputSkipTest,
                 output=Records)
-class UniswapV2AllPairsLedger(UniswapV2PoolMeta, UniswapV2FactoryMeta):
+class UniswapV2AllPoolsLedger(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, _) -> Records:
         return self.get_all_pools_ledger(self.FACTORY_ADDRESS[self.context.network])
 
@@ -153,15 +151,16 @@ class UniswapV2GetPoolsForTokens(UniswapV2PoolMeta, UniswapV2FactoryMeta):
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
                 subcategory='uniswap-v2',
+                input=PriceWeight,
                 output=dict)
 class UniswapV2GetRing0RefPrice(UniswapV2PoolMeta, UniswapV2FactoryMeta):
-    def run(self, _) -> dict:
+    def run(self, input: PriceWeight) -> dict:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_ref_price(factory_addr, self.PROTOCOL, self.WEIGHT_POWER)
+        return self.get_ref_price(factory_addr, self.PROTOCOL, input.weight_power)
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.16',
+                version='1.20',
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -170,8 +169,7 @@ class UniswapV2GetRing0RefPrice(UniswapV2PoolMeta, UniswapV2FactoryMeta):
                 output=Some[PoolPriceInfo])
 class UniswapV2GetTokenPriceInfo(UniswapV2PoolMeta, UniswapV2FactoryMeta):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
-        pools = self.context.run_model('uniswap-v2.get-pools',
-                                       input,
+        pools = self.context.run_model('uniswap-v2.get-pools', input,
                                        return_type=Contracts)
         return self.get_pools_info(input,
                                    pools,

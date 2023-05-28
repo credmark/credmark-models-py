@@ -1,24 +1,15 @@
 # pylint:disable=locally-disabled,line-too-long
 
-from cmf_test import CMFTest
+from test_uniswap import TestUniswapPools
 
 
-class TestSushiSwap(CMFTest):
-    def test_v2(self):
-        default_block_number = 17_001_000
-
-        self.run_model('sushiswap.get-factory', {}, block_number=default_block_number)
-        self.run_model('sushiswap.get-pool', {"token0": {"symbol": "USDC"},
-                       "token1": {"symbol": "WETH"}}, block_number=default_block_number)
-        self.run_model('sushiswap.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model('sushiswap.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model('sushiswap.get-pools-tokens',
-                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
-        self.run_model('sushiswap.get-ring0-ref-price', {}, block_number=default_block_number)
-        self.run_model('sushiswap.get-pool-info-token-price', {"symbol": "USDC"}, block_number=default_block_number)
-
+class TestSushiSwap(TestUniswapPools):
     def test(self):
         self.title('SushiSwap')
+
+        default_block_number = 17_001_000
+        model_prefix = 'sushiswap'
+        self.v2_pools(model_prefix, default_block_number)
 
         # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
         self.run_model('sushiswap.get-weighted-price', {"symbol": "WETH"})
@@ -30,7 +21,7 @@ class TestSushiSwap(CMFTest):
         self.run_model('sushiswap.get-weighted-price', {"symbol": "CMK"})
 
         self.run_model('sushiswap.all-pools')
-        self.run_model('sushiswap.get-pool',
+        self.run_model('sushiswap.get-pool-by-pair',
                        {"token0": {"symbol": "DAI"}, "token1": {"symbol": "WETH"}})
 
         self.run_model('uniswap-v2.get-pool-info',

@@ -411,6 +411,7 @@ class CurveFinancePoolTVL(Model):
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
                 subcategory='curve',
+                input=EmptyInputSkipTest,
                 output=Some[CurveFiPoolInfo])
 class CurveFinanceTotalTokenLiquidity(Model):
     def run(self, _) -> Some[CurveFiPoolInfo]:

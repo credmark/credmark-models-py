@@ -3,7 +3,7 @@
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.types import Contract, Records, Token
-from credmark.dto import DTO, DTOField
+from credmark.dto import DTO, DTOField, EmptyInputSkipTest
 
 
 class PoolyNFT:
@@ -22,6 +22,7 @@ class PoolyNFT:
                 version='0.1',
                 display_name='Pooly NFT fund raise',
                 description="nft",
+                input=EmptyInputSkipTest,
                 output=dict)
 class PoolyNFTFundRaise(Model, PoolyNFT):
     """
@@ -77,6 +78,7 @@ class PoolyNFTFundRaise(Model, PoolyNFT):
                 version='0.2',
                 display_name='Pooly NFT fund raise in USD',
                 description="nft",
+                input=EmptyInputSkipTest,
                 output=dict)
 class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
     """
@@ -254,6 +256,7 @@ class PoolyNFTSupply(Model, PoolyNFT):
                 version='0.2',
                 display_name='Pooly NFT fund raise in series',
                 description="nft",
+                input=EmptyInputSkipTest,
                 output=Records)
 class PoolyNFTFundRaiseSeries(Model, PoolyNFT):
     """

@@ -269,9 +269,10 @@ class UniswapV2LPFeeHistory(Model):
                     offset += 5000
 
             _df = pd.DataFrame()
-            if len(df_ts) > 0:
-                _df = pd.concat(df_ts).drop_duplicates()
-            return _df
+            if len(df_ts) == 0:
+                return _df
+
+            return pd.concat(df_ts).drop_duplicates()
 
         def _use_model():
             return self.context.run_model('account.token-transfer',

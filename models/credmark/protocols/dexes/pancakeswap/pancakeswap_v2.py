@@ -1,4 +1,4 @@
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract, Contracts, Maybe, Network, Records, Some, Token, Tokens
@@ -6,7 +6,7 @@ from credmark.dto import EmptyInputSkipTest
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2_meta import UniswapV2PoolMeta
 from models.dtos.pool import DexPoolInput, PoolPriceInfo
-from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol
+from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol, PriceWeight
 
 
 class PancakeSwapV2FactoryMeta:
@@ -15,7 +15,6 @@ class PancakeSwapV2FactoryMeta:
         Network.BSC: Address('0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73'),
     }
     PROTOCOL = DexProtocol.PancakeSwapV2
-    WEIGHT_POWER = 4.0
 
 
 class PancakeSwapV2Pool(Contract):
@@ -32,7 +31,6 @@ class PancakeSwapV2DexPoolPriceInput(PancakeSwapV2Pool, DexPoolPriceInput):
                           "price_slug": "pancakeswap-v2.get-weighted-price",
                           "ref_price_slug": "pancakeswap-v2.get-ring0-ref-price",
                           "weight_power": 4.0,
-                          "debug": False,
                           "protocol": "pancakeswap-v2"}]
         }
 
@@ -46,11 +44,10 @@ class PancakeSwapV2DexPoolPriceInput(PancakeSwapV2Pool, DexPoolPriceInput):
                 output=Contract)
 class PancakeSwapV2GetFactory(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
     def run(self, _) -> Contract:
-        cc = self.get_factory(self.FACTORY_ADDRESS[self.context.network])
-        return cc
+        return self.get_factory(self.FACTORY_ADDRESS[self.context.network])
 
 
-@Model.describe(slug="pancakeswap-v2.get-pool",
+@Model.describe(slug="pancakeswap-v2.get-pool-by-pair",
                 version="1.3",
                 display_name="PancakeSwapV2 get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
@@ -133,7 +130,8 @@ class PancakeSwapV2GetPoolsForToken(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta)
 class PancakeSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
     def run(self, input: Token) -> Contracts:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_pools_for_tokens_ledger(factory_addr, self.PROTOCOL,  input.address)
+        return self.get_pools_for_tokens_ledger(
+            factory_addr, self.PROTOCOL, input.address)
 
 
 @Model.describe(slug='pancakeswap-v2.get-pools-tokens',
@@ -147,8 +145,8 @@ class PancakeSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, PancakeSwapV2Factor
 class PancakeSwapV2GetPoolsForTokens(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
     def run(self, input: Tokens) -> Contracts:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        pools = self.get_pools_for_tokens(factory_addr, self.PROTOCOL,
-                                          [tok.address for tok in input.tokens])
+        pools = self.get_pools_for_tokens(
+            factory_addr, self.PROTOCOL, [tok.address for tok in input.tokens])
         return Contracts.from_addresses(list(set(pools)))
 
 
@@ -158,15 +156,16 @@ class PancakeSwapV2GetPoolsForTokens(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta
                 description='The PancakeSwapV2 pools that support the ring0 tokens',
                 category='protocol',
                 subcategory='pancakeswap-v2',
+                input=PriceWeight,
                 output=dict)
 class PancakeSwapV2GetRing0RefPrice(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
-    def run(self, _) -> dict:
+    def run(self, input: PriceWeight) -> dict:
         factory_addr = self.FACTORY_ADDRESS[self.context.network]
-        return self.get_ref_price(factory_addr, self.PROTOCOL, self.WEIGHT_POWER)
+        return self.get_ref_price(factory_addr, self.PROTOCOL, input.weight_power)
 
 
 @Model.describe(slug='pancakeswap-v2.get-pool-info-token-price',
-                version='1.16',
+                version='1.20',
                 display_name='PancakeSwapV2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',
@@ -175,10 +174,8 @@ class PancakeSwapV2GetRing0RefPrice(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta)
                 output=Some[PoolPriceInfo])
 class PancakeSwapV2GetTokenPriceInfo(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
-        pools = self.context.run_model('pancakeswap-v2.get-pools',
-                                       input,
+        pools = self.context.run_model('pancakeswap-v2.get-pools', input,
                                        return_type=Contracts)
-
         return self.get_pools_info(input,
                                    pools,
                                    model_slug='uniswap-v2.get-pool-price-info',

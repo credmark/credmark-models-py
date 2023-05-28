@@ -12,7 +12,8 @@ class DexPoolInput(DTO):
                 {'token0': {'address': '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'},
                     'token1': {'address': '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'},
                     '_test_multi': {'chain_id': 1}},
-                {"token0": {"symbol": "USDT"}, "token1": {"symbol": "WETH"}, '_test_multi': {'chain_id': 1}}],
+                {"token0": {"symbol": "USDT"}, "token1": {"symbol": "WETH"},
+                 '_test_multi': {'chain_id': 1}}],
             'test_multi': True,
         }
 

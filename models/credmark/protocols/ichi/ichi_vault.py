@@ -1246,20 +1246,20 @@ class IchiVaultsPerformance(Model):
         model_inputs = [{"address": vault_addr, "days_horizon": input.days_horizon, "base": input.base}
                         for vault_addr in vaults_all.keys()]
 
-        def _use_for():
+        def _use_for(_model_inputs):
             result = []
             # Change to a compose model to run
-            for model_input in model_inputs:
+            for model_input in _model_inputs:
                 result.append(self.context.run_model(
                     'ichi.vault-performance', model_input))
                 self.logger.info((model_input['address'], result))
             return result
 
-        def _use_compose():
+        def _use_compose(_model_inputs):
             all_vault_infos_results = self.context.run_model(
                 slug='compose.map-inputs',
                 input={'modelSlug': 'ichi.vault-performance',
-                       'modelInputs': model_inputs},
+                       'modelInputs': _model_inputs},
                 return_type=MapInputsOutput[IchiVaultPerformanceInput, dict])
 
             all_vault_infos = []
@@ -1276,10 +1276,10 @@ class IchiVaultsPerformance(Model):
             return all_vault_infos
 
         try:
-            results = _use_compose()
-        except ModelEngineError as err:
-            if err.data.message.startswith('429 Client Error: Too Many Requests for url'):
-                results = _use_for()
+            results = _use_compose(model_inputs)
+        except (ModelRunError, ModelEngineError) as err:
+            if '429 Client Error: Too Many Requests for url' in err.data.message:
+                results = _use_for(model_inputs)
             else:
                 raise err
 

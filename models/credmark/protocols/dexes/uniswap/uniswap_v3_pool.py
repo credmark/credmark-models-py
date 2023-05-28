@@ -6,8 +6,8 @@ import numpy as np
 import numpy.linalg as nplin
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Price, Some, Token
-from credmark.dto import DTO
+from credmark.cmf.types import Address, Contract, Maybe, Price, Some, Token
+from credmark.dto import DTO, EmptyInput
 from scipy.optimize import minimize
 from web3.exceptions import ContractLogicError
 
@@ -20,7 +20,7 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
     tick_to_price,
 )
 from models.dtos.pool import PoolPriceInfo
-from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocolInput
+from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol, DexProtocolInput
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
@@ -41,7 +41,6 @@ class UniswapV3DexPoolPriceInput(UniswapV3Pool, DexPoolPriceInput):
                 'price_slug': 'uniswap-v3.get-weighted-price',
                 'ref_price_slug': 'uniswap-v3.get-ring0-ref-price',
                 "weight_power": 4.0,
-                "debug": False,
                 "protocol": "uniswap-v3"}]
         }
 
@@ -88,7 +87,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.20',
+                version='1.21',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -103,6 +102,7 @@ class UniswapV3GetPoolInfo(Model):
     # 60
     # 200
 
+    # pylint: disable=too-many-locals
     def run(self, input: UniswapV3Pool) -> UniswapV3PoolInfo:
         # TODO: use input.protocol to query ring0 and ring1 tokens.
         assert self.context.chain_id == 1  # TODO: Only mainnet is supported'
@@ -321,15 +321,15 @@ class UniswapV3GetPoolInfo(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-price-info',
-                version='1.11',
+                version='1.16',
                 display_name='Uniswap v3 Token Pools Info for Price',
                 description='Extract price information for a UniV3 pool',
                 category='protocol',
                 subcategory='uniswap-v3',
                 input=UniswapV3DexPoolPriceInput,
-                output=PoolPriceInfo)
+                output=Maybe[PoolPriceInfo])
 class UniswapV3GetTokenPoolPriceInfo(Model):
-    def run(self, input: UniswapV3DexPoolPriceInput) -> PoolPriceInfo:
+    def run(self, input: UniswapV3DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
         # TODO: use input.protocol to query ring0 and ring1 tokens.
         assert self.context.chain_id == 1  # TODO: support other chains
 
@@ -402,8 +402,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                     slug=input.price_slug,
                     input=DexPriceTokenInput(
                         **info.token1.dict(),
-                        weight_power=input.weight_power,
-                        debug=input.debug),
+                        weight_power=input.weight_power),
                     return_type=Price,
                     local=True).price
 
@@ -412,8 +411,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                     slug=input.price_slug,
                     input=DexPriceTokenInput(
                         **info.token0.dict(),
-                        weight_power=input.weight_power,
-                        debug=input.debug),
+                        weight_power=input.weight_power),
                     return_type=Price,
                     local=True).price
         else:
@@ -422,8 +420,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                     slug=input.price_slug,
                     input=DexPriceTokenInput(
                         address=primary_address,
-                        weight_power=input.weight_power,
-                        debug=input.debug),
+                        weight_power=input.weight_power),
                     return_type=Price,
                     local=True).price
                 if ref_price is None:
@@ -443,7 +440,7 @@ class UniswapV3GetTokenPoolPriceInfo(Model):
                                         ref_price=ref_price,
                                         pool_address=input.address,
                                         tick_spacing=info.tick_spacing)
-        return pool_price_info
+        return Maybe(just=pool_price_info)
 
 
 class TokenPrice(Price):
@@ -458,12 +455,14 @@ class TokenPrice(Price):
                 category='protocol',
                 subcategory='dex',
                 tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'stablecoin'],
-                input=DexProtocolInput,
+                input=EmptyInput,
                 output=Some[TokenPrice])
 class DexPrimaryTokensUniV3(Model):
-    def run(self, input: DexProtocolInput) -> Some[TokenPrice]:
+    def run(self, _: EmptyInput) -> Some[TokenPrice]:
         ring0_tokens = self.context.run_model(
-            'dex.ring0-tokens', input, return_type=Some[Address], local=True).some
+            'dex.ring0-tokens',
+            DexProtocolInput(protocol=DexProtocol.UniswapV3),
+            return_type=Some[Address]).some
 
         # tokens = primary_tokens[:2]
         # tokens = primary_tokens[1:]
