@@ -76,6 +76,8 @@ class UniswapV3PoolInfo(DTO):
     token1_balance: float
     token0_symbol: str
     token1_symbol: str
+    token0_decimals: int
+    token1_decimals: int
     tick_spacing: int
     sqrt_current_price: float
     sqrt_lower_price: float
@@ -87,7 +89,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.21',
+                version='1.22',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -296,6 +298,8 @@ class UniswapV3GetPoolInfo(Model):
             token1_balance=token1_balance,
             token0_symbol=token0_symbol,
             token1_symbol=token1_symbol,
+            token0_decimals=token0.decimals,
+            token1_decimals=token1.decimals,
             liquidity=liquidity,
             full_tick_liquidity0=adjusted_in_tick_amount0,
             full_tick_liquidity1=adjusted_in_tick_amount1,

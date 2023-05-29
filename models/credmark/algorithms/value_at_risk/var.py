@@ -54,7 +54,8 @@ class AccountValue(Model):
             return self.context.run_model(
                 self.slug,
                 AccountsValueInput(accounts=input.accounts,
-                                   quote=input.quote, timestamp=None),
+                                   quote=input.quote,
+                                   timestamp=None),
                 block_number=block_number)
 
         portfolio = self.context.run_model('accounts.portfolio',

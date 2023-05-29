@@ -62,7 +62,7 @@ class AccountReturnInput(Account):
 
 
 @Model.describe(slug='account.token-return',
-                version='0.6',
+                version='0.7',
                 display_name='Account\'s ERC20 Token Return',
                 description='Account\'s ERC20 Token Return',
                 developer="Credmark",
@@ -77,7 +77,7 @@ class AccountERC20TokenReturn(Model):
                                       input=AccountsReturnInput(
                                           # type: ignore
                                           accounts=[Account(input.address)],
-                                          token_list=input.token_list).dict(),
+                                          token_list=input.token_list),
                                       return_type=TokenReturnOutput)
 
 

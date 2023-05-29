@@ -11,10 +11,21 @@ from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol
 
 class PancakeSwapV2FactoryMeta:
     FACTORY_ADDRESS = {
-        Network.Mainnet: Address('0x1097053Fd2ea711dad45caCcc45EfF7548fCB362'),
         Network.BSC: Address('0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73'),
+        Network.Mainnet: Address('0x1097053Fd2ea711dad45caCcc45EfF7548fCB362'),
+    }
+    ROUTER_ADDRESS = {
+        Network.BSC: Address('0x10ED43C718714eb63d5aA57B78B54704E256024E'),
+        Network.Mainnet: Address('0xEfF92A263d31888d860bD50809A8D171709b7b1c'),
     }
     PROTOCOL = DexProtocol.PancakeSwapV2
+
+
+class PancakeSwapV3FactoryMeta:
+    FACTORY_ADDRESS = {
+        network: Address('0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865')
+        for network in [Network.BSC, Network.Mainnet, Network.Görli]
+    }
 
 
 class PancakeSwapV2Pool(Contract):

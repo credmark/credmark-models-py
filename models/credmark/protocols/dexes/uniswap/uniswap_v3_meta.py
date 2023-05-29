@@ -52,12 +52,14 @@ class UniswapV3PoolMeta(Model):
                 except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
                     continue  # before its creation
 
+                if pool_addr.is_null():
+                    continue
+
                 try:
-                    if not pool_addr.is_null():
-                        cc = self.get_pool(pool_addr)
-                        _ = cc.abi
-                        _ = cc.functions.token0().call()
-                        _ = cc.functions.token1().call()
+                    cc = self.get_pool(pool_addr)
+                    _ = cc.abi
+                    _ = cc.functions.token0().call()
+                    _ = cc.functions.token1().call()
                 except (BlockNumberOutOfRangeError, BadFunctionCallOutput):
                     continue  # access it before its creation
                 except ModelDataError:
