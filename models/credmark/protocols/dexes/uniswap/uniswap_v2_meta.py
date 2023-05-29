@@ -47,18 +47,20 @@ class UniswapV2PoolMeta(Model):
 
         pools = []
         for token0_addr, token1_addr in token_pairs:
-            pair_addr = Address(factory.functions.getPair(token0_addr.checksum, token1_addr.checksum).call())
+            try:
+                pair_addr = Address(factory.functions.getPair(token0_addr.checksum, token1_addr.checksum).call())
+            except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
+                # Uniswap V2: if self.context.block_number < 10000835
+                # SushiSwap: if self.context.block_number < 10794229
+                continue  # before its creation
+
             if not pair_addr.is_null():
                 cc = self.get_pool(pair_addr)
                 try:
                     _ = cc.abi
                     _ = cc.functions.token0().call()
                     _ = cc.functions.token1().call()
-                except BlockNumberOutOfRangeError:
-                    # Uniswap V2: if self.context.block_number < 10000835
-                    # SushiSwap: if self.context.block_number < 10794229
-                    continue  # before its creation
-                except BadFunctionCallOutput:
+                except (BlockNumberOutOfRangeError, BadFunctionCallOutput):
                     continue
                 except ModelDataError:
                     pass

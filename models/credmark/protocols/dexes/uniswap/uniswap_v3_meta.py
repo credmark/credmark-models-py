@@ -45,20 +45,24 @@ class UniswapV3PoolMeta(Model):
         pools = []
         for token0_addr, token1_addr in token_pairs:
             for fee in pool_fees:
-                pool_addr = uniswap_factory.functions.getPool(token0_addr.checksum, token1_addr.checksum, fee).call()
-                if not Address(pool_addr).is_null():
-                    cc = self.get_pool(pool_addr)
-                    try:
+                try:
+                    pool_addr = Address(uniswap_factory.functions
+                                        .getPool(token0_addr.checksum, token1_addr.checksum, fee)
+                                        .call())
+                except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
+                    continue  # before its creation
+
+                try:
+                    if not pool_addr.is_null():
+                        cc = self.get_pool(pool_addr)
                         _ = cc.abi
                         _ = cc.functions.token0().call()
                         _ = cc.functions.token1().call()
-                    except BlockNumberOutOfRangeError:
-                        continue  # access it before its creation
-                    except BadFunctionCallOutput:
-                        continue
-                    except ModelDataError:
-                        pass
-                    pools.append(Address(pool_addr))
+                except (BlockNumberOutOfRangeError, BadFunctionCallOutput):
+                    continue  # access it before its creation
+                except ModelDataError:
+                    pass
+                pools.append(pool_addr)
         return pools
 
     POOLS_COLUMNS = ['block_number', 'log_index', 'transaction_hash',
