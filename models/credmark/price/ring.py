@@ -95,13 +95,13 @@ class DexSecondaryTokens(Model):
         },
         Network.BSC: {
             # TODO: multi-ring1 tokens to be added
-            **{protocol: (lambda: [Token('WBNB')])  # **{protocol: (lambda: [Token('WBNB'), Token('BTCB'), Token('ETH')])
+            **{protocol: (lambda: [Token('WBNB')])  # [Token('WBNB'), Token('BTCB'), Token('ETH')]
                for protocol in [DexProtocol.UniswapV3,
                                 DexProtocol.PancakeSwapV2,
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda: [Token('WETH')])  # MATIC, WBTC
+            **{protocol: (lambda: [Token('WMATIC')])  # [Token('WMATIC'), Token('WETH'), Token('WBTC')]
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
