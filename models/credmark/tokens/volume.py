@@ -257,6 +257,7 @@ class TokenVolumeSegmentBlock(Model):
 
                 from_iso8601_str = t.field('').from_iso8601_str
 
+        df.sum_value = df.sum_value.fillna(0)
         df['from_timestamp'] = df['from_timestamp'].apply(from_iso8601_str)
         df['to_timestamp'] = df['to_timestamp'].apply(from_iso8601_str)
 
