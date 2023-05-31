@@ -10,6 +10,7 @@ from credmark.cmf.types import (
     Accounts,
     Address,
     BlockNumber,
+    BlockNumberOutOfRangeError,
     Contracts,
     Currency,
     FiatCurrency,
@@ -22,7 +23,6 @@ from credmark.cmf.types import (
     Some,
     Token,
 )
-from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
 from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
 from web3 import Web3
 

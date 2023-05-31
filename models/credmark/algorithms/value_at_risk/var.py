@@ -146,7 +146,7 @@ class VaRPortfolio(Model):
 
         assets_to_quote_list = list(assets_to_quote)
 
-        # TODO: kept two versions to see how runner's performance can avoid timeout
+        # Keep two versions to see how runner's performance can avoid timeout
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',

@@ -139,10 +139,9 @@ class CurveFinancePrice(Model):
                 raise ModelRunError(
                     f'{underlying_token=} is self-referenced in {self.slug}')
 
-            price_underlying = self.context.run_model('price.quote',
-                                                      input={
-                                                          'base': underlying_token},
-                                                      return_type=PriceWithQuote)
+            price_underlying = self.context.run_model(
+                'price.quote', input={'base': underlying_token},
+                return_type=PriceWithQuote)
 
             price_underlying.price *= exchange_rate
             if price_underlying.src is not None:

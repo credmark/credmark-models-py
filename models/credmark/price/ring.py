@@ -1,20 +1,19 @@
 # pylint: disable=line-too-long, pointless-string-statement
+
+
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    Network,
-    Some,
-    Token,
-)
-from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types import Address, BlockNumberOutOfRangeError, Network, Some, Token
 from web3.exceptions import BadFunctionCallOutput
 
 from models.dtos.price import (
+    AddressWithSerial,
     DexProtocol,
     DexProtocolInput,
     PrimaryTokenPairsInput,
     PrimaryTokenPairsOutput,
 )
+
+# credmark-dev run dex.ring0-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
 
 
 @Model.describe(slug='dex.ring0-tokens',
@@ -71,15 +70,17 @@ class DexPrimaryTokens(Model):
         return Some(some=valid_tokens)
 
 
+# credmark-dev run dex.ring1-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
+
 @Model.describe(slug='dex.ring1-tokens',
-                version='0.1',
+                version='0.2',
                 display_name='DEX Tokens - Secondary, or Ring1',
                 description='Tokens to form secondary trading pairs for new token issuance',
                 category='protocol',
                 subcategory='dex',
                 tags=['uniswap-v2', 'uniswap-v3', 'sushiswap', 'pancakeswap-v2', 'pancakeswap-v3'],
                 input=DexProtocolInput,
-                output=Some[Address])
+                output=Some[AddressWithSerial])
 class DexSecondaryTokens(Model):
     RING1_TOKENS = {
         Network.Mainnet: {
@@ -105,20 +106,24 @@ class DexSecondaryTokens(Model):
         }
     }
 
-    def run(self, input: DexProtocolInput) -> Some[Address]:
+    def run(self, input: DexProtocolInput) -> Some[AddressWithSerial]:
         valid_tokens = []
+        serial_n = 0
         for t in self.RING1_TOKENS[self.context.network][input.protocol]():
             try:
                 _ = (t.deployed_block_number is not None and
                      t.deployed_block_number >= self.context.block_number)
-                valid_tokens.append(t.address)
+                valid_tokens.append(AddressWithSerial(address=t.address, serial=serial_n))
+                serial_n += 1
             except (BadFunctionCallOutput, BlockNumberOutOfRangeError):
                 pass
         return Some(some=valid_tokens)
 
+# credmark-dev run dex.primary-token-pairs -b 17_100_000 -i '{"addresses": ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"],"protocol": "uniswap-v3"}' -j
+
 
 @Model.describe(slug='dex.primary-token-pairs',
-                version='0.1',
+                version='0.2',
                 display_name='DEX pairs between tokens and primary tokens ',
                 description='DEX candidate pairs (to be look up) between tokens and primary tokens (ring0/ring1)',
                 category='protocol',
@@ -129,22 +134,23 @@ class DexSecondaryTokens(Model):
 class PrimaryTokenPairs(Model):
     def run(self, input: PrimaryTokenPairsInput) -> PrimaryTokenPairsOutput:
         input_addresses = input.addresses
-        ring0_tokens = self.context.run_model('dex.ring0-tokens', DexProtocolInput(protocol=input.protocol),
-                                              return_type=Some[Address],
-                                              local=True).some
-        primary_tokens = ring0_tokens.copy()
+        ring0_tokens = self.context.run_model(
+            'dex.ring0-tokens', DexProtocolInput(protocol=input.protocol),
+            return_type=Some[Address]).some
+        primary_tokens_ring0 = ring0_tokens.copy()
 
         # _wbtc_address = Token('WBTC').address
-        ring1_tokens = self.context.run_model('dex.ring1-tokens', DexProtocolInput(protocol=input.protocol),
-                                              return_type=Some[Address],
-                                              local=True).some
+        ring1_tokens_with_serial = (self.context.run_model(
+            'dex.ring1-tokens', DexProtocolInput(protocol=input.protocol), return_type=Some[AddressWithSerial])
+            .sorted(key=lambda t: t.serial))
+        ring1_tokens = [t.address for t in ring1_tokens_with_serial]
 
-        primary_tokens_ring1 = primary_tokens.copy()
+        primary_tokens_ring1 = primary_tokens_ring0.copy()
         primary_tokens_ring1.extend(ring1_tokens)
 
         primary_tokens_ring1_step = {}
         for step in range(len(ring1_tokens)):
-            primary_tokens_ring1_step[step] = primary_tokens.copy()
+            primary_tokens_ring1_step[step] = primary_tokens_ring0.copy()
             primary_tokens_ring1_step[step].extend(ring1_tokens[:step])
 
         """
@@ -157,7 +163,7 @@ class PrimaryTokenPairs(Model):
         token_pairs: list[tuple[Address, Address]] = []
 
         for input_address in input_addresses:
-            primary_tokens_in_use = primary_tokens
+            primary_tokens_in_use = primary_tokens_ring0
             if input_address not in ring0_tokens:
                 if input_address not in ring1_tokens:
                     primary_tokens_in_use = primary_tokens_ring1

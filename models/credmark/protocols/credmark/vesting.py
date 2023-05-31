@@ -207,7 +207,6 @@ class CMKGetVestingByAccount(Model):
                         vesting_claims.append(c)
                 return vesting_claims
 
-            # TODO: New ledger based model, unused due to L2 performance.
             def _use_ledger(vesting_contract):
                 _input_address = input.address
                 assert vesting_contract.abi is not None

@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Address, Contract, Contracts, Maybe, Records, Some, Token
-from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types import Address, BlockNumberOutOfRangeError, Contract, Contracts, Maybe, Records, Some, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from web3.exceptions import (
     BadFunctionCallOutput,
@@ -241,7 +240,7 @@ class UniswapV2PoolMeta(Model):
     def get_ref_price(self, factory_addr: Address, _protocol: DexProtocol, weight_power: float):
         ring0_tokens = sorted(self.context.run_model('dex.ring0-tokens',
                                                      DexProtocolInput(protocol=_protocol),
-                                                     return_type=Some[Address], local=True).some)
+                                                     return_type=Some[Address]).some)
 
         ratios = {}
         valid_tokens = set()

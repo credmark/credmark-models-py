@@ -84,7 +84,6 @@ class UniswapV3AllPoolsLedger(UniswapV3PoolMeta, UniswapV3FactoryMeta):
         return self.get_all_pools_ledger(self.FACTORY_ADDRESS[self.context.network])
 
 
-# TODO: test
 @Model.describe(slug='uniswap-v3.get-pools',
                 version='1.11',
                 display_name='Uniswap v3 Token Pools',

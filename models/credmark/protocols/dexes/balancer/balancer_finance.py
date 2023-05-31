@@ -205,6 +205,7 @@ class GetBalancerPoolPriceInfo(Model):
         tokens = [Token(address=addr).as_erc20(set_loaded=True) for addr in pool_info.tokens_addr]
 
         if pool._meta.contract_name == 'MetaStablePool':  # pylint:disable=protected-access
+
             # TODO: Wrong, this is from the Rate provider (Oracle)
             ratios = input.functions.getScalingFactors().call()
             # amplification = input.functions.getAmplificationParameter().call()
@@ -212,19 +213,21 @@ class GetBalancerPoolPriceInfo(Model):
             invariant = Decimal(invariant)
             amplification = Decimal(amplification)
             balances = [Decimal(f) for f in pool_info.balances]
-            _x0 = getTokenBalanceGivenInvariantAndAllOtherBalances(amplification,
-                                                                   balances, invariant, 0)
-            _x1 = getTokenBalanceGivenInvariantAndAllOtherBalances(amplification,
-                                                                   balances, invariant, 1)
+            _x0 = getTokenBalanceGivenInvariantAndAllOtherBalances(
+                amplification, balances, invariant, 0)
+            _x1 = getTokenBalanceGivenInvariantAndAllOtherBalances(
+                amplification, balances, invariant, 1)
             token0 = tokens[0]
             token1 = tokens[1]
             scaled_balance0 = token1.scaled(pool_info.balances[0])
+
             # TODO: Wrong, need to derive liquidity.
             scaled_balance1 = token1.scaled(pool_info.balances[1])
             liquidity0 = (np.abs((np.power(1.001, -0.5) - 1))
                           * scaled_balance0)
             liquidity1 = ((np.power(1.001, 0.5) - 1)
                           * scaled_balance1)
+
             ratio = BalancerPoolPriceInfo.Ratio(
                 token0=tokens[0],
                 token1=tokens[1],

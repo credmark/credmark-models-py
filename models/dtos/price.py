@@ -12,6 +12,11 @@ from credmark.dto import DTO, DTOField
 from models.dtos.pool import PoolPriceInfo
 
 
+class AddressWithSerial(DTO):
+    address: Address
+    serial: int = DTOField(ge=0, description='Serial ID of the token in the protocol')
+
+
 class DexProtocol(str, Enum):
     UniswapV2 = 'uniswap-v2'
     UniswapV3 = 'uniswap-v3'
@@ -25,10 +30,10 @@ class DexProtocolInput(DTO):
 
     class Config():
         schema_extra = {
-            'examples': [
-                {'protocol': 'uniswap-v3', '_test_multi': {'chain_id': 1}},
-                {'protocol': 'pancakeswap-v2', '_test_multi': {'chain_id': 56, 'block_number': None}}],
-            'test_multi': True,
+            "examples": [
+                {"protocol": "uniswap-v3", "_test_multi": {"chain_id": 1}},
+                {"protocol": "pancakeswap-v2", "_test_multi": {"chain_id": 56, "block_number": None}}],
+            "test_multi": True,
         }
 
 
@@ -37,9 +42,9 @@ class PrimaryTokenPairsInput(DexProtocolInput):
 
     class Config:
         schema_extra = {
-            'example': {'addresses': ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-                                      '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'],
-                        "protocol": "uniswap-v3", }
+            'example': {"addresses": ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                                      "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"],
+                        "protocol": "uniswap-v3"}
         }
 
 

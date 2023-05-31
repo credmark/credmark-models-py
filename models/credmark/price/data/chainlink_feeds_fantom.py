@@ -1,7 +1,6 @@
 from credmark.cmf.types import Address
 
 # The native token on other chain, give a direct address of feed.
-# TODO: find the token address so to find the feed in Chainlink's registry
 CHAINLINK_OVERRIDE_FEED_FANTOM = {
     # AAVE / USD
     Address('0x6a07a792ab2965c72a5b8088d3a069a7ac3a993b'):

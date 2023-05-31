@@ -21,9 +21,11 @@ from models.dtos.price import (
     DexPriceTokenInput,
 )
 
+DEX_PRICE_MODEL_VERSION = '1.28'
+
 
 @Model.describe(slug='price.pool-aggregator',
-                version='1.12',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Token Price from DEX pools, weighted by liquidity',
                 description='Aggregate prices from pools weighted by liquidity',
                 category='dex',
@@ -100,7 +102,7 @@ class DexWeightedPrice(Model):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price-maybe',
-                version='1.17',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -123,7 +125,7 @@ class UniswapV3WeightedPriceMaybe(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v3.get-weighted-price',
-                version='1.17',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Uniswap v3 - get price weighted by liquidity',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -138,7 +140,7 @@ class UniswapV3WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='uniswap-v2.get-weighted-price',
-                version='1.17',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Uniswap v2 - get price weighted by liquidity',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -153,7 +155,7 @@ class UniswapV2WeightedPrice(DexWeightedPrice):
 
 
 @Model.describe(slug='sushiswap.get-weighted-price',
-                version='1.17',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Sushi (Uniswap V2) - get price weighted by liquidity',
                 description='The Sushi v2 pools that support a token contract',
                 category='protocol',
@@ -168,7 +170,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='pancakeswap-v2.get-weighted-price',
-                version='1.17',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='PancakeSwap V2 (Uniswap V2) - get price weighted by liquidity',
                 description='The Pancake pools that support a token contract',
                 category='protocol',
@@ -183,7 +185,7 @@ class PancakeGetAveragePrice(DexWeightedPrice):
 
 
 @Model.describe(slug='price.dex-blended-maybe',
-                version='0.6',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Token price - Credmark',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -210,7 +212,7 @@ class PriceFromDexModelMaybe(Model):
 
 
 @Model.describe(slug='price.dex-blended',
-                version='1.28',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Credmark Token Price from Dex',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -256,7 +258,7 @@ class PriceFromDexModel(Model):
 
 
 @Model.describe(slug='price.dex-pool',
-                version='0.10',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='',
                 description='The Current Credmark Supported Price Algorithms',
                 developer='Credmark',
@@ -327,7 +329,7 @@ class PriceInfoFromDex(Model):
 
 
 @Model.describe(slug='price.dex-db-prefer',
-                version='0.6',
+                version=DEX_PRICE_MODEL_VERSION,
                 display_name='Credmark Token Price from Dex (Prefer to use DB)',
                 description='Retrieve price from DB or call model',
                 developer='Credmark',
@@ -352,7 +354,7 @@ class PriceFromDexPreferModel(Model):
     def run(self, input: Token) -> PriceWithQuote:
         try:
             price_dex = self.context.run_model(
-                'price.dex-db', input=input, local=True)
+                'price.dex-db', input=input)
             if price_dex['liquidity'] > 1e-8:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
             raise ModelDataError(f'There is no liquidity ({price_dex["liquidity"]}) for {input.address}.')

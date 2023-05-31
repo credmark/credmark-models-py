@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError, ModelRunError
-from credmark.cmf.types.block_number import BlockNumber, BlockNumberOutOfRangeError
+from credmark.cmf.types import BlockNumber, BlockNumberOutOfRangeError
 
 from .dtos import ExampleBlockTimeInput, ExampleModelOutput
 
@@ -67,7 +67,7 @@ class ExampleBlockNumber(Model):
                              "context's block_number raises BlockNumberOutOfRangeError")
         except ModelRunError as _e:
             output.log_error(_e)
-            # TODO: to restore logic of not increasing block_number
+            # We have allowed to increasing block_number, while run_model and ledger model still enforce it.
             output.log_error("Handled ModelRunError from block_number + 1")
         try:
             BlockNumber(-1)

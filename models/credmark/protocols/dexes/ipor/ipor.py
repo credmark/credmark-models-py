@@ -76,7 +76,9 @@ class IPORIndex(Model):
         if assets is None:
             raise ModelRunError('No IPOR assets found')
 
-        # TODO: we can replace above with the following to use the IporIndexAddAsset, IporIndexRemoveAsset to know the assets
+        # Alternatively, we can replace above with the following to use the
+        # event IporIndexAddAsset, IporIndexRemoveAsset to know the assets
+
         # pd.DataFrame(cc.fetch_events(cc.proxy_for.events.IporIndexAddAsset, from_block=0, contract_address=cc.address)) # ('address', ...)
         # pd.DataFrame(cc.fetch_events(cc.proxy_for.events.IporIndexRemoveAsset, from_block=0, contract_address=cc.address)) # 'address'
 
