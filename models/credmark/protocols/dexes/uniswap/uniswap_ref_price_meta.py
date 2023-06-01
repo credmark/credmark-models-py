@@ -4,7 +4,6 @@ from abc import abstractmethod
 from typing import Optional
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Price, Some
 
 from models.dtos.price import (
@@ -111,6 +110,7 @@ class UniswapRefPriceMeta(Model):
                    f'{token0_addr}/{token0_symbol} and {token1_addr}/{token1_symbol} with fee={fee_str}'
                    f' in {token0_ref_tokens=} and {token1_ref_tokens=}')
             self.logger.warning(msg)
-            raise ModelRunError(msg)
+            # We allow pool info to be calculated for non-pricing pools.
+            # raise ModelRunError(msg)
 
         return ref_price, ratio_price0, ratio_price1

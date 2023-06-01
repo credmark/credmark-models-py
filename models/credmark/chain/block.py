@@ -6,7 +6,7 @@ from typing import Union
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import BlockNumber, Network, NetworkDict
+from credmark.cmf.types import Network, NetworkDict
 from credmark.dto import DTO, EmptyInput
 
 
