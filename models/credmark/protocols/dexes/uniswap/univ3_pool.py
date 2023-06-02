@@ -6,7 +6,6 @@ Uni V3 Pool
 
 import math
 import sys
-from datetime import datetime
 from typing import Optional
 
 import pandas as pd
@@ -15,6 +14,7 @@ from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO
 
+from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events
 from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -35,25 +35,6 @@ class Tick(DTO):
         return self.liquidityGross == 0 and self.liquidityNet == 0
 
 
-def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
-    start_t = datetime.now()
-    df = pd.DataFrame(pool.fetch_events(
-        event,
-        from_block=_from_block,
-        to_block=_to_block))
-    end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block,
-          _to_block, end_t, df.shape), file=sys.stderr)
-
-    if df.empty:
-        return pd.DataFrame()
-
-    df = (df.sort_values(['blockNumber', 'logIndex'])
-            .loc[:, ['blockNumber', 'logIndex'] + _cols]
-            .assign(event=event_name))
-    return df
-
-
 class UniV3Pool:
     """
     Uniswap V3 Pool
@@ -67,6 +48,8 @@ class UniV3Pool:
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
+
+        self.df_evt = {}
 
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
@@ -260,10 +243,23 @@ class UniV3Pool:
 
         df_comb_evt = df_comb_evt.sort_values(
             ['blockNumber', 'logIndex']).reset_index(drop=True)
-        print((df_init_evt.shape[0], df_collect_evt.shape[0], df_collect_prot_evt.shape[0], df_flash_evt.shape[0],
-               df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0]),
-              df_comb_evt.blockNumber.nunique(),
+        print(('Initialize', df_init_evt.shape[0],
+               'Collect', df_collect_evt.shape[0],
+               'CollectProtocol', df_collect_prot_evt.shape[0],
+               'Flash', df_flash_evt.shape[0],
+               'Mint', df_mint_evt.shape[0],
+               'Burn', df_burn_evt.shape[0],
+               'Swap', df_swap_evt.shape[0]),
+              ('_comb_evt', df_comb_evt.shape[0], 'block_number', df_comb_evt.blockNumber.nunique()),
               file=sys.stderr, flush=True)
+
+        self.df_evt = {'Initialize': df_init_evt,
+                       'Collect': df_collect_evt,
+                       'CollectProtocol': df_collect_prot_evt,
+                       'Flash': df_flash_evt,
+                       'Mint': df_mint_evt,
+                       'Burn': df_burn_evt,
+                       'Swap': df_swap_evt}
 
         def _self_check():
             token0_balance = \
