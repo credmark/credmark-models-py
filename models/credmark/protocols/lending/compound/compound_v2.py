@@ -274,7 +274,6 @@ class CompoundV2GetPoolInfo(Model):
     9. balanceOfUnderlying(): balance of cToken * exchangeRate.
     10. borrowBalance(): balance of liability including interest
 
-    # TODO
     11. accrualBlockNumber
     12. exchangeRateStored
     13. initialExchangeRateMantissa
@@ -315,9 +314,6 @@ class CompoundV2GetPoolInfo(Model):
             "YFI": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
             "ZRX": "0xE41d2489571d322189246DaFA5ebDe1F4699F498",
         },
-        Network.Kovan: {
-            # TODO: to be filled
-        }
     }
 
     COMPOUND_CTOKEN = {
@@ -396,6 +392,7 @@ class CompoundV2GetPoolInfo(Model):
 
         # Check for cToken to be matched with a Token
         assert cToken.functions.isCToken().call()
+
         # TODO: disable this test as we did not have loading ABI by block_number
         # if cToken.proxy_for is not None:
         #    try:
@@ -403,6 +400,7 @@ class CompoundV2GetPoolInfo(Model):
         #    except AssertionError:
         #        self.logger.error(f'{cToken.functions.implementation().call()}, '
         #                          f'{cToken.proxy_for.address=}')
+
         assert cToken.functions.admin().call() == Address(self.COMPOUND_TIMELOCK[self.context.network])
         assert cToken.functions.comptroller().call() == Address(comptroller.address)
         assert cToken.functions.symbol().call()
@@ -492,7 +490,6 @@ class CompoundV2GetPoolValue(Model):
                                            input=input,
                                            return_type=CompoundV2PoolInfo)
 
-        # TODO: Investigate whether Compound's interest is counted into cToken amount.
         tp = self.context.run_model(slug='price.dex',
                                     input={'base': pool_info.token},
                                     return_type=PriceWithQuote)

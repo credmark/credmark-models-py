@@ -165,7 +165,7 @@ class AbracadabraGetTVLHistorical(Model):
         window = f'{interval} days'
         interval = '1 day'
 
-        # TODO: add two days to the end as work-around to current start-end-window
+        # Add two days to the end as work-around to current start-end-window
         ts_as_of_end_dt = self.context.block_number.from_timestamp(
             ((dt_end + timedelta(days=2)).timestamp())).timestamp
 

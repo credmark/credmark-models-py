@@ -31,8 +31,8 @@ from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAU
 class EmptyInputWithNetwork(EmptyInput):
     class Config:
         schema_extra = {
-            'examples': [{'_test_multi_chain': {'chain_id': 137, 'block_number': None}}],
-            'test_multi_chain': True
+            'examples': [{'_test_multi': {'chain_id': 137, 'block_number': None}}],
+            'test_multi': True
         }
 
 
@@ -167,8 +167,8 @@ class IchiVaults(Model):
 class IchiVaultContract(Contract):
     class Config:
         schema_extra = {
-            'examples': [{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7", "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
-            'test_multi_chain': True
+            'examples': [{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7", "_test_multi": {'chain_id': 137, 'block_number': None}}],
+            'test_multi': True
         }
 
 
@@ -478,8 +478,8 @@ class ContractEventsInput(Contract, ModelResultInput):
             'examples': [{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974",
                           "event_name": "Deposit",
                           "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {"indexed": False, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Deposit", "type": "event"}],
-                          '_test_multi_chain': {'chain_id': 137, 'block_number': 40100090}}],
-            'test_multi_chain': True
+                          '_test_multi': {'chain_id': 137, 'block_number': 40100090}}],
+            'test_multi': True
         }
 
 
@@ -768,8 +768,8 @@ class IchiPerformanceInput(DTO):
         schema_extra = {
             'examples': [{"days_horizon": [7],
                           "base": 1000,
-                          "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
-            'test_multi_chain': True
+                          "_test_multi": {'chain_id': 137, 'block_number': None}}],
+            'test_multi': True
         }
 
 
@@ -779,8 +779,8 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
             'examples': [{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7",
                           "days_horizon": [7],
                           "base": 1000,
-                          "_test_multi_chain": {'chain_id': 137, 'block_number': None}}],
-            'test_multi_chain': True
+                          "_test_multi": {'chain_id': 137, 'block_number': None}}],
+            'test_multi': True
         }
 
 # credmark-dev run ichi.vault-performance -i '{"address": "0x711901e4b9136119fb047abe8c43d49339f161c3", "days_horizon":[7, 30, 60]}' -c 137 --api_url=http://localhost:8700 -j -b 42488937

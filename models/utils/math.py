@@ -1,4 +1,4 @@
-#pylint: disable=invalid-name
+# pylint: disable=invalid-name
 
 from decimal import ROUND_DOWN, ROUND_UP, Decimal, getcontext
 

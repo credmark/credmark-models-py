@@ -1,4 +1,4 @@
-#pylint: disable=line-too-long
+# pylint: disable=line-too-long
 
 import matplotlib.pyplot as plt
 import networkx as nx

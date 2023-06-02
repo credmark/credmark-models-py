@@ -1,7 +1,6 @@
 from credmark.cmf.types import Address
 
 # The native token on other chain, give a direct address of feed.
-# TODO: find the token address so to find the feed in Chainlink's registry
 CHAINLINK_OVERRIDE_FEED_MAINNET = {
     # WAVAX: avax-usd.data.eth
     Address('0x85f138bfEE4ef8e540890CFb48F620571d67Eda3'):

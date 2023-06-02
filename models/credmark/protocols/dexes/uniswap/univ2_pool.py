@@ -5,7 +5,6 @@ Uni V2 Pool
 """
 
 import sys
-from datetime import datetime
 from typing import Optional
 
 import numpy as np
@@ -13,27 +12,9 @@ import pandas as pd
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 
+from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events_with_cols
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
-
-
-def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
-    start_t = datetime.now()
-    df = pd.DataFrame(pool.fetch_events(
-        event,
-        from_block=_from_block,
-        to_block=_to_block))
-    end_t = datetime.now() - start_t
-    print((event_name, 'node', pool.address, _from_block,
-          _to_block, end_t, df.shape), file=sys.stderr)
-
-    if df.empty:
-        return pd.DataFrame()
-
-    df = (df.sort_values(['blockNumber', 'logIndex'])
-            .loc[:, ['blockNumber', 'logIndex'] + _cols]
-            .assign(event=event_name))
-    return df
 
 
 class UniV2Pool:
@@ -42,13 +23,15 @@ class UniV2Pool:
     """
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
-        self.pool = Contract(address=pool_addr)
-        self.pool.set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True)
+        self.pool = (Contract(address=pool_addr)
+                     .set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True))
         self.protocol = _protocol
         self.tick_spacing = 1
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
+
+        self.df_evt = {}
 
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
@@ -159,34 +142,30 @@ class UniV2Pool:
         self.reserve0 = _pool_data['reserve0']
         self.reserve1 = _pool_data['reserve1']
 
-    def load_events(self, from_block, to_block):
+    def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
         pool = self.pool
         if pool.abi is None:
             raise ValueError(f'Pool abi missing for {pool.address}')
 
-        df_sync_evt = fetch_events(
-            pool, pool.events.Sync, 'Sync', from_block, to_block, pool.abi.events.Sync.args)
-        df_swap_evt = fetch_events(
-            pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
-        df_mint_evt = fetch_events(
-            pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
-        df_burn_evt = fetch_events(
-            pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
+        for event_name in ['Sync', 'Swap', 'Mint', 'Burn']:
+            df_evt = fetch_events_with_cols(
+                pool, getattr(pool.events, event_name), event_name,
+                from_block, to_block, getattr(pool.abi.events, event_name).args,
+                use_async, async_worker)
+            self.df_evt[event_name] = df_evt
 
-        df_comb_evt = pd.concat(
-            [df_sync_evt, df_swap_evt, df_mint_evt, df_burn_evt])
+        df_comb_evt = pd.concat(self.df_evt.values())
 
         if df_comb_evt.empty:
             return df_comb_evt
-        print((df_sync_evt.shape[0], df_mint_evt.shape[0], df_burn_evt.shape[0], df_swap_evt.shape[0], df_comb_evt.shape[0]),
-              df_comb_evt.blockNumber.nunique(),
-              file=sys.stderr, flush=True)
 
         df_comb_evt = df_comb_evt.sort_values(
             ['blockNumber', 'logIndex']).reset_index(drop=True)
-        print(('Sync', df_sync_evt.shape[0], 'Swap', df_swap_evt.shape[0],
-               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]),
-              file=sys.stderr)
+
+        print(([(k, v.shape[0]) for k, v in self.df_evt.items()]),
+              ('_comb_evt', df_comb_evt.shape[0], 'block_number', df_comb_evt.blockNumber.nunique()),
+              file=sys.stderr, flush=True)
+
         return df_comb_evt
 
     def get_pool_price_info(self):

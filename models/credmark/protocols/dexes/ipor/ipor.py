@@ -16,6 +16,8 @@ from credmark.dto import DTO, DTOField
 from eth_abi.abi import encode_abi
 from eth_typing.evm import ChecksumAddress
 
+from models.tmp_abi_lookup import IPOR_JOSEPH_ABI, IPOR_MILTON_ABI
+
 
 @Model.describe(slug='ipor.get-oracle-and-calculator',
                 version='0.1',
@@ -74,7 +76,9 @@ class IPORIndex(Model):
         if assets is None:
             raise ModelRunError('No IPOR assets found')
 
-        # TODO: we can replace above with the following to use the IporIndexAddAsset, IporIndexRemoveAsset to know the assets
+        # Alternatively, we can replace above with the following to use the
+        # event IporIndexAddAsset, IporIndexRemoveAsset to know the assets
+
         # pd.DataFrame(cc.fetch_events(cc.proxy_for.events.IporIndexAddAsset, from_block=0, contract_address=cc.address)) # ('address', ...)
         # pd.DataFrame(cc.fetch_events(cc.proxy_for.events.IporIndexRemoveAsset, from_block=0, contract_address=cc.address)) # 'address'
 
@@ -128,7 +132,7 @@ class IPORIndex(Model):
 
 
 @Model.describe(slug='ipor.get-lp-exchange',
-                version='0.2',
+                version='0.3',
                 display_name='IPOR LP token exchange rate',
                 description='The ratio between LP Token exchange rate and the underlying assets',
                 category='protocol',
@@ -158,7 +162,7 @@ class IPORLpExchange(Model):
         exchange_rates = {}
 
         for address in josephs:
-            joseph = Contract(address=address)
+            joseph = Contract(address=address).set_abi(IPOR_JOSEPH_ABI, set_loaded=True)
             asset = Token(joseph.functions.getAsset().call())
             lp_token = Token(joseph.functions.getIpToken().call())
             exchange_rate = joseph.functions.calculateExchangeRate().call() / 1e18
@@ -231,7 +235,7 @@ class IPORSwapInput(DTO):
 
 
 @Model.describe(slug='ipor.get-swap',
-                version='0.3',
+                version='0.6',
                 display_name='IPOR LP token exchange rate',
                 description='Calculate the fair price of an IPOR swap',
                 category='protocol',
@@ -286,7 +290,10 @@ class IPORSwap(Model):
         swap1 = IporSwapMemory(1,
                                Address('0x90ce434bA83442Dfe639d0E47fed6b96B61ba1fc').checksum,
                                1676688179,
-                            get_uniswap_pools25247524752475247525000,
+                               1679107379,
+                               0,
+                               1450495049504950495050,
+                               725247524752475247525000,
                                725247524752475247525000 * int(1e18) // ibtPrice_current,  # 718510097558899043537076
                                int(ipor_index.indexValue) + int(spreadPayFixed),  # 23870746852871384,
                                25000000000000000000,
@@ -329,6 +336,9 @@ class IPORSwap(Model):
         milton_addr = None
         for milton_address in miltons:
             try_milton = Contract(address=milton_address)
+            if try_milton.proxy_for is not None:
+                try_milton.proxy_for.set_abi(IPOR_MILTON_ABI, set_loaded=True)
+
             try_asset = try_milton.functions.getAsset().call()
             if try_asset == Address(input.asset).checksum:
                 milton_addr = try_milton.address
@@ -370,6 +380,9 @@ class IPORSwap(Model):
             return spreadPayFixed, spreadReceiveFixed, ipor_index, ibtPrice_current
 
         milton = Contract(milton_addr)
+        if milton.proxy_for is not None:
+            milton.proxy_for.set_abi(IPOR_MILTON_ABI, set_loaded=True)
+
         oracle = Contract(milton.functions.getIporOracle().call())
         ipor_index_current = IPORIndexValue(
             *oracle.functions.getIndex(input.asset.checksum).call())

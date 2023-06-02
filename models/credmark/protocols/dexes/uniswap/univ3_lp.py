@@ -34,14 +34,13 @@ class UniswapV3LPInput(DTO):
     class Config:
         schema_extra = {
             'examples': [
-                {'lp': '0x297e12154bde98e96d475fc3a554797f7a6139d0', '_test_multi_chain': {'chain_id': 1}},
-                {"lp": "0x81cc7da862be71a455dd065e87e0f772184a7210", '_test_multi_chain': {'chain_id': 1}},
-                {"lp": "0x721cf5873d65556f8632feba7fb12a73a5feb22e",
-                    '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
-                {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17",
-                    '_test_multi_chain': {'chain_id': 137, 'block_number': None}}
+                {'lp': '0xEb3c52D00c6fa56a2DCB1541f9a85EaD3809dEF1', '_test_multi': {'chain_id': 1}},
+                {"lp": "0x05Da533bcA66b6DF7A5Fa7F9AfbB62c36703C2E6",
+                    '_test_multi': {'chain_id': 42161, 'block_number': None}},
+                {"lp": "0x56686ad31e853d6c8F42E351750baA9D479Af33E",
+                    '_test_multi': {'chain_id': 137, 'block_number': None}}
             ],
-            'test_multi_chain': True,
+            'test_multi': True,
         }
 
 
@@ -124,12 +123,12 @@ class UniswapV3IDInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{"id": 355427, '_test_multi_chain': {'chain_id': 1, }},
-                         {"id": 30000, '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
-                         {"id": 350000, '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
-                         {"id": 347031, '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+            'examples': [{"id": 354429, '_test_multi': {'chain_id': 1, }},
+                         {"id": 30000, '_test_multi': {'chain_id': 10, 'block_number': None}},
+                         {"id": 350000, '_test_multi': {'chain_id': 42161, 'block_number': None}},
+                         {"id": 347031, '_test_multi': {'chain_id': 137, 'block_number': None}},
                          ],
-            'test_multi_chain': True
+            'test_multi': True
         }
 
 

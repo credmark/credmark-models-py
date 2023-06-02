@@ -54,7 +54,8 @@ class AccountValue(Model):
             return self.context.run_model(
                 self.slug,
                 AccountsValueInput(accounts=input.accounts,
-                                   quote=input.quote, timestamp=None),
+                                   quote=input.quote,
+                                   timestamp=None),
                 block_number=block_number)
 
         portfolio = self.context.run_model('accounts.portfolio',
@@ -145,7 +146,7 @@ class VaRPortfolio(Model):
 
         assets_to_quote_list = list(assets_to_quote)
 
-        # TODO: kept two versions to see how runner's performance can avoid timeout
+        # Keep two versions to see how runner's performance can avoid timeout
         def _use_compose():
             tok_hp = self.context.run_model(
                 slug='price.quote-historical-multiple',

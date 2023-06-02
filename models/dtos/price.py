@@ -1,15 +1,56 @@
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long, invalid-name
 
 from enum import Enum
 from typing import List, Optional
 
 from credmark.cmf.model import ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Currency, FiatCurrency, Some, Token
+from credmark.cmf.types import Address, Contract, Currency, FiatCurrency, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesInput
 from credmark.dto import DTO, DTOField
 
 from models.dtos.pool import PoolPriceInfo
+
+
+class AddressWithSerial(DTO):
+    address: Address
+    serial: int = DTOField(ge=0, description='Serial ID of the token in the protocol')
+
+
+class DexProtocol(str, Enum):
+    UniswapV2 = 'uniswap-v2'
+    UniswapV3 = 'uniswap-v3'
+    SushiSwap = 'sushiswap'
+    PancakeSwapV2 = 'pancakeswap-v2'
+    PancakeSwapV3 = 'pancakeswap-v3'
+
+
+class DexProtocolInput(DTO):
+    protocol: DexProtocol = DTOField(description='Protocol to use for fetching ring0 tokens')
+
+    class Config():
+        schema_extra = {
+            "examples": [
+                {"protocol": "uniswap-v3", "_test_multi": {"chain_id": 1}},
+                {"protocol": "pancakeswap-v2", "_test_multi": {"chain_id": 56, "block_number": None}}],
+            "test_multi": True,
+        }
+
+
+class PrimaryTokenPairsInput(DexProtocolInput):
+    addresses: list[Address]
+
+    class Config:
+        schema_extra = {
+            'example': {"addresses": ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                                      "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"],
+                        "protocol": "uniswap-v3"}
+        }
+
+
+class PrimaryTokenPairsOutput(DTO):
+    pairs: list[tuple[Address, Address]] = DTOField(
+        description='Pairs of tokens between input and primary tokens (ring0/ring1)')
 
 
 class PriceInput(DTO):
@@ -50,25 +91,25 @@ class PriceInput(DTO):
 
     class Config:
         schema_extra = {
-            'examples': [{"base": {"symbol": "CRV"}, '_test_multi_chain': {'chain_id': 1}},
+            'examples': [{"base": {"symbol": "CRV"}, '_test_multi': {'chain_id': 1}},
                          {'base': {'symbol': 'USD'}},
                          {'base': {'address': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'},
                           'quote': {'symbol': 'USD'}},
                          {"base": "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819",
-                             '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
-                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 10, 'block_number': None}},
+                             '_test_multi': {'chain_id': 10, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi': {'chain_id': 10, 'block_number': None}},
                          {"base": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
-                             '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
-                         {"base": 'ETH', '_test_multi_chain': {'chain_id': 42161, 'block_number': None}},
+                             '_test_multi': {'chain_id': 42161, 'block_number': None}},
+                         {"base": 'ETH', '_test_multi': {'chain_id': 42161, 'block_number': None}},
                          {"base": "0xabc9547b534519ff73921b1fba6e672b5f58d083",
-                             '_test_multi_chain': {'chain_id': 43114, 'block_number': None}},
+                             '_test_multi': {'chain_id': 43114, 'block_number': None}},
                          {"base": "0xb86abcb37c3a4b64f74f59301aff131a1becc787",
-                             '_test_multi_chain': {'chain_id': 56, 'block_number': None}},
+                             '_test_multi': {'chain_id': 56, 'block_number': None}},
                          {"base": "0x5559edb74751a0ede9dea4dc23aee72cca6be3d5",
-                             '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
-                         {"base": 'WETH', '_test_multi_chain': {'chain_id': 137, 'block_number': None}},
+                             '_test_multi': {'chain_id': 137, 'block_number': None}},
+                         {"base": 'WETH', '_test_multi': {'chain_id': 137, 'block_number': None}},
                          ],
-            'test_multi_chain': True
+            'test_multi': True
         }
 
 
@@ -124,8 +165,12 @@ class PricesHistoricalInput(Some[PriceInputWithPreference], MapBlockTimeSeriesIn
 
 
 class PriceWeight(DTO):
-    weight_power: float = DTOField(4.0, ge=0.0)
-    debug: bool = DTOField(False, description='Turn on debug log')
+    weight_power: float = DTOField(4.0, ge=0.0, description='Weight for power for the liquidity')
+
+    class Config:
+        schema_extra = {
+            'examples': [{'weight_power': 4.0}]
+        }
 
 
 class DexPriceTokenInput(Token, PriceWeight):
@@ -133,13 +178,19 @@ class DexPriceTokenInput(Token, PriceWeight):
         schema_extra = {
             'examples': [{'address': '0x6b175474e89094c44da98b954eedeac495271d0f'},  # DAI
                          {"symbol": "WETH"},
-                         {"symbol": "WETH", "weight_power": 4.0, "debug": False}, ]
+                         {"symbol": "WETH", "weight_power": 4.0}, ]
         }
 
 
-class DexPricePoolInput(PriceWeight):
+class DexPoolPriceInput(PriceWeight, DexProtocolInput):
     price_slug: str
-    ref_price_slug: Optional[str]
+    ref_price_slug: Optional[str] = DTOField(description='Set to None for not using reference price')
+
+
+class PoolDexPoolPriceInput(Contract, DexPoolPriceInput):
+    """
+    A generic input DTO for get-pool-price-info models.
+    """
 
 
 class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
@@ -160,7 +211,7 @@ class DexPoolAggregationInput(DexPriceTokenInput, Some[PoolPriceInfo]):
                         "token0_symbol": "DAI", "token1_symbol": "CRV", "pool_address": "0xf00f7a64b170d41789c6f16a7eb680a75a050e6d",
                         "ref_price": 0.99962940609268, "tick_spacing": 1},
                 ],
-                    "weight_power": 4.0, "debug": False, "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"}
+                    "weight_power": 4.0, "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"}
             ]
         }
 

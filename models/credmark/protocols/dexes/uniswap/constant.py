@@ -4,13 +4,6 @@ from collections import namedtuple
 
 from credmark.cmf.types import Address, Network
 
-# For mainnet, Ropsten, Rinkeby, Görli, and Kovan
-V2_FACTORY_ADDRESS = {
-    k: Address('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f')
-    for k in
-    [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
-
-
 V3_POS_NFT = {
     k: '0xc36442b4a4522e871399cd717abdd847ab11fe88'
     for k in [

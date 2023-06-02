@@ -11,6 +11,11 @@ from credmark.dto import DTOField
 class AccountsWithOffset(Accounts):
     offset: int = DTOField(200, description='Block_number offset')
 
+    class Config:
+        schema_extra = {
+            'example': {'address': '0x388c818ca8b9251b393131c08a736a67ccb19297', 'offset': 200}
+        }
+
 
 @Model.describe(slug='contrib.exploited-value',
                 version='1.0',

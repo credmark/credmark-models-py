@@ -211,8 +211,8 @@ class IndexCoopFeeMonthInput(IndexCoopFee):
             'example': {"address": "0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b", "streaming_rate": 0.0095,
                         "coop_streaming_rate": 0.7, "mint_redeem_rate": 0, "coop_mint_redeem_rate": 0,
                         "use_last_price": True, "year": 2022, "month": 9,
-                        '_test_multi_chain': {'chain_id': 1, 'block_number': 16_000_000}},
-            'test_multi_chain': True
+                        '_test_multi': {'chain_id': 1, 'block_number': 16_000_000}},
+            'test_multi': True
         }
 
 
@@ -274,8 +274,8 @@ class IndexCoopStreamingFeeInput(Contract):
             'example': {"address": "0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b", "streaming_rate": 0.0095,
                         "coop_streaming_rate": 0.7, "mint_redeem_rate": 0, "coop_mint_redeem_rate": 0,
                         "use_last_price": True, "start_block": 15_449_618,
-                        '_test_multi_chain': {'chain_id': 1, 'block_number': 15_649_594}},
-            'test_multi_chain': True
+                        '_test_multi': {'chain_id': 1, 'block_number': 15_649_594}},
+            'test_multi': True
         }
 
 

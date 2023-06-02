@@ -1,5 +1,8 @@
 # pylint: disable=line-too-long
+
 import math
+from datetime import date, datetime, timezone
+from typing import Union
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError
@@ -57,6 +60,36 @@ class BlockOutput(DTO):
 class Block(DTO):
     block_number: int
     timestamp: int
+
+
+class BlockYMDInput(DTO):
+    datetime: Union[date, datetime]
+
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'date': '2022-01-01', '_test_multi': {'chain_id': 1}},
+                {'date': '2022-01-01 00:00:00', '_test_multi': {'chain_id': 1}}
+            ],
+            'test_multi': True,
+            'skip_test': True
+        }
+
+
+@Model.describe(slug="chain.get-block-ymd",
+                version="0.1",
+                display_name="Obtain block from timestamp",
+                description='In UTC',
+                category='chain',
+                input=BlockYMDInput,
+                output=BlockOutput)
+class GetBlockYMD(Model):
+    def run(self, input: BlockYMDInput) -> BlockOutput:
+        if isinstance(input.datetime, date):
+            input.datetime = datetime.combine(input.datetime, datetime.min.time())
+        return self.context.run_model('chain.get-block',
+                                      {'timestamp': input.datetime.replace(tzinfo=timezone.utc).timestamp()},
+                                      return_type=BlockOutput)
 
 
 @Model.describe(slug="chain.get-block",

@@ -14,7 +14,7 @@ from models.credmark.algorithms.value_at_risk.dto import (
 )
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
-from models.credmark.protocols.dexes.uniswap.uniswap_v3 import UniswapV3PoolInfo
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import UniswapV3PoolInfo
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')

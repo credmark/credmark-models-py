@@ -7,11 +7,6 @@ from credmark.dto import DTO
 from models.tmp_abi_lookup import CMK_ADDRESS, STAKED_CREDMARK_ADDRESS
 
 
-# TODO: Need to get ABI's programmatically, I want to be able to do something like:
-# self.context.contract(protocol:Union[str, None], product:Union[str,None],
-#                       address:Union[str, None], abi:Union[str,None])
-
-
 @Model.describe(slug='xcmk.total-supply',
                 version='1.1',
                 display_name='xCMK Total Supply',

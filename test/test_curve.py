@@ -130,7 +130,6 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.gauge-claim-addresses',
                        {"address": "0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"})
 
-        # TODO
         # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
 
     def test_pool_info(self):

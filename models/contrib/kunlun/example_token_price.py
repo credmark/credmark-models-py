@@ -6,7 +6,7 @@ from models.dtos.price import DexPoolAggregationInput, DexPriceTokenInput
 
 
 @Model.describe(slug='contrib.example-token-price',
-                version='1.1',
+                version='1.2',
                 display_name='Token Price - weighted by liquidity',
                 description='The Current Credmark Supported Price Algorithm',
                 developer='Credmark',
@@ -16,8 +16,6 @@ class TokenPriceModel(Model):
     """
     Return token's price
     """
-
-    WEIGHT_POWER = 4
 
     def run(self, input: DexPriceTokenInput) -> Price:
         all_pool_infos = self.context.run_model('price.dex-pool',

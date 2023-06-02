@@ -25,7 +25,7 @@ from credmark.cmf.types import (
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapInputsOutput
 from credmark.cmf.types.token_erc20 import get_token_from_configuration
 
-from models.credmark.protocols.dexes.uniswap.uniswap_v2 import UniswapV2PoolLPPosition
+from models.credmark.protocols.dexes.uniswap.uniswap_v2_pool import UniswapV2PoolLPPosition
 from models.dtos.price import (
     PRICE_DATA_ERROR_DESC,
     PriceBlocksInput,

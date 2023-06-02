@@ -1,10 +1,11 @@
+# pylint: disable=line-too-long
+
 import sys
 from typing import Any, cast
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
-from credmark.cmf.types import Contract, Maybe, Network, Price, PriceWithQuote
-from credmark.cmf.types.block_number import BlockNumberOutOfRangeError
+from credmark.cmf.types import BlockNumberOutOfRangeError, Contract, Maybe, Network, Price, PriceWithQuote
 from credmark.dto import DTO, DTOField
 from ens import ENS
 from web3.exceptions import ContractLogicError

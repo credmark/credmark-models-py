@@ -11,7 +11,6 @@ from models.credmark.price.data.chainlink_feeds_optimism import CHAINLINK_OVERRI
 from models.credmark.price.data.chainlink_feeds_polygon import CHAINLINK_OVERRIDE_FEED_POLYGON
 
 # The native token on other chain, give a direct address of feed.
-# TODO: find the token address so to find the feed in Chainlink's registry
 CHAINLINK_OVERRIDE_FEED = {
     Network.Mainnet: CHAINLINK_OVERRIDE_FEED_MAINNET,
     Network.BSC: CHAINLINK_OVERRIDE_FEED_BSC,

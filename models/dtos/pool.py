@@ -1,5 +1,21 @@
-from credmark.cmf.types import Address
+from credmark.cmf.types import Address, Token
 from credmark.dto import DTO
+
+
+class DexPoolInput(DTO):
+    token0: Token
+    token1: Token
+
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'token0': {'address': '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'},
+                    'token1': {'address': '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'},
+                    '_test_multi': {'chain_id': 1}},
+                {"token0": {"symbol": "USDT"}, "token1": {"symbol": "WETH"},
+                 '_test_multi': {'chain_id': 1}}],
+            'test_multi': True,
+        }
 
 
 class PoolPriceInfo(DTO):
