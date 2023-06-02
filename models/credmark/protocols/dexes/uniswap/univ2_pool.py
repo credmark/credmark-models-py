@@ -12,7 +12,7 @@ import pandas as pd
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 
-from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events
+from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events_with_cols
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
@@ -142,34 +142,30 @@ class UniV2Pool:
         self.reserve0 = _pool_data['reserve0']
         self.reserve1 = _pool_data['reserve1']
 
-    def load_events(self, from_block, to_block):
+    def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
         pool = self.pool
         if pool.abi is None:
             raise ValueError(f'Pool abi missing for {pool.address}')
 
-        df_sync_evt = fetch_events(
-            pool, pool.events.Sync, 'Sync', from_block, to_block, pool.abi.events.Sync.args)
-        df_swap_evt = fetch_events(
-            pool, pool.events.Swap, 'Swap', from_block, to_block, pool.abi.events.Swap.args)
-        df_burn_evt = fetch_events(
-            pool, pool.events.Burn, 'Burn', from_block, to_block, pool.abi.events.Burn.args)
-        df_mint_evt = fetch_events(
-            pool, pool.events.Mint, 'Mint', from_block, to_block, pool.abi.events.Mint.args)
+        for event_name in ['Sync', 'Swap', 'Mint', 'Burn']:
+            df_evt = fetch_events_with_cols(
+                pool, getattr(pool.events, event_name), event_name,
+                from_block, to_block, getattr(pool.abi.events, event_name).args,
+                use_async, async_worker)
+            self.df_evt[event_name] = df_evt
 
-        df_comb_evt = pd.concat(
-            [df_sync_evt, df_swap_evt, df_mint_evt, df_burn_evt])
+        df_comb_evt = pd.concat(self.df_evt.values())
 
         if df_comb_evt.empty:
             return df_comb_evt
 
         df_comb_evt = df_comb_evt.sort_values(
             ['blockNumber', 'logIndex']).reset_index(drop=True)
-        print(('Sync', df_sync_evt.shape[0], 'Swap', df_swap_evt.shape[0],
-               'Mint', df_mint_evt.shape[0], 'Burn', df_burn_evt.shape[0]),
+
+        print(([(k, v.shape[0]) for k, v in self.df_evt.items()]),
               ('_comb_evt', df_comb_evt.shape[0], 'block_number', df_comb_evt.blockNumber.nunique()),
               file=sys.stderr, flush=True)
 
-        self.df_evt = {'Sync': df_sync_evt, 'Swap': df_swap_evt, 'Mint': df_mint_evt, 'Burn': df_burn_evt}
         return df_comb_evt
 
     def get_pool_price_info(self):

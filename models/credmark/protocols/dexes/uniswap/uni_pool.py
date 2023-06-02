@@ -6,32 +6,30 @@ import sys
 from datetime import datetime
 
 import pandas as pd
+from credmark.cmf.types import Contract
 
 
-def fetch_events(pool, event, event_name, _from_block, _to_block, _cols):
+def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_block, _cols,
+                           use_async, async_worker):
     """
     fetch events for uniswap
-
-    start_time = datetime.now()
-    df1 = pd.DataFrame(pool.fetch_events(
-        event,
-        from_block=_from_block,
-        to_block=_to_block))
-    df1_time = datetime.now() - start_time
-
-    df2_time = datetime.now() - start_time - df1_time
-    print(f'{df1_time.seconds=} {df2_time.seconds=}')
-
-    assert df1.shape == df2.shape
     """
 
     start_t = datetime.now()
 
-    df2 = pd.DataFrame(pool.fetch_events(
-        event,
-        from_block=_from_block,
-        to_block=_to_block,
-        use_async=True))
+    if use_async:
+        df2 = pd.DataFrame(pool.fetch_events(
+            event,
+            from_block=_from_block,
+            to_block=_to_block,
+            use_async=use_async,
+            async_worker=async_worker
+        ))
+    else:
+        df2 = pd.DataFrame(pool.fetch_events(
+            event,
+            from_block=_from_block,
+            to_block=_to_block))
 
     end_t = datetime.now() - start_t
     print((event_name, 'node', pool.address, _from_block,
