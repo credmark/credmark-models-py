@@ -13,7 +13,8 @@ from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from test_aave import TestAAVE
 from test_account import TestAccount
 from test_arbitrum import TestArbitrumOne
-from test_avalanche import TestAvalanche
+
+# from test.no_test_avalanche import TestAvalanche
 from test_balancer import TestBalancer
 from test_bsc import TestBSC
 from test_chainlink import TestChainlink

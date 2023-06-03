@@ -12,7 +12,7 @@ class MultiChainAccount(Account):
             'examples': [
                 {"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57",
                  "_test_multi": {"chain_id": chain_id, 'block_number': None}}
-                # for chain_id in [1, 137, 10, 42161, 56, 250, 43114]
+                # for chain_id in [1, 137, 10, 42161, 56, 250] # , 43114
                 for chain_id in [1, 137, 56]
             ],
             'test_multi': True
@@ -25,7 +25,7 @@ class MultiChainAccounts(Accounts):
             'examples': [
                 {"accounts": [{"address": "0x42Cf18596EE08E877d532Df1b7cF763059A7EA57"}],
                  "_test_multi": {"chain_id": chain_id, 'block_number': None}}
-                # for chain_id in [1, 137, 10, 42161, 56, 250, 43114]
+                # for chain_id in [1, 137, 10, 42161, 56, 250] # , 43114
                 for chain_id in [1, 137, 56]
             ],
             'test_multi': True

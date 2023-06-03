@@ -313,5 +313,5 @@ class UniswapV3PoolMeta(Model):
                     infos.append(pi.just)
             return infos
 
-        infos = _use_compose()
+        infos = _use_for(local=False)
         return Some[PoolPriceInfo](some=infos)
