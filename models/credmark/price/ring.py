@@ -73,7 +73,7 @@ class DexPrimaryTokens(Model):
 # credmark-dev run dex.ring1-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
 
 @Model.describe(slug='dex.ring1-tokens',
-                version='0.2',
+                version='0.3',
                 display_name='DEX Tokens - Secondary, or Ring1',
                 description='Tokens to form secondary trading pairs for new token issuance',
                 category='protocol',
@@ -84,24 +84,25 @@ class DexPrimaryTokens(Model):
 class DexSecondaryTokens(Model):
     RING1_TOKENS = {
         Network.Mainnet: {
-            **{protocol: (lambda: [Token('WETH')])
+            **{protocol: (lambda block_number:
+                          [Token('WETH')] if block_number <= 1_741_2000 else [Token('WETH'), Token('WBTC')])
                for protocol in [DexProtocol.UniswapV2,
                                 DexProtocol.UniswapV3,
                                 DexProtocol.SushiSwap]},
 
-            **{protocol: (lambda: [Token('WETH')])
+            **{protocol: (lambda _: [Token('WETH')])
                for protocol in [DexProtocol.PancakeSwapV2,
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.BSC: {
             # TODO: multi-ring1 tokens to be added
-            **{protocol: (lambda: [Token('WBNB')])  # [Token('WBNB'), Token('BTCB'), Token('ETH')]
+            **{protocol: (lambda _: [Token('WBNB')])  # [Token('WBNB'), Token('BTCB'), Token('ETH')]
                for protocol in [DexProtocol.UniswapV3,
                                 DexProtocol.PancakeSwapV2,
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda: [Token('WMATIC')])  # [Token('WMATIC'), Token('WETH'), Token('WBTC')]
+            **{protocol: (lambda _: [Token('WMATIC')])  # [Token('WMATIC'), Token('WETH'), Token('WBTC')]
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
@@ -109,7 +110,7 @@ class DexSecondaryTokens(Model):
     def run(self, input: DexProtocolInput) -> Some[AddressWithSerial]:
         valid_tokens = []
         serial_n = 0
-        for t in self.RING1_TOKENS[self.context.network][input.protocol]():
+        for t in self.RING1_TOKENS[self.context.network][input.protocol](self.context.block_number):
             try:
                 _ = (t.deployed_block_number is not None and
                      t.deployed_block_number >= self.context.block_number)
