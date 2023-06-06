@@ -85,7 +85,7 @@ class DexSecondaryTokens(Model):
     RING1_TOKENS = {
         Network.Mainnet: {
             **{protocol: (lambda block_number:
-                          [Token('WETH')] if block_number <= 1_741_2000 else [Token('WETH'), Token('WBTC')])
+                          [Token('WETH')] if block_number <= 17_385_780 else [Token('WETH'), Token('WBTC')])  # 1_741_2000
                for protocol in [DexProtocol.UniswapV2,
                                 DexProtocol.UniswapV3,
                                 DexProtocol.SushiSwap]},
@@ -137,12 +137,13 @@ class PrimaryTokenPairs(Model):
         input_addresses = input.addresses
         ring0_tokens = self.context.run_model(
             'dex.ring0-tokens', DexProtocolInput(protocol=input.protocol),
-            return_type=Some[Address]).some
+            return_type=Some[Address], local=True).some
         primary_tokens_ring0 = ring0_tokens.copy()
 
         # _wbtc_address = Token('WBTC').address
         ring1_tokens_with_serial = (self.context.run_model(
-            'dex.ring1-tokens', DexProtocolInput(protocol=input.protocol), return_type=Some[AddressWithSerial])
+            'dex.ring1-tokens', DexProtocolInput(protocol=input.protocol),
+            return_type=Some[AddressWithSerial], local=True)
             .sorted(key=lambda t: t.serial))
         ring1_tokens = [t.address for t in ring1_tokens_with_serial]
 

@@ -130,13 +130,13 @@ class UniswapV3PoolMeta(Model):
     def get_pools_for_tokens(self, factory_addr: Address, _protocol, input_addresses: list[Address], pool_fees) -> list[Address]:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=input_addresses, protocol=_protocol),
-                                             return_type=PrimaryTokenPairsOutput).pairs
+                                             return_type=PrimaryTokenPairsOutput, local=True).pairs
         return self.get_pools_by_pair(factory_addr, token_pairs, pool_fees)
 
     def get_pools_for_tokens_ledger(self, factory_addr: Address, _protocol, input_address: Address, fees: list[int]):
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
-                                             return_type=PrimaryTokenPairsOutput).pairs
+                                             return_type=PrimaryTokenPairsOutput, local=True).pairs
         token_pairs_fee = [(*tp, fees) for tp in token_pairs]
 
         factory = self.get_factory(factory_addr)
@@ -185,7 +185,7 @@ class UniswapV3PoolMeta(Model):
             self.context.run_model(
                 'dex.ring0-tokens',
                 DexProtocolInput(protocol=_protocol),
-                return_type=Some[Address]).some)
+                return_type=Some[Address], local=True).some)
 
         ratios = {}
         valid_tokens = set()
