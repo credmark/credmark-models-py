@@ -49,15 +49,17 @@ class DexPrimaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.BSC: {
+            # UITP/BOB on Uniswap V3 on BSC are not included because few connection to other tokens.
             **{protocol: (lambda: [Token('USDT'), Token('BUSD'), Token('USDC')])
                for protocol in [DexProtocol.UniswapV3,
-                                DexProtocol.PancakeSwapV2,
-                                DexProtocol.PancakeSwapV3]},
+                                DexProtocol.PancakeSwapV3,
+                                DexProtocol.PancakeSwapV2]},
         },
         Network.Polygon: {
+            # BOB is not part of ring1 due to limited connection to other tokens.
             # Moved Token('DAI') out to Ring1
             # Because we only support three tokens in Ring0 in order for triangulation for inter-ratios
-            **{protocol: (lambda: [Token('USDT'), Token('USDC'), Token('miMATIC')])
+            **{protocol: (lambda: [Token('USDC'), Token('USDT'), Token('miMATIC')])
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
@@ -100,7 +102,7 @@ class DexSecondaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.BSC: {
-            **{protocol: (lambda _: [Token('WBNB'), Token('WBNB'), Token('BTCB'), Token('ETH')])
+            **{protocol: (lambda _: [Token('WBNB'), Token('BTCB'), Token('ETH')])
                for protocol in [DexProtocol.UniswapV3,
                                 DexProtocol.PancakeSwapV2,
                                 DexProtocol.PancakeSwapV3]},
