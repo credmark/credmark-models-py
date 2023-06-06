@@ -85,7 +85,7 @@ class DexSecondaryTokens(Model):
     RING1_TOKENS = {
         Network.Mainnet: {
             **{protocol: (lambda block_number:
-                          [Token('WETH')] if block_number <= 17_385_780 else [Token('WETH'), Token('WBTC')])  # 1_741_2000
+                          [Token('WETH')] if block_number <= 17_385_780 else [Token('WETH'), Token('WBTC')])
                for protocol in [DexProtocol.UniswapV2,
                                 DexProtocol.UniswapV3,
                                 DexProtocol.SushiSwap]},
