@@ -405,7 +405,7 @@ class DexPrimaryTokensUniV3(Model):
         ring0_tokens = self.context.run_model(
             'dex.ring0-tokens',
             DexProtocolInput(protocol=DexProtocol.UniswapV3),
-            return_type=Some[Address]).some
+            return_type=Some[Address], local=True).some
 
         # tokens = primary_tokens[:2]
         # tokens = primary_tokens[1:]

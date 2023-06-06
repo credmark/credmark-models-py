@@ -11,10 +11,10 @@ from typing import Optional
 import pandas as pd
 from credmark.cmf.model import ModelContext
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Contract, Token
+from credmark.cmf.types import Address, Token
 from credmark.dto import DTO
 
-from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events_with_cols
+from models.credmark.protocols.dexes.uniswap.uni_pool import UniswapPoolBase, fetch_events_with_cols
 from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -35,21 +35,20 @@ class Tick(DTO):
         return self.liquidityGross == 0 and self.liquidityNet == 0
 
 
-class UniV3Pool:
+class UniV3Pool(UniswapPoolBase):
     """
     Uniswap V3 Pool
     """
 
+    EVENT_LIST = ['Initialize', 'Collect', 'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']
+
     def __init__(self, pool_addr: Address, _pool_data: Optional[dict] = None):
-        self.pool = Contract(address=pool_addr).set_abi(
-            UNISWAP_V3_POOL_ABI, set_loaded=True)
+        super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
 
         self.token0_addr = self.pool.functions.token0().call().lower()
         self.token1_addr = self.pool.functions.token1().call().lower()
-
-        self.df_evt = {}
 
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
@@ -221,54 +220,29 @@ class UniV3Pool:
         self.token0_reserve = _pool_data['token0_reserve']
         self.token1_reserve = _pool_data['token1_reserve']
 
-    def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
-        pool = self.pool
-        if pool.abi is None:
-            raise ValueError(f'Pool abi missing for {pool.address}')
+    def _self_check_events(self, df_comb_evt):
+        token0_balance = \
+            sum(self.df_evt['Mint'].amount0.to_list()) - \
+            sum(self.df_evt['Collect'].amount0.to_list()) - \
+            (0 if self.df_evt['CollectProtocol'].empty else sum(self.df_evt['CollectProtocol'].amount0.to_list())) + \
+            sum(self.df_evt['Swap'].amount0.to_list())
+        token1_balance = \
+            sum(self.df_evt['Mint'].amount1.to_list()) - \
+            sum(self.df_evt['Collect'].amount1.to_list()) - \
+            (0 if self.df_evt['CollectProtocol'].empty else sum(self.df_evt['CollectProtocol'].amount1.to_list())) + \
+            sum(self.df_evt['Swap'].amount1.to_list())
 
-        for event_name in ['Initialize', 'Collect', 'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']:
-            df_evt = fetch_events_with_cols(
-                pool, getattr(pool.events, event_name), event_name,
-                from_block, to_block, getattr(pool.abi.events, event_name).args,
-                use_async, async_worker)
-            self.df_evt[event_name] = df_evt
+        if not df_comb_evt.empty:
+            context = ModelContext.current_context()
+            with context.fork(block_number=int(df_comb_evt.blockNumber.max())):
+                token0_reserve = self.token0.balance_of(self.pool.address.checksum)
+                token1_reserve = self.token1.balance_of(self.pool.address.checksum)
 
-        df_comb_evt = pd.concat(self.df_evt.values())
-
-        if df_comb_evt.empty:
-            return df_comb_evt
-
-        df_comb_evt = df_comb_evt.sort_values(['blockNumber', 'logIndex']).reset_index(drop=True)
-
-        print(([(k, v.shape[0]) for k, v in self.df_evt.items()]),
-              ('_comb_evt', df_comb_evt.shape[0], 'block_number', df_comb_evt.blockNumber.nunique()),
-              file=sys.stderr, flush=True)
-
-        def _self_check():
-            token0_balance = \
-                sum(self.df_evt['Mint'].amount0.to_list()) - \
-                sum(self.df_evt['Collect'].amount0.to_list()) - \
-                (0 if self.df_evt['CollectProtocol'].empty else sum(self.df_evt['CollectProtocol'].amount0.to_list())) + \
-                sum(self.df_evt['Swap'].amount0.to_list())
-            token1_balance = \
-                sum(self.df_evt['Mint'].amount1.to_list()) - \
-                sum(self.df_evt['Collect'].amount1.to_list()) - \
-                (0 if self.df_evt['CollectProtocol'].empty else sum(self.df_evt['CollectProtocol'].amount1.to_list())) + \
-                sum(self.df_evt['Swap'].amount1.to_list())
-
-            if not df_comb_evt.empty:
-                context = ModelContext.current_context()
-                with context.fork(block_number=int(df_comb_evt.blockNumber.max())):
-                    token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-                    token1_reserve = self.token1.balance_of(self.pool.address.checksum)
-
-                try:
-                    assert token0_balance <= token0_reserve
-                    assert token1_balance <= token1_reserve
-                except AssertionError as err:
-                    raise err
-
-        return df_comb_evt
+            try:
+                assert token0_balance <= token0_reserve
+                assert token1_balance <= token1_reserve
+            except AssertionError as err:
+                raise err
 
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):
         num = sqrtPrice96 * sqrtPrice96

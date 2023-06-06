@@ -4,28 +4,29 @@
 Uni V2 Pool
 """
 
-import sys
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Contract, Token
+from credmark.cmf.types import Address, Token
 
-from models.credmark.protocols.dexes.uniswap.uni_pool import fetch_events_with_cols
+from models.credmark.protocols.dexes.uniswap.uni_pool import UniswapPoolBase
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
 
-class UniV2Pool:
+class UniV2Pool(UniswapPoolBase):
     """
     Uniswap V2 Pool
     """
 
+    EVENT_LIST = ['Sync', 'Swap', 'Mint', 'Burn']
+
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
-        self.pool = (Contract(address=pool_addr)
-                     .set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True))
+        super().__init__(pool_addr, UNISWAP_V2_POOL_ABI, self.EVENT_LIST)
+
         self.protocol = _protocol
+
         self.tick_spacing = 1
 
         self.token0_addr = self.pool.functions.token0().call().lower()
@@ -141,32 +142,6 @@ class UniV2Pool:
 
         self.reserve0 = _pool_data['reserve0']
         self.reserve1 = _pool_data['reserve1']
-
-    def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
-        pool = self.pool
-        if pool.abi is None:
-            raise ValueError(f'Pool abi missing for {pool.address}')
-
-        for event_name in ['Sync', 'Swap', 'Mint', 'Burn']:
-            df_evt = fetch_events_with_cols(
-                pool, getattr(pool.events, event_name), event_name,
-                from_block, to_block, getattr(pool.abi.events, event_name).args,
-                use_async, async_worker)
-            self.df_evt[event_name] = df_evt
-
-        df_comb_evt = pd.concat(self.df_evt.values())
-
-        if df_comb_evt.empty:
-            return df_comb_evt
-
-        df_comb_evt = df_comb_evt.sort_values(
-            ['blockNumber', 'logIndex']).reset_index(drop=True)
-
-        print(([(k, v.shape[0]) for k, v in self.df_evt.items()]),
-              ('_comb_evt', df_comb_evt.shape[0], 'block_number', df_comb_evt.blockNumber.nunique()),
-              file=sys.stderr, flush=True)
-
-        return df_comb_evt
 
     def get_pool_price_info(self):
         full_tick_liquidity0 = self.token0.scaled(self.reserve0)

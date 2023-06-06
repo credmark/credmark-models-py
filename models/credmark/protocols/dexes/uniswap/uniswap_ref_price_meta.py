@@ -51,11 +51,11 @@ class UniswapRefPriceMeta(Model):
         # pylint:disable=locally-disabled, too-many-locals, too-many-statements
         ring0_tokens = self.context.run_model(
             'dex.ring0-tokens', DexProtocolInput(protocol=model_input.protocol),
-            return_type=Some[Address]).some
+            return_type=Some[Address], local=True).some
 
         ring1_tokens_with_serial = (self.context.run_model(
             'dex.ring1-tokens', DexProtocolInput(protocol=model_input.protocol),
-            return_type=Some[AddressWithSerial])
+            return_type=Some[AddressWithSerial], local=True)
             .sorted(key=lambda t: t.serial))
         ring1_tokens = [t.address for t in ring1_tokens_with_serial]
 
