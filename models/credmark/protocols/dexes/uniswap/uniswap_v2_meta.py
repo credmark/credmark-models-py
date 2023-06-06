@@ -157,13 +157,13 @@ class UniswapV2PoolMeta(Model):
     def get_pools_for_tokens(self, factory_addr: Address, _protocol, input_addresses: list[Address]) -> list[Address]:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=input_addresses, protocol=_protocol),
-                                             return_type=PrimaryTokenPairsOutput).pairs
+                                             return_type=PrimaryTokenPairsOutput, local=True).pairs
         return self.get_pools_by_pair(factory_addr, token_pairs)
 
     def get_pools_for_tokens_ledger(self, factory_addr: Address, _protocol, input_address: Address) -> Contracts:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
-                                             return_type=PrimaryTokenPairsOutput).pairs
+                                             return_type=PrimaryTokenPairsOutput, local=True).pairs
 
         factory = self.get_factory(factory_addr)
         with factory.ledger.events.PairCreated as q:
@@ -240,7 +240,7 @@ class UniswapV2PoolMeta(Model):
     def get_ref_price(self, factory_addr: Address, _protocol: DexProtocol, weight_power: float):
         ring0_tokens = sorted(self.context.run_model('dex.ring0-tokens',
                                                      DexProtocolInput(protocol=_protocol),
-                                                     return_type=Some[Address]).some)
+                                                     return_type=Some[Address], local=True).some)
 
         ratios = {}
         valid_tokens = set()

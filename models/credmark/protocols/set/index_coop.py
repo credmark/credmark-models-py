@@ -126,11 +126,7 @@ def index_coop_revenue_issue(
                 price = _context.run_model(
                     'price.dex', input={'base': _prod_token.address}, block_number=blk_eod)['price']
             except (ModelDataError, ModelRunError):
-                try:
-                    price = _prod_token.models(
-                        block_number=blk_eod).price.dex_db_ring3()['price']
-                except (ModelDataError, ModelRunError):
-                    price = 1
+                price = 1
         else:
             price = 1
 
