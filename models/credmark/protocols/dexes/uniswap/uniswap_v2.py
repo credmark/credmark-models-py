@@ -31,8 +31,11 @@ class UniswapV2FactoryMeta:
     PROTOCOL = DexProtocol.UniswapV2
 
 
+UNISWAPV2_VERSION = '0.1'
+
+
 @Model.describe(slug="uniswap-v2.get-factory",
-                version="0.2",
+                version=UNISWAPV2_VERSION,
                 display_name="Uniswap V2 - get factory",
                 description="Returns the address of Uniswap V2 factory contract",
                 category='protocol',
@@ -44,7 +47,7 @@ class UniswapV2GetFactory(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug="uniswap-v2.get-pool-by-pair",
-                version="0.3",
+                version=UNISWAPV2_VERSION,
                 display_name="Uniswap V2 get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
@@ -58,7 +61,7 @@ class UniswapV2GetPool(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug="uniswap-v2.all-pools",
-                version="1.4",
+                version=UNISWAPV2_VERSION,
                 display_name="Uniswap V2 all pools",
                 description="Returns the addresses of all pools on Uniswap V2 protocol",
                 category='protocol',
@@ -72,7 +75,7 @@ class UniswapV2AllPools(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug="uniswap-v2.all-pools-events",
-                version="0.1",
+                version=UNISWAPV2_VERSION,
                 display_name="Uniswap V2 all pools",
                 description="Returns the addresses of all pools on Uniswap V2 protocol",
                 category='protocol',
@@ -87,7 +90,7 @@ class UniswapV2AllPoolsEvents(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.all-pools-ledger',
-                version='0.2',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Token Pools - from ledger',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -100,7 +103,7 @@ class UniswapV2AllPoolsLedger(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools',
-                version='1.11',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract',
                 category='protocol',
@@ -115,7 +118,7 @@ class UniswapV2GetPoolsForToken(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools-ledger',
-                version='0.3',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Token Pools',
                 description='The Uniswap v2 pools that support a token contract - use ledger',
                 category='protocol',
@@ -130,7 +133,7 @@ class UniswapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pools-tokens',
-                version='1.11',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Pools for Tokens',
                 description='The Uniswap v2 pools for multiple tokens',
                 category='protocol',
@@ -146,7 +149,7 @@ class UniswapV2GetPoolsForTokens(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-ring0-ref-price',
-                version='0.9',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Ring0 Reference Price',
                 description='The Uniswap v2 pools that support the ring0 tokens',
                 category='protocol',
@@ -160,7 +163,7 @@ class UniswapV2GetRing0RefPrice(UniswapV2PoolMeta, UniswapV2FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v2.get-pool-info-token-price',
-                version='1.20',
+                version=UNISWAPV2_VERSION,
                 display_name='Uniswap v2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',

@@ -10,7 +10,7 @@ import numpy as np
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Token
 
-from models.credmark.protocols.dexes.uniswap.uni_pool import UniswapPoolBase
+from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 

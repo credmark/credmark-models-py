@@ -21,18 +21,14 @@ class PancakeSwapV2FactoryMeta:
     PROTOCOL = DexProtocol.PancakeSwapV2
 
 
-class PancakeSwapV3FactoryMeta:
-    FACTORY_ADDRESS = {
-        network: Address('0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865')
-        for network in [Network.BSC, Network.Mainnet, Network.Görli]
-    }
-
-
 class PancakeSwapV2Pool(Contract):
     class Config:
         schema_extra = {
             "examples": [{'address': '0x2594566669abc983e286aa5c20468ab903287448'}]
         }
+
+
+PANCAKESWAP_V2_VERSION = '0.1'
 
 
 class PancakeSwapV2DexPoolPriceInput(PancakeSwapV2Pool, DexPoolPriceInput):
@@ -47,7 +43,7 @@ class PancakeSwapV2DexPoolPriceInput(PancakeSwapV2Pool, DexPoolPriceInput):
 
 
 @Model.describe(slug="pancakeswap-v2.get-factory",
-                version="0.2",
+                version=PANCAKESWAP_V2_VERSION,
                 display_name="PancakeSwapV2 - get factory",
                 description="Returns the address of PancakeSwapV2 factory contract",
                 category='protocol',
@@ -59,7 +55,7 @@ class PancakeSwapV2GetFactory(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
 
 
 @Model.describe(slug="pancakeswap-v2.get-pool-by-pair",
-                version="1.3",
+                version=PANCAKESWAP_V2_VERSION,
                 display_name="PancakeSwapV2 get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
@@ -73,7 +69,7 @@ class PancakeSwapV2GetPair(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
 
 
 @Model.describe(slug="pancakeswap-v2.all-pools",
-                version="1.4",
+                version=PANCAKESWAP_V2_VERSION,
                 display_name="PancakeSwapV2 all pairs",
                 description="Returns the addresses of all pairs on PancakeSwapV2 protocol",
                 category='protocol',
@@ -87,7 +83,7 @@ class PancakeSwapV2AllPairs(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
 
 
 @Model.describe(slug="pancakeswap-v2.all-pools-events",
-                version="0.1",
+                version=PANCAKESWAP_V2_VERSION,
                 display_name="PancakeSwap V2 all pairs from events",
                 description=("Returns the addresses of all pairs on "
                              "PancakeSwap V2 protocol from events"),
@@ -103,7 +99,7 @@ class PancakeSwapV2AllPairsEvents(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
 
 
 @Model.describe(slug='pancakeswap-v2.all-pools-ledger',
-                version='0.1',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwap V2 Token Pools - from ledger',
                 description='The PancakeSwap V2 pools that support a token contract',
                 category='protocol',
@@ -116,7 +112,7 @@ class PancakeSwapV2AllPairsLedger(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta):
 
 
 @Model.describe(slug='pancakeswap-v2.get-pools',
-                version='1.11',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwapV2 Token Pools',
                 description='The PancakeSwapV2 pool pools that support a token contract',
                 category='protocol',
@@ -131,7 +127,7 @@ class PancakeSwapV2GetPoolsForToken(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta)
 
 
 @Model.describe(slug='pancakeswap-v2.get-pools-ledger',
-                version='0.3',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwapV2 Token Pools',
                 description='The PancakeSwapV2 pools that support a token contract - use ledger',
                 category='protocol',
@@ -146,7 +142,7 @@ class PancakeSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, PancakeSwapV2Factor
 
 
 @Model.describe(slug='pancakeswap-v2.get-pools-tokens',
-                version='1.11',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwapV2 Pools for Tokens',
                 description='The PancakeSwapV2 pools for multiple tokens',
                 category='protocol',
@@ -162,7 +158,7 @@ class PancakeSwapV2GetPoolsForTokens(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta
 
 
 @Model.describe(slug='pancakeswap-v2.get-ring0-ref-price',
-                version='0.9',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwapV2 Ring0 Reference Price',
                 description='The PancakeSwapV2 pools that support the ring0 tokens',
                 category='protocol',
@@ -176,7 +172,7 @@ class PancakeSwapV2GetRing0RefPrice(UniswapV2PoolMeta, PancakeSwapV2FactoryMeta)
 
 
 @Model.describe(slug='pancakeswap-v2.get-pool-info-token-price',
-                version='1.20',
+                version=PANCAKESWAP_V2_VERSION,
                 display_name='PancakeSwapV2 Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',

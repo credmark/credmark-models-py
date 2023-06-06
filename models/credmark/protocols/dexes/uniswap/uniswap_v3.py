@@ -28,8 +28,11 @@ class UniswapV3FactoryMeta:
     POOL_FEES = V3_POOL_FEES
 
 
+UNISWAPV3_VERSION = '0.1'
+
+
 @Model.describe(slug="uniswap-v3.get-factory",
-                version="0.2",
+                version=UNISWAPV3_VERSION,
                 display_name="Uniswap V3 - get factory",
                 description="Returns the address of Uniswap V3 factory contract",
                 category='protocol',
@@ -41,7 +44,7 @@ class UniswapV3GetFactory(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug="uniswap-v3.get-pools-by-pair",
-                version="1.3",
+                version=UNISWAPV3_VERSION,
                 display_name="Uniswap V3 get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
@@ -57,7 +60,7 @@ class UniswapV3GetPool(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug="uniswap-v3.all-pools-events",
-                version="0.1",
+                version=UNISWAPV3_VERSION,
                 display_name="Uniswap v3 all pairs",
                 description="Returns the addresses of all pairs on Uniswap V3 protocol",
                 category='protocol',
@@ -72,7 +75,7 @@ class UniswapV3AllPoolsEvents(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.all-pools-ledger',
-                version='0.2',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Token Pools - from ledger',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -85,7 +88,7 @@ class UniswapV3AllPoolsLedger(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.get-pools',
-                version='1.11',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -101,7 +104,7 @@ class UniswapV3GetPoolsForToken(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.get-pools-ledger',
-                version='0.3',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract - use ledger',
                 category='protocol',
@@ -116,7 +119,7 @@ class UniswapV3GetPoolsForTokenLedger(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.get-pools-tokens',
-                version='1.11',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Token Pools',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -132,7 +135,7 @@ class UniswapV3GetPoolsForTokens(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.get-ring0-ref-price',
-                version='0.9',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Ring0 Reference Price',
                 description='The Uniswap v3 pools that support the ring0 tokens',
                 category='protocol',
@@ -146,7 +149,7 @@ class UniswapV3GetRing0RefPrice(UniswapV3PoolMeta, UniswapV3FactoryMeta):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info-token-price',
-                version='1.20',
+                version=UNISWAPV3_VERSION,
                 display_name='Uniswap v3 Token Pools Price ',
                 description='Gather price and liquidity information from pools',
                 category='protocol',

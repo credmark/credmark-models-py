@@ -9,7 +9,7 @@ class TestSushiSwap(TestUniswapPools):
 
         default_block_number = 17_001_000
         model_prefix = 'sushiswap'
-        self.v2_pools(model_prefix, default_block_number)
+        self.pool_tests(model_prefix, default_block_number, 1, 'USDC', 'WETH', 'MKR')
 
         # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
         self.run_model('sushiswap.get-weighted-price', {"symbol": "WETH"})

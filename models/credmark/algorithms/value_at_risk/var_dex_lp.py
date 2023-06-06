@@ -1,10 +1,12 @@
+# pylint: disable = line-too-long
+
 import math
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Contract, PriceWithQuote, Some, Token
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import PriceWithQuote, Some, Token
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 
 from models.credmark.algorithms.value_at_risk.dto import (
@@ -14,14 +16,13 @@ from models.credmark.algorithms.value_at_risk.dto import (
 )
 from models.credmark.algorithms.value_at_risk.risk_method import calc_var
 from models.credmark.protocols.dexes.uniswap.liquidity import UNISWAP_TICK
-from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import UniswapV3PoolInfo
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import UniswapV3PoolInfo, fix_univ3_pool
 
 np.seterr(all='raise')
 
 
 @Model.describe(slug="finance.var-dex-lp",
-                version="1.9",
+                version="1.10",
                 display_name="VaR for liquidity provider to Pool with IL adjustment to portfolio",
                 description="Working for UniV2, V3 and SushiSwap pools",
                 category='protocol',
@@ -37,13 +38,7 @@ class UniswapPoolVaR(Model):
     """
 
     def run(self, input: UniswapPoolVaRInput) -> UniswapPoolVaROutput:
-        pool = input.pool
-
-        try:
-            _ = pool.abi
-        except ModelDataError:
-            pool = Contract(address=input.pool.address).set_abi(
-                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+        pool = fix_univ3_pool(input.pool)
 
         if not isinstance(pool.abi, list):
             raise ModelRunError('Pool abi can not be loaded.')
