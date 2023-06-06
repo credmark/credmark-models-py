@@ -15,9 +15,11 @@ from models.dtos.price import (
 
 # credmark-dev run dex.ring0-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
 
+RING_MODEL_VERSION = '0.4'
+
 
 @Model.describe(slug='dex.ring0-tokens',
-                version='0.3',
+                version=RING_MODEL_VERSION,
                 display_name='DEX Tokens - Primary, or Ring0',
                 description='Tokens to form primary trading pairs for new token issuance',
                 category='protocol',
@@ -53,7 +55,9 @@ class DexPrimaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda: [Token('USDT'), Token('USDC'), Token('DAI'), Token('miMATIC')])
+            # Moved Token('DAI') out to Ring1
+            # Because we only support three tokens in Ring0 in order for triangulation for inter-ratios
+            **{protocol: (lambda: [Token('USDT'), Token('USDC'), Token('miMATIC')])
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
@@ -73,7 +77,7 @@ class DexPrimaryTokens(Model):
 # credmark-dev run dex.ring1-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
 
 @Model.describe(slug='dex.ring1-tokens',
-                version='0.3',
+                version=RING_MODEL_VERSION,
                 display_name='DEX Tokens - Secondary, or Ring1',
                 description='Tokens to form secondary trading pairs for new token issuance',
                 category='protocol',
@@ -85,7 +89,8 @@ class DexSecondaryTokens(Model):
     RING1_TOKENS = {
         Network.Mainnet: {
             **{protocol: (lambda block_number:
-                          [Token('WETH')] if block_number <= 17_385_780 else [Token('WETH'), Token('WBTC')])
+                          [Token('WETH')] if block_number <= 17_385_780
+                          else [Token('WETH'), Token('WBTC')])
                for protocol in [DexProtocol.UniswapV2,
                                 DexProtocol.UniswapV3,
                                 DexProtocol.SushiSwap]},
@@ -95,14 +100,13 @@ class DexSecondaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.BSC: {
-            # TODO: multi-ring1 tokens to be added
-            **{protocol: (lambda _: [Token('WBNB')])  # [Token('WBNB'), Token('BTCB'), Token('ETH')]
+            **{protocol: (lambda _: [Token('WBNB'), Token('WBNB'), Token('BTCB'), Token('ETH')])
                for protocol in [DexProtocol.UniswapV3,
                                 DexProtocol.PancakeSwapV2,
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda _: [Token('WMATIC')])  # [Token('WMATIC'), Token('WETH'), Token('WBTC')]
+            **{protocol: (lambda _: [Token('DAI'), Token('WMATIC'), Token('WETH'), Token('WBTC')])
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
@@ -124,7 +128,7 @@ class DexSecondaryTokens(Model):
 
 
 @Model.describe(slug='dex.primary-token-pairs',
-                version='0.2',
+                version=RING_MODEL_VERSION,
                 display_name='DEX pairs between tokens and primary tokens ',
                 description='DEX candidate pairs (to be look up) between tokens and primary tokens (ring0/ring1)',
                 category='protocol',
