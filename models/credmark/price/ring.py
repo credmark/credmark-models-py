@@ -106,7 +106,7 @@ class DexSecondaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda _: [Token('DAI'), Token('WMATIC'), Token('WETH'), Token('WBTC')])
+            **{protocol: (lambda _: [Token('WMATIC'), Token('WETH'), Token('WBTC'), Token('DAI')])
                for protocol in [DexProtocol.UniswapV3]}
         }
     }
