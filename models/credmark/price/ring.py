@@ -73,7 +73,7 @@ class DexPrimaryTokens(Model):
 # credmark-dev run dex.ring1-tokens -b 17_100_000 -i '{"protocol": "uniswap-v3"}' -j
 
 @Model.describe(slug='dex.ring1-tokens',
-                version='0.3',
+                version='0.4',
                 display_name='DEX Tokens - Secondary, or Ring1',
                 description='Tokens to form secondary trading pairs for new token issuance',
                 category='protocol',
@@ -124,7 +124,7 @@ class DexSecondaryTokens(Model):
 
 
 @Model.describe(slug='dex.primary-token-pairs',
-                version='0.2',
+                version='0.3',
                 display_name='DEX pairs between tokens and primary tokens ',
                 description='DEX candidate pairs (to be look up) between tokens and primary tokens (ring0/ring1)',
                 category='protocol',
