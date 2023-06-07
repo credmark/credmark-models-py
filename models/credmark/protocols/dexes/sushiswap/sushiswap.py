@@ -26,6 +26,9 @@ class SushiSwapPool(Contract):
         }
 
 
+SUSHISWAPV3_VERSION = '0.1'
+
+
 class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
     class Config:
         schema_extra = {
@@ -38,7 +41,7 @@ class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
 
 
 @Model.describe(slug="sushiswap.get-factory",
-                version="0.2",
+                version=SUSHISWAPV3_VERSION,
                 display_name="SushiSwap - get factory",
                 description="Returns the address of SushiSwap factory contract",
                 category='protocol',
@@ -50,7 +53,7 @@ class SushiSwapGetFactory(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug="sushiswap.get-pool-by-pair",
-                version="0.3",
+                version=SUSHISWAPV3_VERSION,
                 display_name="SushiSwap get pool for a pair of tokens",
                 description=("Returns the addresses of the pool of input tokens"),
                 category='protocol',
@@ -64,7 +67,7 @@ class SushiSwapGetPair(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug="sushiswap.all-pools",
-                version="1.4",
+                version=SUSHISWAPV3_VERSION,
                 display_name="SushiSwap all pairs",
                 description="Returns the addresses of all pairs on SushiSwap protocol",
                 category='protocol',
@@ -78,7 +81,7 @@ class SushiSwapAllPairs(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug="sushiswap.all-pools-events",
-                version="0.1",
+                version=SUSHISWAPV3_VERSION,
                 display_name="SushiSwap all pairs from events",
                 description="Returns the addresses of all pairs on SushiSwap protocol from events",
                 category='protocol',
@@ -93,7 +96,7 @@ class SushiSwapAllPairsEvents(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug='sushiswap.all-pools-ledger',
-                version='0.1',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Token Pools - from ledger',
                 description='The SushiSwap pools that support a token contract',
                 category='protocol',
@@ -106,7 +109,7 @@ class SushiSwapAllPairsLedger(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug='sushiswap.get-pools',
-                version='1.11',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Token Pools',
                 description='The SushiSwap pool pools that support a token contract',
                 category='protocol',
@@ -121,7 +124,7 @@ class SushiSwapGetPoolsForToken(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug='sushiswap.get-pools-ledger',
-                version='0.3',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Token Pools',
                 description='The SushiSwap pools that support a token contract - use ledger',
                 category='protocol',
@@ -136,7 +139,7 @@ class SushiSwapV2GetPoolsForTokenLedger(UniswapV2PoolMeta, SushiSwapFactoryMeta)
 
 
 @Model.describe(slug='sushiswap.get-pools-tokens',
-                version='1.11',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Pools for Tokens',
                 description='The SushiSwap pools for multiple tokens',
                 category='protocol',
@@ -152,7 +155,7 @@ class SushiSwapGetPoolsForTokens(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug='sushiswap.get-ring0-ref-price',
-                version='0.9',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Ring0 Reference Price',
                 description='The SushiSwap pools that support the ring0 tokens',
                 category='protocol',
@@ -166,7 +169,7 @@ class SushiSwapGetRing0RefPrice(UniswapV2PoolMeta, SushiSwapFactoryMeta):
 
 
 @Model.describe(slug='sushiswap.get-pool-info-token-price',
-                version='1.20',
+                version=SUSHISWAPV3_VERSION,
                 display_name='SushiSwap Token Pools',
                 description='Gather price and liquidity information from pools for a Token',
                 category='protocol',

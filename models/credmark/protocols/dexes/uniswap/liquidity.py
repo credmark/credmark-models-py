@@ -6,17 +6,16 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import pandas as pd
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO, DTOField
 
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.credmark.protocols.dexes.uniswap.univ3_math import (
     UNISWAP_TICK,
     UNISWAP_V3_MAX_TICK,
     UNISWAP_V3_MIN_TICK,
     tick_to_price,
 )
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
 class UniswapV3PoolLiquidityByTicksInput(Contract):
@@ -45,7 +44,7 @@ class UniswapV3PoolLiquidityByTicksOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-liquidity-by-ticks',
-                version='0.1',
+                version='0.2',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
@@ -56,11 +55,7 @@ class UniswapV3LiquidityHistorical(Model):
     def run(self, input: UniswapV3PoolLiquidityByTicksInput) -> UniswapV3PoolLiquidityByTicksOutput:
         pool_contract = input
 
-        try:
-            _ = pool_contract.abi
-        except ModelDataError:
-            pool_contract = Contract(address=input.address).set_abi(
-                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+        pool_contract = fix_univ3_pool(pool_contract)
 
         current_liquidity = pool_contract.functions.liquidity().call()
         slot0 = pool_contract.functions.slot0().call()
@@ -122,8 +117,7 @@ def plot_liquidity(context,
                    pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                    upper_range=1000,
                    lower_range=1000):
-    pool = Contract(address=pool_addr).set_abi(
-        abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+    pool = fix_univ3_pool(Contract(address=pool_addr))
 
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
@@ -263,13 +257,7 @@ class UniswapV3AmountInTicks(Model):
             input,
             return_type=UniswapV3PoolLiquidityByTicksOutput)
 
-        pool_contract = input
-
-        try:
-            _ = pool_contract.abi
-        except ModelDataError:
-            pool_contract = Contract(address=input.address).set_abi(
-                abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+        pool_contract = fix_univ3_pool(input)
 
         token0_addr = pool_contract.functions.token0().call()
         token1_addr = pool_contract.functions.token1().call()
@@ -290,8 +278,8 @@ def plot_liquidity_amount(context,
                           pool_addr='0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640',
                           upper_range: Optional[int] = 1000,
                           lower_range: Optional[int] = 1000):
-    pool = Contract(address=pool_addr).set_abi(
-        abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+
+    pool = fix_univ3_pool(Contract(address=pool_addr))
 
     token0_addr = pool.functions.token0().call()
     token1_addr = pool.functions.token1().call()

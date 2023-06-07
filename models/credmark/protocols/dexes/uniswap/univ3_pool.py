@@ -14,7 +14,8 @@ from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Token
 from credmark.dto import DTO
 
-from models.credmark.protocols.dexes.uniswap.uni_pool import UniswapPoolBase, fetch_events_with_cols
+from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase, fetch_events_with_cols
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
 from models.dtos.pool import PoolPriceInfoWithVolume
 from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
@@ -44,6 +45,7 @@ class UniV3Pool(UniswapPoolBase):
 
     def __init__(self, pool_addr: Address, _pool_data: Optional[dict] = None):
         super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST)
+        self.pool = fix_univ3_pool(self.pool)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
 

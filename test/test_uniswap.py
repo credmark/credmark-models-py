@@ -4,36 +4,41 @@ from cmf_test import CMFTest
 
 
 class TestUniswapPools(CMFTest):
-    def v2_pools(self, model_prefix, default_block_number):
-        self.run_model(f'{model_prefix}.get-factory', {}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pool-by-pair',
-                       {"token0": {"symbol": "USDC"}, "token1": {"symbol": "WETH"}},
-                       block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "MKR"})
-        self.run_model(f'{model_prefix}.get-pools-tokens',
-                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pool-info-token-price',
-                       {"symbol": "USDC"}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-weighted-price', {"symbol": "WETH"}, block_number=default_block_number)
+    def pool_tests(self, model_prefix, default_block_number, chain_id,
+                   ring0_token, ring1_token, ring2_token,
+                   do_test_ledger=True):
+        default_args = {'block_number': default_block_number, 'chain_id': chain_id}
 
-    def v3_pools(self, model_prefix, default_block_number):
-        self.run_model(f'{model_prefix}.get-factory', {}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools-by-pair',
-                       {"token0": {"symbol": "USDC"}, "token1": {"symbol": "WETH"}},
-                       block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools', {"symbol": "WETH"}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pools', {"symbol": "MKR"})
-        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "MKR"})
-        self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": "WETH"}, block_number=default_block_number)
+        self.run_model(f'{model_prefix}.get-factory', {}, **default_args)
+
+        if model_prefix.endswith('-v2'):
+            self.run_model(f'{model_prefix}.get-pool-by-pair',
+                           {"token0": {"symbol": ring0_token}, "token1": {"symbol": ring1_token}},
+                           **default_args)
+
+        if model_prefix.endswith('-v3'):
+            self.run_model(f'{model_prefix}.get-pools-by-pair',
+                           {"token0": {"symbol": ring0_token}, "token1": {"symbol": ring1_token}},
+                           **default_args)
+
+        for token in [ring0_token, ring1_token, ring2_token]:
+            self.run_model(f'{model_prefix}.get-pools', {"symbol": token},
+                           **default_args)
+            if do_test_ledger:
+                self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": token},
+                               **default_args)
+
         self.run_model(f'{model_prefix}.get-pools-tokens',
-                       {"tokens": [{"symbol": "WETH"}, {"symbol": "USDC"}]}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-pool-info-token-price',
-                       {"symbol": "USDC"}, block_number=default_block_number)
-        self.run_model(f'{model_prefix}.get-weighted-price', {"symbol": "WETH"}, block_number=default_block_number)
+                       {"tokens": [{"symbol": ring0_token}, {"symbol": ring1_token}, {"symbol": ring2_token}]},
+                       **default_args)
+
+        self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, **default_args)
+
+        for token in [ring0_token, ring1_token, ring2_token]:
+            self.run_model(f'{model_prefix}.get-pool-info-token-price',
+                           {"symbol": token}, **default_args)
+            self.run_model(f'{model_prefix}.get-weighted-price',
+                           {"symbol": token}, **default_args)
 
 
 class TestUniswap(TestUniswapPools):
@@ -41,12 +46,10 @@ class TestUniswap(TestUniswapPools):
         self.title("Uniswap")
 
         default_block_number = 17_001_000
-        model_prefix = 'uniswap-v2'
-        self.v2_pools(model_prefix, default_block_number)
+        self.pool_tests('uniswap-v2', default_block_number, 1, 'USDC', 'WETH', 'MKR')
 
         default_block_number = 17_010_000
-        model_prefix = 'uniswap-v3'
-        self.v3_pools(model_prefix, default_block_number)
+        self.pool_tests('uniswap-v3', default_block_number, 1, 'USDC', 'WETH', 'MKR')
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")

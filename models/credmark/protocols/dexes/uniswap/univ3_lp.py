@@ -16,6 +16,7 @@ from models.credmark.protocols.dexes.uniswap.constant import (
     V3_TICK,
 )
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.credmark.protocols.dexes.uniswap.univ3_math import (
     in_range,
     out_of_range,
@@ -24,7 +25,6 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
 from models.tmp_abi_lookup import (
     UNISWAP_V3_FACTORY_ABI,
     UNISWAP_V3_NFT_MANAGER_ABI,
-    UNISWAP_V3_POOL_ABI,
 )
 
 
@@ -172,8 +172,7 @@ class UniswapV2LPId(Model):
             pool_addr = uniswap_factory.functions.getPool(
                 token1_addr.checksum, token0_addr.checksum, position.fee).call()
 
-        pool = Contract(pool_addr).set_abi(
-            abi=UNISWAP_V3_POOL_ABI, set_loaded=True)
+        pool = fix_univ3_pool(Contract(pool_addr))
 
         slot0 = pool.functions.slot0().call()
         sqrtPriceX96 = slot0[0]

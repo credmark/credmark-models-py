@@ -179,9 +179,24 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                 input=DexPriceTokenInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
-class PancakeGetAveragePrice(DexWeightedPrice):
+class PancakeV2GetAveragePrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('pancakeswap-v2.get-pool-info-token-price', input)
+
+
+@Model.describe(slug='pancakeswap-v3.get-weighted-price',
+                version=DEX_PRICE_MODEL_VERSION,
+                display_name='PancakeSwap V3 (Uniswap V3) - get price weighted by liquidity',
+                description='The Pancake pools that support a token contract',
+                category='protocol',
+                subcategory='pancake',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class PancakeV3GetAveragePrice(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Price:
+        return self.aggregate_pool('pancakeswap-v3.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='price.dex-blended-maybe',
@@ -271,7 +286,9 @@ class PriceInfoFromDex(Model):
     DEX_POOL_PRICE_INFO_MODELS: dict[Network, list[str]] = {
         Network.Mainnet: ['uniswap-v2.get-pool-info-token-price',
                           'sushiswap.get-pool-info-token-price',
-                          'uniswap-v3.get-pool-info-token-price']}
+                          'uniswap-v3.get-pool-info-token-price'],
+        Network.BSC: ['pancakeswap-v2.get-pool-info-token-price',
+                      'pancakeswap-v3.get-pool-info-token-price'], }
 
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         # For testing with other power, set this = default power for the token here

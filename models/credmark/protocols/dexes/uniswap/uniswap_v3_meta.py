@@ -20,7 +20,10 @@ from models.dtos.price import (
     PrimaryTokenPairsInput,
     PrimaryTokenPairsOutput,
 )
-from models.tmp_abi_lookup import UNISWAP_V3_FACTORY_ABI, UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import (
+    UNISWAP_V3_FACTORY_ABI,
+    UNISWAP_V3_POOL_ABI,
+)
 
 np.seterr(all='raise')
 
@@ -37,6 +40,7 @@ class UniswapV3PoolMeta(Model):
 
     @staticmethod
     def get_pool(pair_addr: Address):
+        # UniswapV3 pool abi is good enough for token0 and token1 calls, but not for slot0
         return Contract(address=pair_addr).set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
 
     def get_pools_by_pair(self, factory_addr: Address, token_pairs: list[tuple[Address, Address]], pool_fees: list[int]) -> list[Address]:

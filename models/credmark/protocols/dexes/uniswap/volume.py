@@ -8,8 +8,9 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import BlockNumber, Contract, Some, Token
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 
+from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.dtos.volume import TokenTradingVolume, VolumeInput, VolumeInputHistorical
-from models.tmp_abi_lookup import CURVE_VYPER_POOL, UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import CURVE_VYPER_POOL
 
 
 class DexPoolContract(Contract):
@@ -20,7 +21,7 @@ class DexPoolContract(Contract):
 
 
 @Model.describe(slug='dex.pool-volume-block-range',
-                version='1.1',
+                version='1.3',
                 display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -30,14 +31,10 @@ class DexPoolContract(Contract):
                 output=dict)
 class DexPoolSwapBlockRange(Model):
     def run(self, input: DexPoolContract) -> dict:
-        try:
-            _ = input.abi
-        except ModelDataError:
-            input = DexPoolContract(address=input.address).set_abi(
-                UNISWAP_V3_POOL_ABI, set_loaded=True)
+        pool = fix_univ3_pool(input)
 
         def _use_ledger():
-            with input.ledger.events.Swap as q:
+            with pool.ledger.events.Swap as q:
                 df = (q
                       .select(
                           aggregates=[(q.BLOCK_NUMBER.count_distinct_(), 'count'),
@@ -188,7 +185,7 @@ class DexPoolSwapVolumeHistorical(Model):
 
 
 @Model.describe(slug='dex.pool-volume-historical-ledger',
-                version='1.11',
+                version='1.12',
                 display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -204,8 +201,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
             _ = pool.abi
         except ModelDataError:
             if input.pool_info_model == 'uniswap-v2.pool-tvl':
-                pool = Contract(address=input.address).set_abi(
-                    UNISWAP_V3_POOL_ABI, set_loaded=True)
+                pool = fix_univ3_pool(Contract(address=input.address))
             elif input.pool_info_model == 'curve-fi.pool-tvl':
                 pool = Contract(address=input.address).set_abi(
                     CURVE_VYPER_POOL, set_loaded=True)

@@ -349,7 +349,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 
 @Model.describe(slug='accounts.token-historical',
-                version='0.12',
+                version='0.13',
                 display_name='Accounts\' Token Holding Historical',
                 description='Accounts\' Token Holding Historical',
                 developer="Credmark",
@@ -423,15 +423,14 @@ class AccountsERC20TokenHistorical(Model):
                 """
 
                 prices = all_prices_dict.get(token_addr)
-                if prices is None or len(prices) == 0:
+                if prices is None or len(prices) == 0 or len([p for p in prices if p['price'] is None]) > 0:
                     continue
 
                 prices = [p for p in prices if p['blockNumber'] in past_blocks]
 
                 if quotes is not None:
                     for p_idx, _ in enumerate(prices):
-                        prices[p_idx]['price'] /= quotes[prices[p_idx]
-                                                         ['blockNumber']]
+                        prices[p_idx]['price'] /= quotes[prices[p_idx]['blockNumber']]
 
                 if len(prices) < len(past_blocks):
                     if not do_wobble_price:
@@ -481,13 +480,14 @@ class AccountsERC20TokenHistorical(Model):
 
                 # pylint:disable=line-too-long
                 for past_block, price in zip(past_blocks, prices):
-                    (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
-                        # type: ignore
-                        .output['positions'][token_rows[token_addr][str(past_block)]]
-                        ['fiat_quote']) = PriceWithQuote(
-                            price=price['price'],
-                            src='dex',
-                            quoteAddress=input.quote.address).dict()
+                    if price['price'] is not None:
+                        (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
+                            # type: ignore
+                            .output['positions'][token_rows[token_addr][str(past_block)]]
+                            ['fiat_quote']) = PriceWithQuote(
+                                price=price['price'],
+                                src='dex',
+                                quoteAddress=input.quote.address).dict()
 
         res = price_historical_result.dict()
         for n in range(len(res['results'])):

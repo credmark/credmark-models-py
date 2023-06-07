@@ -5,10 +5,11 @@ import math
 import numpy as np
 import numpy.linalg as nplin
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Contract, Maybe, Price, Some, Token
 from credmark.dto import DTO, EmptyInput
 from scipy.optimize import minimize
-from web3.exceptions import ContractLogicError
+from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_TICK,
@@ -21,9 +22,25 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
 )
 from models.dtos.pool import PoolPriceInfo
 from models.dtos.price import DexPoolPriceInput, DexProtocol, DexProtocolInput
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import PANCAKESWAP_V3_POOL_ABI, UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
+
+
+def fix_univ3_pool(pool):
+    try:
+        _ = pool.abi
+    except ModelDataError:
+        try:
+            pool = (Contract(address=pool.address)
+                    .set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True))
+            _ = pool.functions.slot0().call()
+        except BadFunctionCallOutput:
+            pool = (Contract(address=pool.address)
+                    .set_abi(abi=PANCAKESWAP_V3_POOL_ABI, set_loaded=True))
+            _ = pool.functions.slot0().call()
+
+    return pool
 
 
 class UniswapV3Pool(Contract):
@@ -91,7 +108,7 @@ class UniswapV3PoolInfo(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-pool-info',
-                version='1.24',
+                version='1.25',
                 display_name='Uniswap v3 Token Pools Info',
                 description='The Uniswap v3 pools that support a token contract',
                 category='protocol',
@@ -108,11 +125,7 @@ class UniswapV3GetPoolInfo(Model):
 
     # pylint: disable=too-many-locals
     def run(self, input: UniswapV3Pool) -> UniswapV3PoolInfo:
-        # TODO: use input.protocol to query ring0 and ring1 tokens.
-        assert self.context.chain_id == 1  # TODO: Only mainnet is supported'
-
-        pool = (UniswapV3Pool(address=input.address)
-                .set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True))
+        pool = fix_univ3_pool(UniswapV3Pool(address=input.address))
 
         slot0 = pool.functions.slot0().call()
         sqrtPriceX96 = slot0[0]
@@ -331,9 +344,6 @@ class UniswapV3GetPoolInfo(Model):
                 output=Maybe[PoolPriceInfo])
 class UniswapV3GetTokenPoolPriceInfo(UniswapRefPriceMeta):
     def run(self, input: UniswapV3DexPoolPriceInput) -> Maybe[PoolPriceInfo]:
-        # TODO: use input.protocol to query ring0 and ring1 tokens.
-        assert self.context.chain_id == 1  # TODO: support other chains
-
         info = self.context.run_model(
             'uniswap-v3.get-pool-info', input=Contract(**input.dict()),
             return_type=UniswapV3PoolInfo)
