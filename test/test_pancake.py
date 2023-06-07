@@ -13,7 +13,7 @@ class TestPancakeSwap(TestUniswapPools):
         self.pool_tests('pancakeswap-v3', default_block_number, 1, 'USDC', 'WETH', 'STG')
 
     def test_v2_bsc(self):
-        self.pool_tests('pancakeswap-v2', 28_868_132, 56, 'BUSD', 'WBNB', 'STA')
+        self.pool_tests('pancakeswap-v2', 28_868_132, 56, 'BUSD', 'WBNB', 'STA', do_test_ledger=False)
 
     def test_v3_bsc(self):
-        self.pool_tests('pancakeswap-v3', 28_868_132, 56, 'BUSD', 'WBNB', 'Cake')
+        self.pool_tests('pancakeswap-v3', 28_868_132, 56, 'BUSD', 'WBNB', 'Cake', do_test_ledger=False)

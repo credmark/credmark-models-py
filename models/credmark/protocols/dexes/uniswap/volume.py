@@ -21,7 +21,7 @@ class DexPoolContract(Contract):
 
 
 @Model.describe(slug='dex.pool-volume-block-range',
-                version='1.1',
+                version='1.3',
                 display_name='Uniswap/SushiSwap/Curve Pool Swap Volumes - Historical',
                 description=('The volume of each token swapped in a pool '
                              'during the block interval from the current - Historical'),
@@ -31,11 +31,7 @@ class DexPoolContract(Contract):
                 output=dict)
 class DexPoolSwapBlockRange(Model):
     def run(self, input: DexPoolContract) -> dict:
-        pool = input
-        try:
-            _ = pool.abi
-        except ModelDataError:
-            pool = fix_univ3_pool(DexPoolContract(address=pool.address))
+        pool = fix_univ3_pool(input)
 
         def _use_ledger():
             with pool.ledger.events.Swap as q:

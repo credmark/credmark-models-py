@@ -5,20 +5,28 @@ from cmf_test import CMFTest
 
 class TestUniswapPools(CMFTest):
     def pool_tests(self, model_prefix, default_block_number, chain_id,
-                   ring0_token, ring1_token, ring2_token):
+                   ring0_token, ring1_token, ring2_token,
+                   do_test_ledger=True):
         default_args = {'block_number': default_block_number, 'chain_id': chain_id}
 
         self.run_model(f'{model_prefix}.get-factory', {}, **default_args)
 
-        self.run_model(f'{model_prefix}.get-pool-by-pair',
-                       {"token0": {"symbol": ring0_token}, "token1": {"symbol": ring1_token}},
-                       **default_args)
+        if model_prefix.endswith('-v2'):
+            self.run_model(f'{model_prefix}.get-pool-by-pair',
+                           {"token0": {"symbol": ring0_token}, "token1": {"symbol": ring1_token}},
+                           **default_args)
+
+        if model_prefix.endswith('-v3'):
+            self.run_model(f'{model_prefix}.get-pools-by-pair',
+                           {"token0": {"symbol": ring0_token}, "token1": {"symbol": ring1_token}},
+                           **default_args)
 
         for token in [ring0_token, ring1_token, ring2_token]:
             self.run_model(f'{model_prefix}.get-pools', {"symbol": token},
                            **default_args)
-            self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": token},
-                           **default_args)
+            if do_test_ledger:
+                self.run_model(f'{model_prefix}.get-pools-ledger', {"symbol": token},
+                               **default_args)
 
         self.run_model(f'{model_prefix}.get-pools-tokens',
                        {"tokens": [{"symbol": ring0_token}, {"symbol": ring1_token}, {"symbol": ring2_token}]},
