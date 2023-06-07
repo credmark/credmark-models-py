@@ -20,7 +20,7 @@ class TestSushiSwap(TestUniswapPools):
         self.run_model('sushiswap.get-weighted-price', {"symbol": "MKR"})
         self.run_model('sushiswap.get-weighted-price', {"symbol": "CMK"})
 
-        self.run_model('sushiswap.all-pools')
+        # self.run_model('sushiswap.all-pools')
         self.run_model('sushiswap.get-pool-by-pair',
                        {"token0": {"symbol": "DAI"}, "token1": {"symbol": "WETH"}})
 

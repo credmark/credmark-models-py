@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pandas as pd
 from credmark.cmf.types import Contract
+from requests.exceptions import HTTPError
 
 
 class UniswapPoolBase:
@@ -81,19 +82,59 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
 
     start_t = datetime.now()
 
-    if use_async:
-        df2 = pd.DataFrame(pool.fetch_events(
-            event,
-            from_block=_from_block,
-            to_block=_to_block,
-            use_async=use_async,
-            async_worker=async_worker
-        ))
-    else:
-        df2 = pd.DataFrame(pool.fetch_events(
-            event,
-            from_block=_from_block,
-            to_block=_to_block))
+    try:
+        if use_async:
+            df2 = pd.DataFrame(pool.fetch_events(
+                event,
+                from_block=_from_block,
+                to_block=_to_block,
+                use_async=use_async,
+                async_worker=async_worker
+            ))
+        else:
+            df2 = pd.DataFrame(pool.fetch_events(
+                event,
+                from_block=_from_block,
+                to_block=_to_block))
+    except HTTPError:
+        try:
+            print('[fetch_events_with_cols] trying 100_000')
+            df2 = pd.DataFrame(pool.fetch_events(
+                    event,
+                    from_block=_from_block,
+                    to_block=_to_block,
+                    by_range=100_000))
+        except HTTPError:
+            try:
+                print('[fetch_events_with_cols] trying 50_000')
+                df2 = pd.DataFrame(pool.fetch_events(
+                        event,
+                        from_block=_from_block,
+                        to_block=_to_block,
+                        by_range=50_000))
+            except HTTPError:
+                try:
+                    print('[fetch_events_with_cols] trying 30_000')
+                    df2 = pd.DataFrame(pool.fetch_events(
+                            event,
+                            from_block=_from_block,
+                            to_block=_to_block,
+                            by_range=30_000))
+                except HTTPError:
+                    try:
+                        print('[fetch_events_with_cols] trying 20_000')
+                        df2 = pd.DataFrame(pool.fetch_events(
+                                event,
+                                from_block=_from_block,
+                                to_block=_to_block,
+                                by_range=20_000))
+                    except HTTPError:
+                        print('[fetch_events_with_cols] trying 10_000')
+                        df2 = pd.DataFrame(pool.fetch_events(
+                                event,
+                                from_block=_from_block,
+                                to_block=_to_block,
+                                by_range=10_000))
 
     end_t = datetime.now() - start_t
     print((event_name, 'node', pool.address, _from_block,
