@@ -349,7 +349,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
 
 
 @Model.describe(slug='accounts.token-historical',
-                version='0.13',
+                version='0.14',
                 display_name='Accounts\' Token Holding Historical',
                 description='Accounts\' Token Holding Historical',
                 developer="Credmark",
