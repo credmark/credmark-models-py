@@ -43,8 +43,9 @@ class UniV3Pool(UniswapPoolBase):
 
     EVENT_LIST = ['Initialize', 'Collect', 'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']
 
-    def __init__(self, pool_addr: Address, _pool_data: Optional[dict] = None):
-        super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST)
+    def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
+        super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST, _protocol)
+
         self.pool = fix_univ3_pool(self.pool)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
@@ -315,8 +316,15 @@ class UniV3Pool(UniswapPoolBase):
         #    ratio_price0 = 0
         #    ratio_price1 = 0
 
+        if self.protocol == 'uniswap-v3':
+            src = 'uniswap-v3.get-weighted-price'
+        elif self.protocol == 'pancakeswap-v3':
+            src = 'pancakeswap-v3.get-weighted-price'
+        else:
+            raise NotImplementedError(self.protocol)
+
         pool_price_info = PoolPriceInfoWithVolume(
-            src='uniswap-v3.get-weighted-price',
+            src=src,
             price0=ratio_price0,
             price1=ratio_price1,
             one_tick_liquidity0=one_tick_liquidity0,

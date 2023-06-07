@@ -17,10 +17,11 @@ class UniswapPoolBase:
     Uniswap Pool Base
     """
 
-    def __init__(self, pool_addr, abi, event_list):
+    def __init__(self, pool_addr, abi, event_list, _protocol):
         self.pool = Contract(address=pool_addr).set_abi(abi, set_loaded=True)
         self.df_evt = {}
         self._event_list = event_list
+        self.protocol = _protocol
 
     def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
         """
@@ -100,41 +101,41 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
         try:
             print('[fetch_events_with_cols] trying 100_000')
             df2 = pd.DataFrame(pool.fetch_events(
-                    event,
-                    from_block=_from_block,
-                    to_block=_to_block,
-                    by_range=100_000))
+                event,
+                from_block=_from_block,
+                to_block=_to_block,
+                by_range=100_000))
         except HTTPError:
             try:
                 print('[fetch_events_with_cols] trying 50_000')
                 df2 = pd.DataFrame(pool.fetch_events(
-                        event,
-                        from_block=_from_block,
-                        to_block=_to_block,
-                        by_range=50_000))
+                    event,
+                    from_block=_from_block,
+                    to_block=_to_block,
+                    by_range=50_000))
             except HTTPError:
                 try:
                     print('[fetch_events_with_cols] trying 30_000')
                     df2 = pd.DataFrame(pool.fetch_events(
-                            event,
-                            from_block=_from_block,
-                            to_block=_to_block,
-                            by_range=30_000))
+                        event,
+                        from_block=_from_block,
+                        to_block=_to_block,
+                        by_range=30_000))
                 except HTTPError:
                     try:
                         print('[fetch_events_with_cols] trying 20_000')
                         df2 = pd.DataFrame(pool.fetch_events(
-                                event,
-                                from_block=_from_block,
-                                to_block=_to_block,
-                                by_range=20_000))
+                            event,
+                            from_block=_from_block,
+                            to_block=_to_block,
+                            by_range=20_000))
                     except HTTPError:
                         print('[fetch_events_with_cols] trying 10_000')
                         df2 = pd.DataFrame(pool.fetch_events(
-                                event,
-                                from_block=_from_block,
-                                to_block=_to_block,
-                                by_range=10_000))
+                            event,
+                            from_block=_from_block,
+                            to_block=_to_block,
+                            by_range=10_000))
 
     end_t = datetime.now() - start_t
     print((event_name, 'node', pool.address, _from_block,

@@ -23,9 +23,7 @@ class UniV2Pool(UniswapPoolBase):
     EVENT_LIST = ['Sync', 'Swap', 'Mint', 'Burn']
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
-        super().__init__(pool_addr, UNISWAP_V2_POOL_ABI, self.EVENT_LIST)
-
-        self.protocol = _protocol
+        super().__init__(pool_addr, UNISWAP_V2_POOL_ABI, self.EVENT_LIST, _protocol)
 
         self.tick_spacing = 1
 
@@ -165,6 +163,8 @@ class UniV2Pool(UniswapPoolBase):
             src = 'uniswap-v2.get-weighted-price'
         elif self.protocol == 'sushiswap':
             src = 'sushiswap.get-weighted-price'
+        elif self.protocol == 'pancakeswap-v2':
+            src = 'pancakeswap-v2.get-weighted-price'
         else:
             raise NotImplementedError(self.protocol)
 
