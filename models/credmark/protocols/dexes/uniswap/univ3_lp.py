@@ -110,8 +110,9 @@ class UniswapV2LP(Model):
                 obj.output for obj in all_results.results if obj.output is not None]
             return lp_poses
 
-        if len(nft_ids) > 4:
-            return UniswapV3LPOutput(lp=lp, positions=_use_compose())
+        if len(nft_ids) > 0:
+            return UniswapV3LPOutput(lp=lp, positions=_use_for())
+            # return UniswapV3LPOutput(lp=lp, positions=_use_compose())
         elif len(nft_ids) > 0:
             return UniswapV3LPOutput(lp=lp, positions=_use_for())
         else:
