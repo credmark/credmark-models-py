@@ -92,7 +92,8 @@ class UniswapV2LP(Model):
                 lp_pos = self.context.run_model(
                     'uniswap-v3.id',
                     {'id': nft_id},
-                    return_type=UniswapV3LPPosition)
+                    return_type=UniswapV3LPPosition,
+                    local=True)
                 lp_poses.append(lp_pos)
             return lp_poses
 
