@@ -5,7 +5,7 @@ import math
 import numpy as np
 import numpy.linalg as nplin
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Maybe, Price, Some, Token
 from credmark.dto import DTO, EmptyInput
 from scipy.optimize import minimize
@@ -22,7 +22,7 @@ from models.credmark.protocols.dexes.uniswap.univ3_math import (
 )
 from models.dtos.pool import PoolPriceInfo
 from models.dtos.price import DexPoolPriceInput, DexProtocol, DexProtocolInput
-from models.tmp_abi_lookup import PANCAKESWAP_V3_POOL_ABI, UNISWAP_V3_POOL_ABI
+from models.tmp_abi_lookup import PANCAKESWAP_V3_POOL_ABI, QUICKSWAP_V3_POOL_ABI, UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
 
@@ -36,9 +36,14 @@ def fix_univ3_pool(pool):
                     .set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True))
             _ = pool.functions.slot0().call()
         except BadFunctionCallOutput:
-            pool = (Contract(address=pool.address)
-                    .set_abi(abi=PANCAKESWAP_V3_POOL_ABI, set_loaded=True))
-            _ = pool.functions.slot0().call()
+            try:
+                pool = (Contract(address=pool.address)
+                        .set_abi(abi=PANCAKESWAP_V3_POOL_ABI, set_loaded=True))
+                _ = pool.functions.slot0().call()
+            except ContractLogicError:
+                pool = (Contract(address=pool.address)
+                        .set_abi(abi=QUICKSWAP_V3_POOL_ABI, set_loaded=True))
+                _ = pool.functions.globalState().call()
 
     return pool
 
@@ -68,10 +73,10 @@ class UniswapV3PoolInfo(DTO):
     current_tick: int
     tick_bottom: int
     tick_top: int
-    observationIndex: int
-    observationCardinality: int
-    observationCardinalityNext: int
-    feeProtocol: int
+    # observationIndex: int
+    # observationCardinality: int
+    # observationCardinalityNext: int
+    # feeProtocol: int
     unlocked: bool
     liquidity: float
     full_tick_liquidity0: float
@@ -127,7 +132,13 @@ class UniswapV3GetPoolInfo(Model):
     def run(self, input: UniswapV3Pool) -> UniswapV3PoolInfo:
         pool = fix_univ3_pool(UniswapV3Pool(address=input.address))
 
-        slot0 = pool.functions.slot0().call()
+        if 'slot0' in pool.abi.functions:
+            slot0 = pool.functions.slot0().call()
+        elif 'globalState' in pool.abi.functions:
+            slot0 = pool.functions.globalState().call()
+        else:
+            raise ModelRunError('Unable to query V3 pool state, neither Uniswap/PancakeSwap nor QuickSwap')
+
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
 
@@ -295,11 +306,12 @@ class UniswapV3GetPoolInfo(Model):
             current_tick=current_tick,
             tick_bottom=tick_bottom,
             tick_top=tick_top,
-            observationIndex=slot0[2],
-            observationCardinality=slot0[3],
-            observationCardinalityNext=slot0[4],
-            feeProtocol=slot0[5],
-            unlocked=slot0[6],
+            # Removal of below unused fields, which are also different between Uniswap V3 and QuickSwap V3
+            # observationIndex=slot0[2],
+            # observationCardinality=slot0[3],
+            # observationCardinalityNext=slot0[4],
+            # feeProtocol=slot0[5],
+            unlocked=slot0[-1],  # the common between uniswap and quickswap
             token0=token0,
             token1=token1,
             token0_addr=token0_addr,

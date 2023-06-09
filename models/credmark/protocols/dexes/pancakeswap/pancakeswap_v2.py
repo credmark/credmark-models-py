@@ -24,22 +24,22 @@ class PancakeSwapV2FactoryMeta:
 class PancakeSwapV2Pool(Contract):
     class Config:
         schema_extra = {
-            "examples": [{'address': '0x2594566669abc983e286aa5c20468ab903287448'}]
+            "examples": [{'address': '0xDA7cF6a0CD5d5e8D10AB55d8bA58257813a239cA'}]
         }
-
-
-PANCAKESWAP_V2_VERSION = '0.1'
 
 
 class PancakeSwapV2DexPoolPriceInput(PancakeSwapV2Pool, DexPoolPriceInput):
     class Config:
         schema_extra = {
-            'examples': [{"address": "0x2594566669abc983e286aa5c20468ab903287448",  # AAVE-USDC
+            'examples': [{"address": "0xDA7cF6a0CD5d5e8D10AB55d8bA58257813a239cA",  # SDAO / WETH
                           "price_slug": "pancakeswap-v2.get-weighted-price",
                           "ref_price_slug": "pancakeswap-v2.get-ring0-ref-price",
                           "weight_power": 4.0,
                           "protocol": "pancakeswap-v2"}]
         }
+
+
+PANCAKESWAP_V2_VERSION = '0.1'
 
 
 @Model.describe(slug="pancakeswap-v2.get-factory",

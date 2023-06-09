@@ -45,11 +45,11 @@ class TestUniswap(TestUniswapPools):
     def test(self):
         self.title("Uniswap")
 
-        default_block_number = 17_001_000
-        self.pool_tests('uniswap-v2', default_block_number, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v2', 17_001_201, 1, 'USDC', 'WETH', 'MKR')
 
-        default_block_number = 17_010_000
-        self.pool_tests('uniswap-v3', default_block_number, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v3', 17_010_201, 1, 'USDC', 'WETH', 'MKR')
+
+        self.pool_tests('uniswap-v3', 43_698_401, 137, 'USDC', 'WMATIC', 'XSGD', do_test_ledger=False)
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")

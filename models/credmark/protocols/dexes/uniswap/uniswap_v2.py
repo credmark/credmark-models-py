@@ -6,7 +6,7 @@ from credmark.dto import EmptyInputSkipTest
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v2_meta import UniswapV2PoolMeta
 from models.dtos.pool import DexPoolInput, PoolPriceInfo
-from models.dtos.price import DexPriceTokenInput, DexProtocol, PriceWeight
+from models.dtos.price import DexPoolPriceInput, DexPriceTokenInput, DexProtocol, PriceWeight
 
 # uniswap-v2 / sushiswap / pancakeswap-v2
 
@@ -29,6 +29,24 @@ class UniswapV2FactoryMeta:
         for k in
         [Network.Mainnet, Network.Ropsten, Network.Rinkeby, Network.Görli, Network.Kovan]}
     PROTOCOL = DexProtocol.UniswapV2
+
+
+class UniswapV2Pool(Contract):
+    class Config:
+        schema_extra = {
+            "examples": [{'address': '0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc'}]  # USDC / WETH
+        }
+
+
+class UniswapV2DexPoolPriceInput(UniswapV2Pool, DexPoolPriceInput):
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",  # USDC / WETH
+                          "price_slug": "uniswap-v2.get-weighted-price",
+                          "ref_price_slug": "uniswap-v2.get-ring0-ref-price",
+                          "weight_power": 4.0,
+                          "protocol": "uniswap-v2"}]
+        }
 
 
 UNISWAPV2_VERSION = '0.1'

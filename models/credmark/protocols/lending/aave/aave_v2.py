@@ -379,8 +379,8 @@ class AaveV2GetAssetsDetail(Model):
                     f'({asset_n+1}/{len(model_inputs)}): {asset}')
             return aave_debts_infos
 
-        return Some[AaveDebtInfo](some=_use_compose())
-        # return Some[AaveDebtInfo](some=_use_for())
+        # return Some[AaveDebtInfo](some=_use_compose())
+        return Some[AaveDebtInfo](some=_use_for())
 
 
 @Model.describe(slug="aave-v2.lending-pool-assets-portfolio",

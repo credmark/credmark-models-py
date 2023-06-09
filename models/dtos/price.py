@@ -23,6 +23,8 @@ class DexProtocol(str, Enum):
     SushiSwap = 'sushiswap'
     PancakeSwapV2 = 'pancakeswap-v2'
     PancakeSwapV3 = 'pancakeswap-v3'
+    QuickSwapV2 = 'quickswap-v2'
+    QuickSwapV3 = 'quickswap-v3'
 
 
 class DexProtocolInput(DTO):
