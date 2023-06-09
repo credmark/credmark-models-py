@@ -65,7 +65,7 @@ def V3NFTManager(_network_id):
 
 
 @Model.describe(slug='uniswap-v3.lp',
-                version='0.4',
+                version='0.3',
                 display_name='Uniswap v3 LP Position and Fee for account',
                 description='Returns position and Fee for account',
                 category='protocol',
