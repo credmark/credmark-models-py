@@ -113,7 +113,7 @@ class UniswapV2LP(Model):
 
         if len(nft_ids) > 0:
             # return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_for())
-            return UniswapV3LPOutput(lp=lp, positions=_use_compose())
+            return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_compose())
         elif len(nft_ids) > 0:
             return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_for())
         else:
