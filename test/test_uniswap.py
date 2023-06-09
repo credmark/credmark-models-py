@@ -49,6 +49,8 @@ class TestUniswap(TestUniswapPools):
 
         self.pool_tests('uniswap-v3', 17_010_201, 1, 'USDC', 'WETH', 'MKR')
 
+        self.pool_tests('uniswap-v3', 43_698_401, 137, 'USDC', 'WMATIC', 'XSGD', do_test_ledger=False)
+
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")
         # WETH: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
