@@ -20,10 +20,7 @@ from models.dtos.price import (
     PrimaryTokenPairsInput,
     PrimaryTokenPairsOutput,
 )
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_FACTORY_ABI,
-    UNISWAP_V3_POOL_ABI,
-)
+from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 np.seterr(all='raise')
 
@@ -34,8 +31,8 @@ class UniswapV3PoolMeta(Model):
         ...
 
     @staticmethod
-    def get_factory(factory_addr: Address):
-        factory = Contract(address=factory_addr).set_abi(UNISWAP_V3_FACTORY_ABI, set_loaded=True)
+    def get_factory(factory_addr: Address, factory_abi):
+        factory = Contract(address=factory_addr).set_abi(factory_abi, set_loaded=True)
         return factory
 
     @staticmethod
@@ -43,18 +40,14 @@ class UniswapV3PoolMeta(Model):
         # UniswapV3 pool abi is good enough for token0 and token1 calls, but not for slot0
         return Contract(address=pair_addr).set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
 
-    def get_pools_by_pair(self, factory_addr: Address, token_pairs: list[tuple[Address, Address]], pool_fees: list[int]) -> list[Address]:
-        uniswap_factory = self.get_factory(factory_addr)
+    def get_pools_by_pair(self, factory_addr: Address, factory_abi, token_pairs: list[tuple[Address, Address]], pool_fees: list[int]) -> list[Address]:
+        uniswap_factory = self.get_factory(factory_addr, factory_abi)
         pools = []
-        for token0_addr, token1_addr in token_pairs:
-            for fee in pool_fees:
-                try:
-                    pool_addr = Address(uniswap_factory.functions
-                                        .getPool(token0_addr.checksum, token1_addr.checksum, fee)
-                                        .call())
-                except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
-                    continue  # before its creation
-
+        if 'poolByPair' in uniswap_factory.abi.functions:
+            for token0_addr, token1_addr in token_pairs:
+                pool_addr = Address(uniswap_factory.functions
+                                    .poolByPair(token0_addr.checksum, token1_addr.checksum)
+                                    .call())
                 if pool_addr.is_null():
                     continue
 
@@ -68,123 +61,240 @@ class UniswapV3PoolMeta(Model):
                 except ModelDataError:
                     pass
                 pools.append(pool_addr)
+        elif 'getPool' in uniswap_factory.abi.functions:
+            for token0_addr, token1_addr in token_pairs:
+                for fee in pool_fees:
+                    try:
+                        pool_addr = Address(uniswap_factory.functions
+                                            .getPool(token0_addr.checksum, token1_addr.checksum, fee)
+                                            .call())
+                    except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
+                        continue  # before its creation
+
+                    if pool_addr.is_null():
+                        continue
+
+                    try:
+                        cc = self.get_pool(pool_addr)
+                        _ = cc.abi
+                        _ = cc.functions.token0().call()
+                        _ = cc.functions.token1().call()
+                    except (BlockNumberOutOfRangeError, BadFunctionCallOutput):
+                        continue  # access it before its creation
+                    except ModelDataError:
+                        pass
+                    pools.append(pool_addr)
+        else:
+            raise ModelRunError('Missing neither getPool() nor poolByPair() in the factory contract')
+
         return pools
 
     POOLS_COLUMNS = ['block_number', 'log_index', 'transaction_hash',
                      'pool_address', 'token0', 'token1', 'fee', 'tickSpacing']
 
-    def get_all_pools_ledger(self, factory_addr: Address):
-        factory = self.get_factory(factory_addr)
+    QUICKSWAP_POOLS_COLUMNS = ['block_number', 'log_index', 'transaction_hash',
+                               'pool_address', 'token0', 'token1']
+
+    def get_all_pools_ledger(self, factory_addr: Address, factory_abi):
+        factory = self.get_factory(factory_addr, factory_abi)
 
         start_time = datetime.now()
-        with factory.ledger.events.PoolCreated as q:
-            df_ts = []
-            offset = 0
+        if 'Pool' in factory.abi.events:
+            with factory.ledger.events.Pool as q:
+                df_ts = []
+                offset = 0
 
-            while True:
-                df_tt = q.select(
-                    columns=q.columns,
-                    order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
-                    limit=5000,
-                    offset=offset).to_dataframe()
+                while True:
+                    df_tt = q.select(
+                        columns=q.columns,
+                        order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                        limit=5000,
+                        offset=offset).to_dataframe()
 
-                if df_tt.shape[0] > 0:
-                    df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
-        all_df = (pd
-                  .concat(df_ts).sort_values(['block_number', 'log_index'])
-                  .reset_index(drop=True)
-                  .drop_duplicates(subset='evt_pool', keep='last')
-                  .astype({'block_number': 'int', 'log_index': 'int'}))
-        self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+            all_df = (pd
+                      .concat(df_ts).sort_values(['block_number', 'log_index'])
+                      .reset_index(drop=True)
+                      .drop_duplicates(subset='evt_pool', keep='last')
+                      .astype({'block_number': 'int', 'log_index': 'int'}))
+            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
 
-        all_addresses = set(all_df.evt_pool.tolist())
-        assert all_df.shape[0] == len(all_addresses)
-        return Records.from_dataframe(
-            all_df
-            .rename(columns={'evt_pool': 'pool_address',
-                             'evt_token0': 'token0',
-                             'evt_token1': 'token1',
-                             'evt_fee': 'fee',
-                             'evt_tickSpacing': 'tickSpacing'})
-            .loc[:, self.POOLS_COLUMNS])
+            all_addresses = set(all_df.evt_pool.tolist())
+            assert all_df.shape[0] == len(all_addresses)
+            return Records.from_dataframe(
+                all_df
+                .rename(columns={'evt_pool': 'pool_address',
+                                 'evt_token0': 'token0',
+                                 'evt_token1': 'token1',
+                                 })
+                .loc[:, self.QUICKSWAP_POOLS_COLUMNS])
+        else:
+            with factory.ledger.events.PoolCreated as q:
+                df_ts = []
+                offset = 0
 
-    def get_all_pairs_events(self, factory_addr: Address, _from_block, _to_block):
-        factory = self.get_factory(factory_addr)
+                while True:
+                    df_tt = q.select(
+                        columns=q.columns,
+                        order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                        limit=5000,
+                        offset=offset).to_dataframe()
+
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+            all_df = (pd
+                      .concat(df_ts).sort_values(['block_number', 'log_index'])
+                      .reset_index(drop=True)
+                      .drop_duplicates(subset='evt_pool', keep='last')
+                      .astype({'block_number': 'int', 'log_index': 'int'}))
+            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
+
+            all_addresses = set(all_df.evt_pool.tolist())
+            assert all_df.shape[0] == len(all_addresses)
+            return Records.from_dataframe(
+                all_df
+                .rename(columns={'evt_pool': 'pool_address',
+                                 'evt_token0': 'token0',
+                                 'evt_token1': 'token1',
+                                 'evt_fee': 'fee',
+                                 'evt_tickSpacing': 'tickSpacing'})
+                .loc[:, self.POOLS_COLUMNS])
+
+    def get_all_pairs_events(self, factory_addr: Address, factory_abi, _from_block, _to_block):
+        factory = self.get_factory(factory_addr, factory_abi)
         deployed_block_number = self.context.run_model('token.deployment',
                                                        {'address': factory_addr, "ignore_proxy": True}
                                                        )['deployed_block_number']
         start_time = datetime.now()
-        df = pd.DataFrame(factory.fetch_events(factory.events.PoolCreated,
-                          from_block=max(deployed_block_number-1, _from_block),
-                          to_block=_to_block, by_range=100_000))
-        self.logger.info(f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
-        df['transactionHash'] = df['transactionHash'].apply(lambda x: x.hex())
-        df.rename(columns={
-            'blockNumber': 'block_number',
-            'logIndex': 'log_index',
-            'transactionHash': 'transaction_hash',
-            'pool': 'pool_address'}, inplace=True)
-        if not df.empty:
-            return Records.from_dataframe(df.loc[:, self.POOLS_COLUMNS])
-        return Records.empty()
+        if 'Pool' in factory.abi.events:
+            df = pd.DataFrame(factory.fetch_events(factory.events.Pool,
+                                                   from_block=max(deployed_block_number-1, _from_block),
+                                                   to_block=_to_block, by_range=100_000))
+            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
+            df['transactionHash'] = df['transactionHash'].apply(lambda x: x.hex())
+            df.rename(columns={
+                'blockNumber': 'block_number',
+                'logIndex': 'log_index',
+                'transactionHash': 'transaction_hash',
+                'pool': 'pool_address'}, inplace=True)
+            if not df.empty:
+                return Records.from_dataframe(df.loc[:, self.QUICKSWAP_POOLS_COLUMNS])
+            return Records.empty()
+        else:
+            df = pd.DataFrame(factory.fetch_events(factory.events.PoolCreated,
+                                                   from_block=max(deployed_block_number-1, _from_block),
+                                                   to_block=_to_block, by_range=100_000))
+            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
+            df['transactionHash'] = df['transactionHash'].apply(lambda x: x.hex())
+            df.rename(columns={
+                'blockNumber': 'block_number',
+                'logIndex': 'log_index',
+                'transactionHash': 'transaction_hash',
+                'pool': 'pool_address'}, inplace=True)
+            if not df.empty:
+                return Records.from_dataframe(df.loc[:, self.POOLS_COLUMNS])
+            return Records.empty()
 
-    def get_pools_for_tokens(self, factory_addr: Address, _protocol, input_addresses: list[Address], pool_fees) -> list[Address]:
+    def get_pools_for_tokens(self, factory_addr: Address, factory_abi, _protocol, input_addresses: list[Address], pool_fees) -> list[Address]:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=input_addresses, protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
-        return self.get_pools_by_pair(factory_addr, token_pairs, pool_fees)
+        return self.get_pools_by_pair(factory_addr, factory_abi, token_pairs, pool_fees)
 
-    def get_pools_for_tokens_ledger(self, factory_addr: Address, _protocol, input_address: Address, fees: list[int]):
+    def get_pools_for_tokens_ledger(self, factory_addr: Address, factory_abi, _protocol, input_address: Address, fees: list[int]):
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
-        token_pairs_fee = [(*tp, fees) for tp in token_pairs]
 
-        factory = self.get_factory(factory_addr)
-        with factory.ledger.events.PoolCreated as q:
-            tp0 = token_pairs_fee[0]
-            eq_conds = (q.EVT_TOKEN0.eq(tp0[0].checksum)
-                        .and_(q.EVT_TOKEN1.eq(tp0[1].checksum))
-                        .and_(q.EVT_FEE.as_bigint().in_(tp0[2]))
-                        .parentheses_())
+        factory = self.get_factory(factory_addr, factory_abi)
+        if 'Pool' in factory.abi.events:
+            with factory.ledger.events.Pool as q:
+                tp0 = token_pairs[0]
+                eq_conds = (q.EVT_TOKEN0.eq(tp0[0].checksum)
+                            .and_(q.EVT_TOKEN1.eq(tp0[1].checksum))
+                            .parentheses_())
 
-            for tp1 in token_pairs_fee[1:]:
-                new_eq = (q.EVT_TOKEN0.eq(tp1[0].checksum)
-                          .and_(q.EVT_TOKEN1.eq(tp1[1].checksum))
-                          .and_(q.EVT_FEE.as_bigint().in_(tp1[2]))
-                          .parentheses_())
-                eq_conds = eq_conds.or_(new_eq)
+                for tp1 in token_pairs[1:]:
+                    new_eq = (q.EVT_TOKEN0.eq(tp1[0].checksum)
+                              .and_(q.EVT_TOKEN1.eq(tp1[1].checksum))
+                              .parentheses_())
+                    eq_conds = eq_conds.or_(new_eq)
 
-            df_ts = []
-            offset = 0
-            while True:
-                df_tt = q.select(
-                    columns=[q.EVT_POOL, q.BLOCK_NUMBER],
-                    aggregates=[(q.EVT_FEE.as_bigint(), q.EVT_FEE)],
-                    where=eq_conds,
-                    order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
-                    limit=5000,
-                    offset=offset).to_dataframe()
+                df_ts = []
+                offset = 0
+                while True:
+                    df_tt = q.select(
+                        columns=[q.EVT_POOL, q.BLOCK_NUMBER],
+                        where=eq_conds,
+                        order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                        limit=5000,
+                        offset=offset).to_dataframe()
 
-                if df_tt.shape[0] > 0:
-                    df_ts.append(df_tt)
-                if df_tt.shape[0] < 5000:
-                    break
-                offset += 5000
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
 
-            if len(df_ts) == 0:
-                return Contracts.empty()
+                if len(df_ts) == 0:
+                    return Contracts.empty()
 
-            all_df = pd.concat(df_ts)
+                all_df = pd.concat(df_ts)
 
-        evt_pool = all_df['evt_pool']
+            evt_pool = all_df['evt_pool']
 
-        return Contracts(contracts=[Contract(c) for c in evt_pool])
+            return Contracts(contracts=[Contract(c) for c in evt_pool])
 
-    def get_ref_price(self, factory_addr, _protocol: DexProtocol, weight_power: float, pool_fees: list[int]):
+        else:
+            token_pairs_fee = [(*tp, fees) for tp in token_pairs]
+            with factory.ledger.events.PoolCreated as q:
+                tp0 = token_pairs_fee[0]
+                eq_conds = (q.EVT_TOKEN0.eq(tp0[0].checksum)
+                            .and_(q.EVT_TOKEN1.eq(tp0[1].checksum))
+                            .and_(q.EVT_FEE.as_bigint().in_(tp0[2]))
+                            .parentheses_())
+
+                for tp1 in token_pairs_fee[1:]:
+                    new_eq = (q.EVT_TOKEN0.eq(tp1[0].checksum)
+                              .and_(q.EVT_TOKEN1.eq(tp1[1].checksum))
+                              .and_(q.EVT_FEE.as_bigint().in_(tp1[2]))
+                              .parentheses_())
+                    eq_conds = eq_conds.or_(new_eq)
+
+                df_ts = []
+                offset = 0
+                while True:
+                    df_tt = q.select(
+                        columns=[q.EVT_POOL, q.BLOCK_NUMBER],
+                        aggregates=[(q.EVT_FEE.as_bigint(), q.EVT_FEE)],
+                        where=eq_conds,
+                        order_by=q.BLOCK_NUMBER.comma_(q.EVT_POOL),
+                        limit=5000,
+                        offset=offset).to_dataframe()
+
+                    if df_tt.shape[0] > 0:
+                        df_ts.append(df_tt)
+                    if df_tt.shape[0] < 5000:
+                        break
+                    offset += 5000
+
+                if len(df_ts) == 0:
+                    return Contracts.empty()
+
+                all_df = pd.concat(df_ts)
+
+            evt_pool = all_df['evt_pool']
+
+            return Contracts(contracts=[Contract(c) for c in evt_pool])
+
+    def get_ref_price(self, factory_addr, factory_abi, _protocol: DexProtocol, weight_power: float, pool_fees: list[int]):
         ring0_tokens = sorted(
             self.context.run_model(
                 'dex.ring0-tokens',
@@ -200,7 +310,7 @@ class UniswapV3PoolMeta(Model):
                 if token0_address.to_int() >= token1_address.to_int():
                     continue
                 token_pairs = [(token0_address, token1_address)]
-                pools = self.get_pools_by_pair(factory_addr, token_pairs, pool_fees=pool_fees)
+                pools = self.get_pools_by_pair(factory_addr, factory_abi, token_pairs, pool_fees=pool_fees)
 
                 if len(pools) == 0:
                     missing_relations.extend(

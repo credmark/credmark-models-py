@@ -374,7 +374,8 @@ class AaveV2GetAccountInfo(Model):
 
             return net_apy
 
-        user_reserve_data = _use_compose()
+        # user_reserve_data = _use_compose()
+        user_reserve_data = _use_for()
         net_apy = _get_net_apy(user_reserve_data)
         return {'accountAAVEInfo': user_reserve_data, 'netAPY': net_apy}
 

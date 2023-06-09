@@ -456,7 +456,8 @@ class CurveFinanceTotalTokenLiquidity(Model):
 
             return pool_infos
 
-        pool_infos = _use_compose()
+        # pool_infos = _use_compose()
+        pool_infos = _use_for()
 
         all_pools_info = Some[CurveFiPoolInfo](some=pool_infos)
 

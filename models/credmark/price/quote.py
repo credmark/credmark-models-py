@@ -157,7 +157,7 @@ class PriceQuoteMultipleMaybe(Model):
                       for m in input]
             return Some[Maybe[PriceWithQuote]](some=prices)
 
-        return _use_compose()
+        return _use_for()
 
 
 @Model.describe(slug='price.multiple-maybe',

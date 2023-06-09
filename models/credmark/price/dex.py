@@ -179,7 +179,7 @@ class SushiV2GetAveragePrice(DexWeightedPrice):
                 input=DexPriceTokenInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
-class PancakeV2GetAveragePrice(DexWeightedPrice):
+class PancakeSwapV2GetAveragePrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('pancakeswap-v2.get-pool-info-token-price', input)
 
@@ -194,9 +194,39 @@ class PancakeV2GetAveragePrice(DexWeightedPrice):
                 input=DexPriceTokenInput,
                 output=Price,
                 errors=PRICE_DATA_ERROR_DESC)
-class PancakeV3GetAveragePrice(DexWeightedPrice):
+class PancakeSwapV3GetAveragePrice(DexWeightedPrice):
     def run(self, input: DexPriceTokenInput) -> Price:
         return self.aggregate_pool('pancakeswap-v3.get-pool-info-token-price', input)
+
+
+@Model.describe(slug='quickswap-v2.get-weighted-price',
+                version=DEX_PRICE_MODEL_VERSION,
+                display_name='QuickSwap V2 (Uniswap V2) - get price weighted by liquidity',
+                description='The Pancake pools that support a token contract',
+                category='protocol',
+                subcategory='pancake',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class QuickSwapV2GetAveragePrice(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Price:
+        return self.aggregate_pool('quickswap-v2.get-pool-info-token-price', input)
+
+
+@Model.describe(slug='quickswap-v3.get-weighted-price',
+                version=DEX_PRICE_MODEL_VERSION,
+                display_name='QuickSwap V3 (Uniswap V3) - get price weighted by liquidity',
+                description='The Pancake pools that support a token contract',
+                category='protocol',
+                subcategory='pancake',
+                tags=['price'],
+                input=DexPriceTokenInput,
+                output=Price,
+                errors=PRICE_DATA_ERROR_DESC)
+class QuickSwapV3GetAveragePrice(DexWeightedPrice):
+    def run(self, input: DexPriceTokenInput) -> Price:
+        return self.aggregate_pool('quickswap-v3.get-pool-info-token-price', input)
 
 
 @Model.describe(slug='price.dex-blended-maybe',
@@ -288,7 +318,11 @@ class PriceInfoFromDex(Model):
                           'sushiswap.get-pool-info-token-price',
                           'uniswap-v3.get-pool-info-token-price'],
         Network.BSC: ['pancakeswap-v2.get-pool-info-token-price',
-                      'pancakeswap-v3.get-pool-info-token-price'], }
+                      'pancakeswap-v3.get-pool-info-token-price'],
+        Network.Polygon: ['uniswap-v3.get-pool-info-token-price',
+                          'quickswap-v2.get-pool-info-token-price',
+                          'quickswap-v3.get-pool-info-token-price'],
+    }
 
     def run(self, input: DexPriceTokenInput) -> Some[PoolPriceInfo]:
         # For testing with other power, set this = default power for the token here

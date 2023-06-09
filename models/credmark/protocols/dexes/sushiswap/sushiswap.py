@@ -26,9 +26,6 @@ class SushiSwapPool(Contract):
         }
 
 
-SUSHISWAPV3_VERSION = '0.1'
-
-
 class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
     class Config:
         schema_extra = {
@@ -38,6 +35,9 @@ class SushiSwapDexPoolPriceInput(SushiSwapPool, DexPoolPriceInput):
                           "weight_power": 4.0,
                           "protocol": "sushiswap"}]
         }
+
+
+SUSHISWAPV3_VERSION = '0.1'
 
 
 @Model.describe(slug="sushiswap.get-factory",
