@@ -42,12 +42,20 @@ class UniswapV3PoolMeta(Model):
 
     def get_pools_by_pair(self, factory_addr: Address, factory_abi, token_pairs: list[tuple[Address, Address]], pool_fees: list[int]) -> list[Address]:
         uniswap_factory = self.get_factory(factory_addr, factory_abi)
+        if uniswap_factory.abi is None:
+            raise ModelRunError(f'Missing ABI for factory contract {factory_addr}')
         pools = []
         if 'poolByPair' in uniswap_factory.abi.functions:
             for token0_addr, token1_addr in token_pairs:
-                pool_addr = Address(uniswap_factory.functions
-                                    .poolByPair(token0_addr.checksum, token1_addr.checksum)
-                                    .call())
+                try:
+                    pool_addr = Address(uniswap_factory.functions
+                                        .poolByPair(token0_addr.checksum, token1_addr.checksum)
+                                        .call())
+                except BadFunctionCallOutput:
+                    break  # factory has not existed yet
+                except (BlockNumberOutOfRangeError, ModelDataError):
+                    continue
+
                 if pool_addr.is_null():
                     continue
 
@@ -97,6 +105,8 @@ class UniswapV3PoolMeta(Model):
 
     def get_all_pools_ledger(self, factory_addr: Address, factory_abi):
         factory = self.get_factory(factory_addr, factory_abi)
+        if factory.abi is None:
+            raise ModelRunError(f'Missing ABI for factory contract {factory_addr}')
 
         start_time = datetime.now()
         if 'Pool' in factory.abi.events:
@@ -172,6 +182,9 @@ class UniswapV3PoolMeta(Model):
         deployed_block_number = self.context.run_model('token.deployment',
                                                        {'address': factory_addr, "ignore_proxy": True}
                                                        )['deployed_block_number']
+        if factory.abi is None:
+            raise ModelRunError(f'Missing ABI for factory contract {factory_addr}')
+
         start_time = datetime.now()
         if 'Pool' in factory.abi.events:
             df = pd.DataFrame(factory.fetch_events(factory.events.Pool,
@@ -212,8 +225,10 @@ class UniswapV3PoolMeta(Model):
         token_pairs = self.context.run_model('dex.primary-token-pairs',
                                              PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
-
         factory = self.get_factory(factory_addr, factory_abi)
+        if factory.abi is None:
+            raise ModelRunError(f'Missing ABI for factory contract {factory_addr}')
+
         if 'Pool' in factory.abi.events:
             with factory.ledger.events.Pool as q:
                 tp0 = token_pairs[0]
@@ -369,11 +384,11 @@ class UniswapV3PoolMeta(Model):
                 candidate_price / candidate_price.max())  # normalized price
             )
 
-        ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
+        ring0_token_symbols = {Token(t).symbol: t for t in valid_tokens_list}
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | ring0_token_symbols
 
     def get_pools_info(
             self,

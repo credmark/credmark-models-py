@@ -60,7 +60,9 @@ class DexPrimaryTokens(Model):
             # Moved Token('DAI') out to Ring1
             # Because we only support three tokens in Ring0 in order for triangulation for inter-ratios
             **{protocol: (lambda: [Token('USDC'), Token('USDT'), Token('miMATIC')])
-               for protocol in [DexProtocol.UniswapV3]}
+               for protocol in [DexProtocol.UniswapV3,
+                                DexProtocol.QuickSwapV2,
+                                DexProtocol.QuickSwapV3]}
         }
     }
 
@@ -109,7 +111,9 @@ class DexSecondaryTokens(Model):
         },
         Network.Polygon: {
             **{protocol: (lambda _: [Token('WMATIC'), Token('WETH'), Token('WBTC'), Token('DAI')])
-               for protocol in [DexProtocol.UniswapV3]}
+               for protocol in [DexProtocol.UniswapV3,
+                                DexProtocol.QuickSwapV2,
+                                DexProtocol.QuickSwapV3]}
         }
     }
 
