@@ -8,13 +8,12 @@ import os
 import sys
 import unittest
 
+# from test.no_test_avalanche import TestAvalanche
 from cmf_test import CMFTest
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from test_aave import TestAAVE
 from test_account import TestAccount
 from test_arbitrum import TestArbitrumOne
-
-# from test.no_test_avalanche import TestAvalanche
 from test_balancer import TestBalancer
 from test_bsc import TestBSC
 from test_chainlink import TestChainlink
@@ -35,6 +34,7 @@ from test_optimism import TestOptimism
 from test_pancake import TestPancakeSwap
 from test_polygon import TestPolygon
 from test_price import TestPrice
+from test_quickswap import TestQuickSwap
 from test_speed import TestSpeed
 from test_sushiswap import TestSushiSwap
 from test_tls import TestTLS, TestTLSAll, TestTLSBatch, init_tls_batch

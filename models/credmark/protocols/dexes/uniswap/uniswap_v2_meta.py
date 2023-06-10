@@ -306,11 +306,11 @@ class UniswapV2PoolMeta(Model):
                  candidate_price / candidate_price.max())  # normalized price
             )
 
-        ring0_token_symbols = [Token(t).symbol for t in ring0_tokens]
+        ring0_token_symbols = {Token(t).symbol: t for t in valid_tokens_list}
 
         return dict(zip(
             valid_tokens_list,
-            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | dict(zip(ring0_token_symbols, ring0_tokens))
+            sorted(candidate_prices, key=lambda x: x[0])[0][1])) | ring0_token_symbols
 
     def get_pools_info(
             self,

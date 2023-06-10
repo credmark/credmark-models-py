@@ -36,14 +36,13 @@ def fix_univ3_pool(pool):
                     .set_abi(abi=UNISWAP_V3_POOL_ABI, set_loaded=True))
             _ = pool.functions.slot0().call()
         except BadFunctionCallOutput:
-            try:
-                pool = (Contract(address=pool.address)
-                        .set_abi(abi=PANCAKESWAP_V3_POOL_ABI, set_loaded=True))
-                _ = pool.functions.slot0().call()
-            except ContractLogicError:
-                pool = (Contract(address=pool.address)
-                        .set_abi(abi=QUICKSWAP_V3_POOL_ABI, set_loaded=True))
-                _ = pool.functions.globalState().call()
+            pool = (Contract(address=pool.address)
+                    .set_abi(abi=PANCAKESWAP_V3_POOL_ABI, set_loaded=True))
+            _ = pool.functions.slot0().call()
+        except ContractLogicError:
+            pool = (Contract(address=pool.address)
+                    .set_abi(abi=QUICKSWAP_V3_POOL_ABI, set_loaded=True))
+            _ = pool.functions.globalState().call()
 
     return pool
 
@@ -131,6 +130,8 @@ class UniswapV3GetPoolInfo(Model):
     # pylint: disable=too-many-locals
     def run(self, input: UniswapV3Pool) -> UniswapV3PoolInfo:
         pool = fix_univ3_pool(UniswapV3Pool(address=input.address))
+        if pool.abi is None:
+            raise ModelRunError(f'Missing ABI for pool contract {input.address}')
 
         if 'slot0' in pool.abi.functions:
             slot0 = pool.functions.slot0().call()
@@ -142,7 +143,10 @@ class UniswapV3GetPoolInfo(Model):
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
 
-        fee = pool.functions.fee().call()
+        if 'fee' in pool.abi.functions:
+            fee = pool.functions.fee().call()
+        else:
+            fee = slot0[2]
         ticks = V3_TICK(*pool.functions.ticks(current_tick).call())
         _liquidityGross = ticks.liquidityGross
         _liquidityNet = ticks.liquidityNet

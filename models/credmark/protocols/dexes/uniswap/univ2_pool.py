@@ -165,6 +165,8 @@ class UniV2Pool(UniswapPoolBase):
             src = 'sushiswap.get-weighted-price'
         elif self.protocol == 'pancakeswap-v2':
             src = 'pancakeswap-v2.get-weighted-price'
+        elif self.protocol == 'quickswap-v2':
+            src = 'quickswap-v2.get-weighted-price'
         else:
             raise NotImplementedError(self.protocol)
 

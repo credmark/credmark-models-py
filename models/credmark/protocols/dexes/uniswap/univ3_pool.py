@@ -320,6 +320,8 @@ class UniV3Pool(UniswapPoolBase):
             src = 'uniswap-v3.get-weighted-price'
         elif self.protocol == 'pancakeswap-v3':
             src = 'pancakeswap-v3.get-weighted-price'
+        elif self.protocol == 'quickswap-v3':
+            src = 'quickswap-v3.get-weighted-price'
         else:
             raise NotImplementedError(self.protocol)
 
