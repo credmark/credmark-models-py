@@ -289,7 +289,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                     with pool.ledger.events.TokenExchange as q:
                         df_all_swap_1 = (q.select(
                             aggregates=(
-                                [(q[field].as_numeric().sum_(), q[field])
+                                [(q[field].as_numeric().sum_().str(), q[field].str())
                                  for field in ['EVT_TOKENS_SOLD', 'EVT_TOKENS_BOUGHT']] +
                                 [(f'floor(({self.context.block_number} - {q.BLOCK_NUMBER}) / {input.interval})',
                                   'interval_n')] +

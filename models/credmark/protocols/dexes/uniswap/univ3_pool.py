@@ -428,6 +428,9 @@ class UniV3Pool(UniswapPoolBase):
         amount0 = event_row['amount0']
         amount1 = event_row['amount1']
 
+        if amount == 0 and amount0 == 0 and amount1 == 0:
+            return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
+
         self.token0_remove += amount0
         self.token1_remove += amount1
         # token0_reserve / token1_reserve changes is moved to proc_collect
@@ -451,7 +454,7 @@ class UniV3Pool(UniswapPoolBase):
             self.ticks[tickUpper] = upperTick
 
         if tickLower <= self.pool_tick < tickUpper:
-            self.pool_liquidity -= event_row['amount']
+            self.pool_liquidity -= amount
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 
@@ -495,11 +498,14 @@ class UniV3Pool(UniswapPoolBase):
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 
     def proc_collect_prot(self, event_row):
-        self.token0_collect_prot += event_row['amount0']
-        self.token1_collect_prot += event_row['amount1']
+        amount0 = event_row['amount0']
+        amount1 = event_row['amount1']
 
-        self.token0_reserve -= event_row['amount0']
-        self.token1_reserve -= event_row['amount1']
+        self.token0_collect_prot += amount0
+        self.token1_collect_prot += amount1
+
+        self.token0_reserve -= amount0
+        self.token1_reserve -= amount1
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 
