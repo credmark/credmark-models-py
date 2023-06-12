@@ -363,8 +363,8 @@ class PriceQuote(Model):
                 price_maybe = context.run_model(
                     model,
                     {"base": base_address, "quote": input.quote.address},
-                    return_type=Maybe[PriceWithQuote]
-                )
+                    return_type=Maybe[PriceWithQuote],
+                    local=True)
 
                 if price_maybe.just is not None:
                     price = price_maybe.just
@@ -647,7 +647,7 @@ class PriceCexMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model(
-                'price.cex', input=input, return_type=PriceWithQuote)
+                'price.cex', input=input, return_type=PriceWithQuote, local=True)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError):
             return Maybe.none()
@@ -671,7 +671,7 @@ class PriceDexMaybe(Model):
     def run(self, input: PriceInput) -> Maybe[PriceWithQuote]:
         try:
             price = self.context.run_model(
-                'price.dex', input=input, return_type=PriceWithQuote)
+                'price.dex', input=input, return_type=PriceWithQuote, local=True)
             return Maybe[PriceWithQuote](just=price)
         except (ModelRunError, ModelDataError):
             return Maybe.none()
@@ -705,7 +705,7 @@ class PriceDex(Model, PriceCommon):
             return self.context.run_model('price.cex',
                                           input=input,
                                           return_type=PriceWithQuote,
-                                          )
+                                          local=True)
 
         # 2. Use chainlink when either half is fiat
         if input.quote.fiat:
@@ -715,10 +715,11 @@ class PriceDex(Model, PriceCommon):
             if input.quote == usd_currency:
                 return price_usd
             else:
-                price_quote = self.context.run_model('price.cex',
-                                                     input={
-                                                         'base': input.quote},
-                                                     return_type=PriceWithQuote)
+                price_quote = self.context.run_model(
+                    'price.cex',
+                    input={'base': input.quote},
+                    return_type=PriceWithQuote,
+                    local=True)
                 return price_usd.cross(price_quote)
 
         if input.base.fiat:
@@ -728,10 +729,11 @@ class PriceDex(Model, PriceCommon):
             if input.base == usd_currency:
                 return price_usd.inverse(input.quote.address)
             else:
-                price_quote = self.context.run_model('price.cex',
-                                                     input={
-                                                         'base': input.base},
-                                                     return_type=PriceWithQuote)
+                price_quote = self.context.run_model(
+                    'price.cex',
+                    input={'base': input.base},
+                    return_type=PriceWithQuote,
+                    local=True)
                 return price_usd.inverse(usd_address).cross(price_quote)
 
         # 3. Use only dex

@@ -103,8 +103,7 @@ class TestUniswap(TestUniswapPools):
 
         # liquidity
         self.run_model("uniswap-v3.get-liquidity-by-ticks",
-                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
-                           "min_tick": 202000, "max_tick": 203000},
+                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "min_tick": 202000, "max_tick": 203000},
                        block_number=15276693)
 
         current_tick = 202180

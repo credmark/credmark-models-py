@@ -2,7 +2,7 @@
 from abc import abstractmethod
 
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
+from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
 from credmark.cmf.types import (
     Address,
     Maybe,
@@ -413,6 +413,13 @@ class PriceFromDexPreferModel(Model):
             # ModelRunError => "No pool to aggregate for" from price.dex-blended
             # ModelDataError => "No price for" from price.dex-db
             if "No price for" in err.data.message or "No pool to aggregate for" in err.data.message:
+                return self.context.run_model(
+                    'price.dex-blended',
+                    input={'address': input.address},
+                    return_type=PriceWithQuote)
+            raise
+        except ModelEngineError as err:
+            if "Error executing data query: No data source configured for chain id:" in err.data.message:
                 return self.context.run_model(
                     'price.dex-blended',
                     input={'address': input.address},
