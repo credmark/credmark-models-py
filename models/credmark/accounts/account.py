@@ -718,7 +718,6 @@ class AccountsPortfolio(Model):
                 # TODO: currently skip NFTs
                 self.logger.info(
                     f'[{token_n+1}/{len_tokens}] skip {token.address.checksum} as it is not ERC20')
-                pass
 
         _enabled_curve = False
         if self.context.chain_id == Network.Mainnet and _enabled_curve:
