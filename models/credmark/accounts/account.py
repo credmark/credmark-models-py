@@ -716,9 +716,12 @@ class AccountsPortfolio(Model):
                             TokenPosition(asset=token, amount=balance))
             except Exception:
                 # TODO: currently skip NFTs
+                self.logger.info(
+                    f'[{token_n+1}/{len_tokens}] skip {token.address.checksum} as it is not ERC20')
                 pass
 
-        if self.context.chain_id == Network.Mainnet:
+        _enabled_curve = False
+        if self.context.chain_id == Network.Mainnet and _enabled_curve:
             curve_lp_position = self.context.run_model(
                 'curve.lp-accounts',
                 input=input)
