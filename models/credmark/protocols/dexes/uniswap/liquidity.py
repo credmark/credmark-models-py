@@ -6,6 +6,7 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import pandas as pd
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO, DTOField
 
@@ -40,6 +41,7 @@ class UniswapV3PoolLiquidityByTicksOutput(DTO):
     liquidity_pos_on_tick: Dict[int, int] = DTOField(
         description='Liquidity position on every tick')
     current_tick: int
+    current_liquidity: int
     tick_spacing: int
 
 
@@ -58,7 +60,14 @@ class UniswapV3LiquidityHistorical(Model):
         pool_contract = fix_univ3_pool(pool_contract)
 
         current_liquidity = pool_contract.functions.liquidity().call()
-        slot0 = pool_contract.functions.slot0().call()
+        if 'slot0' in pool_contract.abi.functions:
+            slot0 = pool_contract.functions.slot0().call()
+        elif 'globalState' in pool_contract.abi.functions:  # QuickSwap
+            slot0 = pool_contract.functions.globalState().call()
+        else:
+            raise ModelRunError('Unable to query V3 pool state, '
+                                'neither Uniswap/PancakeSwap nor QuickSwap')
+
         current_tick = slot0[1]
 
         tick_spacing = pool_contract.functions.tickSpacing().call()
@@ -72,6 +81,8 @@ class UniswapV3LiquidityHistorical(Model):
 
         min_tick = input.min_tick
         max_tick = input.max_tick
+
+        # [ min_tick - tick_bottom - current_tick - tick_top - max_tick ]
 
         liquidity = current_liquidity
         x = 0
@@ -110,6 +121,7 @@ class UniswapV3LiquidityHistorical(Model):
             change_on_tick=change_on_tick,
             liquidity_pos_on_tick=liquidity_pos_on_tick,
             current_tick=current_tick,
+            current_liquidity=current_liquidity,
             tick_spacing=tick_spacing)
 
 
