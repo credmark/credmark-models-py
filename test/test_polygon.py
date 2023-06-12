@@ -33,3 +33,8 @@ class TestPolygon(CMFTest):
         print(f'Fetching Uniswap V3 NFT for {lp_pos_id}')
         self.run_model('uniswap-v3.id',
                        {"id": lp_pos_id}, block_number=last_block-1000, chain_id=137)
+
+        # credmark-dev run -c 137 account.portfolio -i '{"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"}' -j --api_url http://localhost:8700 -l '*'
+        self.run_model('account.portfolio',
+                       {"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"},
+                       block_number=last_block-1000, chain_id=137)

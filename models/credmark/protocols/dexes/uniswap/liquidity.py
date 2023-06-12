@@ -134,7 +134,13 @@ def plot_liquidity(context,
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
 
-    slot0 = pool.functions.slot0().call()
+    if 'slot0' in pool.abi.functions:
+        slot0 = pool.functions.slot0().call()
+    elif 'globalState' in pool.abi.functions:  # QuickSwap
+        slot0 = pool.functions.globalState().call()
+    else:
+        raise ModelRunError('Unable to query V3 pool state, '
+                            'neither Uniswap/PancakeSwap nor QuickSwap')
     current_tick = slot0[1]
 
     out = context.run_model(
@@ -168,12 +174,59 @@ def get_amount_in_ticks(logger,
     # pylint:disable=line-too-long, too-many-locals
     """
     Reference: https://github.com/atiselsts/uniswap-v3-liquidity-math/blob/master/subgraph-liquidity-range-example.py
+
+    Example:
+
+    credmark-dev run uniswap-v3.get-liquidity-by-ticks -i '{"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "min_tick": 201670, "max_tick": 201710}' -j -b 17462529
+
+    "output": {
+        "liquidity": {
+            "201670": 20330381308202323617,
+            "201680": 20329534234532284054,
+            "201690": 20322880984516160007, <= for [201680-201690]
+            "201700": 19416166311043464783, <= for [201690-201700]
+            "201710": 19238384479126856389
+        },
+        "change_on_tick": {
+            "201670": -847073670039563,
+            "201680": -6653250016124047,
+            "201690": 475672022322741251,
+            "201700": -1382386695795436475,
+            "201710": -177781831916608394
+        },
+        "liquidity_pos_on_tick": {
+            "201670": 1453239534246639,
+            "201680": 6723980100072201,
+            "201690": 686798573520275475,
+            "201700": 1884321528554965515,
+            "201710": 177980976302859136
+        },
+        "current_tick": 201699,
+        "current_liquidity": 20798553006838901258,
+        "tick_spacing": 10
+    }
+
+    The current tick is 201699 and current range is [201690 - 201700].
+    For liquidity,
+    - When tick is lower the current tick, it's the liquidity for range [t-10, t].
+    - When tick is higher the current tick, it's the liquidity for range [t, t+10].
+
+    For change_on_tick, it is the net change when liquidity cross.
+    - For tick lowe the current tick, current liquidity - net change.
+    - For tick higher than the current tick, it's current liquidity + net change.
     """
 
     decimals0 = token0.decimals
     decimals1 = token1.decimals
 
-    slot0 = pool_contract.functions.slot0().call()
+    if 'slot0' in pool_contract.abi.functions:
+        slot0 = pool_contract.functions.slot0().call()
+    elif 'globalState' in pool_contract.abi.functions:  # QuickSwap
+        slot0 = pool_contract.functions.globalState().call()
+    else:
+        raise ModelRunError('Unable to query V3 pool state, '
+                            'neither Uniswap/PancakeSwap nor QuickSwap')
+
     current_tick = slot0[1]
 
     current_price = tick_to_price(current_tick)
@@ -303,7 +356,14 @@ def plot_liquidity_amount(context,
     def tick_to_price_with_scaling(tick, scale_multiplier=scale_multiplier):
         return UNISWAP_TICK ** tick * scale_multiplier
 
-    slot0 = pool.functions.slot0().call()
+    if 'slot0' in pool.abi.functions:
+        slot0 = pool.functions.slot0().call()
+    elif 'globalState' in pool.abi.functions:  # QuickSwap
+        slot0 = pool.functions.globalState().call()
+    else:
+        raise ModelRunError('Unable to query V3 pool state, '
+                            'neither Uniswap/PancakeSwap nor QuickSwap')
+
     current_tick = slot0[1]
     current_price = tick_to_price_with_scaling(current_tick)
 

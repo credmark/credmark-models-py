@@ -14,8 +14,9 @@ from credmark.cmf.types import (
     Currency,
     FiatCurrency,
     Maybe,
-    NativePosition,
+    NativePositionWithPrice,
     NativeToken,
+    Network,
     Portfolio,
     PortfolioWithPrice,
     Position,
@@ -620,6 +621,17 @@ class AccountsERC20TokenHistoricalBalance(Model):
             'token_rows': token_rows}
 
 
+class AccountWithPrice(Account):
+    with_price: bool = DTOField(default=False, description='Include price in the output')
+
+    def to_accounts(self):
+        return AccountsWithPrice(with_price=self.with_price, accounts=[self.address])  # type: ignore
+
+
+class AccountsWithPrice(Accounts):
+    with_price: bool = DTOField(default=False, description='Include price in the output')
+
+
 @Model.describe(slug="account.portfolio",
                 version="0.3",
                 display_name="Account\'s Token Holding as a Portfolio",
@@ -628,14 +640,14 @@ class AccountsERC20TokenHistoricalBalance(Model):
                 category='account',
                 subcategory='position',
                 tags=['portfolio'],
-                input=Account,
-                output=Portfolio)
+                input=AccountWithPrice,
+                output=PortfolioWithPrice)
 class AccountPortfolio(Model):
-    def run(self, input: Account) -> Portfolio:
+    def run(self, input: AccountWithPrice) -> Portfolio:
         return self.context.run_model(
             'accounts.portfolio',
             input=input.to_accounts().dict(),
-            return_type=Portfolio)
+            return_type=PortfolioWithPrice)
 
 
 @Model.describe(slug="accounts.portfolio",
@@ -646,10 +658,10 @@ class AccountPortfolio(Model):
                 category='account',
                 subcategory='position',
                 tags=['portfolio'],
-                input=Accounts,
-                output=Portfolio)
+                input=AccountsWithPrice,
+                output=PortfolioWithPrice)
 class AccountsPortfolio(Model):
-    def run(self, input: Accounts) -> Portfolio:
+    def run(self, input: AccountsWithPrice) -> PortfolioWithPrice:
         positions = []
         native_token = NativeToken()
         native_amount = 0
@@ -657,35 +669,61 @@ class AccountsPortfolio(Model):
             native_amount += native_token.balance_of(acc.address.checksum)
 
         if not math.isclose(native_amount, 0):
-            positions.append(
-                NativePosition(
-                    amount=native_token.scaled(native_amount),
-                    asset=NativeToken()))
+            if input.with_price:
+                positions.append(
+                    NativePositionWithPrice(
+                        amount=native_token.scaled(native_amount),
+                        asset=NativeToken(),
+                        fiat_quote=self.context.run_model('price.quote', {'base': NativeToken()})))
+            else:
+                positions.append(
+                    NativePositionWithPrice(
+                        amount=native_token.scaled(native_amount),
+                        asset=NativeToken(),
+                        fiat_quote=None))
 
         token_addresses = (get_token_transfer(self.context, input.to_address(), [], 0)
                            ['token_address']
                            .drop_duplicates()
                            .to_list())
 
-        for t in token_addresses:
+        len_tokens = len(token_addresses)
+        for token_n, token in enumerate(token_addresses):
             try:
-                token = Token(address=t)
+                token = Token(address=token)
                 balance = 0
                 for acc in input.accounts:
                     balance += token.scaled(
                         token.functions.balanceOf(acc.address.checksum).call())
+                self.logger.info(
+                    f'[{token_n+1}/{len_tokens}] Obtained balance for {token.address.checksum} = {balance}')
                 if not math.isclose(balance, 0):
-                    positions.append(
-                        TokenPosition(asset=token, amount=balance))
+                    if input.with_price:
+                        try:
+                            positions.append(
+                                PositionWithPrice(
+                                    amount=balance,
+                                    asset=token,
+                                    fiat_quote=self.context.run_model('price.quote', {'base': token})))
+                        except (ModelRunError, ModelDataError):
+                            positions.append(
+                                PositionWithPrice(
+                                    amount=balance,
+                                    asset=token,
+                                    fiat_quote=None))
+                    else:
+                        positions.append(
+                            TokenPosition(asset=token, amount=balance))
             except Exception:
                 # TODO: currently skip NFTs
                 pass
 
-        curve_lp_position = self.context.run_model(
-            'curve.lp-accounts',
-            input=input)
+        if self.context.chain_id == Network.Mainnet:
+            curve_lp_position = self.context.run_model(
+                'curve.lp-accounts',
+                input=input)
 
-        # positions.extend([CurveLPPosition(**p) for p in curve_lp_position['positions']])
-        positions.extend(curve_lp_position['positions'])
+            # positions.extend([CurveLPPosition(**p) for p in curve_lp_position['positions']])
+            positions.extend(curve_lp_position['positions'])
 
-        return Portfolio(positions=positions)
+        return PortfolioWithPrice(positions=positions)

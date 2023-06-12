@@ -177,7 +177,13 @@ class UniswapV2LPId(Model):
 
         pool = fix_univ3_pool(Contract(pool_addr))
 
-        slot0 = pool.functions.slot0().call()
+        if 'slot0' in pool.abi.functions:
+            slot0 = pool.functions.slot0().call()
+        elif 'globalState' in pool.abi.functions:  # QuickSwap
+            slot0 = pool.functions.globalState().call()
+        else:
+            raise ModelRunError('Unable to query V3 pool state, '
+                                'neither Uniswap/PancakeSwap nor QuickSwap')
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
         scale_multiplier = 10 ** (token0.decimals - token1.decimals)

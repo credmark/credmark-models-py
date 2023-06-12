@@ -11,10 +11,13 @@ class TestAccount(CMFTest):
         self.run_model('account.var', {"address": "0x912a0a41b820e1fa660fb6ec07fff493e015f3b2",
                        "window": "3 days", "interval": 1, "confidence": 0.01})
 
-        self.run_model('account.portfolio', {
-                       "address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a"})
+        self.run_model('account.portfolio',
+                       {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a"})
         self.run_model('account.portfolio', {
                        "address": "0x049355e4380f8DB88Cb8a6ec0426B1a1A3560c67"})
+
+        self.run_model('account.portfolio',
+                       {"address": "0x8180D59b7175d4064bDFA8138A58e9baBFFdA44a", "with_price": True})
 
     def test_token(self):
         self.run_model('token.logo', {"symbol": "AAVE"})
@@ -64,6 +67,9 @@ class TestAccount(CMFTest):
 
         self.run_model('accounts.portfolio',
                        {"accounts": [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}]})
+
+        self.run_model('accounts.portfolio',
+                       {"accounts": [{"address": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}], "with_price": True})
 
         self.run_model('accounts.portfolio',
                        {"accounts": [{"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"},
