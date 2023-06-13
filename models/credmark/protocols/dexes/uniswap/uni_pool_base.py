@@ -56,12 +56,12 @@ class UniswapPoolBase:
               file=sys.stderr, flush=True)
 
 
-    def load_events_db(self, pool_id, protocol, from_block, to_block, fix_df_events, _get_uniswap_event):
+    def load_events_db(self, pool_id, protocol, from_block, to_block, fix_df_events, _get_uniswap_event_db):
         """
         load events from db
         """
         for event_name in self._event_list:
-            df_evt = _get_uniswap_event(pool_id, event_name, fix_df_events, protocol, from_block, to_block)
+            df_evt = _get_uniswap_event_db(pool_id, event_name, fix_df_events, protocol, from_block, to_block)
             self.df_evt[event_name] = df_evt
 
         df_comb_evt = pd.concat(self.df_evt.values())
