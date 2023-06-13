@@ -44,6 +44,10 @@ class UniV3Pool(UniswapPoolBase):
     EVENT_LIST = ['Initialize', 'Collect', 'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
+        self._balance = {}
+        self._call_balance = 0
+        self._call_balance_skip = 0
+
         super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST, _protocol)
 
         self.pool = fix_univ3_pool(self.pool)
@@ -72,10 +76,6 @@ class UniV3Pool(UniswapPoolBase):
                 self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
-
-        self._balance = {}
-        self._call_balance = 0
-        self._call_balance_skip = 0
 
         if _pool_data is None:
             self.pool_tick = None
