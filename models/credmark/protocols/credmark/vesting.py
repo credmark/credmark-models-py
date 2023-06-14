@@ -17,8 +17,6 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO
-from requests.exceptions import ReadTimeout
-from urllib3.exceptions import ReadTimeoutError
 
 
 class VestingInfo(DTO):
@@ -45,7 +43,7 @@ class AccountVestingInfo(DTO):
                 subcategory='cmk',
                 output=Contracts)
 class CMKGetVestingContracts(Model):
-    def run(self, input) -> Contracts:
+    def run(self, _) -> Contracts:
         if self.context.chain_id == 1:
             return Contracts(
                 contracts=[
@@ -64,56 +62,30 @@ class CMKGetVestingContracts(Model):
 
 
 @Model.describe(slug="cmk.get-vesting-accounts",
-                version="1.2",
+                version="1.3",
                 display_name='CMK Vesting Accounts',
                 category='protocol',
                 subcategory='cmk',
-                output=Accounts
-                )
+                output=Accounts)
 class CMKGetVestingAccounts(Model):
     def run(self, _) -> Accounts:
         accounts = set()
         accounts_info = []
-        for c in Contracts(**self.context.models.cmk.vesting_contracts()):
-            def _use_filter(contract):
-                try:
-                    vesting_added_events = contract.events.VestingScheduleAdded.createFilter(
-                        fromBlock=0,
-                        toBlock=self.context.block_number
-                    ).get_all_entries()
-                except (ValueError, AttributeError):
-                    try:
-                        vesting_added_events = contract.fetch_events(
-                            contract.events.VestingScheduleAdded,
-                            from_block=0,
-                            to_block=self.context.block_number)
-                    except (ReadTimeoutError, ReadTimeout) as err:
-                        raise ModelRunError(
-                            'There was timeout error '
-                            f'when reading logs for {contract.address}') from err
 
-                for vae in vesting_added_events:
-                    acc = vae['args']['account']
-                    if acc not in accounts:
-                        accounts.add(acc)
-                        accounts_info.append(Account(address=acc))
+        vesting_contracts = self.context.run_model('cmk.vesting-contracts',
+                                                   {},
+                                                   return_type=Contracts)
+        for contract in vesting_contracts:
+            with contract.ledger.events.VestingScheduleAdded as q:
+                ledger_events = q.select(columns=q.columns,
+                                         order_by=q.EVT_ACCOUNT,
+                                         limit=5000)
 
-            def _use_ledger(contract):
-                with contract.ledger.events.VestingScheduleAdded as q:
-                    ledger_events = (q.select(
-                        columns=q.columns,
-                        order_by=q.ACCOUNT,
-                        limit=5000))
-                    for evt in ledger_events:
-                        acc = evt['evt_account']
-                        if acc not in accounts:
-                            accounts.add(acc)
-                            accounts_info.append(Account(address=acc))
-
-            try:
-                _use_filter(c)
-            except ValueError:
-                _use_ledger(c)
+            for evt in ledger_events:
+                acc = evt['evt_account']
+                if acc not in accounts:
+                    accounts.add(acc)
+                    accounts_info.append(Account(address=acc))
 
         return Accounts(accounts=accounts_info)
 
@@ -126,141 +98,108 @@ class CredmarkVestingAccount(Account):
 
 
 @Model.describe(slug="cmk.get-vesting-info-by-account",
-                version="1.6",
+                version="1.7",
                 display_name='CMK Vesting Info by Account',
                 category='protocol',
                 subcategory='cmk',
                 input=CredmarkVestingAccount,
                 output=AccountVestingInfo)
 class CMKGetVestingByAccount(Model):
+
+    def get_vesting_info(self,
+                         token: Token,
+                         vesting_contract: Contract,
+                         account: Account):
+        functions = vesting_contract.functions
+        elapsed_vesting_time = functions.getElapsedVestingTime(account.address).call()
+        if elapsed_vesting_time == 0:
+            return None
+
+        return VestingInfo(
+            account=account,
+            vesting_contract=vesting_contract,
+            vesting_start_datetime=str(datetime.fromtimestamp(
+                self.context.block_number.timestamp - elapsed_vesting_time)),
+            vesting_end_datetime=str(datetime.fromtimestamp(
+                functions.getVestingMaturationTimestamp(account.address).call())),
+            vested_amount=token.scaled(functions.getVestedAmount(account.address).call()),
+            unvested_amount=token.scaled(functions.getUnvestedAmount(account.address).call()),
+            claimable_amount=token.scaled(functions.getClaimableAmount(account.address).call()),
+            claimed_amount=token.scaled(
+                vesting_contract.functions.getVestedAmount(account.address).call() -
+                vesting_contract.functions.getClaimableAmount(account.address).call()
+            ))
+
+    def get_claims(self,
+                   token: Token,
+                   vesting_contract: Contract,
+                   account: Account,
+                   current_price: float):
+        assert vesting_contract.abi is not None
+        with vesting_contract.ledger.events.AllocationClaimed as q:
+            ledger_events = q.select(
+                columns=q.columns,
+                order_by=q.EVT_ACCOUNT,
+                where=q.EVT_ACCOUNT.eq(account.address),
+                limit=5000).to_dataframe()
+
+        def price_at_claim_time(row, self=self):
+            timestamp = row['evt_timestamp']
+            price = self.context.run_model(
+                slug="price.quote",
+                input={"base": "CMK"},
+                block_number=self.context.block_number.from_timestamp(
+                    timestamp),
+                return_type=PriceWithQuote).price
+            return price
+
+        if ledger_events.empty:
+            return []
+
+        ledger_events.loc[:, 'amount_scaled'] = (
+            ledger_events['evt_amount'].apply(token.scaled))
+        ledger_events.loc[:, 'price_now'] = current_price
+        ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
+        ledger_events.loc[:, 'price_at_claim_time'] = (
+            ledger_events.apply(price_at_claim_time, axis=1))
+        ledger_events.loc[:, 'value_at_claim_time'] = (
+            ledger_events.price_at_claim_time * ledger_events.amount_scaled)
+
+        claims = []
+        for _, r in ledger_events.iterrows():
+            claims.append({
+                'account': r['evt_account'],
+                'amount': r['evt_amount'],
+                'timestamp': r['evt_timestamp'],
+                'amount_scaled': r['amount_scaled'],
+                'value_at_claim_time': r['value_at_claim_time'],
+                'value_now': r['value_now'],
+                'price_at_claim_time': r['price_at_claim_time'],
+                'price_now': r['price_now'],
+            })
+
+        return claims
+
     def run(self, input: Account) -> AccountVestingInfo:
-        vesting_contracts = Contracts(
-            **self.context.models.cmk.vesting_contracts())
+        vesting_contracts = self.context.run_model('cmk.vesting-contracts',
+                                                   {},
+                                                   return_type=Contracts)
         result = AccountVestingInfo(account=input, vesting_infos=[], claims=[])
         token = Token(symbol="CMK")
 
-        current_price = PriceWithQuote(**self.context.models.price.quote(
-            input={"base": "CMK"})).price
+        current_price = self.context.run_model('price.quote',
+                                               {"base": "CMK"},
+                                               return_type=PriceWithQuote).price
 
-        claims = []
         for vesting_contract in vesting_contracts:
-            if vesting_contract.functions.getElapsedVestingTime(input.address).call() == 0:
+            vesting_info = self.get_vesting_info(token, vesting_contract, input)
+            if vesting_info is None:
                 continue
-            vesting_info = VestingInfo(
-                account=input,
-                vesting_contract=vesting_contract,
-                vesting_start_datetime=str(
-                    datetime.fromtimestamp(
-                        self.context.block_number.timestamp -
-                        vesting_contract.functions.getElapsedVestingTime(
-                            input.address).call())),
-                vesting_end_datetime=str(
-                    datetime.fromtimestamp(
-                        vesting_contract.functions.getVestingMaturationTimestamp(
-                            input.address).call())),
-                vested_amount=token.scaled(
-                    vesting_contract.functions.getVestedAmount(input.address).call()),
-                unvested_amount=token.scaled(
-                    vesting_contract.functions.getUnvestedAmount(input.address).call()),
-                claimable_amount=token.scaled(
-                    vesting_contract.functions.getClaimableAmount(
-                        input.address).call()
-                ),
-                claimed_amount=token.scaled(
-                    vesting_contract.functions.getVestedAmount(input.address).call() -
-                    vesting_contract.functions.getClaimableAmount(
-                        input.address).call()
-                ))
+
+            claims = self.get_claims(token, vesting_contract, input, current_price)
+
             result.vesting_infos.append(vesting_info)
-
-            def _use_filter(vesting_contract):
-                vesting_claims = []
-                try:
-                    allocation_claimed_events = (
-                        vesting_contract.events.AllocationClaimed
-                        .createFilter(fromBlock=0, toBlock=self.context.block_number)
-                        .get_all_entries())
-                except (ValueError, AttributeError):
-                    try:
-                        allocation_claimed_events = vesting_contract.fetch_events(
-                            vesting_contract.events.AllocationClaimed,
-                            from_block=0,
-                            to_block=self.context.block_number)
-
-                    except (ReadTimeoutError, ReadTimeout) as err:
-                        raise ModelRunError(
-                            'There was timeout error '
-                            f'when reading logs for {input.address}') from err
-
-                claims_all = [{**d['args']} for d in allocation_claimed_events]
-
-                for c in claims_all:
-                    if c['account'] == input.address:
-                        c['amount'] = Token(symbol="CMK").scaled(c['amount'])
-                        c['value_at_claim_time'] = c['amount'] * self.context.run_model(
-                            slug="price.quote",
-                            input={"base": "CMK"},
-                            block_number=self.context.block_number.from_timestamp(
-                                c['timestamp']),
-                            return_type=PriceWithQuote).price
-                        c['value_now'] = c['amount'] * current_price
-                        vesting_claims.append(c)
-                return vesting_claims
-
-            def _use_ledger(vesting_contract):
-                _input_address = input.address
-                assert vesting_contract.abi is not None
-                with vesting_contract.ledger.events.AllocationClaimed as q:
-                    ledger_events = (q.select(
-                        columns=q.columns,
-                        order_by=q.ACCOUNT,
-                        limit=5000)
-                        .to_dataframe()
-                        .query('evt_account == @_input_address'))
-
-                def price_at_claim_time(row, self=self):
-                    timestamp = row['evt_timestamp']
-                    price = self.context.run_model(
-                        slug="price.quote",
-                        input={"base": "CMK"},
-                        block_number=self.context.block_number.from_timestamp(
-                            timestamp),
-                        return_type=PriceWithQuote).price
-                    return price
-
-                vesting_claims = []
-                if not ledger_events.empty:
-                    ledger_events.loc[:, 'amount_scaled'] = (
-                        ledger_events['evt_amount'].apply(Token(symbol="CMK").scaled))
-                    ledger_events.loc[:, 'price_now'] = current_price
-                    ledger_events.loc[:, 'value_now'] = current_price * ledger_events.amount_scaled
-                    ledger_events.loc[:, 'price_at_claim_time'] = (
-                        ledger_events.apply(price_at_claim_time, axis=1))
-                    ledger_events.loc[:, 'value_at_claim_time'] = (
-                        ledger_events.price_at_claim_time * ledger_events.amount_scaled)
-
-                    for _, r in ledger_events.iterrows():
-                        claim = {
-                            'account': r['evt_account'],
-                            'amount': r['evt_amount'],
-                            'timestamp': r['evt_timestamp'],
-                            'amount_scaled': r['amount_scaled'],
-                            'value_at_claim_time': r['value_at_claim_time'],
-                            'value_now': r['value_now'],
-                            'price_at_claim_time': r['price_at_claim_time'],
-                            'price_now': r['price_now'],
-                        }
-                        vesting_claims.append(claim)
-                return vesting_claims
-
-            try:
-                vesting_claims = _use_filter(vesting_contract)
-            except ValueError:
-                vesting_claims = _use_ledger(vesting_contract)
-
-            claims.extend(vesting_claims)
-
-        result.claims = claims
+            result.claims.extend(claims)
 
         return result
 
@@ -311,54 +250,22 @@ class CMKGetAllVestingBalances(Model):
 
 
 @Model.describe(slug="cmk.vesting-events",
-                version="1.4",
+                version="1.5",
                 display_name='CMK Vesting Events',
                 category='protocol',
                 subcategory='cmk',
                 output=dict)
 class CMKVestingEvents(Model):
-    VESTING_SCHEDULE = '0xC2560D7D2cF12f921193874cc8dfBC4bb162b7cb'
-
     def run(self, _) -> dict:
-        contract = Contract(self.VESTING_SCHEDULE)
-
-        def _use_filter():
-            # Some Eth node does not support the newer eth_newFilter method
-            # allocation_claimed_events = input.events.AllocationClaimed.createFilter(
-            #    fromBlock=0, toBlock=self.context.block_number).get_all_entries()
-            try:
-                # pylint:disable=locally-disabled,protected-access
-                allocation_claimed_events = contract.fetch_events(
-                    contract.events.AllocationClaimed,
-                    from_block=0,
-                    to_block=self.context.block_number)
-
-            except (ReadTimeoutError, ReadTimeout) as err:
-                raise ModelRunError(
-                    f'There was timeout error when reading logs for {input.address}') from err
-
-            claims = [dict(d['args']) for d in allocation_claimed_events]
-            return claims
-
-        def _use_ledger():
+        vesting_contracts = self.context.run_model('cmk.vesting-contracts',
+                                                   {},
+                                                   return_type=Contracts)
+        claims = []
+        for contract in vesting_contracts:
             with contract.ledger.events.AllocationClaimed as q:
                 ledger_events = (q.select(
                     columns=q.columns,
-                    order_by=q.ACCOUNT,
+                    order_by=q.EVT_ACCOUNT,
                     limit=5000))
-                claims = ledger_events.data
-                return claims
-
-        try:
-            claims = _use_filter()
-        except ValueError:
-            claims = _use_ledger()
-
-        # cancels = [
-        #     dict(d['args']) for d in
-        #     input.events.VestingScheduleCanceled.createFilter(
-        #     fromBlock=0,
-        #     toBlock=self.context.block_number
-        #     ).get_all_entries()]
-
+                claims.extend(ledger_events.data)
         return {"events": claims}
