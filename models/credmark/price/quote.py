@@ -320,7 +320,7 @@ class PriceQuote(Model):
             network: Network,
             base_address: str) -> List[Tuple[Network, PriceSource, str]]:
         tries = []
-        if network.has_ledger:
+        if network.has_dex_price:
             tries.append((network, PriceSource.DEX, base_address))
         tries.append((network, PriceSource.CEX, base_address))
         return tries
@@ -348,9 +348,11 @@ class PriceQuote(Model):
             cross_chain_tries.extend(self.tries_for_network(network, base_address))
 
         tries = sorted(tries,
-                       key=itemgetter(1), reverse=input.prefer is PriceSource.DEX)
+                       key=itemgetter(1),
+                       reverse=input.prefer is PriceSource.DEX)
         tries.extend(sorted(cross_chain_tries,
-                            key=itemgetter(1), reverse=input.prefer is PriceSource.DEX))
+                            key=itemgetter(1),
+                            reverse=input.prefer is PriceSource.DEX))
 
         for (network, src, base_address) in tries:
             with self.context.fork(chain_id=network.chain_id) \
