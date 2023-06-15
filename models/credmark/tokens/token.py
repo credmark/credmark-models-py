@@ -182,8 +182,7 @@ class TokenUnderlying(Model):
                 category='protocol',
                 tags=['token'],
                 input=Token,
-                output=Token
-                )
+                output=Token)
 class TokenInfoModel(Model):
     """
     Return token's information
