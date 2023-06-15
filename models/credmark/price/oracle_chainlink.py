@@ -62,12 +62,18 @@ class PriceOracleChainlink(Model):
         Network.BSC: {
             # WBNB => BNB
             Address('0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'):
-            {'address': '0x0000000000000000010000100100111001000010'}
+            {'address': '0x0000000000000000010000100100111001000010'},
         },
         Network.Polygon: {
             # WMATIC => MATIC
             Address('0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'):
-            {'address': '0x0000000000000000000000000000000000001010'}
+            {'address': '0x0000000000000000000000000000000000001010'},
+            # WBTC => BTC
+            Address('0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6'):
+            {'address': '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
+            # WETH => ETH
+            Address('0x7ceb23fd6bc0add59e62ac25578270cff1b9f619'):
+            {'address': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'},
         },
     }
 
