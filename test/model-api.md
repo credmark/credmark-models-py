@@ -38,3 +38,13 @@ time curl -X 'POST' http://localhost:8700/v1/model/run -H 'accept: application/j
 
 time curl -X 'POST' http://localhost:8700/v1/model/run -H 'accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $CREDMARK_API_KEY" -d '{ "slug": "account.portfolio", "chainId": 1, "blockNumber": "latest", "input": {"address": "0xa084b6e852976bf162cba174c923f8d373ef4820", "with_price": true}}' | jq
 ```
+
+3. block
+
+```bash
+time curl -X 'POST' https://gateway.credmark.com/v1/model/run -H 'accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $CREDMARK_API_KEY" -d '{ "slug": "chain.get-block-timestamp", "chainId": 56, "blockNumber": "latest", "input": {"block_number": 123456} }' | jq
+# get 1599042148
+
+time curl -X 'POST' https://gateway.credmark.com/v1/model/run -H 'accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $CREDMARK_API_KEY" -d '{ "slug": "chain.get-block", "chainId": 56, "blockNumber": "latest", "input": {"timestamp": 1599042148} }' | jq
+# get 123456
+```

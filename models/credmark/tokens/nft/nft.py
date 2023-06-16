@@ -1,5 +1,12 @@
 # pylint: disable = line-too-long
 
+# OpenSea
+# Rarible
+# SuperRare
+# CryptoPunks
+# Foundation
+
+
 import json
 import os
 import warnings
