@@ -177,6 +177,9 @@ class UniswapV2LPId(Model):
 
         pool = fix_univ3_pool(Contract(pool_addr))
 
+        if pool.abi is None:
+            raise ModelRunError('ABI is not set')
+
         if 'slot0' in pool.abi.functions:
             slot0 = pool.functions.slot0().call()
         elif 'globalState' in pool.abi.functions:  # QuickSwap

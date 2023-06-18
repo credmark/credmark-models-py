@@ -59,6 +59,9 @@ class UniswapV3LiquidityHistorical(Model):
 
         pool_contract = fix_univ3_pool(pool_contract)
 
+        if pool_contract.abi is None:
+            raise ModelRunError('ABI is not set')
+
         current_liquidity = pool_contract.functions.liquidity().call()
         if 'slot0' in pool_contract.abi.functions:
             slot0 = pool_contract.functions.slot0().call()
@@ -133,6 +136,9 @@ def plot_liquidity(context,
 
     current_liquidity = pool.functions.liquidity().call()
     _tick_spacing = pool.functions.tickSpacing().call()
+
+    if pool.abi is None:
+        raise ModelRunError('ABI is not set')
 
     if 'slot0' in pool.abi.functions:
         slot0 = pool.functions.slot0().call()
@@ -218,6 +224,9 @@ def get_amount_in_ticks(logger,
 
     decimals0 = token0.decimals
     decimals1 = token1.decimals
+
+    if pool_contract.abi is None:
+        raise ModelRunError('ABI is not set')
 
     if 'slot0' in pool_contract.abi.functions:
         slot0 = pool_contract.functions.slot0().call()
@@ -355,6 +364,9 @@ def plot_liquidity_amount(context,
 
     def tick_to_price_with_scaling(tick, scale_multiplier=scale_multiplier):
         return UNISWAP_TICK ** tick * scale_multiplier
+
+    if pool.abi is None:
+        raise ModelRunError('ABI is not set')
 
     if 'slot0' in pool.abi.functions:
         slot0 = pool.functions.slot0().call()

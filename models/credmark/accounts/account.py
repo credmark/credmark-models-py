@@ -112,7 +112,7 @@ class AccountsTokenReturn(Model):
     def run(self, input: AccountsReturnInput) -> TokenReturnOutput:
         native_token = NativeToken()
         native_amount = 0
-        for account in input:
+        for account in input.accounts:
             native_amount += native_token.balance_of_scaled(
                 account.address.checksum)
 
@@ -643,7 +643,7 @@ class AccountsWithPrice(Accounts):
                 input=AccountWithPrice,
                 output=PortfolioWithPrice)
 class AccountPortfolio(Model):
-    def run(self, input: AccountWithPrice) -> Portfolio:
+    def run(self, input: AccountWithPrice) -> PortfolioWithPrice:
         return self.context.run_model(
             'accounts.portfolio',
             input=input.to_accounts().dict(),
@@ -674,7 +674,9 @@ class AccountsPortfolio(Model):
                     NativePositionWithPrice(
                         amount=native_token.scaled(native_amount),
                         asset=NativeToken(),
-                        fiat_quote=self.context.run_model('price.quote', {'base': NativeToken()})))
+                        fiat_quote=self.context.run_model('price.quote',
+                                                          {'base': NativeToken()},
+                                                          return_type=PriceWithQuote)))
             else:
                 positions.append(
                     NativePositionWithPrice(
@@ -704,7 +706,9 @@ class AccountsPortfolio(Model):
                                 PositionWithPrice(
                                     amount=balance,
                                     asset=token,
-                                    fiat_quote=self.context.run_model('price.quote', {'base': token})))
+                                    fiat_quote=self.context.run_model('price.quote',
+                                                                      {'base': token},
+                                                                      return_type=PriceWithQuote)))
                         except (ModelRunError, ModelDataError):
                             positions.append(
                                 PositionWithPrice(

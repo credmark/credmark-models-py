@@ -4,11 +4,11 @@ import math
 
 import numpy as np
 import numpy.linalg as nplin
+import scipy.optimize as spo
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import Address, Contract, Maybe, Price, Some, Token
 from credmark.dto import DTO, EmptyInput
-from scipy.optimize import minimize
 from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
 from models.credmark.protocols.dexes.uniswap.constant import (
@@ -27,7 +27,7 @@ from models.tmp_abi_lookup import PANCAKESWAP_V3_POOL_ABI, QUICKSWAP_V3_POOL_ABI
 np.seterr(all='raise')
 
 
-def fix_univ3_pool(pool):
+def fix_univ3_pool(pool: Contract):
     try:
         _ = pool.abi
     except ModelDataError:
@@ -489,8 +489,8 @@ class DexPrimaryTokensUniV3(Model):
         # try optimize
         x0 = np.zeros(shape=(len(tokens), 1))
         try:
-            _opt_result = minimize(opt_target, x0, method='nelder-mead',
-                                   options={'xatol': 1e-8, 'disp': False})
+            _opt_result = spo.minimize(opt_target, x0, method='nelder-mead',
+                                       options={'xatol': 1e-8, 'disp': False})
         except Exception:
             pass
 
