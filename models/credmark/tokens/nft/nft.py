@@ -1,14 +1,5 @@
 # pylint: disable = line-too-long
 
-# OpenSea
-# transfer (NFT) with OrderMatched (OpenSea, Project Wyvern Exchange)
-# (https://etherscan.io/address/0x7be8076f4ea4a4ad08075c2508e481d6c946d12b). The sales are recorded by an event called OrderMatch.
-
-# Rarible
-# SuperRare
-# CryptoPunks
-# Foundation
-
 
 import json
 import os
