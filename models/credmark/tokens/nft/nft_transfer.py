@@ -201,6 +201,8 @@ class BlurOrder(NamedTuple):
     Example:
     https://etherscan.io/tx/0x6fb0a18b8e0ed8482a755c54f1e5c56654e15ebf901e588a3f40b3bbc181459c#eventlog
 
+    Blur does not charge fee. All fee is royalty.
+
     # sell has tokenId
     ('0x4841Cb03Effcf02872596534e064F33ae99836E9',
     1,
