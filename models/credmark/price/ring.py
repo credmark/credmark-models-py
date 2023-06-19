@@ -110,7 +110,8 @@ class DexSecondaryTokens(Model):
                                 DexProtocol.PancakeSwapV3]},
         },
         Network.Polygon: {
-            **{protocol: (lambda _: [Token('WMATIC'), Token('WETH'), Token('WBTC'), Token('DAI')])
+            **{protocol: (lambda _: [Token('WMATIC'), Token('WETH'), Token('WBTC')])
+               # , Token('DAI') removed from ring1 due to limited connection to other tokens.
                for protocol in [DexProtocol.UniswapV3,
                                 DexProtocol.QuickSwapV2,
                                 DexProtocol.QuickSwapV3]}
