@@ -6,6 +6,10 @@ import os
 from cmf_test import CMFTest
 from credmark.dto.encoder import json_dumps
 
+from models.credmark.tls.tls_model import TLSScore
+
+tls_version = TLSScore.version
+
 
 def compare_dict(value_a, value_b):
     if isinstance(value_a, list):
@@ -40,7 +44,7 @@ class TestTLSBatch(CMFTest):
 def run_tls_for_token(self, _addr, _block_number):
     tls_score = self.run_model_with_output(
         'tls.score', {"address": _addr}, block_number=_block_number)
-    with open(f'tmp/all_tokens_score/{_addr}_{_block_number}.txt', 'w') as f:
+    with open(f'tmp/all_tokens_score/tls_{tls_version}_{_addr}_{_block_number}.txt', 'w') as f:
         f.write(json_dumps(tls_score))
 
 
@@ -60,7 +64,8 @@ def add_test(_class, _addresses, _block_number, _token_added_n):
 
 def init_tls_batch():
     block_number = 17170231
-    token_list_files = ['../price_api/scripts/all_tokens.txt', '../price_api/scripts/all_tokens_junk.txt']
+    _chain_id = 1
+    token_list_files = [f'../price_api/scripts/all_tokens_{_chain_id}.txt', '../price_api/scripts/all_tokens_junk.txt']
     token_added_n = 0
     for token_list_fp in token_list_files:
         if os.path.exists(token_list_fp):
