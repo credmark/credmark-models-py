@@ -7,6 +7,12 @@ from cmf_test import CMFTest
 from models.credmark.protocols.ichi.ichi_vault import IchiVaults
 from models.tmp_abi_lookup import ICHI_VAULT
 
+"""
+time curl -X 'POST' https://gateway.credmark.com/v1/model/run -H 'accept: application/json' \
+-H 'Content-Type: application/json' -H "Authorization: Bearer $CREDMARK_API_KEY" \
+-d '{ "slug": "ichi.vaults-performance", "chainId": 137, "blockNumber": "latest", "input": {"days_horizon": [7, 30, 60, 90]} }' | jq
+"""
+
 
 class TestICHI(CMFTest):
     def test_ichi_vaults_deployment_block(self):
