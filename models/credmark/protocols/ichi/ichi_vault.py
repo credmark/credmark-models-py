@@ -1,6 +1,7 @@
 # pylint: disable= line-too-long, too-many-lines, no-name-in-module
 
 import json
+import math
 from datetime import datetime
 from typing import Any, List, Optional
 
@@ -283,9 +284,9 @@ class IchiVaultInfo(Model):
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token_n,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': total_amount_in_token_n * amount_scaling / total_supply,
-            'token0_amount_ratio': token0_amount / total_supply_scaled,
-            'token1_amount_ratio': token1_amount / total_supply_scaled,
+            'vault_token_ratio': 0 if math.isclose(total_supply, 0) else total_amount_in_token_n * amount_scaling / total_supply,
+            'token0_amount_ratio': 0 if math.isclose(total_supply_scaled, 0) else token0_amount / total_supply_scaled,
+            'token1_amount_ratio': 0 if math.isclose(total_supply_scaled, 0) else token1_amount / total_supply_scaled,
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
             'tvl': (
