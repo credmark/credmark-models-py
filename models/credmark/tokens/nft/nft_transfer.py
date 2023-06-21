@@ -268,3 +268,70 @@ class BlurOrder(DTO):
             salt=args[11],
             extraParams=args[12],
         )
+
+
+class SeaportSpentItem(DTO):
+    """
+    struct SpentItem {
+      enum ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+    }
+    """
+    itemType: int
+    token: Address
+    identifier: int
+    amount: int
+
+    @classmethod
+    def from_tuple(cls, args):
+        return cls(
+            itemType=args[0],
+            token=args[1],
+            identifier=args[2],
+            amount=args[3],
+        )
+
+
+class SeaportSpentItems(DTO):
+    items: List[SeaportSpentItem]
+
+    @classmethod
+    def from_list(cls, args):
+        return cls(items=[SeaportSpentItem.from_tuple(x) for x in args])
+
+
+class SeaportReceivedItem(DTO):
+    """
+    struct ReceivedItem {
+      enum ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+      address payable recipient;
+    }
+    """
+    itemType: int
+    token: Address
+    identifier: int
+    amount: int
+    recipient: Address
+
+    @classmethod
+    def from_tuple(cls, args):
+        return cls(
+            itemType=args[0],
+            token=args[1],
+            identifier=args[2],
+            amount=args[3],
+            recipient=args[4],
+        )
+
+
+class SeaportReceivedItems(DTO):
+    items: List[SeaportReceivedItem]
+
+    @classmethod
+    def from_list(cls, args):
+        return cls(items=[SeaportReceivedItem.from_tuple(x) for x in args])
