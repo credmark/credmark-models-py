@@ -19,7 +19,7 @@ from credmark.cmf.model.models import LookupType, ModelResultInput, ModelResultO
 from credmark.cmf.types import Address, Contract, Network, Records, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, DTOField, EmptyInput
-from pyxirr import xirr
+from pyxirr import InvalidPaymentsError, xirr
 from requests.exceptions import HTTPError
 
 from models.credmark.protocols.dexes.uniswap.univ3_math import tick_to_price
@@ -200,8 +200,8 @@ class IchiVaultInfo(Model):
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         vault_pool_addr = Address(vault_ichi.functions.pool().call())
-        vault_pool = Contract(vault_pool_addr).set_abi(
-            UNISWAP_V3_POOL_ABI, set_loaded=True)
+        vault_pool = (Contract(vault_pool_addr)
+                      .set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True))
 
         allow_token0 = vault_ichi.functions.allowToken0().call()
         allow_token1 = vault_ichi.functions.allowToken1().call()
@@ -284,14 +284,19 @@ class IchiVaultInfo(Model):
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token_n,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': 0 if math.isclose(total_supply, 0) else total_amount_in_token_n * amount_scaling / total_supply,
-            'token0_amount_ratio': 0 if math.isclose(total_supply_scaled, 0) else token0_amount / total_supply_scaled,
-            'token1_amount_ratio': 0 if math.isclose(total_supply_scaled, 0) else token1_amount / total_supply_scaled,
+            'vault_token_ratio': (0
+                                  if math.isclose(total_supply, 0)
+                                  else total_amount_in_token_n * amount_scaling / total_supply),
+            'token0_amount_ratio': (0
+                                    if math.isclose(total_supply_scaled, 0)
+                                    else token0_amount / total_supply_scaled),
+            'token1_amount_ratio': (0
+                                    if math.isclose(total_supply_scaled, 0)
+                                    else token1_amount / total_supply_scaled),
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
             'tvl': (
-                (token0_amount * token0_chainlink_price +
-                 token1_amount * token1_chainlink_price)
+                (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price)
                 if token0_chainlink_price is not None and token1_chainlink_price is not None
                 else None),
             'token0_chainlink_price': token0_chainlink_price,
@@ -385,16 +390,17 @@ class IchiVaultInfoFull(Model):
             'token1_amount': token1_amount,
             'total_amount_in_token': total_amount_in_token,
             'total_supply_scaled': total_supply_scaled,
-            'vault_token_ratio': total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply,
+            'vault_token_ratio': (0 if math.isclose(total_supply, 0)
+                                  else (total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply)),
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
             'token0_chainlink_price': token0_chainlink_price,
             'token1_chainlink_price': token1_chainlink_price,
             'vault_token_value_chainlink': (
-                ((token0_amount * token0_chainlink_price + token1_amount *
-                 token1_chainlink_price) / total_supply_scaled)
-                if token0_chainlink_price is not None and token1_chainlink_price is not None
-                else None),
+                0 if math.isclose(total_supply_scaled, 0)
+                else (((token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled)
+                      if token0_chainlink_price is not None and token1_chainlink_price is not None
+                      else None)),
         }
 
 
@@ -840,16 +846,19 @@ class IchiVaultPerformance(Model):
         if make_negative:
             token0_amount, token1_amount, total_amount_in_token_n = -token0_amount, -token1_amount, -total_amount_in_token_n
 
-        return ((context.block_number, context.block_number.timestamp, context.block_number.timestamp_datetime, event_name,
-                 allow_token0, current_tick, 0,
-                 token0_amount, token1_amount, total_amount_in_token_n,
-                 event_name, context.block_number.timestamp_datetime.date()))
+        return (context.block_number, context.block_number.timestamp, context.block_number.timestamp_datetime, event_name,
+                allow_token0, current_tick, 0,
+                token0_amount, token1_amount, total_amount_in_token_n,
+                event_name, context.block_number.timestamp_datetime.date().isoformat())
 
     def irr_return(self, vault_info_past, vault_info_current, days, past_block_date, current_block_date):
         """
         IRR of the vault, derived from the exchange ratio between vault token to deposit/withdraw tokens
         """
         past_value, current_value = vault_info_past['vault_token_ratio'], vault_info_current['vault_token_ratio']
+
+        if math.isclose(current_value, 0):
+            return None
 
         irr = npf.irr([-past_value, current_value])
 
@@ -921,11 +930,18 @@ class IchiVaultPerformance(Model):
             f'Original:{df_cashflow_comb.shape[0]}, Non zero:{df_cashflow_comb_non_zero.shape[0]}. '
             f'non_zero_to:{non_zero_to.shape[0]} zero_to:{zero_to.shape[0]}')
 
-        irr = xirr(df_cashflow_comb.timestamp_date.to_list(),
-                   (df_cashflow_comb.total_amount_in_token_n).to_list())
+        try:
+            irr = xirr(df_cashflow_comb.timestamp_date.to_list(),
+                       (df_cashflow_comb.total_amount_in_token_n).to_list())
+        except InvalidPaymentsError:
+            irr = None
 
-        irr_non_zero = xirr(df_cashflow_comb_non_zero.timestamp_date.to_list(),
-                            df_cashflow_comb_non_zero.total_amount_in_token_n.to_list())
+        try:
+            irr_non_zero = xirr(df_cashflow_comb_non_zero.timestamp_date.to_list(),
+                                df_cashflow_comb_non_zero.total_amount_in_token_n.to_list())
+        except InvalidPaymentsError:
+            irr_non_zero = None
+
         return irr, irr_non_zero
 
     def qty_hold_and_vault(self, vault_info_past, vault_info_current, base=1000):
@@ -934,12 +950,10 @@ class IchiVaultPerformance(Model):
         """
 
         try:
-            if vault_info_current['allowed_token'] == 0:
-                qty_hold = base
-                qty_vault = qty_hold / vault_info_past['vault_token_ratio'] * \
-                    vault_info_current['vault_token_ratio']
+            qty_hold = base
+            if vault_info_past['vault_token_ratio'] == 0:
+                qty_vault = base
             else:
-                qty_hold = base
                 qty_vault = qty_hold / vault_info_past['vault_token_ratio'] * \
                     vault_info_current['vault_token_ratio']
         except TypeError:
@@ -1173,7 +1187,8 @@ class IchiVaultPerformance(Model):
         result['vault_token_ratio_current'] = vault_info_current['vault_token_ratio']
         result['vault_token_ratio_start'] = vault_info_first_deposit['vault_token_ratio']
 
-        result['return_rate'] = self.irr_return(vault_info_first_deposit, vault_info_current,
+        result['return_rate'] = self.irr_return(vault_info_first_deposit,
+                                                vault_info_current,
                                                 days_from_first_deposit,
                                                 first_deposit_date,
                                                 current_block_date)
@@ -1251,6 +1266,7 @@ class IchiVaultsPerformance(Model):
             result = []
             # Change to a compose model to run
             for model_input in _model_inputs:
+                self.logger.info((model_input['address'], "to run"))
                 result.append(self.context.run_model(
                     'ichi.vault-performance', model_input))
                 self.logger.info((model_input['address'], result))
@@ -1283,5 +1299,8 @@ class IchiVaultsPerformance(Model):
                 results = _use_for(model_inputs)
             else:
                 raise err
+
+        if len(model_inputs) != len(results):
+            results = _use_for(model_inputs)
 
         return {'data': results}
