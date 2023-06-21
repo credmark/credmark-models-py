@@ -40,7 +40,7 @@ class TokenReturnOutput(DTO):
 
 
 # pylint:disable=too-many-branches
-def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenReturnOutput:
+def token_return(_context, _logger, _df, native_amount, _token_list, quote=None) -> TokenReturnOutput:
     if _token_list == 'cmf':
         token_list = (_context.run_model(
             'token.list', {}, return_type=Records, block_number=0).to_dataframe()
@@ -56,8 +56,11 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
     native_token = NativeToken()
 
     if not math.isclose(native_amount, 0):
+        input = {'base': native_token}
+        if quote is not None:
+            input['quote'] = quote
         native_token_price = _context.run_model(slug='price.quote',
-                                                input={'base': native_token},
+                                                input=input,
                                                 return_type=PriceWithQuote).price
         native_token_return = TokenReturn(
             token_address=native_token.address,
@@ -114,8 +117,11 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
         if (token_list is None or
             tok.address.checksum in token_list or
                 tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
+            input = {'base': tok}
+            if quote is not None:
+                input['quote'] = quote
             then_pq = _context.run_model(slug='price.quote-maybe',
-                                         input={'base': tok},
+                                         input=input,
                                          return_type=Maybe[PriceWithQuote],
                                          block_number=min_block_number)
             if then_pq.is_just():
@@ -135,6 +141,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
             dd = datetime.now()
             pp = _context.run_model('price.quote-maybe-blocks',
                                     input={'base': tok,
+                                           'quote': quote,
                                            'block_numbers': block_numbers},
                                     return_type=MapBlocksOutput[Maybe[PriceWithQuote]])
 
@@ -164,7 +171,7 @@ def token_return(_context, _logger, _df, native_amount, _token_list) -> TokenRet
         if value is not None:
             if balance != 0:
                 current_price = _context.run_model(slug='price.quote',
-                                                   input={'base': tok},
+                                                   input={'base': tok, 'quote': quote},
                                                    return_type=PriceWithQuote).price
                 current_value = balance * current_price
             else:

@@ -14,21 +14,17 @@ from credmark.cmf.types import (
     Currency,
     FiatCurrency,
     Maybe,
-    NativePositionWithPrice,
     NativeToken,
     Network,
     Portfolio,
-    PortfolioWithPrice,
     Position,
-    PositionWithPrice,
     PriceWithQuote,
     Records,
     Some,
     Token,
-    TokenPosition,
 )
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
-from credmark.dto import DTOField, cross_examples
+from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapBlockResult, MapBlocksOutput
+from credmark.dto import DTO, DTOField, cross_examples
 from web3.exceptions import ContractLogicError
 
 from models.credmark.accounts.token_return import TokenReturnOutput, token_return
@@ -42,6 +38,11 @@ np.seterr(all='raise')
 # Transaction Gas is from receipts per transaction. GAS_USED * EFFECTIVE_GAS_PRICE
 # Not full transaction (missing Ether transfers), can be found in TRACES (but lack of context),
 
+# HACK - token balance is derived from token transfers which are in turn decoded from
+# logs. They are extracted from TokenTransfer(address,address,uint256) type event.
+# If an ERC20 token does not emit this event, it will be missed when calculating balance.
+# This is the reason ledger sometimes return negative balance for a token.
+# If we find negative balance, we simply assume it to be 0.
 
 # pylint:disable=invalid-name
 class TokenListChoice(str, Enum):
@@ -53,6 +54,8 @@ class AccountReturnInput(Account):
     token_list: TokenListChoice = DTOField(
         TokenListChoice.CMF,
         description='Value all tokens or those from token.list, choices: [all, cmf].')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
     class Config:
         use_enum_values = True
@@ -76,9 +79,9 @@ class AccountERC20TokenReturn(Model):
     def run(self, input: AccountReturnInput) -> TokenReturnOutput:
         return self.context.run_model('accounts.token-return',
                                       input=AccountsReturnInput(
-                                          # type: ignore
                                           accounts=[Account(input.address)],
-                                          token_list=input.token_list),
+                                          token_list=input.token_list,
+                                          quote=input.quote),
                                       return_type=TokenReturnOutput)
 
 
@@ -86,6 +89,8 @@ class AccountsReturnInput(Accounts):
     token_list: TokenListChoice = DTOField(
         TokenListChoice.CMF,
         description='Value all tokens or those from token.list, choices: [all, cmf].')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
     class Config:
         use_enum_values = True
@@ -117,7 +122,7 @@ class AccountsTokenReturn(Model):
                 account.address.checksum)
 
         # TODO: native token transaction (incomplete) and gas spending
-        _df_native = get_native_transfer(self.context, input.to_address())
+        # _df_native = get_native_transfer(self.context, input.to_address())
 
         # ERC-20 transaction
         df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
@@ -125,7 +130,7 @@ class AccountsTokenReturn(Model):
         # If we filter for one token address, use below
         # df_erc20 = df_erc20.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
 
-        return token_return(self.context, self.logger, df_erc20, native_amount, input.token_list)
+        return token_return(self.context, self.logger, df_erc20, native_amount, input.token_list, input.quote)
 
 
 class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):
@@ -184,8 +189,7 @@ class AccountsReturnHistoricalInput(AccountsReturnInput, HistoricalDTO):
 class AccountsTokenReturnHistorical(Model):
     def run(self, input: AccountsReturnHistoricalInput) -> MapBlockTimeSeriesOutput[dict]:
         window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(
-            input.interval)
+        interval_in_seconds = self.context.historical.to_seconds(input.interval)
         count = int(window_in_seconds / interval_in_seconds)
 
         price_historical_result = self.context.run_model(
@@ -245,7 +249,7 @@ class AccountsTokenReturnHistorical(Model):
             def _use_model(_assets, _token_bal, _past_block_number):
                 non_zero_bal_tokens_dict = {token_bal_row['token_address']: token_bal_row['value']
                                             for _, token_bal_row in _token_bal.iterrows()
-                                            if not math.isclose(token_bal_row['value'], 0)}
+                                            if token_bal_row['value'] > 0 and not math.isclose(token_bal_row['value'], 0)}
                 non_zero_bal_tokens_addrs = list(
                     non_zero_bal_tokens_dict.keys())
 
@@ -271,7 +275,7 @@ class AccountsTokenReturnHistorical(Model):
             # Loop over every token and get its price on the past block.
             def _use_for(_assets, _token_bal, _past_block_number):
                 for _, token_bal_row in _token_bal.iterrows():
-                    if not math.isclose(token_bal_row['value'], 0):
+                    if token_bal_row['value'] > 0 and not math.isclose(token_bal_row['value'], 0):
                         asset_token = Token(
                             token_bal_row['token_address']).as_erc20(set_loaded=True)
                         try_price = self.context.run_model('price.quote-maybe',
@@ -360,7 +364,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
                 input=AccountsHistoricalInput,
                 output=dict)
 class AccountsERC20TokenHistorical(Model):
-    def account_token_historical(self, input, do_wobble_price):
+    def account_token_historical(self, input: AccountsHistoricalInput, do_wobble_price: bool):
         _include_price = input.include_price
 
         self.logger.info(f'[{self.slug}] fetching `accounts.token-historical-balance`')
@@ -371,7 +375,7 @@ class AccountsERC20TokenHistorical(Model):
         token_blocks = balance_result['token_blocks']
         token_rows = balance_result['token_rows']
 
-        price_historical_result = MapBlockTimeSeriesOutput[dict](
+        price_historical_result = MapBlocksOutput[dict](
             **balance_result)
 
         if _include_price:
@@ -485,7 +489,7 @@ class AccountsERC20TokenHistorical(Model):
                         (price_historical_result[historical_blocks[str(past_block)]]  # type: ignore
                             # type: ignore
                             .output['positions'][token_rows[token_addr][str(past_block)]]
-                            ['fiat_quote']) = PriceWithQuote(
+                            ['price_quote']) = PriceWithQuote(
                                 price=price['price'],
                                 src='dex',
                                 quoteAddress=input.quote.address).dict()
@@ -502,7 +506,7 @@ class AccountsERC20TokenHistorical(Model):
 
 
 @Model.describe(slug='accounts.token-historical-balance',
-                version='0.2',
+                version='0.3',
                 display_name='Accounts\' Token Holding Historical',
                 description='Accounts\' Token Holding Historical',
                 developer="Credmark",
@@ -513,34 +517,11 @@ class AccountsERC20TokenHistorical(Model):
                 output=dict)
 class AccountsERC20TokenHistoricalBalance(Model):
     def run(self, input: AccountsHistoricalInput) -> dict:
-        self.logger.info(f'[{self.slug}] Fetching native token transfer')
-        _include_price = input.include_price
+        native_token = NativeToken()
 
-        _native_token = NativeToken()
-
-        # TODO: native token transaction (incomplete) and gas spending
-        _df_native = get_native_transfer(self.context, input.to_address())
-
-        self.logger.info(f'[{self.slug}] Fetching ERC20 token transfer')
-        # ERC-20 transaction
         df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
-        window_in_seconds = self.context.historical.to_seconds(input.window)
-        interval_in_seconds = self.context.historical.to_seconds(
-            input.interval)
-        count = int(window_in_seconds / interval_in_seconds)
-
-        price_historical_result = self.context.run_model(
-            slug='compose.map-block-time-series',
-            input={"modelSlug": 'historical.empty',
-                   "modelInput": {},
-                   "endTimestamp": self.context.block_number.timestamp,
-                   "interval": interval_in_seconds,
-                   "count": count,
-                   "exclusive": input.exclusive},
-            return_type=MapBlockTimeSeriesOutput[dict])
-
-        df_historical = price_historical_result.to_dataframe()
+        results = []
 
         historical_blocks = {}
         token_blocks = {}
@@ -548,19 +529,18 @@ class AccountsERC20TokenHistoricalBalance(Model):
         all_tokens = {}
 
         self.logger.info(f'[{self.slug}] Producing account portfolio')
-        for n_historical, row in df_historical.iterrows():
-            past_block_number = int(row['blockNumber'])  # type: ignore
+        for n_historical, row in enumerate(input.get_blocks()):
+            past_block_number = row.number
+            results.append(MapBlockResult(blockNumber=BlockNumber.from_dict(row.dict()),
+                                          output=None))
             assets = []
-            _native_token_bal = (_df_native
-                                 .query('(block_number <= @past_block_number)')
-                                 .groupby('token_address', as_index=False)['value']
-                                 .sum())
-
-            # TODO
-            # if not _native_token_bal.empty:
-            #    assets.append(
-            #        Position(amount=_native_token.scaled(native_token_bal['value'][0]),
-            #                 asset=_native_token))
+            native_amount = 0
+            with self.context.fork(block_number=past_block_number):
+                for acc in input.accounts:
+                    native_amount += native_token.balance_of(acc.address.checksum)
+            if not math.isclose(native_amount, 0):
+                assets.append(Position(amount=native_token.scaled(native_amount),
+                                       asset=native_token))
 
             token_bal = (df_erc20
                          .query('(block_number <= @past_block_number)')
@@ -571,51 +551,39 @@ class AccountsERC20TokenHistoricalBalance(Model):
             historical_blocks[past_block_number] = n_historical
             n_skip = 0
             for n_row, token_bal_row in token_bal.iterrows():
-                if not math.isclose(token_bal_row['value'], 0):
-                    token_bal_addr = token_bal_row['token_address']
-                    if all_tokens.get(token_bal_addr) is None:
-                        all_tokens[token_bal_addr] = Token(
-                            token_bal_addr).as_erc20(set_loaded=True)
-                    try:
-                        if _include_price:
-                            assets.append(
-                                PositionWithPrice(
-                                    amount=all_tokens[token_bal_addr].scaled(
-                                        token_bal_row['value']),
-                                    asset=all_tokens[token_bal_addr],
-                                    fiat_quote=PriceWithQuote(
-                                        price=0.0,
-                                        quoteAddress=input.quote.address,
-                                        src='')))
-                        else:
-                            assets.append(
-                                Position(
-                                    amount=all_tokens[token_bal_addr].scaled(
-                                        token_bal_row['value']),
-                                    asset=all_tokens[token_bal_addr]))
-
-                        if token_rows.get(token_bal_addr) is None:
-                            token_blocks[token_bal_addr] = set(
-                                [past_block_number])
-                            token_rows[token_bal_addr] = {
-                                past_block_number: n_row - n_skip}
-                        else:
-                            token_blocks[token_bal_addr].add(past_block_number)
-                            token_rows[token_bal_addr][past_block_number] = n_row - n_skip
-
-                    except (ModelDataError, ContractLogicError):
-                        # NFT: ContractLogicError
-                        n_skip += 1
-                        continue
-                else:
+                if token_bal_row['value'] < 0 or math.isclose(token_bal_row['value'], 0):
                     n_skip += 1
+                    continue
 
-            if _include_price:
-                price_historical_result[n_historical].output = PortfolioWithPrice(positions=assets)  # type: ignore
-            else:
-                price_historical_result[n_historical].output = Portfolio(positions=assets)  # type: ignore
+                token_bal_addr = token_bal_row['token_address']
+                if all_tokens.get(token_bal_addr) is None:
+                    all_tokens[token_bal_addr] = Token(
+                        token_bal_addr).as_erc20(set_loaded=True)
+                try:
+                    assets.append(
+                        Position(
+                            amount=all_tokens[token_bal_addr].scaled(
+                                token_bal_row['value']),
+                            asset=all_tokens[token_bal_addr]))
 
-        return price_historical_result.dict() | {
+                    if token_rows.get(token_bal_addr) is None:
+                        token_blocks[token_bal_addr] = set(
+                            [past_block_number])
+                        token_rows[token_bal_addr] = {
+                            past_block_number: n_row - n_skip}
+                    else:
+                        token_blocks[token_bal_addr].add(past_block_number)
+                        token_rows[token_bal_addr][past_block_number] = n_row - n_skip
+
+                except (ModelDataError, ContractLogicError):
+                    # NFT: ContractLogicError
+                    n_skip += 1
+                    continue
+
+            results[n_historical].output = Portfolio(positions=assets)
+
+        return {
+            'results': results,
             'token_blocks': token_blocks,
             'historical_blocks': historical_blocks,
             'token_rows': token_rows}
@@ -623,17 +591,26 @@ class AccountsERC20TokenHistoricalBalance(Model):
 
 class AccountWithPrice(Account):
     with_price: bool = DTOField(default=False, description='Include price in the output')
+    include_curve_positions: bool = DTOField(True, description='Include curve fi positions')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
     def to_accounts(self):
-        return AccountsWithPrice(with_price=self.with_price, accounts=[self.address])  # type: ignore
+        return AccountsWithPrice(accounts=[self.address],  # type: ignore
+                                 with_price=self.with_price,
+                                 include_curve_positions=self.include_curve_positions,
+                                 quote=self.quote)
 
 
 class AccountsWithPrice(Accounts):
     with_price: bool = DTOField(default=False, description='Include price in the output')
+    include_curve_positions: bool = DTOField(True, description='Include curve fi positions')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
 
 @Model.describe(slug="account.portfolio",
-                version="0.3",
+                version="0.4",
                 display_name="Account\'s Token Holding as a Portfolio",
                 description="All of the token holdings for an account",
                 developer="Credmark",
@@ -641,17 +618,17 @@ class AccountsWithPrice(Accounts):
                 subcategory='position',
                 tags=['portfolio'],
                 input=AccountWithPrice,
-                output=PortfolioWithPrice)
+                output=Portfolio)
 class AccountPortfolio(Model):
-    def run(self, input: AccountWithPrice) -> PortfolioWithPrice:
+    def run(self, input: AccountWithPrice) -> Portfolio:
         return self.context.run_model(
             'accounts.portfolio',
             input=input.to_accounts().dict(),
-            return_type=PortfolioWithPrice)
+            return_type=Portfolio)
 
 
 @Model.describe(slug="accounts.portfolio",
-                version="0.6",
+                version="0.7",
                 display_name="Accounts\' Token Holding as a Portfolio",
                 description="All of the token holdings for a list of accounts",
                 developer="Credmark",
@@ -659,9 +636,9 @@ class AccountPortfolio(Model):
                 subcategory='position',
                 tags=['portfolio'],
                 input=AccountsWithPrice,
-                output=PortfolioWithPrice)
+                output=Portfolio)
 class AccountsPortfolio(Model):
-    def run(self, input: AccountsWithPrice) -> PortfolioWithPrice:
+    def run(self, input: AccountsWithPrice) -> Portfolio:
         positions = []
         native_token = NativeToken()
         native_amount = 0
@@ -669,67 +646,123 @@ class AccountsPortfolio(Model):
             native_amount += native_token.balance_of(acc.address.checksum)
 
         if not math.isclose(native_amount, 0):
-            if input.with_price:
-                positions.append(
-                    NativePositionWithPrice(
-                        amount=native_token.scaled(native_amount),
-                        asset=NativeToken(),
-                        fiat_quote=self.context.run_model('price.quote',
-                                                          {'base': NativeToken()},
-                                                          return_type=PriceWithQuote)))
-            else:
-                positions.append(
-                    NativePositionWithPrice(
-                        amount=native_token.scaled(native_amount),
-                        asset=NativeToken(),
-                        fiat_quote=None))
+            positions.append(
+                Position(amount=native_token.scaled(native_amount),
+                         asset=native_token))
 
-        token_addresses = (get_token_transfer(self.context, input.to_address(), [], 0)
-                           ['token_address']
-                           .drop_duplicates()
-                           .to_list())
+        with self.context.ledger.TokenBalance as bal:
+            token_balances = bal.select(
+                aggregates=[
+                    (f'{bal.TRANSACTION_VALUE.as_numeric().sum_()}', 'balance'),
+                    (f'{bal.TOKEN_ADDRESS}', 'address'),
+                ],
+                having=bal.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
+                where=bal.ADDRESS.in_(input.to_address()),
+                group_by=[bal.TOKEN_ADDRESS],
+            )
 
-        len_tokens = len(token_addresses)
-        for token_n, token in enumerate(token_addresses):
+        for token_balance in token_balances:
             try:
-                token = Token(address=token)
-                balance = 0
-                for acc in input.accounts:
-                    balance += token.scaled(
-                        token.functions.balanceOf(acc.address.checksum).call())
-                self.logger.info(
-                    f'[{token_n+1}/{len_tokens}] Obtained balance for {token.address.checksum} = {balance}')
-                if not math.isclose(balance, 0):
-                    if input.with_price:
-                        try:
-                            positions.append(
-                                PositionWithPrice(
-                                    amount=balance,
-                                    asset=token,
-                                    fiat_quote=self.context.run_model('price.quote',
-                                                                      {'base': token},
-                                                                      return_type=PriceWithQuote)))
-                        except (ModelRunError, ModelDataError):
-                            positions.append(
-                                PositionWithPrice(
-                                    amount=balance,
-                                    asset=token,
-                                    fiat_quote=None))
-                    else:
-                        positions.append(
-                            TokenPosition(asset=token, amount=balance))
+                token = Token(address=token_balance['address'])
+                balance = token.scaled(int(token_balance['balance']))
+                if balance > 0 and not math.isclose(balance, 0):
+                    positions.append(Position(asset=token, amount=balance))
             except Exception:
                 # TODO: currently skip NFTs
                 self.logger.info(
-                    f'[{token_n+1}/{len_tokens}] skip {token.address.checksum} as it is not ERC20')
+                    f"Skipping {token_balance['address']} as it is not ERC20")
 
-        _enabled_curve = False
-        if self.context.chain_id == Network.Mainnet and _enabled_curve:
+        if self.context.network is Network.Mainnet and input.include_curve_positions:
             curve_lp_position = self.context.run_model(
                 'curve.lp-accounts',
                 input=input)
-
-            # positions.extend([CurveLPPosition(**p) for p in curve_lp_position['positions']])
             positions.extend(curve_lp_position['positions'])
 
-        return PortfolioWithPrice(positions=positions)
+        if not input.with_price:
+            return Portfolio(positions=positions)
+
+        pqs_maybe = self.context.run_model(
+            slug='price.quote-multiple-maybe',
+            input=Some(some=[
+                {'base': p.asset.address, 'quote': input.quote} for p in positions
+            ]),
+            return_type=Some[Maybe[PriceWithQuote]],
+        )
+
+        price_positions = []
+        for price_maybe, position in zip(pqs_maybe.some, positions):
+            price_quote = price_maybe.get_just(PriceWithQuote(price=0.0, src="none",
+                                                              quoteAddress=input.quote.address))
+            price_positions.append(Position(amount=position.amount,
+                                            asset=position.asset,
+                                            price_quote=price_quote))
+
+        return Portfolio(positions=price_positions)
+
+
+class AccountPortfolioValueInput(Account):
+    include_curve_positions: bool = DTOField(True, description='Include curve fi positions')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
+
+
+class PortfolioValue(DTO):
+    value: float = DTOField(description="Portfolio value in terms of quoted currency")
+
+
+@Model.describe(slug="account.portfolio-value",
+                version="0.1",
+                display_name="Account\'s portfolio value",
+                description="Cumulative value of token holdings of an account",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=AccountPortfolioValueInput,
+                output=PortfolioValue)
+class AccountPortfolioValue(Model):
+    def run(self, input: AccountPortfolioValueInput) -> PortfolioValue:
+        return self.context.run_model(
+            'accounts.portfolio-value',
+            input=AccountsPortfolioValueInput(
+                accounts=input.to_accounts().accounts,
+                include_curve_positions=input.include_curve_positions,
+                quote=input.quote,
+            ),
+            return_type=PortfolioValue)
+
+
+class AccountsPortfolioValueInput(Accounts):
+    include_curve_positions: bool = DTOField(True, description='Include curve fi positions')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
+
+
+@Model.describe(slug="accounts.portfolio-value",
+                version="0.1",
+                display_name="Accounts\' portfolio value",
+                description="Cumulative value of token holdings for a list of accounts",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=AccountsPortfolioValueInput,
+                output=PortfolioValue)
+class AccountsPortfolioValue(Model):
+    def run(self, input: AccountsPortfolioValueInput) -> PortfolioValue:
+        portfolio = self.context.run_model(
+            'accounts.portfolio',
+            input=AccountsWithPrice(
+                accounts=input.accounts,
+                include_curve_positions=input.include_curve_positions,
+                with_price=True,
+                quote=input.quote,
+            ),
+            return_type=Portfolio)
+
+        value = 0.0
+        for position in portfolio:
+            if position.price_quote is not None:
+                value += position.price_quote.price * position.amount
+
+        return PortfolioValue(value=value)

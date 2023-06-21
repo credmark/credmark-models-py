@@ -11,11 +11,11 @@ from credmark.cmf.types import (
     Currency,
     Maybe,
     Portfolio,
+    Position,
     PriceList,
     PriceWithQuote,
     Some,
     Token,
-    TokenPosition,
 )
 from credmark.cmf.types.compose import MapBlockTimeSeriesOutput
 from credmark.dto import DTOField
@@ -110,7 +110,7 @@ class AccountVaR(Model):
         portfolio = self.context.run_model('account.portfolio',
                                            Account(address=input.address))
 
-        positions = [TokenPosition(**p) if 'lp_position' not in p else CurveLPPosition(**p)
+        positions = [Position(**p) if 'lp_position' not in p else CurveLPPosition(**p)
                      for p in portfolio['positions']]
         port_var_input = {'portfolio': {'positions': positions},
                           'window': input.window,
