@@ -1,9 +1,10 @@
 # pylint: disable=pointless-string-statement, line-too-long, unused-import
 
-from typing import List, NamedTuple
+from typing import List, Tuple
 
 import pandas as pd
 from credmark.cmf.types import Address, Contract
+from credmark.dto import DTO
 
 from models.tmp_abi_lookup import BLUR_MARKET_PLACE_ABI
 
@@ -15,6 +16,8 @@ from models.tmp_abi_lookup import BLUR_MARKET_PLACE_ABI
 # 0x0000000000A39bb272e79075ade125fd351887Ac Blur Pool token == WETH
 
 """
+from models.tmp_abi_lookup import BLUR_MARKET_PLACE_ABI
+
 cc = Contract('0x000000000000Ad05Ccc4F10045630fb830B95127').set_abi(BLUR_MARKET_PLACE_ABI, set_loaded=True)
 
 df = pd.DataFrame(cc.fetch_events(cc.events.OrdersMatched, from_block=17511492,
@@ -168,7 +171,7 @@ df.consideration[0]
 # https://etherscan.io/tx/0x755ab65d8180e12d79ff01b59b1ee1be858368086d0d28f5f5754a4099bb46c2
 
 
-class BlurOrder(NamedTuple):
+class BlurOrder(DTO):
     """
     enum Side { Buy, Sell }
 
@@ -244,6 +247,91 @@ class BlurOrder(NamedTuple):
     price: int
     listingTime: int
     expirationTime: int
-    fees: List[int]
+    fees: List[Tuple[int, Address]]
     salt: int
     extraParams: bytes
+
+    @classmethod
+    def from_tuple(cls, args):
+        return cls(
+            trader=args[0],
+            side=args[1],
+            matchingPolicy=args[2],
+            collection=args[3],
+            tokenId=args[4],
+            amount=args[5],
+            paymentToken=args[6],
+            price=args[7],
+            listingTime=args[8],
+            expirationTime=args[9],
+            fees=args[10],
+            salt=args[11],
+            extraParams=args[12],
+        )
+
+
+class SeaportSpentItem(DTO):
+    """
+    struct SpentItem {
+      enum ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+    }
+    """
+    itemType: int
+    token: Address
+    identifier: int
+    amount: int
+
+    @classmethod
+    def from_tuple(cls, args):
+        return cls(
+            itemType=args[0],
+            token=args[1],
+            identifier=args[2],
+            amount=args[3],
+        )
+
+
+class SeaportSpentItems(DTO):
+    items: List[SeaportSpentItem]
+
+    @classmethod
+    def from_list(cls, args):
+        return cls(items=[SeaportSpentItem.from_tuple(x) for x in args])
+
+
+class SeaportReceivedItem(DTO):
+    """
+    struct ReceivedItem {
+      enum ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+      address payable recipient;
+    }
+    """
+    itemType: int
+    token: Address
+    identifier: int
+    amount: int
+    recipient: Address
+
+    @classmethod
+    def from_tuple(cls, args):
+        return cls(
+            itemType=args[0],
+            token=args[1],
+            identifier=args[2],
+            amount=args[3],
+            recipient=args[4],
+        )
+
+
+class SeaportReceivedItems(DTO):
+    items: List[SeaportReceivedItem]
+
+    @classmethod
+    def from_list(cls, args):
+        return cls(items=[SeaportReceivedItem.from_tuple(x) for x in args])
