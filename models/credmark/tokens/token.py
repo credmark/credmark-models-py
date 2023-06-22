@@ -230,6 +230,9 @@ class TokenInfoDeployment(Model):
     def binary_search(self, low, high, contract_address):
         # Check base case
         if high >= low:
+            msg = f'[{self.slug}] Searching block {low}-{high} for {contract_address}'
+            self.logger.info(msg)
+            # print(msg)
             mid = (high + low)//2
             if high == low:
                 return low
@@ -250,6 +253,7 @@ class TokenInfoDeployment(Model):
             return -1
 
     def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
+        self.code_by_block = {}
         if input.use_model_result:
             latest_run = self.context.models.get_result(
                 self.slug, self.version,
