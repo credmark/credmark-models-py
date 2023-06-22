@@ -3,6 +3,7 @@
 import functools
 import math
 from enum import Enum
+from typing import List
 
 import numpy as np
 from credmark.cmf.model import Model
@@ -766,3 +767,125 @@ class AccountsPortfolioValue(Model):
                 value += position.price_quote.price * position.amount
 
         return PortfolioValue(value=value)
+
+
+class AccountBalancesInput(Account):
+    tokens: List[Token] = DTOField(default=[], description="A list of Tokens")
+    include_price: bool = DTOField(default=False, description='Include price in the output')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
+
+    def to_accounts(self):
+        return AccountsBalancesInput(accounts=[self.address],  # type: ignore
+                                     tokens=self.tokens,
+                                     include_price=self.include_price,
+                                     quote=self.quote)
+
+
+class AccountsBalancesInput(Accounts):
+    tokens: List[Token] = DTOField(default=[], description="A list of Tokens")
+    include_price: bool = DTOField(default=False, description='Include price in the output')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
+
+
+@Model.describe(slug="account.balances",
+                version="1.0",
+                display_name="Account\'s token balances",
+                description="Balances of tokens for an account",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=AccountBalancesInput,
+                output=Portfolio)
+class AccountBalances(Model):
+    def run(self, input: AccountBalancesInput) -> Portfolio:
+        return self.context.run_model(
+            'accounts.balances',
+            input=input.to_accounts().dict(),
+            return_type=Portfolio)
+
+
+@Model.describe(slug="accounts.balances",
+                version="1.0",
+                display_name="Accounts\' token balances",
+                description="Balances of tokens for a list of accounts",
+                developer="Credmark",
+                category='account',
+                subcategory='position',
+                tags=['portfolio'],
+                input=AccountsBalancesInput,
+                output=Portfolio)
+class AccountsBalances(Model):
+    def include_price(self, positions: List[Position], quote: Currency) -> List[Position]:
+        pqs_maybe = self.context.run_model(
+            slug='price.quote-multiple-maybe',
+            input=Some(some=[
+                {'base': p.asset.address, 'quote': quote} for p in positions
+            ]),
+            return_type=Some[Maybe[PriceWithQuote]],
+        )
+
+        price_positions = []
+        for price_maybe, position in zip(pqs_maybe.some, positions):
+            price_quote = price_maybe.get_just(PriceWithQuote(price=0.0, src="none",
+                                                              quoteAddress=quote.address))
+            price_positions.append(Position(amount=position.amount,
+                                            asset=position.asset,
+                                            price_quote=price_quote))
+        return price_positions
+
+    def run(self, input: AccountsBalancesInput) -> Portfolio:
+        native_token = None
+        tokens = []
+        for token in input.tokens:
+            if isinstance(token, NativeToken):
+                native_token = token
+            else:
+                tokens.append(token)
+
+        balances = {}
+        if native_token is not None:
+            native_amount = 0
+            for acc in input.accounts:
+                native_amount += native_token.balance_of_scaled(acc.address.checksum)
+
+            balances[str(native_token.address)] = Position(amount=native_amount,
+                                                           asset=native_token)
+
+        with self.context.ledger.TokenBalance as bal:
+            token_balances = bal.select(
+                aggregates=[
+                    (f'{bal.TRANSACTION_VALUE.as_numeric().sum_()}', 'balance'),
+                    (f'{bal.TOKEN_ADDRESS}', 'address'),
+                ],
+                having=bal.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
+                where=bal.ADDRESS.in_(input.to_address()).and_(
+                    bal.TOKEN_ADDRESS.in_([t.address for t in input.tokens])),
+                group_by=[bal.TOKEN_ADDRESS],
+            )
+
+        for token_balance in token_balances:
+            try:
+                token = Token(address=token_balance['address'])
+                balance = token.scaled(int(token_balance['balance']))
+                if balance > 0 and not math.isclose(balance, 0):
+                    balances[str(token.address)] = Position(asset=token, amount=balance)
+            except Exception:
+                # TODO: currently skip NFTs
+                self.logger.info(
+                    f"Skipping {token_balance['address']} as it is not ERC20")
+
+        positions: List[Position] = []
+        for token in input.tokens:
+            token_address = str(token.address)
+            if token_address in balances:
+                positions.append(balances[token_address])
+            else:
+                positions.append(Position(amount=0, asset=token))
+
+        if input.include_price:
+            positions = self.include_price(positions, input.quote)
+
+        return Portfolio(positions=positions)
