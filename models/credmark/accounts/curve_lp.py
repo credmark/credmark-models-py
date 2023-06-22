@@ -11,7 +11,6 @@ from credmark.cmf.types import (
     Position,
     Records,
     Token,
-    TokenPosition,
     Tokens,
 )
 
@@ -119,8 +118,8 @@ class GetCurveLPPosition(Model):
                     amount=_lp_token_amount_scaled,
                     pool=Contract(address=lp_token.functions.minter().call()),
                     supply_position=Portfolio(
-                        positions=[TokenPosition(asset=in_token,
-                                                 amount=in_token_amount)]),
+                        positions=[Position(asset=in_token,
+                                            amount=in_token_amount)]),
                     lp_position=Portfolio(positions=lp_position))
 
         return Portfolio.merge(Portfolio(positions=lp_position),
