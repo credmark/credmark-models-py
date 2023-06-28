@@ -6,6 +6,7 @@ from enum import Enum
 from typing import List
 
 import numpy as np
+import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
@@ -24,7 +25,7 @@ from credmark.cmf.types import (
     Some,
     Token,
 )
-from credmark.cmf.types.compose import MapBlockTimeSeriesOutput, MapBlockResult, MapBlocksOutput
+from credmark.cmf.types.compose import MapBlockResult, MapBlocksOutput, MapBlockTimeSeriesOutput
 from credmark.dto import DTO, DTOField, cross_examples
 from web3.exceptions import ContractLogicError
 
@@ -34,10 +35,6 @@ from models.dtos.historical import HistoricalDTO
 
 np.seterr(all='raise')
 
-
-# TODO
-# Transaction Gas is from receipts per transaction. GAS_USED * EFFECTIVE_GAS_PRICE
-# Not full transaction (missing Ether transfers), can be found in TRACES (but lack of context),
 
 # HACK - token balance is derived from token transfers which are in turn decoded from
 # logs. They are extracted from TokenTransfer(address,address,uint256) type event.
@@ -117,21 +114,53 @@ class AccountsReturnInput(Accounts):
 class AccountsTokenReturn(Model):
     def run(self, input: AccountsReturnInput) -> TokenReturnOutput:
         native_token = NativeToken()
-        native_amount = 0
+        _native_amount = 0
         for account in input.accounts:
-            native_amount += native_token.balance_of_scaled(
+            _native_amount += native_token.balance_of_scaled(
                 account.address.checksum)
 
-        # TODO: native token transaction (incomplete) and gas spending
-        # _df_native = get_native_transfer(self.context, input.to_address())
+        # Native transaction and gas_used for each transaction with account as a from_address
+        # Internal transaction are counted from the difference between the tracking balance and the balance from web3 on the block
+        df_native = get_native_transfer(self.context, input.to_address())
+        if not df_native.empty:
+            past_balances = []
+            internal_tx = []
+            current_balance = 0
+            for _n, row in df_native.iterrows():
+                current_balance = current_balance + row.value + row.gas_used
+                past_block_number = row.block_number
+                with self.context.fork(block_number=past_block_number) as past_context:
+                    past_balances.append(
+                        [past_context.web3.eth.get_balance(account.address.checksum)
+                         for account in input.accounts])
+                # When we detect a difference on the block, there was an internal transaction on the block.
+                internal_tx.append(sum(past_balances[-1]) - current_balance)
+                current_balance = sum(past_balances[-1])
+
+            df_native.insert(df_native.shape[1], 'balance', [sum(x) for x in past_balances])
+            df_native.insert(df_native.shape[1], 'internal_tx', internal_tx)
+            df_native.rename(columns={'value': 'native_amount'}, inplace=True)
+            df_native.insert(df_native.shape[1], 'value', df_native['native_amount'] +
+                             df_native['gas_used'] + df_native['internal_tx'])
+            df_native_comb = df_native.loc[:, ['block_number', 'log_index', 'to_address',
+                                               'from_address', 'token_address', 'transaction_hash', 'value']]
+        else:
+            df_native_comb = pd.DataFrame(
+                columns=['block_number', 'log_index', 'to_address', 'from_address', 'token_address', 'value'])
 
         # ERC-20 transaction
         df_erc20 = get_token_transfer(self.context, input.to_address(), [], 0)
 
+        if df_erc20.empty:
+            df_erc20 = pd.DataFrame(
+                columns=['block_number', 'log_index', 'to_address', 'from_address', 'token_address', 'value'])
+
+        df_comb = pd.concat([df_native_comb, df_erc20], ignore_index=True).reset_index(drop=True)
+
         # If we filter for one token address, use below
         # df_erc20 = df_erc20.query('token_address == "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"')
 
-        return token_return(self.context, self.logger, df_erc20, native_amount, input.token_list, input.quote)
+        return token_return(self.context, self.logger, df_comb, input.token_list, input.quote)
 
 
 class AccountReturnHistoricalInput(AccountReturnInput, HistoricalDTO):

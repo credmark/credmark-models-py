@@ -204,6 +204,9 @@ def get_native_transfer(_context,
         return result
 
     if fix_int:
-        return fix_transfer(_use_model())
+        df_in = _use_model()
+        if df_in.empty:
+            return df_in
+        return fix_transfer(df_in).assign(gas_used=lambda x: x.gas_used.apply(int))
 
     return _use_model()
