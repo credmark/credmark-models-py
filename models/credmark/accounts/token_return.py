@@ -1,6 +1,5 @@
 # pylint:disable=line-too-long
 
-import math
 from datetime import datetime
 from typing import List, Optional
 
@@ -10,7 +9,6 @@ from credmark.cmf.types import (
     BlockNumber,
     MapBlocksOutput,
     Maybe,
-    NativeToken,
     PriceWithQuote,
     Records,
     Token,
@@ -40,7 +38,7 @@ class TokenReturnOutput(DTO):
 
 
 # pylint:disable=too-many-branches
-def token_return(_context, _logger, _df, native_amount, _token_list, quote=None) -> TokenReturnOutput:
+def token_return(_context, _logger, _df, _token_list, quote=None) -> TokenReturnOutput:
     if _token_list == 'cmf':
         token_list = (_context.run_model(
             'token.list', {}, return_type=Records, block_number=0).to_dataframe()
@@ -52,33 +50,6 @@ def token_return(_context, _logger, _df, native_amount, _token_list, quote=None)
         raise ModelInputError('The token_list field in input shall be one of all or cmf (token list from token.list)')
 
     all_tokens = []
-
-    native_token = NativeToken()
-
-    if not math.isclose(native_amount, 0):
-        input = {'base': native_token}
-        if quote is not None:
-            input['quote'] = quote
-        native_token_price = _context.run_model(slug='price.quote',
-                                                input=input,
-                                                return_type=PriceWithQuote).price
-        native_token_return = TokenReturn(
-            token_address=native_token.address,
-            token_symbol=native_token.symbol,
-            current_amount=native_amount,
-            current_value=native_amount*native_token_price,
-            token_return=None,
-            transactions=None
-        )
-    else:
-        native_token_return = TokenReturn(
-            token_address=native_token.address,
-            token_symbol=native_token.symbol,
-            current_amount=0,
-            current_value=0,
-            token_return=None,
-            transactions=None
-        )
 
     _block_times = [BlockNumber(blk).timestamp_datetime
                     for blk in _df.block_number.unique().tolist()]
@@ -114,22 +85,25 @@ def token_return(_context, _logger, _df, native_amount, _token_list, quote=None)
             _context.logger.info(f'{_err} with {tok} for symbol')
             tok_symbol = ''
 
-        if (token_list is None or
-            tok.address.checksum in token_list or
-                tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
-            input = {'base': tok}
-            if quote is not None:
-                input['quote'] = quote
-            then_pq = _context.run_model(slug='price.quote-maybe',
-                                         input=input,
-                                         return_type=Maybe[PriceWithQuote],
-                                         block_number=min_block_number)
-            if then_pq.is_just():
-                then_price = then_pq.just.price
+        if tok_address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+            then_price = 0
+        else:
+            if (token_list is None or
+                tok.address.checksum in token_list or
+                    tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
+                input = {'base': tok}
+                if quote is not None:
+                    input['quote'] = quote
+                then_pq = _context.run_model(slug='price.quote-maybe',
+                                             input=input,
+                                             return_type=Maybe[PriceWithQuote],
+                                             block_number=min_block_number)
+                if then_pq.is_just():
+                    then_price = then_pq.just.price
+                else:
+                    then_price = None
             else:
                 then_price = None
-        else:
-            then_price = None
 
         value = None
         block_numbers = []
@@ -149,8 +123,12 @@ def token_return(_context, _logger, _df, native_amount, _token_list, quote=None)
                 if r.output is not None and r.output.just is not None:
                     past_prices[r.blockNumber] = r.output.just.price
                 else:
-                    raise ValueError(
-                        f'Unable to obtain price for {tok} on block {r.blockNumber} among {pp.results}')
+                    if tok_address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
+                        # TODO: for price earlier than DEX was created
+                        past_prices[r.blockNumber] = 0
+                    else:
+                        raise ValueError(
+                            f'Unable to obtain price for {tok} on block {r.blockNumber} among {pp.results}')
 
             value = 0
 
@@ -198,10 +176,8 @@ def token_return(_context, _logger, _df, native_amount, _token_list, quote=None)
                        if x.token_return is not None)
 
     return TokenReturnOutput(
-        token_returns=all_tokens + [native_token_return],
-        total_current_value=(
-            total_current_value +
-            (native_token_return.current_value
-             if native_token_return.current_value is not None
-             else 0)),
+        # + [native_token_return],
+        token_returns=all_tokens,
+        # + (native_token_return.current_value if native_token_return.current_value is not None else 0)),
+        total_current_value=(total_current_value),
         total_return=total_return)

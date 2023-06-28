@@ -4,6 +4,7 @@ from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
     Address,
     Contract,
+    Currency,
     Maybe,
     Network,
     Price,
@@ -20,7 +21,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code_desc='Not supported by Curve')
 
 
-class CurveToken(Token):
+class CurveToken(Currency):
     class Config:
         schema_extra = {
             'examples': [{'address': '0xFEEf77d3f69374f66429C91d732A244f074bdf74'}]  # cvxFXS

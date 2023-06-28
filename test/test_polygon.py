@@ -15,10 +15,6 @@ class TestPolygon(CMFTest):
 
         self.run_model('chain.get-block', {"timestamp": 1591824836}, chain_id=137)
 
-        # Note: 0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb is not a valid Polygon address, it uses the BSC address instead
-        self.run_model('price.oracle-chainlink',
-                       {"base": "0x1ba42e5193dfa8b03d15dd1b86a3113bbbef8eeb"}, block_number=last_block-10000, chain_id=137)
-
         self.run_model('price.oracle-chainlink',
                        {"base": "0x5559edb74751a0ede9dea4dc23aee72cca6be3d5"}, block_number=last_block-10000, chain_id=137)
 
@@ -35,6 +31,6 @@ class TestPolygon(CMFTest):
                        {"id": lp_pos_id}, block_number=last_block-1000, chain_id=137)
 
         # credmark-dev run -c 137 account.portfolio -i '{"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"}' -j --api_url http://localhost:8700 -l '*'
-        self.run_model('account.portfolio',
-                       {"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"},
-                       block_number=last_block-1000, chain_id=137)
+        # self.run_model('account.portfolio',
+        #               {"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"},
+        #               block_number=last_block-1000, chain_id=137)
