@@ -85,25 +85,22 @@ def token_return(_context, _logger, _df, _token_list, quote=None) -> TokenReturn
             _context.logger.info(f'{_err} with {tok} for symbol')
             tok_symbol = ''
 
-        if tok_address == '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee':
-            then_price = 0
-        else:
-            if (token_list is None or
-                tok.address.checksum in token_list or
-                    tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
-                input = {'base': tok}
-                if quote is not None:
-                    input['quote'] = quote
-                then_pq = _context.run_model(slug='price.quote-maybe',
-                                             input=input,
-                                             return_type=Maybe[PriceWithQuote],
-                                             block_number=min_block_number)
-                if then_pq.is_just():
-                    then_price = then_pq.just.price
-                else:
-                    then_price = None
+        if (token_list is None or
+            tok.address.checksum in token_list or
+                tok.contract_name in ['UniswapV2Pair', 'Vyper_contract', ]):
+            input = {'base': tok}
+            if quote is not None:
+                input['quote'] = quote
+            then_pq = _context.run_model(slug='price.quote-maybe',
+                                         input=input,
+                                         return_type=Maybe[PriceWithQuote],
+                                         block_number=min_block_number)
+            if then_pq.is_just():
+                then_price = then_pq.just.price
             else:
                 then_price = None
+        else:
+            then_price = None
 
         value = None
         block_numbers = []

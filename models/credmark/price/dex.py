@@ -404,9 +404,8 @@ class PriceFromDexPreferModel(Model):
 
     def run(self, input: Token) -> PriceWithQuote:
         try:
-            price_dex = self.context.run_model(
-                'price.dex-db', input=input)
-            if price_dex['liquidity'] > 1e-8:
+            price_dex = self.context.run_model('price.dex-db', input=input)
+            if price_dex['protocol'] == 'yahoo' or price_dex['liquidity'] > 1e-8:
                 return PriceWithQuote.usd(price=price_dex['price'], src=price_dex['protocol'])
             raise ModelDataError(f'There is no liquidity ({price_dex["liquidity"]}) for {input.address}.')
         except (ModelDataError, ModelRunError) as err:
