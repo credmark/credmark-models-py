@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import pandas as pd
-from credmark.cmf.model import IncrementalModel, Model
+from credmark.cmf.model import IncrementalModel, Model, CachePolicy
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import BlockNumber, Contract, Records
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -102,7 +102,8 @@ class ContractEventsOutput(DTO):
                 category='contract',
                 subcategory='event',
                 input=ContractEventsInput,
-                output=ContractEventsOutput)
+                output=ContractEventsOutput,
+                cache=CachePolicy.SKIP)
 class ContractEvents(Model):
     def run(self, input: ContractEventsInput) -> ContractEventsOutput:
         events_series = self.context.run_model('contract.events-block-series',

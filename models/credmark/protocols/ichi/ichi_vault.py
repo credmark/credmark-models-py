@@ -9,7 +9,13 @@ from typing import DefaultDict, List
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
-from credmark.cmf.model import Model, ImmutableModel, ImmutableOutput, IncrementalModel
+from credmark.cmf.model import (
+    Model,
+    ImmutableModel,
+    ImmutableOutput,
+    IncrementalModel,
+    CachePolicy
+)
 from credmark.cmf.model.errors import (
     ModelDataError,
     ModelEngineError,
@@ -154,12 +160,11 @@ class IchiVaultsBlock(IncrementalModel):
                 display_name='ICHI vaults',
                 description='ICHI vaults',
                 category='protocol',
-                input=EmptyInputWithNetwork,
                 subcategory='ichi',
-                output=dict)
+                input=EmptyInputWithNetwork,
+                output=dict,
+                cache=CachePolicy.SKIP)
 class IchiVaults(Model):
-    VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'
-
     def run(self, _) -> dict:
         vaults_series = self.context.run_model('ichi.vaults-block-series', {},
                                                return_type=BlockSeries[List[IchiVault]])
@@ -634,7 +639,8 @@ class IchiVaultCashflowSeries(IncrementalModel):
                 category='protocol',
                 subcategory='ichi',
                 input=IchiVaultContract,
-                output=Records)
+                output=Records,
+                cache=CachePolicy.SKIP)
 class IchiVaultCashflow(Model):
     def run(self, input: IchiVaultContract) -> Records:
         cashflow_series = self.context.run_model('ichi.vault-cashflow-block-series',
