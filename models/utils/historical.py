@@ -1,5 +1,5 @@
 # pylint:disable=no-member
-from credmark.cmf.model import Model
+from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelErrorDTO
 from credmark.cmf.types.compose import (
     MapBlockTimeSeriesOutput,
@@ -27,6 +27,7 @@ class HistoricalEmpty(Model):
                 description="Input of window and interval in plain words - 30 days / 1 day",
                 category='utility',
                 subcategory='composer',
+                cache=CachePolicy.SKIP,
                 input=HistoricalRunModelInput,
                 output=BlockSeries)
 class HistoricalRunModel(Model):

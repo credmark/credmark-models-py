@@ -3,9 +3,8 @@
 from typing import List, Optional
 
 import requests
-from credmark.cmf.model import Model
+from credmark.cmf.model import CachePolicy, Model, ImmutableModel, ImmutableOutput
 from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
-from credmark.cmf.model.models import LookupType, ModelResultInput, ModelResultOutput
 from credmark.cmf.types import (
     Accounts,
     Address,
@@ -197,12 +196,12 @@ class TokenInfoModel(Model):
         return token_info
 
 
-class TokenDeploymentInput(Token, ModelResultInput):
+class TokenDeploymentInput(Token):
     # Use Token as base class to accept symbol as input
     ignore_proxy: bool = DTOField(False, description='Ignore proxy')
 
 
-class TokenDeploymentOutput(ModelResultOutput):
+class TokenDeploymentOutput(ImmutableOutput):
     deployed_block_number: BlockNumber = DTOField(
         description='Block number of deployment')
     deployed_block_timestamp: Optional[int] = DTOField(
@@ -212,22 +211,23 @@ class TokenDeploymentOutput(ModelResultOutput):
         description='Proxy deployment')
 
 
-@Model.describe(slug="token.deployment",
-                version="0.11",
-                display_name="Token Information - deployment",
-                developer="Credmark",
-                category='protocol',
-                tags=['token'],
-                input=TokenDeploymentInput,
-                output=TokenDeploymentOutput)
-class TokenInfoDeployment(Model):
+@ImmutableModel.describe(
+    slug="token.deployment",
+    version="0.12",
+    display_name="Token Information - deployment",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=TokenDeploymentInput,
+    output=TokenDeploymentOutput)
+class TokenInfoDeployment(ImmutableModel):
     """
     Return token's information on deployment
     """
 
     code_by_block = {}
 
-    def binary_search(self, low, high, contract_address):
+    def binary_search(self, low, high, contract_address) -> int:
         # Check base case
         if high >= low:
             msg = f'[{self.slug}] Searching block {low}-{high} for {contract_address}'
@@ -254,38 +254,15 @@ class TokenInfoDeployment(Model):
 
     def run(self, input: TokenDeploymentInput) -> TokenDeploymentOutput:
         self.code_by_block = {}
-        if input.use_model_result:
-            latest_run = self.context.models.get_result(
-                self.slug, self.version,
-                self.context.__dict__['original_input'],
-                LookupType.BACKWARD_LAST)
-
-            if latest_run is not None:
-                return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
-                                               'model_result_direction': LookupType.BACKWARD_LAST.value}
-
-            latest_run = self.context.models.get_result(
-                self.slug, self.version,
-                self.context.__dict__['original_input'],
-                LookupType.FORWARD_FIRST)
-
-            if latest_run is not None:
-                latest_run_deployed_block_number = latest_run['result']['deployed_block_number']
-                if latest_run_deployed_block_number <= self.context.block_number:
-                    return latest_run['result'] | {'model_result_block': latest_run['blockNumber'],
-                                                   'model_result_direction': LookupType.FORWARD_FIRST.value}
-                else:
-                    raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number} '
-                                        f'because it would be deployed on {latest_run_deployed_block_number}.')
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
-            raise ModelRunError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+            raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         res = self.binary_search(
             0, int(self.context.block_number), input.address.checksum)
 
         if res == -1:
-            raise ModelRunError(
+            raise ModelDataError(
                 f'Can not find deployment information for {input.address}')
 
         block = self.context.web3.eth.get_block(res)
@@ -312,68 +289,19 @@ class TokenInfoDeployment(Model):
                     deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
                     deployer=Address(str(deployer)),
                     proxy_deployer=proxy_deployer,
-                    model_result_block=self.context.block_number,
-                    model_result_direction=LookupType.BACKWARD_LAST.value)
+                    firstResultBlockNumber=res,
+                )
 
         return TokenDeploymentOutput(
             deployed_block_number=BlockNumber(res),
             deployed_block_timestamp=block['timestamp'] if 'timestamp' in block else None,
             deployer=Address(str(deployer)) if deployer is not None else None,
             proxy_deployer=None,
-            model_result_block=self.context.block_number,
-            model_result_direction='original')
+            firstResultBlockNumber=res)
 
 
 class TokenLogoOutput(DTO):
     logo_url: str = DTOField(description="URL of token's logo")
-
-
-logos = {
-    "trustwallet_assets": NetworkDict(str, {
-        Network.Mainnet: "ethereum",
-        Network.BSC: "binance",
-        Network.Polygon: "polygon",
-        Network.Optimism: "optimism",
-        Network.ArbitrumOne: "arbitrum",
-        Network.Avalanche: "avalanchec",
-        Network.Fantom: "fantom"
-    }),
-    "uniswap_assets": NetworkDict(str, {
-        Network.Mainnet: "ethereum",
-        Network.BSC: "binance",
-        Network.Polygon: "polygon",
-        Network.Optimism: "optimism",
-        Network.ArbitrumOne: "arbitrum",
-        Network.Avalanche: "avalanchec",
-        Network.Fantom: "fantom"
-    }),
-    "sushiswap_assets": NetworkDict(str, {
-        Network.Mainnet: "ethereum",
-        Network.BSC: "binance",
-        Network.Polygon: "polygon",
-        Network.Optimism: "optimism",
-        Network.ArbitrumOne: "arbitrum",
-        Network.Avalanche: "avalanche",
-        Network.Fantom: "fantom"
-    }),
-    "sushiswap_logos": NetworkDict(str, {
-        Network.Mainnet: "ethereum",
-        Network.BSC: "binance",
-        Network.Polygon: "polygon",
-        Network.Optimism: "optimism",
-        Network.ArbitrumOne: "arbitrum",
-        Network.Avalanche: "avalanche",
-        Network.Fantom: "fantom"
-    }),
-    "curve_assets": NetworkDict(str, {
-        Network.Mainnet: "assets",
-        Network.Polygon: "assets-polygon",
-        Network.Optimism: "assets-optimism",
-        Network.ArbitrumOne: "assets-arbitrum",
-        Network.Avalanche: "assets-avalanche",
-        Network.Fantom: "assets-fantom"
-    })
-}
 
 
 @Model.describe(slug="token.logo",
@@ -382,6 +310,7 @@ logos = {
                 developer="Credmark",
                 category='protocol',
                 tags=['token'],
+                cache=CachePolicy.IGNORE_BLOCK,
                 input=Token,
                 output=TokenLogoOutput
                 )
@@ -390,14 +319,56 @@ class TokenLogoModel(Model):
     Return token's logo
     """
 
-    def run(self, input: Token) -> TokenLogoOutput:
-        if self.context.block_number != 0:
-            return self.context.run_model(self.slug,
-                                          input,
-                                          block_number=0,
-                                          return_type=TokenLogoOutput)
+    logos = {
+        "trustwallet_assets": NetworkDict(str, {
+            Network.Mainnet: "ethereum",
+            Network.BSC: "binance",
+            Network.Polygon: "polygon",
+            Network.Optimism: "optimism",
+            Network.ArbitrumOne: "arbitrum",
+            Network.Avalanche: "avalanchec",
+            Network.Fantom: "fantom"
+        }),
+        "uniswap_assets": NetworkDict(str, {
+            Network.Mainnet: "ethereum",
+            Network.BSC: "binance",
+            Network.Polygon: "polygon",
+            Network.Optimism: "optimism",
+            Network.ArbitrumOne: "arbitrum",
+            Network.Avalanche: "avalanchec",
+            Network.Fantom: "fantom"
+        }),
+        "sushiswap_assets": NetworkDict(str, {
+            Network.Mainnet: "ethereum",
+            Network.BSC: "binance",
+            Network.Polygon: "polygon",
+            Network.Optimism: "optimism",
+            Network.ArbitrumOne: "arbitrum",
+            Network.Avalanche: "avalanche",
+            Network.Fantom: "fantom"
+        }),
+        "sushiswap_logos": NetworkDict(str, {
+            Network.Mainnet: "ethereum",
+            Network.BSC: "binance",
+            Network.Polygon: "polygon",
+            Network.Optimism: "optimism",
+            Network.ArbitrumOne: "arbitrum",
+            Network.Avalanche: "avalanche",
+            Network.Fantom: "fantom"
+        }),
+        "curve_assets": NetworkDict(str, {
+            Network.Mainnet: "assets",
+            Network.Polygon: "assets-polygon",
+            Network.Optimism: "assets-optimism",
+            Network.ArbitrumOne: "assets-arbitrum",
+            Network.Avalanche: "assets-avalanche",
+            Network.Fantom: "assets-fantom"
+        })
+    }
 
+    def run(self, input: Token) -> TokenLogoOutput:
         network = self.context.network
+        logos = self.logos
 
         try_urls = []
         # Handle native token

@@ -4,7 +4,7 @@ import math
 from datetime import date, datetime, timezone
 from typing import Union
 
-from credmark.cmf.model import Model
+from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Network, NetworkDict
 from credmark.dto import DTO, EmptyInput
@@ -28,6 +28,7 @@ class TimestampOutput(DTO):
                 display_name="Obtain block timestamp",
                 description='In UTC',
                 category='chain',
+                cache=CachePolicy.SKIP,
                 input=TimestampInput,
                 output=TimestampOutput)
 class GetBlockTimestamp(Model):
@@ -194,6 +195,7 @@ class LatestBlock(DTO):
                 display_name="Obtain latest block",
                 description='block number and timestamp',
                 category='chain',
+                cache=CachePolicy.SKIP,
                 input=EmptyInputForLatestBlock,
                 output=LatestBlock)
 class GetLatestBlock(Model):
