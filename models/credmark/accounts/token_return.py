@@ -41,7 +41,7 @@ class TokenReturnOutput(DTO):
 def token_return(_context, _logger, _df, _token_list, quote=None) -> TokenReturnOutput:
     if _token_list == 'cmf':
         token_list = (_context.run_model(
-            'token.list', {}, return_type=Records, block_number=0).to_dataframe()
+            'token.list', {}, return_type=Records).to_dataframe()
             ['address']
             .values)
     elif _token_list == 'all':

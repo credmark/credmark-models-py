@@ -4,7 +4,7 @@ from time import sleep
 from typing import Any, Optional, Type, TypeVar
 
 import requests
-from credmark.cmf.model import Model
+from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, DTOField
 from requests import HTTPError, JSONDecodeError, Response
@@ -104,6 +104,7 @@ class DuneExecuteQueryOutput(DTO):
     description="Execute (run) a query for a specific query id.",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneExecuteQueryInput,
     output=DuneExecuteQueryOutput)
 class DuneExecuteQuery(Model, DuneClient):
@@ -169,6 +170,7 @@ class DuneExecutionStatus(BaseExecutionStatus):
     display_name="Dune - Get execution status",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneExecutionInput,
     output=DuneExecutionStatus)
 class DuneGetExecutionStatus(Model, DuneClient):
@@ -193,6 +195,7 @@ class DuneExecutionResults(BaseExecutionStatus):
     display_name="Dune - Get execution results",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneExecutionInput,
     output=DuneExecutionResults)
 class DuneGetExecutionResults(Model, DuneClient):
@@ -208,6 +211,7 @@ class DuneGetExecutionResults(Model, DuneClient):
     display_name="Dune - Get latest query results",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneQueryInput,
     output=DuneExecutionResults)
 class DuneGetLatestQueryResults(Model, DuneClient):
@@ -228,6 +232,7 @@ class DuneCancelExecutionOutput(DTO):
     display_name="Dune - Cancel execution",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneExecutionInput,
     output=DuneCancelExecutionOutput)
 class DuneCancelExecution(Model, DuneClient):
@@ -255,6 +260,7 @@ class DuneRunQueryInput(DuneQueryInput):
     display_name="Dune - Run query",
     category="external",
     subcategory="dune",
+    cache=CachePolicy.SKIP,
     input=DuneRunQueryInput,
     output=DuneExecutionResults)
 class DuneRunQuery(Model, DuneClient):
@@ -283,7 +289,7 @@ class DuneRunQuery(Model, DuneClient):
                                               return_type=DuneExecutionResults,
                                               local=True)
 
-            sleep(secs=input.sleep)
+            sleep(input.sleep)
 
         try:
             self.context.run_model('dune.cancel-execution',

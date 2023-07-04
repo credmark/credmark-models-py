@@ -7,7 +7,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from credmark.cmf.model import Model
+from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
 from credmark.cmf.types import (
     Account,
@@ -244,7 +244,7 @@ class AccountsTokenReturnHistorical(Model):
 
         if input.token_list == TokenListChoice.CMF:
             token_list = (self.context.run_model(
-                'token.list', {}, return_type=Records, block_number=0)
+                'token.list', {}, return_type=Records)
                 .to_dataframe()['address'].str.lower().values)
         else:
             token_list = None
@@ -354,6 +354,7 @@ class AccountHistoricalInput(Account, HistoricalDTO):
                 category='account',
                 subcategory='position',
                 tags=['token'],
+                cache=CachePolicy.SKIP,
                 input=AccountHistoricalInput,
                 output=dict)
 class AccountERC20TokenHistorical(Model):
@@ -391,6 +392,7 @@ class AccountsHistoricalInput(Accounts, HistoricalDTO):
                 category='account',
                 subcategory='position',
                 tags=['token'],
+                cache=CachePolicy.SKIP,
                 input=AccountsHistoricalInput,
                 output=dict)
 class AccountsERC20TokenHistorical(Model):
