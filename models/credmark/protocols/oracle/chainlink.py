@@ -54,7 +54,7 @@ class ChainLinkPriceByENS(Model):
     def run(self, input: ENSDomainName) -> Price:
         try:
             # type: ignore # pylint: disable=no-member
-            ns = ENS.fromWeb3(self.context.web3)
+            ns = ENS.from_web3(self.context.web3)
         except AttributeError:
             # type: ignore  # pylint: disable=no-member
             ns = cast(Any, ENS).from_web3(self.context.web3)

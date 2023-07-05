@@ -173,7 +173,7 @@ class CurveFinancePrice(Model):
                     ratio_to_other = other_token.scaled(
                         pool.functions.get_dy(n_token_input,  # token to send
                                               n_token_other,  # token to receive
-                                              10**input.decimals  # amount of the token to send
+                                              10**input.decimals  # amount of the token to send # type: ignore
                                               ).call())
                     price_other = self.context.run_model('price.quote',
                                                          input={
@@ -192,8 +192,8 @@ class CurveFinancePrice(Model):
                      f'{pool_info.tokens[n_price_min].symbol}|{price_others[n_price_min]}'))
 
         if input.address in self.CRV_LP[self.context.network]:
-            if input.abi is not None and 'minter' in input.abi.functions:
-                pool_addr = input.functions.minter().call()
+            if input.abi is not None and 'minter' in input.abi.functions:  # type: ignore
+                pool_addr = input.functions.minter().call()  # type: ignore
             else:
                 registry = Contract(
                     **self.context.models.curve_fi.get_registry())
@@ -217,7 +217,7 @@ class CurveFinancePrice(Model):
                     price_tokens.append(price_tok)
 
             virtual_price = pool.functions.get_virtual_price().call()
-            lp_token_price = input.scaled(min(price_tokens) * virtual_price)
+            lp_token_price = input.scaled(min(price_tokens) * virtual_price)  # type: ignore
             n_min_token_symbol = np.where(np.isclose(
                 min(price_tokens), price_tokens))[0][0]
             min_token_symbol = pool_info.tokens_symbol[n_min_token_symbol]
