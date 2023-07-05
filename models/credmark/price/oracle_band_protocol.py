@@ -1,22 +1,14 @@
 from typing import List
-from credmark.cmf.model import Model, ModelDataErrorDesc
-from credmark.cmf.model.errors import ModelDataError, ModelEngineError
-from credmark.cmf.types import Contract, NetworkDict, Network, PriceWithQuote, Some
+from credmark.cmf.model import CachePolicy, Model, ModelDataErrorDesc
+from credmark.cmf.model.errors import ModelDataError
+from credmark.cmf.types import Price, PriceWithQuote, Some
 
 from models.dtos.price import PriceInput
-from models.tmp_abi_lookup import BAND_PROTOCOL_ABI
+from models.credmark.protocols.oracle.band_protocol import PriceSymbolInput, PriceSymbolsInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='No possible feed/routing for token pair')
-
-contracts = NetworkDict(str, {
-    Network.Avalanche: '0x75B01902D9297fD381bcF3B155a8cEAC78F5A35E',
-    Network.BSC: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
-    Network.Mainnet: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
-    Network.Fantom: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
-    Network.Optimism: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
-})
 
 
 @Model.describe(slug='price.oracle-band-protocol',
@@ -28,26 +20,25 @@ contracts = NetworkDict(str, {
                 tags=['price'],
                 input=PriceInput,
                 output=PriceWithQuote,
+                cache=CachePolicy.SKIP,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceOracleBandProtocol(Model):
     def run(self, input: PriceInput):
-        if self.context.network not in contracts:
-            raise ModelDataError('Chain not supported')
+        if not input.base.symbol:
+            raise ModelDataError('Symbol not found for base token')
+        if not input.quote.symbol:
+            raise ModelDataError('Symbol not found for quote token')
 
-        contract = Contract(contracts[self.context.network])
-        try:
-            _ = contract.abi
-        except (ModelDataError, ModelEngineError):
-            contract = contract.set_abi(BAND_PROTOCOL_ABI, set_loaded=True)
+        result = self.context.run_model('band.price-by-symbol',
+                                        PriceSymbolInput(
+                                            base_symbol=input.base.symbol,
+                                            quote_symbol=input.quote.symbol
+                                        ),
+                                        return_type=Price)
 
-        try:
-            (rate, lastUpdatedBase, lastUpdatedQuote) = contract.functions.getReferenceData(
-                input.base.symbol, input.quote.symbol).call()
-            return PriceWithQuote(price=rate/10**18,
-                                  src=f'{self.slug}|b:{lastUpdatedBase}|q:{lastUpdatedQuote}',
-                                  quoteAddress=input.quote.address)
-        except:
-            raise ModelDataError('No possible feed/routing for token pair')
+        return PriceWithQuote(price=result.price,
+                              src=result.src,
+                              quoteAddress=input.quote.address)
 
 
 @Model.describe(slug='price.oracle-band-protocol-multiple',
@@ -59,31 +50,30 @@ class PriceOracleBandProtocol(Model):
                 tags=['price'],
                 input=Some[PriceInput],
                 output=Some[PriceWithQuote],
+                cache=CachePolicy.SKIP,
                 errors=PRICE_DATA_ERROR_DESC)
 class PriceOracleBandProtocolMultiple(Model):
     def run(self, input: Some[PriceInput]) -> Some[PriceWithQuote]:
-        if self.context.network not in contracts:
-            raise ModelDataError('Chain not supported')
+        base_symbols: List[str] = []
+        quote_symbols: List[str] = []
+        for pair in input:
+            if not pair.base.symbol:
+                raise ModelDataError(f'Symbol not found for base token {pair.base.address}')
+            if not pair.quote.symbol:
+                raise ModelDataError(f'Symbol not found for quote token {pair.quote.address}')
+            base_symbols.append(pair.base.symbol)
+            quote_symbols.append(pair.quote.symbol)
 
-        contract = Contract(contracts[self.context.network])
-        try:
-            _ = contract.abi
-        except (ModelDataError, ModelEngineError):
-            contract = contract.set_abi(BAND_PROTOCOL_ABI, set_loaded=True)
+        results = self.context.run_model('band.price-by-symbol-bulk',
+                                         PriceSymbolsInput(
+                                             base_symbols=base_symbols,
+                                             quote_symbols=quote_symbols,
+                                         ),
+                                         return_type=Some[Price])
 
-        bases = [price_input.base.symbol for price_input in input]
-        quotes = [price_input.quote.symbol for price_input in input]
-        try:
-            results = contract.functions.getReferenceDataBulk(
-                bases, quotes).call()
-
-            some: List[PriceWithQuote] = []
-            for _input, result in zip(input.some, results):
-                (rate, lastUpdatedBase, lastUpdatedQuote) = result
-                some.append(PriceWithQuote(
-                    price=rate/10**18,
-                    src=f'{self.slug}|b:{lastUpdatedBase}|q:{lastUpdatedQuote}',
-                    quoteAddress=_input.quote.address))
-            return Some(some=some)
-        except:
-            raise ModelDataError('No possible feed/routing for token pair')
+        return Some(
+            some=[PriceWithQuote(price=result.price,
+                                 src=result.src,
+                                 quoteAddress=input[idx].quote.address)
+                  for idx, result in enumerate(results)]
+        )
