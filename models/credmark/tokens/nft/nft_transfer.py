@@ -238,8 +238,8 @@ class BlurOrder(DTO):
     """
 
     class Fee(DTO):
-      rate: int
-      recipient: Address
+        rate: int
+        recipient: Address
 
     trader: Address
     side: int  # 1 for sell, 0 for buy
