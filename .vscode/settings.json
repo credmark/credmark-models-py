@@ -211,5 +211,6 @@
   "python.formatting.provider": "autopep8",
   "githubPullRequests.ignoredPullRequestBranches": [
     "main"
-  ]
+  ],
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
 }
