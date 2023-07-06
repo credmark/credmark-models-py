@@ -227,7 +227,7 @@ class TokenInfoDeployment(ImmutableModel):
 
     code_by_block = {}
 
-    def binary_search(self, low, high, contract_address) -> int:
+    def binary_search(self, low: int, high: int, contract_address) -> int:
         # Check base case
         if high >= low:
             msg = f'[{self.slug}] Searching block {low}-{high} for {contract_address}'
@@ -237,12 +237,12 @@ class TokenInfoDeployment(ImmutableModel):
             if high == low:
                 return low
 
-            if self.code_by_block.get(hex(mid)) is None:
-                try_get_code = self.context.web3.eth.get_code(
-                    contract_address, hex(mid)).hex()
-                self.code_by_block[hex(mid)] = try_get_code
+            mid_hex = hex(mid)
+            if self.code_by_block.get(mid_hex) is None:
+                try_get_code = self.context.web3.eth.get_code(contract_address, mid).hex()
+                self.code_by_block[mid_hex] = try_get_code
             else:
-                try_get_code = self.code_by_block[hex(mid)]
+                try_get_code = self.code_by_block[mid_hex]
             if try_get_code != '0x':
                 return self.binary_search(low, mid, contract_address)
             elif try_get_code == '0x':

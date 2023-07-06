@@ -1,16 +1,12 @@
-git+https://github.com/credmark/credmark-model-framework-py.git@0.8.121
-# data libraries
-numpy>=1.23.3
+git+https://github.com/credmark/credmark-model-framework-py.git@upgrade
+ipfshttpclient>=0.8.0a2
+matplotlib>=3.7.1
+networkx>=3.1
+numpy>=1.21.0
 numpy_financial>=1.0.0
-matplotlib>=3.5.1
-pandas>=1.5.0
-scipy>=1.7.0
-statsmodels>=0.13.0
-# Pandas' I/O
+pyarrow>=12.0.1
+pyxirr>=0.9.2
+scipy>=1.11.1
+statsmodels>=0.14.0
 xlrd>=2.0.1
-xlsxwriter>=3.0.3
-BeautifulSoup4>=4.10.0
-pyarrow==8.0.0
-networkx>=2.8.4
-pyxirr==0.9.0
-ipfshttpclient==0.8.0a2
+xlsxwriter>=3.1.2

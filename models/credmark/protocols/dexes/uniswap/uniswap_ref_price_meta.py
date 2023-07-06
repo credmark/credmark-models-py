@@ -83,8 +83,8 @@ class UniswapRefPriceMeta(Model):
                     model_input.ref_price_slug, {}, return_type=dict)
                 # Use the reference price to scale the tick price. Note the cross-reference is used here.
                 # token0 = tick_price0 * token1 = tick_price0 * ref_price of token1
-                ratio_price0 *= ref_price_ring0[token1_addr]
-                ratio_price1 *= ref_price_ring0[token0_addr]
+                ratio_price0 *= ref_price_ring0[token1_addr]  # type: ignore
+                ratio_price1 *= ref_price_ring0[token0_addr]  # type: ignore
             else:
                 self.logger.info(f'Pool: {token0_symbol}/{token1_symbol}/{fee_str} use default ref_price=1')
         elif token0_addr in token1_ref_tokens and token1_addr not in token0_ref_tokens:
