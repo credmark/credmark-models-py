@@ -171,10 +171,11 @@ class CurveFinancePrice(Model):
                 if (n_token_other != n_token_input and
                         other_token.address not in self.supported_coins(self.context.network)):
                     ratio_to_other = other_token.scaled(
-                        pool.functions.get_dy(n_token_input,  # token to send
-                                              n_token_other,  # token to receive
-                                              10**input.decimals  # amount of the token to send # type: ignore
-                                              ).call())
+                        pool.functions.get_dy(
+                            n_token_input,  # token to send
+                            n_token_other,  # token to receive
+                            10**input.decimals  # amount of the token to send # type: ignore
+                        ).call())
                     price_other = self.context.run_model('price.quote',
                                                          input={
                                                              'base': other_token},

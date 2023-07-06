@@ -139,6 +139,7 @@
     "prec",
     "pyarrow",
     "pycodestyle",
+    "pydantic",
     "pylint",
     "pyplot",
     "pyright",

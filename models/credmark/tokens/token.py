@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 import requests
-from credmark.cmf.model import CachePolicy, Model, ImmutableModel, ImmutableOutput
+from credmark.cmf.model import CachePolicy, ImmutableModel, ImmutableOutput, Model
 from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
 from credmark.cmf.types import (
     Accounts,
@@ -256,7 +256,8 @@ class TokenInfoDeployment(ImmutableModel):
         self.code_by_block = {}
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
-            raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+            raise ModelDataError(
+                f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         res = self.binary_search(
             0, int(self.context.block_number), input.address.checksum)

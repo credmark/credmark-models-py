@@ -1,10 +1,11 @@
 from typing import List
+
 from credmark.cmf.model import CachePolicy, Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Price, PriceWithQuote, Some
 
-from models.dtos.price import PriceInput
 from models.credmark.protocols.oracle.band_protocol import PriceSymbolInput, PriceSymbolsInput
+from models.dtos.price import PriceInput
 
 PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,

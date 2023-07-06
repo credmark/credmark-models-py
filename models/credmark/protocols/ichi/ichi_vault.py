@@ -97,7 +97,8 @@ class IchiVaultsBlock(IncrementalModel):
     ICHI_VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'
 
     def run(self, _, from_block: BlockNumber) -> BlockSeries[List[IchiVault]]:
-        vault_factory = Contract(self.ICHI_VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
+        vault_factory = Contract(self.ICHI_VAULT_FACTORY).set_abi(
+            ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created_events = list(vault_factory.fetch_events(
@@ -475,7 +476,8 @@ class IchiVaultFirstDeposit(ImmutableModel):
         if df_first_deposit.empty:
             raise ModelDataError('No deposit has been made to the model')
 
-        first_deposit_block_number = int(df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber'])
+        first_deposit_block_number = int(
+            df_first_deposit.sort_values('blockNumber').iloc[0]['blockNumber'])
         first_deposit_block_timestamp = BlockNumber(first_deposit_block_number).timestamp
 
         return IchiVaultFirstDepositOutput(
@@ -562,24 +564,27 @@ class IchiVaultCashflowSeries(IncrementalModel):
             df_deposit = (df_deposit
                           .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
                           .assign(shares=lambda df: df.shares.apply(int) / (10 ** vault_ichi_decimals),
-                                  amount0=lambda df: df.amount0.apply(int) / (10 ** token0_decimals),
+                                  amount0=lambda df: df.amount0.apply(
+                                      int) / (10 ** token0_decimals),
                                   amount1=lambda df: df.amount1.apply(int) / (10 ** token1_decimals)))
 
         if not df_withdraw.empty:
             df_withdraw = (df_withdraw
                            .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
                            .assign(shares=lambda df: -(df.shares.apply(int) / (10 ** vault_ichi_decimals)),
-                                   amount0=lambda df: -(df.amount0.apply(int) / (10 ** token0_decimals)),
+                                   amount0=lambda df: -(df.amount0.apply(int) /
+                                                        (10 ** token0_decimals)),
                                    amount1=lambda df: -(df.amount1.apply(int) / (10 ** token1_decimals))))
 
-        from_block_number = int(from_block)  # pylint: disable=unused-variable
+        _from_block_number = int(from_block)  # pylint: disable=unused-variable
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
         df_comb = (df_comb
                    .query('blockNumber >= @from_block_number')
                    .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
                    .reset_index(drop=True))
 
-        self.logger.info(f'[{self.slug}] Deposit/Withdraw events: {len(df_comb)}={len(df_deposit)}+{len(df_withdraw)}')
+        self.logger.info(
+            f'[{self.slug}] Deposit/Withdraw events: {len(df_comb)}={len(df_deposit)}+{len(df_withdraw)}')
 
         if df_comb.empty:
             return BlockSeries()
@@ -727,7 +732,8 @@ class IchiVaultPerformance(Model):
             total_amount_in_token_n = token1_amount + token0_in_token1_amount
 
         if make_negative:
-            token0_amount, token1_amount, total_amount_in_token_n = -token0_amount, -token1_amount, -total_amount_in_token_n
+            token0_amount, token1_amount, total_amount_in_token_n = - \
+                token0_amount, -token1_amount, -total_amount_in_token_n
 
         return (context.block_number, context.block_number.timestamp, context.block_number.timestamp_datetime, event_name,
                 allow_token0, current_tick, 0,
@@ -752,7 +758,8 @@ class IchiVaultPerformance(Model):
 
         irr_return = current_value / past_value - 1
 
-        self.logger.info(('irr_return', days, irr_return, irr, irr2, _cagr_from_irr, _cagr_annualized))
+        self.logger.info(('irr_return', days, irr_return, irr,
+                         irr2, _cagr_from_irr, _cagr_annualized))
 
         return irr_return
 
@@ -779,7 +786,8 @@ class IchiVaultPerformance(Model):
 
         # In pandas make a column negative when another column's value is equal to "Deposit"
 
-        self.logger.info(f'Trimmed df_cashflow from {df_cashflow.shape[0]} to {df_cashflow_trim.shape[0]}')
+        self.logger.info(
+            f'Trimmed df_cashflow from {df_cashflow.shape[0]} to {df_cashflow_trim.shape[0]}')
         if df_cashflow_trim.block_number.isin([start_block]).any():
             with self.context.fork(block_number=start_block - 1) as cc:
                 df_row_start_block = pd.DataFrame(
@@ -891,9 +899,11 @@ class IchiVaultPerformance(Model):
 
         past_value = p1 + p2
         if vault_info_current['allowed_token'] == 0:
-            current_value = p1 + p2 * vault_info_past['ratio_price0'] / vault_info_current['ratio_price0']
+            current_value = p1 + p2 * \
+                vault_info_past['ratio_price0'] / vault_info_current['ratio_price0']
         else:
-            current_value = p1 / vault_info_past['ratio_price0'] * vault_info_current['ratio_price0'] + p2
+            current_value = p1 / vault_info_past['ratio_price0'] * \
+                vault_info_current['ratio_price0'] + p2
 
         irr = npf.irr([-past_value, current_value])
         _cagr_from_irr = np.power(irr + 1, 365 / days) - 1
@@ -973,8 +983,10 @@ class IchiVaultPerformance(Model):
                 liquidity = token0_amount * token1_amount
                 token0_amount_new = np.sqrt(liquidity / vault_info_current['ratio_price0'])
                 token1_amount_new = np.sqrt(liquidity * vault_info_current['ratio_price0'])
-                current_token_value = token0_amount_new * vault_info_current['token0_chainlink_price']
-                make_up_token_value = (token1_amount_new - token1_amount) * vault_info_current['token1_chainlink_price']
+                current_token_value = token0_amount_new * \
+                    vault_info_current['token0_chainlink_price']
+                make_up_token_value = (token1_amount_new - token1_amount) * \
+                    vault_info_current['token1_chainlink_price']
                 current_value = current_token_value + make_up_token_value
             else:
                 token1_amount = base / vault_info_past['token1_chainlink_price']
@@ -983,8 +995,10 @@ class IchiVaultPerformance(Model):
 
                 token0_amount_new = np.sqrt(liquidity / vault_info_current['ratio_price0'])
                 token1_amount_new = np.sqrt(liquidity * vault_info_current['ratio_price0'])
-                current_token_value = token1_amount_new * vault_info_current['token1_chainlink_price']
-                make_up_token_value = (token0_amount_new - token0_amount) * vault_info_current['token0_chainlink_price']
+                current_token_value = token1_amount_new * \
+                    vault_info_current['token1_chainlink_price']
+                make_up_token_value = (token0_amount_new - token0_amount) * \
+                    vault_info_current['token0_chainlink_price']
                 current_value = current_token_value + make_up_token_value
         except TypeError:
             return None
@@ -1004,7 +1018,8 @@ class IchiVaultPerformance(Model):
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
         # _vault_pool_addr = Address(vault_ichi.functions.pool().call())
 
-        deployment = self.context.run_model('token.deployment', {'address': vault_addr, 'ignore_proxy': True})
+        deployment = self.context.run_model(
+            'token.deployment', {'address': vault_addr, 'ignore_proxy': True})
 
         deployed_block_number = deployment['deployed_block_number']
         deployed_block_timestamp = deployment['deployed_block_timestamp']
