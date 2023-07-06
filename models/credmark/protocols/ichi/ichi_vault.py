@@ -1,21 +1,15 @@
 # pylint: disable= line-too-long, too-many-lines, no-name-in-module
 
-from collections import defaultdict
 import json
 import math
+from collections import defaultdict
 from datetime import datetime
 from typing import DefaultDict, List
 
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
-from credmark.cmf.model import (
-    Model,
-    ImmutableModel,
-    ImmutableOutput,
-    IncrementalModel,
-    CachePolicy
-)
+from credmark.cmf.model import CachePolicy, ImmutableModel, ImmutableOutput, IncrementalModel, Model
 from credmark.cmf.model.errors import (
     ModelDataError,
     ModelEngineError,
@@ -28,8 +22,8 @@ from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, DTOField, EmptyInput
 from pyxirr import InvalidPaymentsError, xirr
 from requests.exceptions import HTTPError
-from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 from models.credmark.protocols.dexes.uniswap.univ3_math import tick_to_price
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
 
@@ -100,10 +94,10 @@ class IchiVault(DTO):
                            subcategory='ichi',
                            output=BlockSeries[List[IchiVault]])
 class IchiVaultsBlock(IncrementalModel):
-    VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'
+    ICHI_VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'
 
     def run(self, _, from_block: BlockNumber) -> BlockSeries[List[IchiVault]]:
-        vault_factory = Contract(self.VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
+        vault_factory = Contract(self.ICHI_VAULT_FACTORY).set_abi(ICHI_VAULT_FACTORY, set_loaded=True)
 
         try:
             vault_created_events = list(vault_factory.fetch_events(
@@ -111,7 +105,7 @@ class IchiVaultsBlock(IncrementalModel):
                 from_block=int(from_block)))
         except HTTPError:
             deployed_info = self.context.run_model('token.deployment', {
-                "address": self.VAULT_FACTORY, "ignore_proxy": True})
+                "address": self.ICHI_VAULT_FACTORY, "ignore_proxy": True})
             self.logger.info('Use by_range=10_000')
             deployed_block_number = deployed_info['deployed_block_number']
             # 25_697_834 for vault_factory
@@ -165,6 +159,8 @@ class IchiVaultsBlock(IncrementalModel):
                 output=dict,
                 cache=CachePolicy.SKIP)
 class IchiVaults(Model):
+    ICHI_VAULT_FACTORY = '0x2d2c72C4dC71AA32D64e5142e336741131A73fc0'
+
     def run(self, _) -> dict:
         vaults_series = self.context.run_model('ichi.vaults-block-series', {},
                                                return_type=BlockSeries[List[IchiVault]])

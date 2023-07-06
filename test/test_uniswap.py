@@ -45,14 +45,15 @@ class TestUniswap(TestUniswapPools):
     def test(self):
         self.title("Uniswap")
 
-        self.pool_tests('uniswap-v2', 17_001_203, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v2', 17_001_204, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 17_010_203, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v3', 17_010_204, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 43_698_403, 137, 'USDC', 'WMATIC', 'XSGD', do_test_ledger=False)
+        self.pool_tests('uniswap-v3', 43_698_404, 137, 'USDC', 'WMATIC', 'XSGD', do_test_ledger=False)
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")
+
         # WETH: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
         self.run_model("uniswap.quoter-price-dai",
                        {"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"})
