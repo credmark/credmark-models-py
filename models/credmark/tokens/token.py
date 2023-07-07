@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 import requests
-from credmark.cmf.model import CachePolicy, Model, ImmutableModel, ImmutableOutput
+from credmark.cmf.model import CachePolicy, ImmutableModel, ImmutableOutput, Model
 from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
 from credmark.cmf.types import (
     Accounts,
@@ -227,7 +227,7 @@ class TokenInfoDeployment(ImmutableModel):
 
     code_by_block = {}
 
-    def binary_search(self, low, high, contract_address) -> int:
+    def binary_search(self, low: int, high: int, contract_address) -> int:
         # Check base case
         if high >= low:
             msg = f'[{self.slug}] Searching block {low}-{high} for {contract_address}'
@@ -237,12 +237,12 @@ class TokenInfoDeployment(ImmutableModel):
             if high == low:
                 return low
 
-            if self.code_by_block.get(hex(mid)) is None:
-                try_get_code = self.context.web3.eth.get_code(
-                    contract_address, hex(mid)).hex()
-                self.code_by_block[hex(mid)] = try_get_code
+            mid_hex = hex(mid)
+            if self.code_by_block.get(mid_hex) is None:
+                try_get_code = self.context.web3.eth.get_code(contract_address, mid).hex()
+                self.code_by_block[mid_hex] = try_get_code
             else:
-                try_get_code = self.code_by_block[hex(mid)]
+                try_get_code = self.code_by_block[mid_hex]
             if try_get_code != '0x':
                 return self.binary_search(low, mid, contract_address)
             elif try_get_code == '0x':
@@ -256,7 +256,8 @@ class TokenInfoDeployment(ImmutableModel):
         self.code_by_block = {}
 
         if self.context.web3.eth.get_code(input.address.checksum).hex() == '0x':
-            raise ModelDataError(f'{input.address} is not an EOA account on block {self.context.block_number}')
+            raise ModelDataError(
+                f'{input.address} is not an EOA account on block {self.context.block_number}')
 
         res = self.binary_search(
             0, int(self.context.block_number), input.address.checksum)

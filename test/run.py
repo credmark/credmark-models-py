@@ -55,7 +55,7 @@ if __name__ == '__main__':
                               '- gw (official gateway only'))
     parser.add_argument('start_n', type=int, default=0,
                         help='case number to start')
-    parser.add_argument('-b', '--block_number', type=int, default=14249443,
+    parser.add_argument('-b', '--block_number', type=int, default=14249445,
                         help='Block number to run')
     parser.add_argument('-s', '--serial', action='store_true', default=False,
                         help='Run tests in serial')
@@ -138,9 +138,11 @@ if __name__ == '__main__':
         if tests_split[0] == 'tlsbatch':
             init_tls_batch()
         if tests_split[0] == 'tlsall':
-            TestTLSAll().init_tls_all(page=args['page'], page_end=args['page_end'], page_limit=args['page_limit'])
+            TestTLSAll().init_tls_all(
+                page=args['page'], page_end=args['page_end'], page_limit=args['page_limit'])
     else:
-        all_tests_sel = [o for o in all_tests_sel if o.__name__ != 'TestTLSBatch' or o.__name__ != 'TestTLSAll']
+        all_tests_sel = [o for o in all_tests_sel if o.__name__ !=
+                         'TestTLSBatch' or o.__name__ != 'TestTLSAll']
         print(f'Run Tests: {all_tests_sel}')
 
     suites = unittest.TestSuite([unittest.TestLoader().loadTestsFromTestCase(

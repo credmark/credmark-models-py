@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import List
+
 from credmark.cmf.model import ModelContext
-from credmark.dto import DTO, DTOField, cross_examples, IterableListGenericDTO, PrivateAttr
+from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr, cross_examples
 
 
 class HistoricalUnit(str, Enum):

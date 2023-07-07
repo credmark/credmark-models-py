@@ -1,7 +1,8 @@
 from typing import List
+
 from credmark.cmf.model import Model, ModelDataErrorDesc
 from credmark.cmf.model.errors import ModelDataError, ModelEngineError
-from credmark.cmf.types import Contract, NetworkDict, Network, Price, Some
+from credmark.cmf.types import Contract, Network, NetworkDict, Price, Some
 from credmark.dto import DTO, DTOField
 
 from models.tmp_abi_lookup import BAND_PROTOCOL_ABI
@@ -10,7 +11,7 @@ PRICE_DATA_ERROR_DESC = ModelDataErrorDesc(
     code=ModelDataError.Codes.NO_DATA,
     code_desc='No possible feed/routing for token pair')
 
-contracts = NetworkDict(str, {
+BAND_CONTRACTS = NetworkDict(str, {
     Network.Avalanche: '0x75B01902D9297fD381bcF3B155a8cEAC78F5A35E',
     Network.BSC: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
     Network.Mainnet: '0xDA7a001b254CD22e46d3eAB04d937489c93174C3',
@@ -36,10 +37,10 @@ class PriceSymbolInput(DTO):
                 errors=PRICE_DATA_ERROR_DESC)
 class BandProtocolPrice(Model):
     def run(self, input: PriceSymbolInput):
-        if self.context.network not in contracts:
+        if self.context.network not in BAND_CONTRACTS:
             raise ModelDataError('Chain not supported')
 
-        contract = Contract(contracts[self.context.network])
+        contract = Contract(BAND_CONTRACTS[self.context.network])
         try:
             _ = contract.abi
         except (ModelDataError, ModelEngineError):
@@ -50,8 +51,8 @@ class BandProtocolPrice(Model):
                 input.base_symbol, input.quote_symbol).call()
             return Price(price=rate/10**18,
                          src=f'{self.slug}|b:{lastUpdatedBase}|q:{lastUpdatedQuote}')
-        except:
-            raise ModelDataError('No possible feed/routing for one of the token pairs')
+        except Exception as err:  # ruff: noqa: E722
+            raise ModelDataError('No possible feed/routing for one of the token pairs') from err
 
 
 class PriceSymbolsInput(DTO):
@@ -72,7 +73,7 @@ class PriceSymbolsInput(DTO):
                 errors=PRICE_DATA_ERROR_DESC)
 class BandProtocolPriceBulk(Model):
     def run(self, input: PriceSymbolsInput):
-        if self.context.network not in contracts:
+        if self.context.network not in BAND_CONTRACTS:
             raise ModelDataError('Chain not supported')
 
         base_symbols = input.base_symbols
@@ -82,7 +83,7 @@ class BandProtocolPriceBulk(Model):
         elif len(quote_symbols) != len(base_symbols):
             raise ModelDataError('No of base symbols should be equal to number of quote symbols.')
 
-        contract = Contract(contracts[self.context.network])
+        contract = Contract(BAND_CONTRACTS[self.context.network])
         try:
             _ = contract.abi
         except (ModelDataError, ModelEngineError):
@@ -100,5 +101,4 @@ class BandProtocolPriceBulk(Model):
                     src=f'{self.slug}|b:{lastUpdatedBase}|q:{lastUpdatedQuote}'))
             return Some(some=some)
         except Exception as err:
-            print(err)
-            raise ModelDataError('No possible feed/routing for one of the token pair')
+            raise ModelDataError('No possible feed/routing for one of the token pair') from err

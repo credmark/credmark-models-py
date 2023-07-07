@@ -7,7 +7,7 @@ class TestSushiSwap(TestUniswapPools):
     def test(self):
         self.title('SushiSwap')
 
-        self.pool_tests('sushiswap', 17_001_103, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('sushiswap', 17_001_104, 1, 'USDC', 'WETH', 'MKR')
 
         # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
         self.run_model('sushiswap.get-weighted-price', {"symbol": "WETH"})

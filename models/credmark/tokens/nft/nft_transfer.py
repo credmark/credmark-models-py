@@ -237,6 +237,10 @@ class BlurOrder(DTO):
     b'\x01')
     """
 
+    class Fee(DTO):
+        rate: int
+        recipient: Address
+
     trader: Address
     side: int  # 1 for sell, 0 for buy
     matchingPolicy: Address
@@ -247,7 +251,7 @@ class BlurOrder(DTO):
     price: int
     listingTime: int
     expirationTime: int
-    fees: List[Tuple[int, Address]]
+    fees: List[Fee]
     salt: int
     extraParams: bytes
 

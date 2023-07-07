@@ -93,28 +93,34 @@ class TestDashboard(CMFTest):
                            block_number=block_number)
 
     def test_dex_pool_volume(self) -> None:
-        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
-                       "count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
-
-        # credmark-dev run dex.pool-volume -i '{"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,"count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
-        self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
-                       "count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
-
-        # credmark-dev run pool.dex-db-latest -i '{"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
-        # credmark-dev run pool.dex-db-latest -i '{"address": "0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1"}' --api_url=http://localhost:8700 -j
-
         # FEI-TRIBE pool 0x9928e4046d7c6513326ccea028cd3e7a91c7590a does not contain any primary tokens,
         # its pool data is temporarily unavailable till we add its
         # self.run_model('pool.dex-db-latest', {"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"})
+        # credmark-dev run pool.dex-db-latest -i '{"address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
+        # credmark-dev run pool.dex-db-latest -i '{"address": "0x9fae36a18ef8ac2b43186ade5e2b07403dc742b1"}' --api_url=http://localhost:8700 -j
+        # credmark-dev run dex.pool-volume -i '{"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,"count": 2, "address": "0x9928e4046d7c6513326ccea028cd3e7a91c7590a"}' --api_url=http://localhost:8700 -j
+        # UniV2: FEI-TRIBE
+        # univ2_pool_address = '0x9928e4046d7c6513326ccea028cd3e7a91c7590a'
+
+        # UniV2: WETH-USDT
+        univ2_pool_address = '0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852'
 
         self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
-                       "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+                       "count": 2, "address": univ2_pool_address})
 
         self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
-                       "count": 2, "address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+                       "count": 2, "address": univ2_pool_address})
+
+        # Sushi Pool between SUSHI and WETH
+        sushi_pool_address = '0x795065dcc9f64b5614c407a6efdc400da6221fb0'
+        self.run_model('dex.pool-volume-historical', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": sushi_pool_address})
+
+        self.run_model('dex.pool-volume', {"pool_info_model": "uniswap-v2.pool-tvl", "interval": 7200,
+                       "count": 2, "address": sushi_pool_address})
 
         self.run_model('pool.dex-db-latest',
-                       {"address": "0x795065dcc9f64b5614c407a6efdc400da6221fb0"})
+                       {"address": sushi_pool_address})
 
 
 def run_test_uni(self, pool_n, pool, test_volume):

@@ -13,7 +13,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.dto import DTO, DTOField
-from eth_abi.abi import encode_abi
+from eth_abi.abi import encode
 from eth_typing.evm import ChecksumAddress
 
 from models.tmp_abi_lookup import IPOR_JOSEPH_ABI, IPOR_MILTON_ABI
@@ -199,7 +199,7 @@ class IporSwapMemory(NamedTuple):
     state: int
 
     def encode_abi(self) -> bytes:
-        return encode_abi(
+        return encode(
             [
                 "(uint256,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)"
             ],

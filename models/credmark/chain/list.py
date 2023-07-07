@@ -1,4 +1,5 @@
 from typing import List
+
 from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.types import Network
 from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO

@@ -111,7 +111,7 @@ class TestICHI(CMFTest):
 
         # vault_factory: "0x2d2c72C4dC71AA32D64e5142e336741131A73fc0"
         factory_block = self.get_token_deployment_block(
-            IchiVaults.VAULT_FACTORY, last_block, 137)
+            IchiVaults.ICHI_VAULT_FACTORY, last_block, 137)
         print(f'{factory_block=}')
 
         # credmark-dev run ichi.vault-info -i '{"address": "0x8ac3d7cd56816da9fb45e7640aa70a24884e02f7"}' -c 137 -j

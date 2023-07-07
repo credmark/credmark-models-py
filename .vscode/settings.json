@@ -2,8 +2,18 @@
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
-  "autopep8.args": ["--max-line-length", "120"],
-  "ruff.args": ["--ignore", "E501", "--ignore", "F841", "--ignore", "F401"],
+  "autopep8.args": [
+    "--max-line-length",
+    "100"
+  ],
+  "ruff.args": [
+    "--ignore",
+    "E501",
+    "--ignore",
+    "F841",
+    "--ignore",
+    "F401"
+  ],
   "editor.formatOnSave": true,
   "python.linting.pylintEnabled": true,
   "python.linting.lintOnSave": true,
@@ -129,10 +139,12 @@
     "prec",
     "pyarrow",
     "pycodestyle",
+    "pydantic",
     "pylint",
     "pyplot",
     "pyright",
     "pyxirr",
+    "Quickstart",
     "quickswap",
     "Rarible",
     "sbtc",
@@ -198,6 +210,9 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.autopep8"
   },
-  "python.formatting.provider": "none",
-  "githubPullRequests.ignoredPullRequestBranches": ["main"]
+  "python.formatting.provider": "autopep8",
+  "githubPullRequests.ignoredPullRequestBranches": [
+    "main"
+  ],
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
 }

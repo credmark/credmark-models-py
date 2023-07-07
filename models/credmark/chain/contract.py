@@ -1,8 +1,10 @@
+# pylint: disable=pointless-string-statement
+
 from datetime import datetime
 from typing import Any, Optional
 
 import pandas as pd
-from credmark.cmf.model import IncrementalModel, Model, CachePolicy
+from credmark.cmf.model import CachePolicy, IncrementalModel, Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import BlockNumber, Contract, Records
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
@@ -24,8 +26,18 @@ class ContractEventsInput(Contract):
         }
 
 
+"""
+cc = Contract('0x692437de2cAe5addd26CCF6650CaD722d914d974')
+from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
+cc.set_abi(ICHI_VAULT, set_loaded=True)
+list(cc.fetch_events(cc.events.Withdraw, from_block=43752597, to_block=43752597))
+
+python test/test.py run contract.events-block-series -j -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": true, "internalType": "address", "name": "to", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Withdraw", "type": "event"}]}' -b 40100090 -c 137 -l
+"""
+
+
 @IncrementalModel.describe(slug='contract.events-block-series',
-                           version='0.10',
+                           version='0.11',
                            display_name='Events from contract (non-mainnet)',
                            description='Get the past events from a contract in block series',
                            category='contract',
@@ -72,6 +84,9 @@ class ContractEventsSeries(IncrementalModel):
             f'[{self.slug}] Finished fetching event {input.event_name} from {from_block_number} '
             f'to {int(self.context.block_number)} on {datetime.now()}')
 
+        if df_events.empty:
+            return BlockSeries(series=[])
+
         df_events = (df_events
                      .drop('args', axis=1)
                      .assign(transactionHash=lambda r: r.transactionHash.apply(lambda x: x.hex()),
@@ -109,6 +124,9 @@ class ContractEvents(Model):
         events_series = self.context.run_model('contract.events-block-series',
                                                input,
                                                return_type=BlockSeries[Records])
+        if len(events_series.series) == 0:
+            return ContractEventsOutput(records=Records.from_dataframe(pd.DataFrame()))
+
         df_comb = (pd.concat([r.output.to_dataframe() for r in events_series], ignore_index=True)
                    .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
                    .reset_index(drop=True))

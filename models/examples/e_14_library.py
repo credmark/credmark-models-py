@@ -1,4 +1,3 @@
-import bs4
 import matplotlib
 import numpy
 import pandas
@@ -7,7 +6,6 @@ import scipy
 import statsmodels
 import xlrd
 import xlsxwriter
-from bs4 import BeautifulSoup
 from credmark.cmf.model import Model
 
 from .dtos import ExampleLibrariesOutput
@@ -52,10 +50,6 @@ class ExampleLibraries(Model):
             {
                 "name": xlsxwriter.__name__,
                 "version": xlsxwriter.__version__
-            },
-            {
-                "name": BeautifulSoup.__name__,
-                "version": bs4.__version__  # type: ignore
             },
             {
                 "name": pyarrow.__name__,

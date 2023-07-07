@@ -105,12 +105,9 @@ class UniswapExchange(Model):
             self.UNISWAP_DAI_V1_ADDRESS[self.context.network])
         exchange_contract = Contract(address=uniswap_dai_v1_addr)
 
-        try:
-            to_wei = self.context.web3.to_wei  # type: ignore # pylint: disable=no-member
-        except AttributeError:
-            to_wei = self.context.web3.toWei  # type: ignore # pylint: disable=no-member
+        to_wei = self.context.web3.to_wei
 
-            # Prices
+        # Prices
         eth_amount = to_wei('1', 'Ether')
 
         bid_daiAmount = exchange_contract.functions.getEthToTokenInputPrice(

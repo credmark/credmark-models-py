@@ -33,9 +33,11 @@ class TimestampOutput(DTO):
                 output=TimestampOutput)
 class GetBlockTimestamp(Model):
     def run(self, input: TimestampInput) -> TimestampOutput:
-        block_timestamp = self.context.web3.eth.get_block(
-            input.block_number)['timestamp']  # type: ignore
-        return TimestampOutput(timestamp=block_timestamp)
+        block_data = self.context.web3.eth.get_block(input.block_number)
+        if "timestamp" not in block_data:
+            raise ModelDataError(f'Timestamp not available for {input.block_number}')
+
+        return TimestampOutput(timestamp=block_data['timestamp'])
 
 
 class BlockInput(DTO):
