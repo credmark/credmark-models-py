@@ -22,7 +22,7 @@ from credmark.cmf.types import (
     Some,
     Token,
 )
-from credmark.dto import DTO, DTOField, IterableListGenericDTO, PrivateAttr
+from credmark.dto import DTO, DTOField, EmptyInput, IterableListGenericDTO, PrivateAttr
 from web3 import Web3
 
 SLOT_EIP1967 = hex(
@@ -209,6 +209,20 @@ class TokenDeploymentOutput(ImmutableOutput):
     deployer: Optional[Address] = DTOField(description='Deployer address')
     proxy_deployer: Optional[dict] = DTOField(
         description='Proxy deployment')
+
+
+@ImmutableModel.describe(
+    slug="token.d1",
+    version="0.1",
+    display_name="Token Information - deployment",
+    developer="Credmark",
+    category='protocol',
+    tags=['token'],
+    input=EmptyInput,
+    output=dict)
+class TokenInfoD1(ImmutableModel):
+    def run(self, input: EmptyInput) -> dict:
+        return {"result": 3}
 
 
 @ImmutableModel.describe(
