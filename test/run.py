@@ -1,4 +1,4 @@
-# pylint:disable=unused-import,line-too-long
+# pylint:disable=unused-import,line-too-long, invalid-name
 # ruff: noqa: F401
 
 import argparse
@@ -103,6 +103,7 @@ if __name__ == '__main__':
         parallel_count = args['parallel_count']
     else:
         print(f'Unknown test type {args["type"]}')
+        parallel_count = 1
         sys.exit()
 
     print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
