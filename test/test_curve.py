@@ -5,8 +5,9 @@ from cmf_test import CMFTest
 
 class TestCurve(CMFTest):
     def test_curve_gauge(self):
-        self.run_model('contrib.curve-fi-get-gauge-amounts',
-                       {'address': '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'})
+        if self.type != 'gw':
+            self.run_model('contrib.curve-fi-get-gauge-amounts',
+                           {'address': '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'})
 
     def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
@@ -14,7 +15,8 @@ class TestCurve(CMFTest):
         # curve-fi.get-registry,curve-fi.get-provider
         self.run_model('curve-fi.all-pools')
 
-        self.run_model('curve-fi.all-pools-info')  # __all__
+        if self.type != 'gw':
+            self.run_model('curve-fi.all-pools-info')  # __all__
 
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
@@ -106,8 +108,9 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.gauge-lp-dist',
                        {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'})
 
-        self.run_model('curve-fi.historical-gauge-lp-dist',
-                       {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'})
+        if self.type != 'gw':
+            self.run_model('curve-fi.historical-gauge-lp-dist',
+                           {'address': '0x11137B10C210b579405c21A07489e28F3c040AB1'})
 
         # self.run_model('curve-fi.lp-pool-dist',
         #               {"address": "0x43b4fdfd4ff969587185cdb6f0bd875c5fc83f8c"})

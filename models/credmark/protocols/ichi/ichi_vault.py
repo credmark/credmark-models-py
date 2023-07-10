@@ -511,6 +511,8 @@ class IchiVaultFirstDeposit(ImmutableModel):
 # credmark-dev run ichi.vault-cashflow -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137 --api_url=http://localhost:8700 -j -b 42454582
 # credmark-dev run ichi.vault-cashflow -i '{"address": "0x711901e4b9136119Fb047ABe8c43D49339f161c3"}' -c 137 --api_url=http://localhost:8700 -j -b 41675859
 
+# credmark-dev run ichi.vault-cashflow-block-series -i '{"address": "0x692437de2cae5addd26ccf6650cad722d914d974"}' -c 137 --api_url=http://localhost:8700 -j -b 42454582
+# credmark-dev run ichi.vault-cashflow-block-series -i '{"address": "0x692437de2cae5addd26ccf6650cad722d914d974"}' -c 137 -j -b 42454582
 
 @IncrementalModel.describe(
     slug='ichi.vault-cashflow-block-series',
@@ -601,7 +603,7 @@ class IchiVaultCashflowSeries(IncrementalModel):
         _from_block_number = int(from_block)  # pylint: disable=unused-variable
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
         df_comb = (df_comb
-                   .query('blockNumber >= @from_block_number')
+                   .query('blockNumber >= @_from_block_number')
                    .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
                    .reset_index(drop=True))
 

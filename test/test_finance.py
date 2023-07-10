@@ -6,8 +6,10 @@ from cmf_test import CMFTest
 class TestFinance(CMFTest):
     def test0_other(self):
         self.title('Finance - Other')
-        self.run_model('finance.lcr', {
-                       "address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10})
+        if self.type != 'gw':
+            self.run_model('finance.lcr', {
+                "address": "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0", "cashflow_shock": 1e10})
+
         # compound-v2.pool-info, compound-v2.all-pools-info, token.stablecoins
         self.run_model('finance.min-risk-rate')
 
@@ -89,8 +91,10 @@ class TestFinance(CMFTest):
                        {"window": "100 days", "interval": 1, "confidence": 0.01,
                         "portfolio": {"positions":
                                       [{"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
-                                       {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
-                                       {"amount": 10, "asset": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
+                                       {"amount": 10, "asset": {
+                                           "address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}},
+                                       {"amount": 10, "asset": {
+                                           "address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}}
                                        ]}})
 
     def test4(self):

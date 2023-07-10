@@ -1,4 +1,4 @@
-# pylint:disable=unused-import,line-too-long
+# pylint:disable=unused-import,line-too-long, invalid-name
 # ruff: noqa: F401
 
 import argparse
@@ -29,6 +29,7 @@ from test_finance import TestFinance
 from test_ichi import TestICHI
 from test_index_coop import TestIndexCoop
 from test_ipor import TestIPOR
+from test_models import TestModels
 from test_nft import TestNFT
 from test_optimism import TestOptimism
 from test_pancake import TestPancakeSwap
@@ -55,7 +56,7 @@ if __name__ == '__main__':
                               '- gw (official gateway only'))
     parser.add_argument('start_n', type=int, default=0,
                         help='case number to start')
-    parser.add_argument('-b', '--block_number', type=int, default=14249445,
+    parser.add_argument('-b', '--block_number', type=int, default=14249446,
                         help='Block number to run')
     parser.add_argument('-s', '--serial', action='store_true', default=False,
                         help='Run tests in serial')
@@ -77,31 +78,32 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     CMFTest.type = args['type']
 
-    if args['type'] == 'test':
+    if CMFTest.type == 'test':
         sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
         CMFTest.post_flag = ['-l', '-', f'--api_url={args["api_url"]}']
         CMFTest.pre_flag = ['--model_path', 'x']
         parallel_count = args['parallel_count']
-    elif args['type'] == 'test-local':
+    elif CMFTest.type == 'test-local':
         sys.path.insert(0, os.path.join('..', 'credmark-model-framework-py'))
         CMFTest.post_flag = ['-l', '*', f'--api_url={args["api_url"]}']
         CMFTest.pre_flag = []
         parallel_count = args['parallel_count']
-    elif args['type'] == 'prod':
+    elif CMFTest.type == 'prod':
         CMFTest.post_flag = []
         CMFTest.pre_flag = []
         parallel_count = args['parallel_count']
-    elif args['type'] == 'prod-local':
+    elif CMFTest.type == 'prod-local':
         CMFTest.post_flag = ['-l', '*']
         CMFTest.pre_flag = []
         parallel_count = args['parallel_count']
-    elif args['type'] == 'gw':
+    elif CMFTest.type == 'gw':
         CMFTest.post_flag = ['-l', '-']
         CMFTest.pre_flag = ['--model_path', 'x']
         CMFTest.skip_nonzero = True
         parallel_count = args['parallel_count']
     else:
         print(f'Unknown test type {args["type"]}')
+        parallel_count = 1
         sys.exit()
 
     print(f'Run with flags of: {CMFTest.pre_flag} {CMFTest.post_flag} {args["tests"]}')
