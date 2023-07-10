@@ -26,16 +26,6 @@ class ContractEventsInput(Contract):
         }
 
 
-"""
-cc = Contract('0x692437de2cAe5addd26CCF6650CaD722d914d974')
-from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
-cc.set_abi(ICHI_VAULT, set_loaded=True)
-list(cc.fetch_events(cc.events.Withdraw, from_block=43752597, to_block=43752597))
-
-python test/test.py run contract.events-block-series -j -i '{"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": true, "internalType": "address", "name": "to", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": false, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Withdraw", "type": "event"}]}' -b 40100090 -c 137 -l
-"""
-
-
 @IncrementalModel.describe(slug='contract.events-block-series',
                            version='0.11',
                            display_name='Events from contract (non-mainnet)',
