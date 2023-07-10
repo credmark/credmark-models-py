@@ -1,11 +1,8 @@
-# pylint: disable=pointless-string-statement, line-too-long
-
 from cmf_test import CMFTest
 
-# ImmutableModel
 # CachePolicy
+# ImmutableModel
 # IncrementalModel
-
 
 class TestModels(CMFTest):
     def test_immutable(self):
