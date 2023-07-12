@@ -572,7 +572,8 @@ class AaveV2GetReserveConfigurationData(Model):
             "aave-v2.get-protocol-data-provider", {},
             return_type=Contract, local=True)
 
-        config_data = protocolDataProvider.functions.getReserveConfigurationData(input.address).call()
+        config_data = protocolDataProvider.functions.getReserveConfigurationData(
+            input.address).call()
 
         keys_need_to_be_decimal = ['ltv',
                                    'liquidationThreshold',

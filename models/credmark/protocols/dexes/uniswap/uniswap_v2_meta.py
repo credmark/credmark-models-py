@@ -47,7 +47,8 @@ class UniswapV2PoolMeta(Model):
         pools = []
         for token0_addr, token1_addr in token_pairs:
             try:
-                pair_addr = Address(factory.functions.getPair(token0_addr.checksum, token1_addr.checksum).call())
+                pair_addr = Address(factory.functions.getPair(
+                    token0_addr.checksum, token1_addr.checksum).call())
             except (BlockNumberOutOfRangeError, BadFunctionCallOutput, ModelDataError):
                 # Uniswap V2: if self.context.block_number < 10000835
                 # SushiSwap: if self.context.block_number < 10794229
@@ -85,7 +86,8 @@ class UniswapV2PoolMeta(Model):
         self.logger.info(f'There are {error_count} errors in total {allPairsLength} pools.')
         return Some[Address](some=pair_addresses)
 
-    POOLS_COLUMNS = ['block_number', 'log_index', 'transaction_hash', 'pool_address', 'token0', 'token1']
+    POOLS_COLUMNS = ['block_number', 'log_index',
+                     'transaction_hash', 'pool_address', 'token0', 'token1']
 
     def get_all_pools_ledger(self, factory_addr: Address):
         factory = self.get_factory(factory_addr)
@@ -113,7 +115,8 @@ class UniswapV2PoolMeta(Model):
                   .reset_index(drop=True)
                   .drop_duplicates(subset='evt_pair', keep='last')
                   .astype({'block_number': 'int', 'log_index': 'int'}))
-        self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
+        self.logger.info(
+            f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
 
         all_addresses = set(all_df.evt_pair.tolist())
         assert all_df.shape[0] == len(all_addresses)
@@ -156,22 +159,26 @@ class UniswapV2PoolMeta(Model):
 
     def get_pools_for_tokens(self, factory_addr: Address, _protocol, input_addresses: list[Address]) -> list[Address]:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
-                                             PrimaryTokenPairsInput(addresses=input_addresses, protocol=_protocol),
+                                             PrimaryTokenPairsInput(
+                                                 addresses=input_addresses, protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
         return self.get_pools_by_pair(factory_addr, token_pairs)
 
     def get_pools_for_tokens_ledger(self, factory_addr: Address, _protocol, input_address: Address) -> Contracts:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
-                                             PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
+                                             PrimaryTokenPairsInput(
+                                                 addresses=[input_address], protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
 
         factory = self.get_factory(factory_addr)
         with factory.ledger.events.PairCreated as q:
             tp0 = token_pairs[0]
-            eq_conds = q.EVT_TOKEN0.eq(tp0[0].checksum).and_(q.EVT_TOKEN1.eq(tp0[1].checksum)).parentheses_()
+            eq_conds = q.EVT_TOKEN0.eq(tp0[0].checksum).and_(
+                q.EVT_TOKEN1.eq(tp0[1].checksum)).parentheses_()
 
             for tp1 in token_pairs[1:]:
-                new_eq = q.EVT_TOKEN0.eq(tp1[0].checksum).and_(q.EVT_TOKEN1.eq(tp1[1].checksum)).parentheses_()
+                new_eq = q.EVT_TOKEN0.eq(tp1[0].checksum).and_(
+                    q.EVT_TOKEN1.eq(tp1[1].checksum)).parentheses_()
                 eq_conds = eq_conds.or_(new_eq)
 
             df_ts = []
