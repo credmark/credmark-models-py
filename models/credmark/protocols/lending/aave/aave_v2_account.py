@@ -26,7 +26,7 @@ from credmark.dto import DTOField
 
 from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 from models.credmark.tokens.token import get_eip1967_proxy_err
-from models.tmp_abi_lookup import AAVE_DATA_PROVIDER
+from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, STAKED_AAVE
 
 
 class AAVEUserReserveData(NamedTuple):
@@ -160,8 +160,7 @@ class AaveV2GetAccountInfoAsset(Model):
             else:
                 token_info[key] = value
 
-        pdb = self.context.models.price.dex(
-            base=token_address)
+        pdb = self.context.models.price.quote(base=token_address)
         pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
         token_info["PriceWithQuote"] = pq.dict()
         token_info['ATokenReward'] = token_info['currentATokenBalance'] - atoken_tx
@@ -278,6 +277,8 @@ class AaveV2GetStakingIncentive(Model):
             return {}
 
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
+        staked_aave.set_abi(STAKED_AAVE, set_loaded=True)
+
         balance_of_scaled = staked_aave.balance_of_scaled(
             input.address.checksum)
         total_reward = staked_aave.scaled(
