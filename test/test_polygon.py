@@ -35,6 +35,8 @@ class TestPolygon(CMFTest):
         # self.run_model('account.portfolio',
         #               {"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"},
         #               block_number=last_block-1000, chain_id=137)
+        # credmark-dev run aave-v2.account-info -i '{"address": "0x0224c4b1947b01bE8F3C0629A65a05a59174905a"}' -c 137
+        # credmark-dev run aave-v2.account-info -i '{"address": "0x0224c4b1947b01bE8F3C0629A65a05a59174905a"}' -c 137 -j -b 45014595
 
         self.run_model(
             'aave-v2.account-info',
