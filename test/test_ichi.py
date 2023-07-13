@@ -3,6 +3,7 @@
 import json
 
 from cmf_test import CMFTest
+from credmark.cmf.types.abi import ABI
 
 from models.credmark.protocols.ichi.ichi_vault import IchiVaults
 from models.tmp_abi_lookup import ICHI_VAULT
@@ -65,6 +66,8 @@ class TestICHI(CMFTest):
         ichi_vault_abi = json.loads(ICHI_VAULT)
         withdraw_abi = [x for x in ichi_vault_abi
                         if 'name' in x and x['name'] == 'Withdraw' and 'type' in x and x['type'] == 'event']
+
+        assert withdraw_abi == ABI(ichi_vault_abi).events.Withdraw.raw_abi
 
         self.run_model('contract.events',
                        {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974",

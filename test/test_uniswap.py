@@ -29,7 +29,8 @@ class TestUniswapPools(CMFTest):
                                **default_args)
 
         self.run_model(f'{model_prefix}.get-pools-tokens',
-                       {"tokens": [{"symbol": ring0_token}, {"symbol": ring1_token}, {"symbol": ring2_token}]},
+                       {"tokens": [{"symbol": ring0_token}, {
+                           "symbol": ring1_token}, {"symbol": ring2_token}]},
                        **default_args)
 
         self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, **default_args)
@@ -49,7 +50,8 @@ class TestUniswap(TestUniswapPools):
 
         self.pool_tests('uniswap-v3', 17_010_204, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 43_698_404, 137, 'USDC', 'WMATIC', 'XSGD', do_test_ledger=False)
+        self.pool_tests('uniswap-v3', 43_698_404, 137, 'USDC',
+                        'WMATIC', 'XSGD', do_test_ledger=False)
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")
@@ -104,7 +106,8 @@ class TestUniswap(TestUniswapPools):
 
         # liquidity
         self.run_model("uniswap-v3.get-liquidity-by-ticks",
-                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "min_tick": 202000, "max_tick": 203000},
+                       {"address": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                           "min_tick": 202000, "max_tick": 203000},
                        block_number=15276693)
 
         current_tick = 202180
@@ -170,9 +173,12 @@ class TestUniswap(TestUniswapPools):
         self.run_model("uniswap-v2.lp", {"pool": "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc",
                        "lp": "0x2344f131b07e6afd943b0901c55898573f0d1561"})
 
-        self.run_model("uniswap-v3.lp", {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
-        self.run_model("uniswap-v3.lp", {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
-        self.run_model("uniswap-v3.lp", {"lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp",
+                       {"lp": "0x297e12154bde98e96d475fc3a554797f7a6139d0"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp",
+                       {"lp": "0xa57Bd00134B2850B2a1c55860c9e9ea100fDd6CF"}, block_number=15931588)
+        self.run_model("uniswap-v3.lp",
+                       {"lp": "0x109B3C39d675A2FF16354E116d080B94d238a7c9"}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355427}, block_number=15931588)
         self.run_model("uniswap-v3.id", {"id": 355415}, block_number=15931588)
 
@@ -206,13 +212,15 @@ class TestUniswap(TestUniswapPools):
 
     def test_pools_tokens(self):
         link_pools = self.run_model_with_output("uniswap-v3.get-pools", {"symbol": "LINK"})
-        link_pools_alt = self.run_model_with_output("uniswap-v3.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
+        link_pools_alt = self.run_model_with_output(
+            "uniswap-v3.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
 
         self.assertEqual({x['address'] for x in link_pools['output']['contracts']},
                          {x['address'] for x in link_pools_alt['output']['contracts']})
 
         mkr_pools = self.run_model_with_output("uniswap-v3.get-pools", {"symbol": "MKR"})
-        mkr_pools_alt = self.run_model_with_output("uniswap-v3.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
+        mkr_pools_alt = self.run_model_with_output(
+            "uniswap-v3.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
 
         self.assertEqual({x['address'] for x in mkr_pools['output']['contracts']},
                          {x['address'] for x in mkr_pools_alt['output']['contracts']})
@@ -226,13 +234,15 @@ class TestUniswap(TestUniswapPools):
 
     def test_pools_tokens_v2(self):
         link_pools = self.run_model_with_output("uniswap-v2.get-pools", {"symbol": "LINK"})
-        link_pools_alt = self.run_model_with_output("uniswap-v2.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
+        link_pools_alt = self.run_model_with_output(
+            "uniswap-v2.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
 
         self.assertEqual({x['address'] for x in link_pools['output']['contracts']},
                          {x['address'] for x in link_pools_alt['output']['contracts']})
 
         mkr_pools = self.run_model_with_output("uniswap-v2.get-pools", {"symbol": "MKR"})
-        mkr_pools_alt = self.run_model_with_output("uniswap-v2.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
+        mkr_pools_alt = self.run_model_with_output(
+            "uniswap-v2.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
 
         self.assertEqual({x['address'] for x in mkr_pools['output']['contracts']},
                          {x['address'] for x in mkr_pools_alt['output']['contracts']})

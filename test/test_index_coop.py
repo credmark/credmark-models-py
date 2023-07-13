@@ -33,6 +33,11 @@ class TestIndexCoop(CMFTest):
         credmark-dev run indexcoop.fee-month -i \
             '{"address": "0x0b498ff89709d3838a063f1dfa463091f9801c2b", "year": 2022, "month": 8, "streaming_rate": 0.0195, "coop_streaming_rate": 0.6, "mint_redeem_rate": 0.001, "coop_mint_redeem_rate": 0.6}' \
             --api_url=http://localhost:8700 -j
+
+        credmark-dev run indexcoop.fee -i \
+        '{"address": "0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b", "streaming_rate": 0.0095, "coop_streaming_rate": 0.7, "mint_redeem_rate": 0, "coop_mint_redeem_rate": 0, "use_last_price": true, "start_block": 15449618}' \
+        -b 15649594
+
         """
 
         for contract_config in [
@@ -59,5 +64,6 @@ class TestIndexCoop(CMFTest):
 
             # for start_block, end_block in [(15053226, 15253305), (15253306, 15449617), (15449618, 15649594)]:
             for start_block, end_block in [(15449618, 15649594)]:
-                self.run_model('indexcoop.fee', contract_config | {
-                               "start_block": start_block}, block_number=end_block)
+                self.run_model('indexcoop.fee',
+                               contract_config | {"start_block": start_block},
+                               block_number=end_block)
