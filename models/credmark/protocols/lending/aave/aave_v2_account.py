@@ -25,7 +25,7 @@ from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTOField
 
 from models.credmark.tokens.token import get_eip1967_proxy_err
-from models.tmp_abi_lookup import AAVE_DATA_PROVIDER
+from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, STAKED_AAVE
 
 
 class AAVEUserReserveData(NamedTuple):
@@ -272,6 +272,8 @@ class AaveV2GetStakingIncentive(Model):
 
     def run(self, input: AaveLPAccount) -> dict:
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
+        staked_aave.set_abi(STAKED_AAVE, set_loaded=True)
+
         balance_of_scaled = staked_aave.balance_of_scaled(
             input.address.checksum)
         total_reward = staked_aave.scaled(
