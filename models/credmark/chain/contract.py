@@ -27,7 +27,7 @@ class ContractEventsInput(Contract):
 
 
 @IncrementalModel.describe(slug='contract.events-block-series',
-                           version='0.11',
+                           version='0.12',
                            display_name='Events from contract (non-mainnet)',
                            description='Get the past events from a contract in block series',
                            category='contract',
@@ -36,9 +36,6 @@ class ContractEventsInput(Contract):
                            output=BlockSeries[Records])
 class ContractEventsSeries(IncrementalModel):
     def run(self, input: ContractEventsInput, from_block: BlockNumber) -> BlockSeries[dict]:
-        if self.context.chain_id == 1:
-            raise ModelDataError('This model is not available on mainnet')
-
         if input.event_abi is not None:
             input_contract = Contract(input.address).set_abi(input.event_abi, set_loaded=True)
         else:
@@ -101,7 +98,7 @@ class ContractEventsOutput(DTO):
 
 
 @Model.describe(slug='contract.events',
-                version='0.11',
+                version='0.12',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',

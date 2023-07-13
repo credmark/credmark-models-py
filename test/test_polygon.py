@@ -23,7 +23,8 @@ class TestPolygon(CMFTest):
         # totalSupply => position for a recent id (-100)
         lp_pos = self.run_model_with_output(
             'uniswap-v3.lp',
-            {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"}, block_number=last_block-1000, chain_id=137)
+            {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"},
+            block_number=last_block-1000, chain_id=137)
 
         lp_pos_id = lp_pos['output']['positions'][0]['id']
         print(f'Fetching Uniswap V3 NFT for {lp_pos_id}')

@@ -35,7 +35,8 @@ class TestAAVE(CMFTest):
                        {}, block_number=12770589)
 
         self.run_model("aave-v2.account-info",
-                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"},
+                       block_number=16325819)
 
     def test_reserve(self):
         self.run_model("aave-v2.reserve-config",

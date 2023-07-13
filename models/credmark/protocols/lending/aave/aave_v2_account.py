@@ -24,6 +24,7 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTOField
 
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_DATA_PROVIDER
 
@@ -227,8 +228,9 @@ class AaveV2GetLPIncentive(Model):
             input.address).call()
 
         # data provider gets the reserve tokens and find asset for that reserve token
-        _data_provider = self.context.run_model(
+        _data_provider = (self.context.run_model(
             'aave-v2.get-protocol-data-provider', {}, local=True, return_type=Contract)
+            .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
         # data_provider.functions.getReserveTokensAddresses().call()
         # incentive_controller.functions.getUserAssetData(input.address).call()
 
@@ -272,23 +274,48 @@ class AaveV2GetStakingIncentive(Model):
     }
 
     def run(self, input: AaveLPAccount) -> dict:
+        if self.context.network != Network.Mainnet:
+            return {}
+
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
         balance_of_scaled = staked_aave.balance_of_scaled(
             input.address.checksum)
         total_reward = staked_aave.scaled(
             staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
 
-        rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
-            staked_aave.events.RewardsClaimed,
-            argument_filters={
-                'from': input.address.checksum},
-            from_block=0,
-            contract_address=staked_aave.address.checksum))
+        def _use_contract_events():
+            assert staked_aave.proxy_for and staked_aave.proxy_for.abi
 
-        if rewards_claimed_df.empty:
+            rewards_claimed_event_abi = [x for x in staked_aave.proxy_for.abi
+                                         if 'type' in x and x['type'] == 'event' and
+                                         'name' in x and x['name'] == 'RewardsClaimed']
+
+            df_rewards_claimed_all = self.context.run_model(
+                'contract.events',
+                ContractEventsInput(address=staked_aave.address,
+                                    event_name='RewardsClaimed',
+                                    event_abi=rewards_claimed_event_abi),
+                return_type=ContractEventsOutput).records.to_dataframe()
+
+            _input_address_checksum = input.address.checksum
+            df_rewards_claimed = df_rewards_claimed_all.query('`from` == @_input_address_checksum')
+            return df_rewards_claimed
+
+        def _use_fetch_events():
+            df_rewards_claimed = pd.DataFrame(staked_aave.fetch_events(
+                staked_aave.events.RewardsClaimed,
+                argument_filters={
+                    'from': input.address.checksum},
+                from_block=0,
+                contract_address=staked_aave.address.checksum))
+            return df_rewards_claimed
+
+        df_rewards_claimed = _use_contract_events()
+
+        if df_rewards_claimed.empty:
             rewards_claimed = 0.0
         else:
-            rewards_claimed = staked_aave.scaled(sum(rewards_claimed_df.amount.to_list()))
+            rewards_claimed = staked_aave.scaled(sum(df_rewards_claimed.amount.to_list()))
 
         # this does not include unclaimed rewards
         _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
@@ -311,9 +338,9 @@ class AaveV2GetStakingIncentive(Model):
                 output=dict)
 class AaveV2GetAccountInfo(Model):
     def run(self, input: AaveLPAccount) -> dict:
-        protocolDataProvider = self.context.run_model(
-            "aave-v2.get-protocol-data-provider", {},
-            return_type=Contract, local=True)
+        protocolDataProvider = (self.context.run_model(
+            "aave-v2.get-protocol-data-provider", {}, return_type=Contract, local=True)
+            .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
         reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
 
         def _use_for():
@@ -351,15 +378,18 @@ class AaveV2GetAccountInfo(Model):
             balance_list = []
             for reserve_token in user_reserve_data:
                 if reserve_token['currentATokenBalance'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentATokenBalance']
                     balance_list.append({'amount': amount,
                                          'APY': reserve_token['depositAPY']})
                 if reserve_token['currentStableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentStableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['stableBorrowAPY']})
                 if reserve_token['currentVariableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentVariableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['variableBorrowAPY']})
 
