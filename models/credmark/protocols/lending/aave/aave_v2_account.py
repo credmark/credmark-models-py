@@ -23,7 +23,9 @@ from credmark.cmf.types import (
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTOField
+from requests.exceptions import HTTPError
 
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, STAKED_AAVE
 
@@ -116,19 +118,65 @@ class AaveV2GetAccountInfoAsset(Model):
         aToken = Token(aToken_addresses[0]).as_erc20(set_loaded=True)
 
         # Fetch aToken transfer for an account
-        _minted = pd.DataFrame(aToken.fetch_events(
-            aToken.events.Transfer,
-            argument_filters={
-                'to': user_address},
-            from_block=0,
-            contract_address=aToken.address.checksum))
+        def _use_fetch_events():
+            try:
+                _minted = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={'to': user_address},
+                    from_block=0,
+                    contract_address=aToken.address.checksum))
+            except HTTPError:
+                _minted = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={'to': user_address},
+                    from_block=0,
+                    contract_address=aToken.address.checksum,
+                    by_range=10_000))
 
-        _burnt = pd.DataFrame(aToken.fetch_events(
-            aToken.events.Transfer,
-            argument_filters={
-                'from': user_address},
-            from_block=0,
-            contract_address=aToken.address.checksum))
+            try:
+                _burnt = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={
+                        'from': user_address},
+                    from_block=0,
+                    contract_address=aToken.address.checksum))
+            except HTTPError:
+                _burnt = pd.DataFrame(aToken.fetch_events(
+                    aToken.events.Transfer,
+                    argument_filters={'from': user_address},
+                    from_block=0,
+                    contract_address=aToken.address.checksum,
+                    by_range=10_000))
+            return _minted, _burnt
+
+        def use_contract_events():
+            if aToken.proxy_for and aToken.proxy_for.abi:
+                transfer_abi = aToken.proxy_for.abi.events.Transfer.raw_abi
+            elif aToken.abi:
+                transfer_abi = aToken.abi.events.Transfer.raw_abi
+            else:
+                raise ModelRunError('No abi found for aToken')
+
+            _minted = self.context.run_model(
+                'contract.events',
+                ContractEventsInput(
+                    address=aToken.address,
+                    event_name='Transfer',
+                    event_abi=transfer_abi,
+                    argument_filters={'to': user_address}),
+                return_type=ContractEventsOutput).records.to_dataframe()
+
+            _burnt = self.context.run_model(
+                'contract.events',
+                ContractEventsInput(
+                    address=aToken.address,
+                    event_name='Transfer',
+                    event_abi=transfer_abi,
+                    argument_filters={'from': user_address}),
+                return_type=ContractEventsOutput).records.to_dataframe()
+            return _minted, _burnt
+
+        _minted, _burnt = use_contract_events()
 
         if _minted.empty and _burnt.empty:
             atoken_tx = 0.0
@@ -226,27 +274,61 @@ class AaveV2GetLPIncentive(Model):
             input.address).call()
 
         # data provider gets the reserve tokens and find asset for that reserve token
-        _data_provider = self.context.run_model(
+        _data_provider = (self.context.run_model(
             'aave-v2.get-protocol-data-provider', {}, local=True, return_type=Contract)
+            .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
         # data_provider.functions.getReserveTokensAddresses().call()
         # incentive_controller.functions.getUserAssetData(input.address).call()
 
-        if not incentive_controller.proxy_for:
-            raise ModelDataError('Incentive Controller is a proxy contract')
+        def _use_fetch_events():
+            if not incentive_controller.proxy_for:
+                raise ModelDataError('Incentive Controller is a proxy contract')
 
-        df_accrued = pd.DataFrame(
-            incentive_controller.fetch_events(
-                incentive_controller.proxy_for.events.RewardsAccrued,
-                from_block=0,
-                to_block=self.context.block_number,
-                contract_address=incentive_controller.address, argument_filters={'user': input.address}))
+            df_accrued = pd.DataFrame(
+                incentive_controller.fetch_events(
+                    incentive_controller.proxy_for.events.RewardsAccrued,
+                    from_block=0,
+                    to_block=self.context.block_number,
+                    contract_address=incentive_controller.address,
+                    argument_filters={'user': input.address}))
 
-        df_claimed = pd.DataFrame(
-            incentive_controller.fetch_events(
-                incentive_controller.proxy_for.events.RewardsClaimed,
-                from_block=0,
-                to_block=self.context.block_number,
-                contract_address=incentive_controller.address, argument_filters={'claimer': input.address}))
+            df_claimed = pd.DataFrame(
+                incentive_controller.fetch_events(
+                    incentive_controller.proxy_for.events.RewardsClaimed,
+                    from_block=0,
+                    to_block=self.context.block_number,
+                    contract_address=incentive_controller.address,
+                    argument_filters={'claimer': input.address}))
+            return df_accrued, df_claimed
+
+        def use_contract_events():
+            if not incentive_controller.proxy_for:
+                raise ModelDataError('Incentive Controller is a proxy contract')
+
+            if (incentive_controller.proxy_for and incentive_controller.proxy_for.abi):
+                df_accrued = self.context.run_model(
+                    'contract.events',
+                    ContractEventsInput(
+                        address=incentive_controller.address,
+                        event_name='RewardsAccrued',
+                        event_abi=incentive_controller.proxy_for.abi.events.RewardsAccrued.raw_abi,
+                        argument_filters={'user': str(input.address)}),
+                    return_type=ContractEventsOutput).records.to_dataframe()
+
+                df_claimed = self.context.run_model(
+                    'contract.events',
+                    ContractEventsInput(
+                        address=incentive_controller.address,
+                        event_name='RewardsClaimed',
+                        event_abi=incentive_controller.proxy_for.abi.events.RewardsClaimed.raw_abi,
+                        argument_filters={'claimer': str(input.address)}),
+                    return_type=ContractEventsOutput).records.to_dataframe()
+            else:
+                raise ModelDataError('Incentive Controller ABI missing')
+
+            return df_accrued, df_claimed
+
+        df_accrued, df_claimed = use_contract_events()
 
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
 
@@ -271,6 +353,9 @@ class AaveV2GetStakingIncentive(Model):
     }
 
     def run(self, input: AaveLPAccount) -> dict:
+        if self.context.network != Network.Mainnet:
+            return {}
+
         staked_aave = Token(self.STAKED_AAVE[self.context.network])
         staked_aave.set_abi(STAKED_AAVE, set_loaded=True)
 
@@ -279,17 +364,40 @@ class AaveV2GetStakingIncentive(Model):
         total_reward = staked_aave.scaled(
             staked_aave.functions.getTotalRewardsBalance(input.address.checksum).call())
 
-        rewards_claimed_df = pd.DataFrame(staked_aave.fetch_events(
-            staked_aave.events.RewardsClaimed,
-            argument_filters={
-                'from': input.address.checksum},
-            from_block=0,
-            contract_address=staked_aave.address.checksum))
+        def use_contract_events():
+            if (staked_aave.proxy_for and staked_aave.proxy_for.abi):
+                # staked_aave.proxy_for.abi
+                rewards_claimed_event_abi = staked_aave.proxy_for.abi.events.RewardsClaimed.raw_abi
+            elif staked_aave.abi:
+                rewards_claimed_event_abi = staked_aave.abi.events.RewardsClaimed.raw_abi
+            else:
+                raise ModelDataError('Staked Aave abi not found')
 
-        if rewards_claimed_df.empty:
+            df_rewards_claimed = self.context.run_model(
+                'contract.events',
+                ContractEventsInput(address=staked_aave.address,
+                                    event_name='RewardsClaimed',
+                                    event_abi=rewards_claimed_event_abi,
+                                    argument_filters={'from': str(input.address.checksum)}),
+                return_type=ContractEventsOutput).records.to_dataframe()
+
+            return df_rewards_claimed
+
+        def _use_fetch_events():
+            df_rewards_claimed = pd.DataFrame(staked_aave.fetch_events(
+                staked_aave.events.RewardsClaimed,
+                argument_filters={
+                    'from': input.address.checksum},
+                from_block=0,
+                contract_address=staked_aave.address.checksum))
+            return df_rewards_claimed
+
+        df_rewards_claimed = use_contract_events()
+
+        if df_rewards_claimed.empty:
             rewards_claimed = 0.0
         else:
-            rewards_claimed = staked_aave.scaled(sum(rewards_claimed_df.amount.to_list()))
+            rewards_claimed = staked_aave.scaled(sum(df_rewards_claimed.amount.to_list()))
 
         # this does not include unclaimed rewards
         _staker_reward_to_claim = staked_aave.functions.stakerRewardsToClaim(
@@ -312,9 +420,9 @@ class AaveV2GetStakingIncentive(Model):
                 output=dict)
 class AaveV2GetAccountInfo(Model):
     def run(self, input: AaveLPAccount) -> dict:
-        protocolDataProvider = self.context.run_model(
-            "aave-v2.get-protocol-data-provider", {},
-            return_type=Contract, local=True)
+        protocolDataProvider = (self.context.run_model(
+            "aave-v2.get-protocol-data-provider", {}, return_type=Contract, local=True)
+            .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
         reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
 
         def _use_for():
@@ -492,13 +600,35 @@ class AaveV2GetAccountSummaryHistorical(Model):
             if lending_pool.proxy_for is None:
                 raise ModelDataError('lending pool shall be a proxy contract')
 
-            df = pd.DataFrame(
-                lending_pool.fetch_events(
-                    lending_pool.proxy_for.events.LiquidationCall,
-                    argument_filters={'user': input.address.checksum},
-                    from_block=first_block, to_block=last_block,
-                    contract_address=lending_pool.address,
-                ))  # type: ignore
+            def _use_fetch_events():
+                assert lending_pool.proxy_for
+                df = pd.DataFrame(
+                    lending_pool.fetch_events(
+                        lending_pool.proxy_for.events.LiquidationCall,
+                        argument_filters={'user': input.address.checksum},
+                        from_block=first_block, to_block=last_block,
+                        contract_address=lending_pool.address,
+                    ))  # type: ignore
+                return df
+
+            def use_contract_events():
+                if lending_pool.proxy_for and lending_pool.proxy_for.abi:
+                    liquidity_call_abi = lending_pool.proxy_for.abi.events.LiquidationCall.raw_abi
+                elif lending_pool.abi:
+                    liquidity_call_abi = lending_pool.abi.events.LiquidationCall.raw_abi
+                else:
+                    raise ModelDataError('lending pool shall have abi')
+                df = self.context.run_model(
+                    'contract.events',
+                    ContractEventsInput(
+                        address=lending_pool.address,
+                        event_name='LiquidationCall',
+                        event_abi=liquidity_call_abi,
+                        argument_filters={'user': str(input.address.checksum)}),
+                    return_type=ContractEventsOutput).records.to_dataframe()
+                return df
+
+            df = use_contract_events()
 
             if not df.empty:
                 # Skip continuous blocks

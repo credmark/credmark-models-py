@@ -15,6 +15,7 @@ from requests.exceptions import HTTPError
 class ContractEventsInput(Contract):
     event_name: str = DTOField(description='Event name')
     event_abi: Optional[Any] = DTOField(None, description='ABI of the event')
+    argument_filters: Optional[dict] = DTOField(None, description='Event filters')
 
     class Config:
         schema_extra = {
@@ -36,9 +37,6 @@ class ContractEventsInput(Contract):
                            output=BlockSeries[Records])
 class ContractEventsSeries(IncrementalModel):
     def run(self, input: ContractEventsInput, from_block: BlockNumber) -> BlockSeries[dict]:
-        if self.context.chain_id == 1:
-            raise ModelDataError('This model is not available on mainnet')
-
         if input.event_abi is not None:
             input_contract = Contract(input.address).set_abi(input.event_abi, set_loaded=True)
         else:
@@ -60,15 +58,57 @@ class ContractEventsSeries(IncrementalModel):
                 input_contract.events[input.event_name],
                 from_block=from_block_number,
                 to_block=int(self.context.block_number),
-                contract_address=input_contract.address.checksum))
-        except HTTPError:
-            df_events = pd.DataFrame(input_contract.fetch_events(
-                input_contract.events[input.event_name],
-                from_block=from_block_number,
-                to_block=int(self.context.block_number),
                 contract_address=input_contract.address.checksum,
-                by_range=10_000))
-            self.logger.info('Use by_range=10_000')
+                argument_filters=input.argument_filters))
+        except HTTPError:
+            try:
+                df_events = pd.DataFrame(input_contract.fetch_events(
+                    input_contract.events[input.event_name],
+                    from_block=from_block_number,
+                    to_block=int(self.context.block_number),
+                    contract_address=input_contract.address.checksum,
+                    argument_filters=input.argument_filters,
+                    by_range=10_000))
+                self.logger.info('Use by_range=10_000')
+            except HTTPError:
+                try:
+                    df_events = pd.DataFrame(input_contract.fetch_events(
+                        input_contract.events[input.event_name],
+                        from_block=from_block_number,
+                        to_block=int(self.context.block_number),
+                        contract_address=input_contract.address.checksum,
+                        argument_filters=input.argument_filters,
+                        by_range=5_000))
+                    self.logger.info('Use by_range=5_000')
+                except HTTPError:
+                    try:
+                        df_events = pd.DataFrame(input_contract.fetch_events(
+                            input_contract.events[input.event_name],
+                            from_block=from_block_number,
+                            to_block=int(self.context.block_number),
+                            contract_address=input_contract.address.checksum,
+                            argument_filters=input.argument_filters,
+                            by_range=2_000))
+                        self.logger.info('Use by_range=2_000')
+                    except HTTPError:
+                        try:
+                            df_events = pd.DataFrame(input_contract.fetch_events(
+                                input_contract.events[input.event_name],
+                                from_block=from_block_number,
+                                to_block=int(self.context.block_number),
+                                contract_address=input_contract.address.checksum,
+                                argument_filters=input.argument_filters,
+                                by_range=1_000))
+                            self.logger.info('Use by_range=1_000')
+                        except HTTPError:
+                            df_events = pd.DataFrame(input_contract.fetch_events(
+                                input_contract.events[input.event_name],
+                                from_block=from_block_number,
+                                to_block=int(self.context.block_number),
+                                contract_address=input_contract.address.checksum,
+                                argument_filters=input.argument_filters,
+                                by_range=100))
+                            self.logger.info('Use by_range=100')
 
         self.logger.info(
             f'[{self.slug}] Finished fetching event {input.event_name} from {from_block_number} '

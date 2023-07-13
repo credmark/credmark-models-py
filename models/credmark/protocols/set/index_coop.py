@@ -93,7 +93,7 @@ def index_coop_revenue_issue(
         days_in_period += 1
 
     # To fetch all mint/burn data
-    df = setv2_fee(_setv2_mod, 0, _end_block, token_addr)
+    df = setv2_fee(_context, _setv2_mod, 0, _end_block, token_addr)
 
     # Used previous AUM
     _prev_aum = df.query('blockNumber <= @_start_block')['_quantity'].sum()

@@ -1,8 +1,11 @@
+# pylint: disable=pointless-string-statement, line-too-long
+
 from cmf_test import CMFTest
 
 # CachePolicy
 # ImmutableModel
 # IncrementalModel
+
 
 class TestModels(CMFTest):
     def test_immutable(self):
@@ -78,7 +81,7 @@ class TestModels(CMFTest):
             'contract.events-block-series',
             {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {
                 "indexed": False, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Withdraw", "type": "event"}]},
-            block_number=43752597,
+            block_number=43752598,
             chain_id=137
         )
 

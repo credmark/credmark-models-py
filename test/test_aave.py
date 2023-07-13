@@ -35,7 +35,8 @@ class TestAAVE(CMFTest):
                        {}, block_number=12770589)
 
         self.run_model("aave-v2.account-info",
-                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"},
+                       block_number=16325819)
 
     def test_reserve(self):
         self.run_model("aave-v2.reserve-config",
@@ -52,14 +53,22 @@ class TestAAVE(CMFTest):
                         "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"},
                        block_number=16694809)
 
+        self.run_model("aave-v2.account-info-reserve",
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3",
+                        "reserve": "0x8798249c2e607446efb7ad49ec89dd1865ff4272"},
+                       block_number=16325819)
+
         self.run_model("aave-v2.account-info",
-                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"},
+                       block_number=16325819)
 
         self.run_model("aave-v2.account-summary",
-                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}, block_number=16325819)
+                       {"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"},
+                       block_number=16325819)
 
         self.run_model("aave-v2.account-summary",
-                       {"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E"}, block_number=16040000)
+                       {"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E"},
+                       block_number=16040000)
 
         self.run_model("aave-v2.account-summary-historical",
                        {"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E",

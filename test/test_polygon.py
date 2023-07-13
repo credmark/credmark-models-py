@@ -23,7 +23,8 @@ class TestPolygon(CMFTest):
         # totalSupply => position for a recent id (-100)
         lp_pos = self.run_model_with_output(
             'uniswap-v3.lp',
-            {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"}, block_number=last_block-1000, chain_id=137)
+            {"lp": "0x470cB7e9981Db525422A16A21d8cD510B0766d17"},
+            block_number=last_block-1000, chain_id=137)
 
         lp_pos_id = lp_pos['output']['positions'][0]['id']
         print(f'Fetching Uniswap V3 NFT for {lp_pos_id}')
@@ -34,3 +35,10 @@ class TestPolygon(CMFTest):
         # self.run_model('account.portfolio',
         #               {"address": "0xd8df61ba93a84295ab83d62da7a8a10de51306c2"},
         #               block_number=last_block-1000, chain_id=137)
+
+        self.run_model(
+            'aave-v2.account-info',
+            {"address": "0x0224c4b1947b01bE8F3C0629A65a05a59174905a"},
+            chain_id=137,
+            block_number=45014595
+        )

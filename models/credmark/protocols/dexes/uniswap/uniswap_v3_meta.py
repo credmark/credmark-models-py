@@ -93,7 +93,8 @@ class UniswapV3PoolMeta(Model):
                         pass
                     pools.append(pool_addr)
         else:
-            raise ModelRunError('Missing neither getPool() nor poolByPair() in the factory contract')
+            raise ModelRunError(
+                'Missing neither getPool() nor poolByPair() in the factory contract')
 
         return pools
 
@@ -131,7 +132,8 @@ class UniswapV3PoolMeta(Model):
                       .reset_index(drop=True)
                       .drop_duplicates(subset='evt_pool', keep='last')
                       .astype({'block_number': 'int', 'log_index': 'int'}))
-            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
+            self.logger.info(
+                f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
 
             all_addresses = set(all_df.evt_pool.tolist())
             assert all_df.shape[0] == len(all_addresses)
@@ -164,7 +166,8 @@ class UniswapV3PoolMeta(Model):
                       .reset_index(drop=True)
                       .drop_duplicates(subset='evt_pool', keep='last')
                       .astype({'block_number': 'int', 'log_index': 'int'}))
-            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
+            self.logger.info(
+                f'time spent {datetime.now() - start_time} to fetch {all_df.shape[0]} records')
 
             all_addresses = set(all_df.evt_pool.tolist())
             assert all_df.shape[0] == len(all_addresses)
@@ -187,10 +190,13 @@ class UniswapV3PoolMeta(Model):
 
         start_time = datetime.now()
         if 'Pool' in factory.abi.events:
-            df = pd.DataFrame(factory.fetch_events(factory.events.Pool,
-                                                   from_block=max(deployed_block_number-1, _from_block),
-                                                   to_block=_to_block, by_range=100_000))
-            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
+            df = pd.DataFrame(factory.fetch_events(
+                factory.events.Pool,
+                from_block=max(deployed_block_number-1, _from_block),
+                to_block=_to_block,
+                by_range=100_000))
+            self.logger.info(
+                f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
             df['transactionHash'] = df['transactionHash'].apply(lambda x: x.hex())
             df.rename(columns={
                 'blockNumber': 'block_number',
@@ -201,10 +207,13 @@ class UniswapV3PoolMeta(Model):
                 return Records.from_dataframe(df.loc[:, self.QUICKSWAP_POOLS_COLUMNS])
             return Records.empty()
         else:
-            df = pd.DataFrame(factory.fetch_events(factory.events.PoolCreated,
-                                                   from_block=max(deployed_block_number-1, _from_block),
-                                                   to_block=_to_block, by_range=100_000))
-            self.logger.info(f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
+            df = pd.DataFrame(factory.fetch_events(
+                factory.events.PoolCreated,
+                from_block=max(deployed_block_number-1, _from_block),
+                to_block=_to_block,
+                by_range=100_000))
+            self.logger.info(
+                f'time spent {datetime.now() - start_time} to fetch {df.shape[0]} records')
             df['transactionHash'] = df['transactionHash'].apply(lambda x: x.hex())
             df.rename(columns={
                 'blockNumber': 'block_number',
@@ -217,13 +226,15 @@ class UniswapV3PoolMeta(Model):
 
     def get_pools_for_tokens(self, factory_addr: Address, factory_abi, _protocol, input_addresses: list[Address], pool_fees) -> list[Address]:
         token_pairs = self.context.run_model('dex.primary-token-pairs',
-                                             PrimaryTokenPairsInput(addresses=input_addresses, protocol=_protocol),
+                                             PrimaryTokenPairsInput(
+                                                 addresses=input_addresses, protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
         return self.get_pools_by_pair(factory_addr, factory_abi, token_pairs, pool_fees)
 
     def get_pools_for_tokens_ledger(self, factory_addr: Address, factory_abi, _protocol, input_address: Address, fees: list[int]):
         token_pairs = self.context.run_model('dex.primary-token-pairs',
-                                             PrimaryTokenPairsInput(addresses=[input_address], protocol=_protocol),
+                                             PrimaryTokenPairsInput(
+                                                 addresses=[input_address], protocol=_protocol),
                                              return_type=PrimaryTokenPairsOutput, local=True).pairs
         factory = self.get_factory(factory_addr, factory_abi)
         if factory.abi is None:
@@ -325,14 +336,16 @@ class UniswapV3PoolMeta(Model):
                 if token0_address.to_int() >= token1_address.to_int():
                     continue
                 token_pairs = [(token0_address, token1_address)]
-                pools = self.get_pools_by_pair(factory_addr, factory_abi, token_pairs, pool_fees=pool_fees)
+                pools = self.get_pools_by_pair(
+                    factory_addr, factory_abi, token_pairs, pool_fees=pool_fees)
 
                 if len(pools) == 0:
                     missing_relations.extend(
                         [(token0_address, token1_address), (token1_address, token0_address)])
                     continue
 
-                pools_info = [self.context.run_model('uniswap-v3.get-pool-info', input={'address': p}) for p in pools]
+                pools_info = [self.context.run_model(
+                    'uniswap-v3.get-pool-info', input={'address': p}) for p in pools]
                 pools_info_sel = [[p,
                                    *[pi[k] for k in ['ratio_price0', 'one_tick_liquidity0', 'ratio_price1', 'one_tick_liquidity1']]]
                                   for p, pi in zip(pools, pools_info)]
@@ -380,7 +393,8 @@ class UniswapV3PoolMeta(Model):
                                         if token != pivot_token else 1
                                         for token in valid_tokens_list])
             candidate_prices.append((
-                (candidate_price.max() / candidate_price.min(), -candidate_price.max(), candidate_price.min()),  # sort key
+                (candidate_price.max() / candidate_price.min(), -
+                 candidate_price.max(), candidate_price.min()),  # sort key
                 candidate_price / candidate_price.max())  # normalized price
             )
 

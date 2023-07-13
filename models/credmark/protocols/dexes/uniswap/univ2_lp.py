@@ -8,6 +8,7 @@ from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Address, Position, Records, Token
 from credmark.dto import DTO, DTOField
 
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
 from models.tmp_abi_lookup import UNISWAP_V2_POOL_ABI
 
@@ -284,20 +285,56 @@ class UniswapV2LPFeeHistory(Model):
         # _df.loc[1:, 'transaction_value'] = -1 * (_df.loc[0, 'transaction_value'])
 
         def _use_events():
-            minted = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
-                'to': lp.checksum}, from_block=0, to_block=self.context.block_number,
-                contract_address=pool.address.checksum))
-            burnt = pd.DataFrame(pool.fetch_events(pool.events.Transfer, argument_filters={
-                'from': lp.checksum}, from_block=0, to_block=self.context.block_number,
-                contract_address=pool.address.checksum))
-            df_empty = pd.DataFrame(data=[], columns=['transactionHash',
-                                    'blockNumber', 'logIndex', 'from', 'to', 'value'])
+            def _use_fetch_events():
+                minted = pd.DataFrame(pool.fetch_events(
+                    pool.events.Transfer,
+                    argument_filters={'to': lp.checksum},
+                    from_block=0, to_block=self.context.block_number,
+                    contract_address=pool.address.checksum))
+                burnt = pd.DataFrame(pool.fetch_events(
+                    pool.events.Transfer,
+                    argument_filters={'from': lp.checksum},
+                    from_block=0, to_block=self.context.block_number,
+                    contract_address=pool.address.checksum))
+                if not minted.empty:
+                    minted = minted.assign(
+                        transactionHash=lambda r: r.transactionHash.apply(lambda x: x.hex()))
+                if not burnt.empty:
+                    burnt = burnt.assign(
+                        transactionHash=lambda r: r.transactionHash.apply(lambda x: x.hex()))
+                return minted, burnt
+
+            def use_contract_events():
+                assert pool.abi
+                minted = self.context.run_model(
+                    'contract.events',
+                    ContractEventsInput(
+                        address=pool.address,
+                        event_name='Transfer',
+                        event_abi=pool.abi.events.Transfer.raw_abi,
+                        argument_filters={'to': str(lp.checksum)}),
+                    return_type=ContractEventsOutput).records.to_dataframe()
+                burnt = self.context.run_model(
+                    'contract.events',
+                    ContractEventsInput(
+                        address=pool.address,
+                        event_name='Transfer',
+                        event_abi=pool.abi.events.Transfer.raw_abi,
+                        argument_filters={'from': str(lp.checksum)}),
+                    return_type=ContractEventsOutput).records.to_dataframe()
+                return minted, burnt
+
+            minted, burnt = use_contract_events()
+
+            df_empty = pd.DataFrame(
+                data=[],
+                columns=['transactionHash', 'blockNumber', 'logIndex', 'from', 'to', 'value'])
+
             df_combined = (pd.concat(
                 [minted.loc[:, ['transactionHash', 'blockNumber', 'logIndex', 'from', 'to', 'value']] if not minted.empty else df_empty,
                  (burnt.loc[:, ['transactionHash', 'blockNumber', 'logIndex', 'from', 'to', 'value']].assign(
                      value=lambda x: -x.value) if not burnt.empty else df_empty)
                  ])
-                .assign(transactionHash=lambda r: r.transactionHash.apply(lambda x: x.hex()))
                 .sort_values(['blockNumber', 'logIndex'])
                 .rename(columns={
                     'transactionHash': 'transaction_hash',
