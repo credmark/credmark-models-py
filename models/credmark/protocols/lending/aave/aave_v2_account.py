@@ -159,8 +159,7 @@ class AaveV2GetAccountInfoAsset(Model):
             else:
                 token_info[key] = value
 
-        pdb = self.context.models.price.dex(
-            base=token_address)
+        pdb = self.context.models.price.quote(base=token_address)
         pq = PriceWithQuote.usd(price=pdb["price"], src=pdb["src"])
         token_info["PriceWithQuote"] = pq.dict()
         token_info['ATokenReward'] = token_info['currentATokenBalance'] - atoken_tx
@@ -351,15 +350,18 @@ class AaveV2GetAccountInfo(Model):
             balance_list = []
             for reserve_token in user_reserve_data:
                 if reserve_token['currentATokenBalance'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentATokenBalance']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentATokenBalance']
                     balance_list.append({'amount': amount,
                                          'APY': reserve_token['depositAPY']})
                 if reserve_token['currentStableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentStableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentStableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['stableBorrowAPY']})
                 if reserve_token['currentVariableDebt'] != 0:
-                    amount = reserve_token['PriceWithQuote']['price'] * reserve_token['currentVariableDebt']
+                    amount = reserve_token['PriceWithQuote']['price'] * \
+                        reserve_token['currentVariableDebt']
                     balance_list.append({'amount': -1 * amount,
                                          'APY': reserve_token['variableBorrowAPY']})
 
