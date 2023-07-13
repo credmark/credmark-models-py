@@ -528,6 +528,7 @@ class IchiVaultFirstDeposit(ImmutableModel):
 
         deployed_info = self.context.run_model('token.deployment', {
             "address": input.address, "ignore_proxy": True})
+
         deployed_block_number = deployed_info['deployed_block_number']
 
         if deployed_block_number > self.context.block_number:
