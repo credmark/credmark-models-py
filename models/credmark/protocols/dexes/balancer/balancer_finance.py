@@ -11,7 +11,8 @@ from credmark.cmf.types import Address, Contract, Contracts, Network, Records, S
 from credmark.dto import DTO, DTOField, EmptyInputSkipTest
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
-from models.tmp_abi_lookup import BALANCER_POOL_ABI, BALANCER_VAULT_ABI  # BALANCER_META_STABLE_POOL_ABI
+# BALANCER_META_STABLE_POOL_ABI
+from models.tmp_abi_lookup import BALANCER_POOL_ABI, BALANCER_VAULT_ABI
 from models.utils.math import divDown, divUp, mulUp
 
 np.seterr(all='raise')
