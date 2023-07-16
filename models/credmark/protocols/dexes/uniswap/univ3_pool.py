@@ -11,14 +11,13 @@ from typing import Optional
 import pandas as pd
 from credmark.cmf.model import ModelContext
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Token
+from credmark.cmf.types import Address, Contract, Token
 from credmark.dto import DTO
 
 from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase, fetch_events_with_cols
 from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
 from models.dtos.pool import PoolPriceInfoWithVolume
-from models.tmp_abi_lookup import UNISWAP_V3_POOL_ABI
 
 
 class Tick(DTO):
@@ -48,8 +47,8 @@ class UniV3Pool(UniswapPoolBase):
         self._call_balance = 0
         self._call_balance_skip = 0
 
-        super().__init__(pool_addr, UNISWAP_V3_POOL_ABI, self.EVENT_LIST, _protocol)
-
+        super().__init__(self.EVENT_LIST, _protocol)
+        self.pool = Contract(address=pool_addr)
         self.pool = fix_univ3_pool(self.pool)
 
         self.tick_spacing = self.pool.functions.tickSpacing().call()
@@ -153,7 +152,8 @@ class UniV3Pool(UniswapPoolBase):
                     if math.isnan(row.upperTick):
                         continue
                     if row.index <= self.pool_tick < row.upperTick:
-                        t0_t, t1_t = in_range(row.liquidityCumsum, row.upperTick, row.index, self.pool_tick)
+                        t0_t, t1_t = in_range(row.liquidityCumsum,
+                                              row.upperTick, row.index, self.pool_tick)
                     else:
                         t0_t, t1_t = out_of_range(row.liquidityCumsum, row.upperTick, row.index)
                     t0 += t0_t
