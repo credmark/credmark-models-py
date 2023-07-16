@@ -46,11 +46,11 @@ class TestUniswap(TestUniswapPools):
     def test(self):
         self.title("Uniswap")
 
-        self.pool_tests('uniswap-v2', 17_001_204, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v2', 17_001_205, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 17_010_204, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('uniswap-v3', 17_010_205, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 43_698_404, 137, 'USDC',
+        self.pool_tests('uniswap-v3', 43_698_405, 137, 'USDC',
                         'WMATIC', 'XSGD', do_test_ledger=False)
 
         self.run_model("uniswap.tokens")

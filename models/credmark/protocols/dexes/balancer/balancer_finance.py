@@ -11,7 +11,8 @@ from credmark.cmf.types import Address, Contract, Contracts, Network, Records, S
 from credmark.dto import DTO, DTOField, EmptyInputSkipTest
 from web3.exceptions import ABIFunctionNotFound, ContractLogicError
 
-from models.tmp_abi_lookup import BALANCER_POOL_ABI  # BALANCER_META_STABLE_POOL_ABI
+# BALANCER_META_STABLE_POOL_ABI
+from models.tmp_abi_lookup import BALANCER_POOL_ABI, BALANCER_VAULT_ABI
 from models.utils.math import divDown, divUp, mulUp
 
 np.seterr(all='raise')
@@ -179,7 +180,8 @@ class GetBalancerPoolPriceInfo(Model):
     def run(self, input: BalancerContract) -> BalancerPoolPriceInfo:
         # https://metavision-labs.gitbook.io/balancerv2cad/code-and-instructions/balancer_py_edition/stablemath.py
         # https://token-engineering-balancer.gitbook.io/balancer-simulations/additional-code-and-instructions/arbitrage-agent
-        vault = Contract(address=Address(self.VAULT_ADDR[self.context.network]).checksum)
+        vault = Contract(address=Address(
+            self.VAULT_ADDR[self.context.network]).checksum).set_abi(BALANCER_VAULT_ABI)
 
         pool_addr = input.address
         pool = Contract(address=pool_addr)
