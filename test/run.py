@@ -56,7 +56,7 @@ if __name__ == '__main__':
                               '- gw (official gateway only'))
     parser.add_argument('start_n', type=int, default=0,
                         help='case number to start')
-    parser.add_argument('-b', '--block_number', type=int, default=14249446,
+    parser.add_argument('-b', '--block_number', type=int, default=14249448,
                         help='Block number to run')
     parser.add_argument('-s', '--serial', action='store_true', default=False,
                         help='Run tests in serial')

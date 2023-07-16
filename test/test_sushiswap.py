@@ -7,7 +7,7 @@ class TestSushiSwap(TestUniswapPools):
     def test(self):
         self.title('SushiSwap')
 
-        self.pool_tests('sushiswap', 17_001_104, 1, 'USDC', 'WETH', 'MKR')
+        self.pool_tests('sushiswap', 17_001_105, 1, 'USDC', 'WETH', 'MKR')
 
         # sushiswap.get-pool-info-token-price, uniswap-v2.get-pool-price-info
         self.run_model('sushiswap.get-weighted-price', {"symbol": "WETH"})
@@ -32,13 +32,15 @@ class TestSushiSwap(TestUniswapPools):
 
     def test_pools_token(self):
         link_pools = self.run_model_with_output("sushiswap.get-pools", {"symbol": "LINK"})
-        link_pools_alt = self.run_model_with_output("sushiswap.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
+        link_pools_alt = self.run_model_with_output(
+            "sushiswap.get-pools-tokens", {"tokens": [{"symbol": "LINK"}]})
 
         self.assertEqual({x['address'] for x in link_pools['output']['contracts']},
                          {x['address'] for x in link_pools_alt['output']['contracts']})
 
         mkr_pools = self.run_model_with_output("sushiswap.get-pools", {"symbol": "MKR"})
-        mkr_pools_alt = self.run_model_with_output("sushiswap.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
+        mkr_pools_alt = self.run_model_with_output(
+            "sushiswap.get-pools-tokens", {"tokens": [{"symbol": "MKR"}]})
 
         self.assertEqual({x['address'] for x in mkr_pools['output']['contracts']},
                          {x['address'] for x in mkr_pools_alt['output']['contracts']})

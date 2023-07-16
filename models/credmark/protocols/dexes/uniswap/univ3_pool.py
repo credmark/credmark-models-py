@@ -284,17 +284,17 @@ class UniV3Pool(UniswapPoolBase):
         # The reserve may change after the event (question to be answered)
         # Token: 0xd46ba6d942050d489dbd938a2c909a5d5039a161 AMPL
         # Pool: 0x86d257cdb7bc9c0df10e84c8709697f92770b335
-        try_balance = self._balance.get(int(self.block_number))
         self._call_balance += 1
-        if try_balance is None:
+        try_balance = self._balance.get(int(self.block_number))
+        if try_balance:
+            self._call_balance_skip += 1
+            self.token0_reserve, self.token1_reserve = try_balance
+        else:
             context = ModelContext.current_context()
             with context.fork(block_number=int(self.block_number)):
                 self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
                 self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
                 self._balance[int(self.block_number)] = self.token0_reserve, self.token1_reserve
-        else:
-            self._call_balance_skip += 1
-            self.token0_reserve, self.token1_reserve = try_balance
 
         reserve0_scaled = self.token0.scaled(self.token0_reserve)
         reserve1_scaled = self.token1.scaled(self.token1_reserve)
@@ -473,14 +473,6 @@ class UniV3Pool(UniswapPoolBase):
 
         self.token0_reserve += amount0
         self.token1_reserve += amount1
-
-        def _check_reserve_with_balance():
-            context = ModelContext.current_context()
-            with context.fork(block_number=event_row['blockNumber']):
-                t0_reserve = self.token0.balance_of_scaled(self.pool.address.checksum)
-                t1_reserve = self.token1.balance_of_scaled(self.pool.address.checksum)
-                assert math.isclose(self.token0.scaled(self.token0_reserve), t0_reserve, rel_tol=1e-1)
-                assert math.isclose(self.token1.scaled(self.token1_reserve), t1_reserve, rel_tol=1e-1)
 
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
 
