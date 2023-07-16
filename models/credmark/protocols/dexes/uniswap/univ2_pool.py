@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Token
+from credmark.cmf.types import Address, Contract, Token
 
 from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase
 from models.dtos.pool import PoolPriceInfoWithVolume
@@ -23,7 +23,8 @@ class UniV2Pool(UniswapPoolBase):
     EVENT_LIST = ['Sync', 'Swap', 'Mint', 'Burn']
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
-        super().__init__(pool_addr, UNISWAP_V2_POOL_ABI, self.EVENT_LIST, _protocol)
+        super().__init__(self.EVENT_LIST, _protocol)
+        self.pool = Contract(address=pool_addr).set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         self.tick_spacing = 1
 

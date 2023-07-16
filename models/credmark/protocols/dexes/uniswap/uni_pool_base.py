@@ -17,8 +17,7 @@ class UniswapPoolBase:
     Uniswap Pool Base
     """
 
-    def __init__(self, pool_addr, abi, event_list, _protocol):
-        self.pool = Contract(address=pool_addr).set_abi(abi, set_loaded=True)
+    def __init__(self, event_list, _protocol):
         self.df_evt = {}
         self._event_list = event_list
         self.protocol = _protocol
@@ -29,39 +28,38 @@ class UniswapPoolBase:
         """
         for event_name in self._event_list:
             # no fix for types, will fix when insertion
-            df_evt = _get_uniswap_event_etl(_chain_id, _pool_addr, _protocol, event_name, _start_block, _end_block, pool_id, _fix_df_events=None)
+            df_evt = _get_uniswap_event_etl(
+                _chain_id, _pool_addr, _protocol, event_name, _start_block, _end_block, pool_id, _fix_df_events=None)
             self.df_evt[event_name] = df_evt
 
         print(('[load_events_etl]', [(k, v.shape[0]) for k, v in self.df_evt.items()]),
               file=sys.stderr, flush=True)
 
-
-    def load_events(self, from_block, to_block, use_async: bool, async_worker: int):
+    def load_events(self, _pool, from_block, to_block, use_async: bool, async_worker: int):
         """
         load events from node
         """
-        pool = self.pool
-        if pool.abi is None:
-            raise ValueError(f'Pool abi missing for {pool.address}')
+        if not _pool.abi:
+            raise ValueError(f'Pool abi missing for {_pool.address}')
 
         for event_name in self._event_list:
             # no fix for types, will fix when insertion
             df_evt = fetch_events_with_cols(
-                pool, getattr(pool.events, event_name), event_name,
-                from_block, to_block, getattr(pool.abi.events, event_name).args,
+                _pool, getattr(_pool.events, event_name), event_name,
+                from_block, to_block, getattr(_pool.abi.events, event_name).args,
                 use_async, async_worker)
             self.df_evt[event_name] = df_evt
 
         print(('[load_events]', [(k, v.shape[0]) for k, v in self.df_evt.items()]),
               file=sys.stderr, flush=True)
 
-
     def load_events_db(self, pool_id, protocol, from_block, to_block, fix_df_events, _get_uniswap_event_db):
         """
         load events from db
         """
         for event_name in self._event_list:
-            df_evt = _get_uniswap_event_db(pool_id, event_name, fix_df_events, protocol, from_block, to_block)
+            df_evt = _get_uniswap_event_db(
+                pool_id, event_name, fix_df_events, protocol, from_block, to_block)
             self.df_evt[event_name] = df_evt
 
         df_comb_evt = pd.concat(self.df_evt.values())
@@ -93,6 +91,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                 event,
                 from_block=_from_block,
                 to_block=_to_block,
+                contract_address=pool.address,
                 use_async=use_async,
                 async_worker=async_worker
             ))
@@ -100,6 +99,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
             df2 = pd.DataFrame(pool.fetch_events(
                 event,
                 from_block=_from_block,
+                contract_address=pool.address,
                 to_block=_to_block))
     except HTTPError:
         try:
@@ -108,6 +108,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                 event,
                 from_block=_from_block,
                 to_block=_to_block,
+                contract_address=pool.address,
                 by_range=100_000))
         except HTTPError:
             try:
@@ -116,6 +117,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                     event,
                     from_block=_from_block,
                     to_block=_to_block,
+                    contract_address=pool.address,
                     by_range=50_000))
             except HTTPError:
                 try:
@@ -124,6 +126,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                         event,
                         from_block=_from_block,
                         to_block=_to_block,
+                        contract_address=pool.address,
                         by_range=30_000))
                 except HTTPError:
                     try:
@@ -132,6 +135,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                             event,
                             from_block=_from_block,
                             to_block=_to_block,
+                            contract_address=pool.address,
                             by_range=20_000))
                     except HTTPError:
                         print('[fetch_events_with_cols] trying 10_000')
@@ -139,6 +143,7 @@ def fetch_events_with_cols(pool: Contract, event, event_name, _from_block, _to_b
                             event,
                             from_block=_from_block,
                             to_block=_to_block,
+                            contract_address=pool.address,
                             by_range=10_000))
 
     end_t = datetime.now() - start_t
