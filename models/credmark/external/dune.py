@@ -8,6 +8,7 @@ from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, DTOField
 from requests import HTTPError, JSONDecodeError, Response
+from urllib.parse import urljoin
 
 
 class DuneQueryState(str, Enum):
@@ -45,7 +46,7 @@ class DuneClient:
 
     @staticmethod
     def _route_url(route: str) -> str:
-        return f"https://api.dune.com/api/v1/{route}"
+        return urljoin("https://api.dune.com/api/v1", route)
 
     def _get(self, *, api_key: str, route: str, dto_cls: Type[T]) -> T:
         url = self._route_url(route)
