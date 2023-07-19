@@ -98,3 +98,26 @@ class TestAAVEV3(CMFTest):
                         "window": "10 days", "interval": "1 days"},
                        chain_id=137,
                        block_number=polygon_block_number)
+
+        # credmark-dev run aave-v3.account-summary -i '{"address": "0x4aa63e8115c5b29a3e0e062a77c11592931453dc"}' -c 10 -j
+        optimism_block_number = 107078524
+        self.run_model('aave-v3.account-summary',
+                       {"address": "0x4aa63e8115c5b29a3e0e062a77c11592931453dc"},
+                       chain_id=10,
+                       block_number=optimism_block_number)
+
+        # credmark-dev run aave-v3.account-summary -i '{"address": "0x4aa63e8115c5b29a3e0e062a77c11592931453dc"}' -c 42161 -j
+        # credmark-dev run aave-v3.account-info -i '{"address": "0x4aa63e8115c5b29a3e0e062a77c11592931453dc"}' -c 42161 -j
+        arbitrum_block_number = 112745173
+        self.run_model('aave-v3.account-summary',
+                       {"address": "0xfe8da6eded250a4dbc349d8bf6da4f17e9ef14e2"},
+                       chain_id=42161,
+                       block_number=arbitrum_block_number)
+
+        # credmark-dev run aave-v3.account-summary -i '{"address": "0x34fc4134dc4956955164d8f7ec08d0f78955ac00"}' -c 43114 -j
+        # credmark-dev run aave-v3.account-info -i '{"address": "0x34fc4134dc4956955164d8f7ec08d0f78955ac00"}' -c 43114 -j
+        avalanche_block_number = 32798022
+        self.run_model('aave-v3.account-summary',
+                       {"address": "0x34fc4134dc4956955164d8f7ec08d0f78955ac00"},
+                       chain_id=43114,
+                       block_number=avalanche_block_number)
