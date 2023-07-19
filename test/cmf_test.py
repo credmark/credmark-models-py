@@ -60,7 +60,8 @@ class CMFTest(TestCase):
                               model_input=None,
                               exit_code: Optional[int] = 0,
                               block_number: Optional[int] = None,
-                              chain_id: int = 1):
+                              chain_id: int = 1,
+                              latest_block=False):
         model_input = {} if model_input is None else model_input
 
         if self.type == 'test':
@@ -73,8 +74,8 @@ class CMFTest(TestCase):
                     ['run', model_slug, '-j'] +
                     ['-i', json.dumps(model_input)] +
                     self.post_flag +
-                    ['-b', f'{self.block_number if block_number is None else block_number}'] +
-                    ([] if chain_id == 1 else ['-c', str(chain_id)]))
+                    ([] if latest_block else ['-b', f'{self.block_number if block_number is None else block_number}']) +
+                    ['-c', str(chain_id)])
 
         cmd_line = ' '.join(sys.argv)
 
@@ -84,8 +85,8 @@ class CMFTest(TestCase):
             ['run', model_slug, '-j'] +
             ['-i', f"'{json.dumps(model_input)}'"] +
             self.post_flag +
-            [f'-b {self.block_number if block_number is None else block_number}'] +
-            ([] if chain_id == 1 else ['-c', str(chain_id)]))
+            ([] if latest_block else [f'-b {self.block_number if block_number is None else block_number}']) +
+            ['-c', str(chain_id)])
 
         if self.start_n > CMFTest.test_n:
             logging.info(f'Skip ({CMFTest.test_n})')
@@ -138,7 +139,8 @@ class CMFTest(TestCase):
                   model_input=None,
                   exit_code: Optional[int] = 0,
                   block_number: Optional[int] = None,
-                  chain_id: int = 1):
+                  chain_id: int = 1,
+                  latest_block=False):
         model_input = {} if model_input is None else model_input
         if self.type == 'test':
             cmd = 'python test/test.py'
@@ -149,8 +151,8 @@ class CMFTest(TestCase):
                     ['run', model_slug, '-j'] +
                     ['-i', json.dumps(model_input)] +
                     self.post_flag +
-                    ['-b', f'{self.block_number if block_number is None else block_number}'] +
-                    ([] if chain_id == 1 else ['-c', str(chain_id)]))
+                    ([] if latest_block else ['-b', f'{self.block_number if block_number is None else block_number}']) +
+                    ['-c', str(chain_id)])
 
         cmd_line = ' '.join(sys.argv)
 
@@ -160,8 +162,8 @@ class CMFTest(TestCase):
             ['run', model_slug, '-j'] +
             ['-i', f"'{json.dumps(model_input)}'"] +
             self.post_flag +
-            [f'-b {self.block_number if block_number is None else block_number}'] +
-            ([] if chain_id == 1 else ['-c', str(chain_id)]))
+            ([] if latest_block else [f'-b {self.block_number if block_number is None else block_number}']) +
+            ['-c', str(chain_id)])
 
         if self.start_n > CMFTest.test_n:
             logging.info(f'Skip ({CMFTest.test_n})')

@@ -69,12 +69,12 @@ class HistoricalDTO(DTO):
 class HistoricalRunModelInput(HistoricalDTO):
     model_slug: str
     model_input: dict
+    debug: bool = DTOField(False, description='debug mode with for loop')
 
     class Config:
         schema_extra = {
             'examples':  cross_examples(
-                [{"model_slug": "aave-v2.token-asset",
-                    "model_input": {"symbol": "USDC"}}, ],
+                [{"model_slug": "aave-v2.token-asset", "model_input": {"symbol": "USDC"}}, ],
                 HistoricalDTO.Config.schema_extra['examples'],
                 limit=10)
         }

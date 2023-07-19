@@ -6,7 +6,7 @@ Uni V3 Pool
 
 import math
 import sys
-from typing import Optional
+from typing import Optional, cast
 
 import pandas as pd
 from credmark.cmf.model import ModelContext
@@ -51,10 +51,10 @@ class UniV3Pool(UniswapPoolBase):
         self.pool = Contract(address=pool_addr)
         self.pool = fix_univ3_pool(self.pool)
 
-        self.tick_spacing = self.pool.functions.tickSpacing().call()
+        self.tick_spacing = cast(int, self.pool.functions.tickSpacing().call())
 
-        self.token0_addr = self.pool.functions.token0().call().lower()
-        self.token1_addr = self.pool.functions.token1().call().lower()
+        self.token0_addr = cast(str, self.pool.functions.token0().call()).lower()
+        self.token1_addr = cast(str, self.pool.functions.token1().call()).lower()
 
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
@@ -101,6 +101,8 @@ class UniV3Pool(UniswapPoolBase):
             self.token1_remove = 0
             self.token1_collect = 0
             self.token1_collect_prot = 0
+            self.token0_flash = 0
+            self.token1_flash = 0
 
             self.token0_reserve = 0
             self.token1_reserve = 0
@@ -185,6 +187,8 @@ class UniV3Pool(UniswapPoolBase):
                 'token1_remove': self.token1_remove,
                 'token1_collect': self.token1_collect,
                 'token1_collect_prot': self.token1_collect_prot,
+                'token0_flash': self.token0_flash,
+                'token1_flash': self.token1_flash,
 
                 'token0_reserve': self.token0_reserve,
                 'token1_reserve': self.token1_reserve,
@@ -222,6 +226,9 @@ class UniV3Pool(UniswapPoolBase):
 
         self.token0_reserve = _pool_data['token0_reserve']
         self.token1_reserve = _pool_data['token1_reserve']
+
+        self.token0_flash = _pool_data.get('token0_flash', 0)
+        self.token1_flash = _pool_data.get('token1_flash', 0)
 
     def _self_check_events(self, df_comb_evt):
         token0_balance = \
@@ -405,16 +412,16 @@ class UniV3Pool(UniswapPoolBase):
         self.token0_reserve += amount0
         self.token1_reserve += amount1
 
-        lowerTick = self.ticks.get(tickLower, Tick(liquidityGross=0, liquidityNet=0))
-        upperTick = self.ticks.get(tickUpper, Tick(liquidityGross=0, liquidityNet=0))
+        if tickLower not in self.ticks:
+            self.ticks[tickLower] = Tick(liquidityGross=0, liquidityNet=0)
 
-        lowerTick.liquidityGross = lowerTick.liquidityGross + amount
-        lowerTick.liquidityNet = lowerTick.liquidityNet + amount
-        upperTick.liquidityGross = upperTick.liquidityGross + amount
-        upperTick.liquidityNet = upperTick.liquidityNet - amount
+        if tickUpper not in self.ticks:
+            self.ticks[tickUpper] = Tick(liquidityGross=0, liquidityNet=0)
 
-        self.ticks[tickLower] = lowerTick
-        self.ticks[tickUpper] = upperTick
+        self.ticks[tickLower].liquidityGross += amount
+        self.ticks[tickLower].liquidityNet += amount
+        self.ticks[tickUpper].liquidityGross += amount
+        self.ticks[tickUpper].liquidityNet -= amount
 
         if tickLower <= self.pool_tick < tickUpper:
             self.pool_liquidity += amount
@@ -435,23 +442,16 @@ class UniV3Pool(UniswapPoolBase):
         self.token1_remove += amount1
         # token0_reserve / token1_reserve changes is moved to proc_collect
 
-        lowerTick = self.ticks[tickLower]
-        upperTick = self.ticks[tickUpper]
+        self.ticks[tickLower].liquidityGross -= amount
+        self.ticks[tickLower].liquidityNet -= amount
+        self.ticks[tickUpper].liquidityGross -= amount
+        self.ticks[tickUpper].liquidityNet += amount
 
-        lowerTick.liquidityGross = lowerTick.liquidityGross - amount
-        lowerTick.liquidityNet = lowerTick.liquidityNet - amount
-        upperTick.liquidityGross = upperTick.liquidityGross - amount
-        upperTick.liquidityNet = upperTick.liquidityNet + amount
-
-        if lowerTick.is_zero():
+        if self.ticks[tickLower].is_zero():
             del self.ticks[tickLower]
-        else:
-            self.ticks[tickLower] = lowerTick
 
-        if upperTick.is_zero():
+        if self.ticks[tickUpper].is_zero():
             del self.ticks[tickUpper]
-        else:
-            self.ticks[tickUpper] = upperTick
 
         if tickLower <= self.pool_tick < tickUpper:
             self.pool_liquidity -= amount
@@ -504,9 +504,11 @@ class UniV3Pool(UniswapPoolBase):
     def proc_flash(self, event_row):
         # -amount0 (usual negative) + paid0 = paid back amount0
 
-        # self.token0_reserve += event_row['paid0']
-        # self.token1_reserve += event_row['paid1']
+        self.token0_reserve += event_row['paid0']
+        self.token1_reserve += event_row['paid1']
+
+        self.token0_flash += event_row['amount0']
+        self.token1_flash += event_row['amount1']
 
         # The amount is to be collected later.
-
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())

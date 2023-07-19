@@ -1,6 +1,6 @@
 # pylint:disable=line-too-long, protected-access
 
-from typing import NamedTuple, Union
+from typing import NamedTuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -55,14 +55,39 @@ class AAVEUserReserveData(NamedTuple):
         )
 
 
-class AccountInfo4Reserve(Account):
+class AaveV2LPAccount(Account):
+    class Config:
+        schema_extra = {
+            'description': "Account had supplied to Aave V2",
+            'examples': [{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D",
+                          '_test_multi': {'chain_id': 1, 'block_number': 16325819}}],
+            'test_multi': True,
+        }
+
+
+class AaveV2AccountInfo4Reserve(AaveV2LPAccount):
     reserve: Token = DTOField(description='Reserve token')
 
     class Config:
         schema_extra = {
             'examples': [{"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3",
-                          "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"}]
+                          "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+                          '_test_multi': {'chain_id': 1, 'block_number': 16694809}}],
+            'test_multi': True,
         }
+
+
+class AaveV2AccountHistorical(AaveV2LPAccount):
+    window: str
+    interval: str
+
+    class Config:
+        schema_extra = {
+            'examples': [{"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E",
+                          "window": "10 days", "interval": "1 days"}]}
+
+
+# credmark-dev run aave-v2.account-info-reserve -i '{"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3", "reserve": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"}' -b 16694809 -j
 
 
 @Model.describe(slug="aave-v2.account-info-reserve",
@@ -71,11 +96,11 @@ class AccountInfo4Reserve(Account):
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
                 subcategory="aave-v2",
-                input=AccountInfo4Reserve,
+                input=AaveV2AccountInfo4Reserve,
                 output=dict,
                 )
 class AaveV2GetAccountInfoAsset(Model):
-    def run(self, input: AccountInfo4Reserve) -> dict:
+    def run(self, input: AaveV2AccountInfo4Reserve) -> dict:
         protocolDataProvider = (self.context.run_model(
             "aave-v2.get-protocol-data-provider", {},
             return_type=Contract, local=True)
@@ -103,12 +128,13 @@ class AaveV2GetAccountInfoAsset(Model):
 
         reserve_data = (protocolDataProvider.functions
                         .getUserReserveData(token_address, user_address).call())
-        total_balance_and_debt = sum(reserve_data[:3])
+        total_balance_and_debt = sum(
+            cast(tuple[int, int, int, int, int, int, int, int, bool],  reserve_data)[:3])
         if total_balance_and_debt == 0:
             return {}
 
-        aToken_addresses = (protocolDataProvider.functions
-                            .getReserveTokensAddresses(token_address).call())
+        aToken_addresses = cast(tuple[str, str, str],
+                                (protocolDataProvider.functions.getReserveTokensAddresses(token_address).call()))
 
         aToken = get_eip1967_proxy_err(self.context,
                                        self.logger,
@@ -239,12 +265,7 @@ class AaveV2GetAccountInfoAsset(Model):
         return token_info
 
 
-class AaveLPAccount(Account):
-    class Config:
-        schema_extra = {
-            'description': "Account had supplied to Aave V2",
-            'examples': [{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}]}
-
+# credmark-dev run aave-v2.get-lp-reward -i '{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}' -b 16325819 -j
 
 @Model.describe(slug="aave-v2.get-lp-reward",
                 version="0.2",
@@ -252,14 +273,14 @@ class AaveLPAccount(Account):
                 description="Aave V2 - Get incentive controller",
                 category='protocol',
                 subcategory='aave-v2',
-                input=AaveLPAccount,
+                input=AaveV2LPAccount,
                 output=dict)
 class AaveV2GetLPIncentive(Model):
     STAKED_AAVE = {
         Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
     }
 
-    def run(self, input: AaveLPAccount) -> dict:
+    def run(self, input: AaveV2LPAccount) -> dict:
         """
         https://app.aave.com/governance/proposal/?proposalId=11
         2,200 stkAAVE per day will be allocated pro-rata across supported markets
@@ -338,6 +359,8 @@ class AaveV2GetLPIncentive(Model):
             'staked_aave_address': staked_aave.address.checksum
         }
 
+# credmark-dev run aave-v2.get-staking-reward -i '{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}' -b 16325819 -j
+
 
 @Model.describe(slug="aave-v2.get-staking-reward",
                 version="0.2",
@@ -345,14 +368,14 @@ class AaveV2GetLPIncentive(Model):
                 description="Aave V2 - Get staking controller",
                 category='protocol',
                 subcategory='aave-v2',
-                input=AaveLPAccount,
+                input=AaveV2LPAccount,
                 output=dict)
 class AaveV2GetStakingIncentive(Model):
     STAKED_AAVE = {
         Network.Mainnet: Address('0x4da27a545c0c5B758a6BA100e3a049001de870f5')
     }
 
-    def run(self, input: AaveLPAccount) -> dict:
+    def run(self, input: AaveV2LPAccount) -> dict:
         if self.context.network != Network.Mainnet:
             return {}
 
@@ -409,6 +432,8 @@ class AaveV2GetStakingIncentive(Model):
             'reward_scaled': total_reward,
             'total_rewards_claimed': rewards_claimed}
 
+# credmark-dev run aave-v2.account-info -i '{"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}' -b 16325819
+
 
 @Model.describe(slug="aave-v2.account-info",
                 version="0.4",
@@ -416,14 +441,15 @@ class AaveV2GetStakingIncentive(Model):
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
                 subcategory="aave-v2",
-                input=AaveLPAccount,
+                input=AaveV2LPAccount,
                 output=dict)
 class AaveV2GetAccountInfo(Model):
-    def run(self, input: AaveLPAccount) -> dict:
+    def run(self, input: AaveV2LPAccount) -> dict:
         protocolDataProvider = (self.context.run_model(
             "aave-v2.get-protocol-data-provider", {}, return_type=Contract, local=True)
             .set_abi(AAVE_DATA_PROVIDER, set_loaded=True))
-        reserve_tokens = protocolDataProvider.functions.getAllReservesTokens().call()
+        reserve_tokens = cast(
+            list[str], protocolDataProvider.functions.getAllReservesTokens().call())
 
         def _use_for():
             user_reserve_data = []
@@ -440,7 +466,7 @@ class AaveV2GetAccountInfo(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': 'aave-v2.account-info-reserve',
                        'modelInputs': [{'address': input.address, 'reserve': token_address} for _, token_address in reserve_tokens]},
-                return_type=MapInputsOutput[AccountInfo4Reserve, dict])
+                return_type=MapInputsOutput[AaveV2AccountInfo4Reserve, dict])
 
             user_reserve_data = []
             for p in user_reserve_data_run:
@@ -491,6 +517,8 @@ class AaveV2GetAccountInfo(Model):
         net_apy = _get_net_apy(user_reserve_data)
         return {'accountAAVEInfo': user_reserve_data, 'netAPY': net_apy}
 
+# credmark-dev run aave-v2.account-summary -i '{"address": "0x4a49985b14bd0ce42c25efde5d8c379a48ab02f3"}' -b 16325819 -j
+
 
 @Model.describe(slug="aave-v2.account-summary",
                 version="0.3",
@@ -498,17 +526,17 @@ class AaveV2GetAccountInfo(Model):
                 description="Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv",
                 category="protocol",
                 subcategory="aave-v2",
-                input=AaveLPAccount,
+                input=AaveV2LPAccount,
                 output=dict,
                 )
 class AaveV2GetAccountSummary(Model):
-    def run(self, input: AaveLPAccount) -> dict:
+    def run(self, input: AaveV2LPAccount) -> dict:
         aave_lending_pool = self.context.run_model(
             'aave-v2.get-lending-pool', {}, return_type=Contract, local=True)
 
         user_account_data = {}
-        account_data = aave_lending_pool.functions.getUserAccountData(
-            input.address).call()
+        account_data = cast(tuple[int, int, int, int, int, int],
+                            aave_lending_pool.functions.getUserAccountData(input.address).call())
 
         keys_need_to_be_scaled = ['totalCollateralETH',
                                   'totalDebtETH',
@@ -531,15 +559,7 @@ class AaveV2GetAccountSummary(Model):
         return user_account_data
 
 
-class AccountAAVEHistorical(Account):
-    window: str
-    interval: str
-
-    class Config:
-        schema_extra = {
-            'examples': [{"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E",
-                          "window": "10 days", "interval": "1 days"}]}
-
+# credmark-dev run aave-v2.account-summary-historical -i '{"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E", "window": "10 days", "interval": "1 days"}'  -b 16325819 -j
 
 @Model.describe(slug="aave-v2.account-summary-historical",
                 version="0.2",
@@ -548,11 +568,11 @@ class AccountAAVEHistorical(Account):
                              "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
                 category="protocol",
                 subcategory="aave-v2",
-                input=AccountAAVEHistorical,
+                input=AaveV2AccountHistorical,
                 output=dict,
                 )
 class AaveV2GetAccountSummaryHistorical(Model):
-    def run(self, input: AccountAAVEHistorical) -> dict:
+    def run(self, input: AaveV2AccountHistorical) -> dict:
         """
         # Test in console
 

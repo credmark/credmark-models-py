@@ -10,6 +10,7 @@ from credmark.cmf.types import (
     Address,
     BlockNumber,
     BlockNumberOutOfRangeError,
+    Contract,
     Contracts,
     Currency,
     FiatCurrency,
@@ -81,6 +82,16 @@ def get_eip1967_proxy_err(context, logger, address, verbose):
         raise ModelInputError(
             f'Unable to retrieve proxy implementation for {address}')
     return res
+
+
+def get_eip1967_proxy_err_with_abi(context, logger, address, verbose, proxy_abi, implementation_abi):
+    proxy_contract = get_eip1967_proxy_err(context, logger, address, verbose)
+    assert proxy_contract.proxy_for
+    proxy_contract.set_abi(proxy_abi, set_loaded=True)
+    # pylint: disable = protected-access
+    proxy_contract._meta.proxy_implementation = (Contract(proxy_contract.proxy_for.address)
+                                                 .set_abi(implementation_abi, set_loaded=True))
+    return proxy_contract
 
 
 def recursive_proxy(token):
