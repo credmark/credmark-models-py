@@ -12,6 +12,7 @@ import unittest
 from cmf_test import CMFTest
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 from test_aave import TestAAVE
+from test_aave_v3 import TestAAVEV3
 from test_account import TestAccount
 from test_arbitrum import TestArbitrumOne
 from test_balancer import TestBalancer
