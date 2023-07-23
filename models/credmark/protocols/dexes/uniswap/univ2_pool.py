@@ -24,6 +24,17 @@ class UniV2Pool(UniswapPoolBase):
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
         super().__init__(self.EVENT_LIST, _protocol)
+        if self.protocol == 'uniswap-v2':
+            self.src = 'uniswap-v2.get-weighted-price'
+        elif self.protocol == 'sushiswap':
+            self.src = 'sushiswap.get-weighted-price'
+        elif self.protocol == 'pancakeswap-v2':
+            self.src = 'pancakeswap-v2.get-weighted-price'
+        elif self.protocol == 'quickswap-v2':
+            self.src = 'quickswap-v2.get-weighted-price'
+        else:
+            raise NotImplementedError(self.protocol)
+
         self.pool = Contract(address=pool_addr).set_abi(UNISWAP_V2_POOL_ABI, set_loaded=True)
 
         self.tick_spacing = 1
@@ -160,19 +171,8 @@ class UniV2Pool(UniswapPoolBase):
             ratio_price0 = 0
             ratio_price1 = 0
 
-        if self.protocol == 'uniswap-v2':
-            src = 'uniswap-v2.get-weighted-price'
-        elif self.protocol == 'sushiswap':
-            src = 'sushiswap.get-weighted-price'
-        elif self.protocol == 'pancakeswap-v2':
-            src = 'pancakeswap-v2.get-weighted-price'
-        elif self.protocol == 'quickswap-v2':
-            src = 'quickswap-v2.get-weighted-price'
-        else:
-            raise NotImplementedError(self.protocol)
-
         pool_price_info = PoolPriceInfoWithVolume(
-            src=src,
+            src=self.src,
             price0=ratio_price0,
             price1=ratio_price1,
             one_tick_liquidity0=one_tick_liquidity0,

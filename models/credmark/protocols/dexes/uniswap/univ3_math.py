@@ -131,5 +131,7 @@ def calculate_onetick_liquidity(
     one_tick_liquidity0_adj = token0.scaled(tick1_amount0_adj)
     one_tick_liquidity1_adj = token1.scaled(tick1_amount1_adj)
 
-    return (one_tick_liquidity0_adj, one_tick_liquidity1_adj,
-            adjusted_in_tick_amount0, adjusted_in_tick_amount1)
+    return (one_tick_liquidity0_adj,
+            one_tick_liquidity1_adj,
+            adjusted_in_tick_amount0,
+            adjusted_in_tick_amount1)

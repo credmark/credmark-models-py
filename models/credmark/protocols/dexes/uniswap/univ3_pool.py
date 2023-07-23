@@ -48,6 +48,15 @@ class UniV3Pool(UniswapPoolBase):
         self._call_balance_skip = 0
 
         super().__init__(self.EVENT_LIST, _protocol)
+        if self.protocol == 'uniswap-v3':
+            self.src = 'uniswap-v3.get-weighted-price'
+        elif self.protocol == 'pancakeswap-v3':
+            self.src = 'pancakeswap-v3.get-weighted-price'
+        elif self.protocol == 'quickswap-v3':
+            self.src = 'quickswap-v3.get-weighted-price'
+        else:
+            raise NotImplementedError(self.protocol)
+
         self.pool = Contract(address=pool_addr)
         self.pool = fix_univ3_pool(self.pool)
 
@@ -274,9 +283,12 @@ class UniV3Pool(UniswapPoolBase):
 
         (one_tick_liquidity0_adj, one_tick_liquidity1_adj,
          adjusted_in_tick_amount0, adjusted_in_tick_amount1) = calculate_onetick_liquidity(
-            self.pool_tick, self.tick_spacing,
-            self.token0, self.token1,
-            self.pool_liquidity, _liquidityNet)
+            self.pool_tick,
+            self.tick_spacing,
+            self.token0,
+            self.token1,
+            self.pool_liquidity,
+            _liquidityNet)
 
         ratio_price0, ratio_price1 = self.sqrtPriceX96toTokenPrices(
             self.pool_sqrtPrice)
@@ -306,6 +318,7 @@ class UniV3Pool(UniswapPoolBase):
         reserve0_scaled = self.token0.scaled(self.token0_reserve)
         reserve1_scaled = self.token1.scaled(self.token1_reserve)
 
+        # Adjust liquidity to the max of the reserve
         if reserve0_scaled < one_tick_liquidity0_adj or reserve1_scaled < one_tick_liquidity1_adj:
             balance2liquidity0_ratio = reserve0_scaled / one_tick_liquidity0_adj
             balance2liquidity1_ratio = reserve1_scaled / one_tick_liquidity1_adj
@@ -323,17 +336,8 @@ class UniV3Pool(UniswapPoolBase):
         #    ratio_price0 = 0
         #    ratio_price1 = 0
 
-        if self.protocol == 'uniswap-v3':
-            src = 'uniswap-v3.get-weighted-price'
-        elif self.protocol == 'pancakeswap-v3':
-            src = 'pancakeswap-v3.get-weighted-price'
-        elif self.protocol == 'quickswap-v3':
-            src = 'quickswap-v3.get-weighted-price'
-        else:
-            raise NotImplementedError(self.protocol)
-
         pool_price_info = PoolPriceInfoWithVolume(
-            src=src,
+            src=self.src,
             price0=ratio_price0,
             price1=ratio_price1,
             one_tick_liquidity0=one_tick_liquidity0,
