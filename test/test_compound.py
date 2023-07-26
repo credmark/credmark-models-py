@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from cmf_test import CMFTest
 
+from models.credmark.protocols.lending.compound.compound_v3 import CompoundV3Meta
+
 
 class TestCompound(CMFTest):
     def test_deployment(self):
@@ -20,7 +22,7 @@ class TestCompound(CMFTest):
             'cDAI': '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643',
         }
 
-        for address in tokens:
+        for _symbol, address in tokens.items():
             self.run_model('compound-v2.pool-info',
                            {"address": address})
 
@@ -50,3 +52,11 @@ class TestCompound(CMFTest):
                             'interval': '1 days',
                             'model_input': {'address': '0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4'}},
                            block_number=block_number)
+
+
+class TestCompoundV3(CMFTest):
+    def test_markets(self):
+        self.title('Compound')
+
+        for network in CompoundV3Meta.MARKETS:
+            self.run_model('compound-v3.market', {}, chain_id=network.value, latest_block=True)

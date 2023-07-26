@@ -10,15 +10,17 @@ from models.tmp_abi_lookup import CHAINLINK_AGG, COMPOUND_V3_COMET, COMPOUND_V3_
 
 
 class CompoundV3Meta(Model):
-    USDC_MARKETS = {
-        Network.Mainnet: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
-        Network.Polygon: '0xF25212E676D1F7F89Cd72fFEe66158f541246445',
-        Network.ArbitrumOne: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
-    }
-
-    WETH_MARKETS = {
-        Network.Mainnet: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
-
+    MARKETS = {
+        Network.Mainnet: [
+            '0xA17581A9E3356d9A858b789D68B4d866e593aE94',  # WETH
+            '0xc3d688B66703497DAA19211EEdff47f25384cdc3',  # USDC
+        ],
+        Network.Polygon: [
+            '0xF25212E676D1F7F89Cd72fFEe66158f541246445',  # USDC
+        ],
+        Network.ArbitrumOne: [
+            '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',  # USDC
+        ],
     }
 
     SECONDS_PER_YEAR = 60 * 60 * 24 * 365
@@ -113,10 +115,10 @@ class UserBasic(DTO):
     assetsIn: int
 
 
-@Model.describe(slug="compound-v3.get-assets",
+@Model.describe(slug="compound-v3.market",
                 version="1.0",
-                display_name="Compound V3 - get assets",
-                description="Query the comet API for Compound V3 assets",
+                display_name="Compound V3 - get market information",
+                description="Query the comet API for Compound V3 assets in the market",
                 category='protocol',
                 subcategory='compound',
                 output=CompoundV3Markets)
@@ -177,15 +179,11 @@ class CompoundV2GetAllPools(CompoundV3Meta):
             assets=asset_infos)
 
     def run(self, _input: EmptyInput) -> CompoundV3Markets:
-        usdc_market_addr = self.USDC_MARKETS.get(self.context.network)
-        weth_market_addr = self.WETH_MARKETS.get(self.context.network)
+        market_addresses = self.MARKETS.get(self.context.network, [])
 
         markets = {}
-        if usdc_market_addr:
-            markets[usdc_market_addr] = self.get_market_info(usdc_market_addr)
-
-        if weth_market_addr:
-            markets[weth_market_addr] = self.get_market_info(weth_market_addr)
+        for market_address in market_addresses:
+            markets[market_address] = self.get_market_info(market_address)
 
         return CompoundV3Markets(markets=markets)
 
