@@ -20,7 +20,7 @@ from test_bsc import TestBSC
 from test_chainlink import TestChainlink
 from test_cmk import TestCMK
 from test_compose import TestCompose
-from test_compound import TestCompound
+from test_compound import TestCompound, TestCompoundV3
 from test_curve import TestCurve
 from test_dashboard import TestDashboard
 from test_example import TestExample
