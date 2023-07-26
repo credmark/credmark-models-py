@@ -92,12 +92,11 @@ class ChainLinkPriceByFeed(Model):
             feed_contract = feed_contract.set_abi(
                 CHAINLINK_AGG, set_loaded=True)
 
-        (_roundId, answer,
-            _startedAt, _updatedAt,
-            _answeredInRound) = feed_contract.functions.latestRoundData().call()
-        decimals = feed_contract.functions.decimals().call()
-        description = feed_contract.functions.description().call()
-        version = feed_contract.functions.version().call()
+        (_roundId, answer, _startedAt, _updatedAt, _answeredInRound) = cast(
+            tuple[int, int, int, int, int], feed_contract.functions.latestRoundData().call())
+        decimals = cast(int, feed_contract.functions.decimals().call())
+        description = cast(str, feed_contract.functions.description().call())
+        version = cast(int, feed_contract.functions.version().call())
 
         feed = input.address
         if feed_contract.abi is not None and 'aggregator' in feed_contract.abi.functions:
@@ -167,18 +166,13 @@ class ChainLinkPriceByRegistry(Model):
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(
                 base_address, quote_address).call()
-            (_roundId, answer,
-                _startedAt, _updatedAt,
-                _answeredInRound) = (registry.functions
-                                     .latestRoundData(base_address, quote_address)
-                                     .call())
-            decimals = registry.functions.decimals(
-                base_address, quote_address).call()
-            description = registry.functions.description(
-                base_address, quote_address).call()
-            version = registry.functions.version(
-                base_address, quote_address).call()
-            isFeedEnabled = registry.functions.isFeedEnabled(feed).call()
+            (_roundId, answer, _startedAt, _updatedAt, _answeredInRound) = cast(
+                tuple[int, int, int, int, int],
+                registry.functions.latestRoundData(base_address, quote_address).call())
+            decimals = cast(int, registry.functions.decimals(base_address, quote_address).call())
+            description = cast(str, registry.functions.description(base_address, quote_address).call())
+            version = cast(int, registry.functions.version(base_address, quote_address).call())
+            isFeedEnabled = cast(bool, registry.functions.isFeedEnabled(feed).call())
 
             time_diff = self.context.block_number.timestamp - _updatedAt
             round_diff = _answeredInRound - _roundId
