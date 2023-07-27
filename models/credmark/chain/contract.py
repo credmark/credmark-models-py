@@ -12,7 +12,7 @@ from credmark.dto import DTO, DTOField
 from requests.exceptions import HTTPError
 
 
-class ContractEventsInput(Contract):
+class ContractEventsBlockSeriesInput(Contract):
     event_name: str = DTOField(description='Event name')
     event_abi: Optional[Any] = DTOField(None, description='ABI of the event')
     argument_filters: Optional[dict] = DTOField(None, description='Event filters')
@@ -27,13 +27,17 @@ class ContractEventsInput(Contract):
         }
 
 
+class ContractEventsInput(ContractEventsBlockSeriesInput):
+    from_block: int | None = None
+
+
 @IncrementalModel.describe(slug='contract.events-block-series',
                            version='0.11',
                            display_name='Events from contract (non-mainnet)',
                            description='Get the past events from a contract in block series',
                            category='contract',
                            subcategory='event',
-                           input=ContractEventsInput,
+                           input=ContractEventsBlockSeriesInput,
                            output=BlockSeries[Records])
 class ContractEventsSeries(IncrementalModel):
     def run(self, input: ContractEventsInput, from_block: BlockNumber) -> BlockSeries[dict]:
@@ -141,7 +145,7 @@ class ContractEventsOutput(DTO):
 
 
 @Model.describe(slug='contract.events',
-                version='0.11',
+                version='0.12',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -152,15 +156,22 @@ class ContractEventsOutput(DTO):
 class ContractEvents(Model):
     def run(self, input: ContractEventsInput) -> ContractEventsOutput:
         events_series = self.context.run_model('contract.events-block-series',
-                                               input,
+                                               input=ContractEventsBlockSeriesInput(
+                                                   address=input.address,
+                                                   event_name=input.event_name,
+                                                   event_abi=input.event_abi,
+                                                   argument_filters=input.argument_filters),
                                                return_type=BlockSeries[Records])
         if len(events_series.series) == 0:
             return ContractEventsOutput(records=Records.from_dataframe(pd.DataFrame()))
 
-        df_comb = (pd.concat([r.output.to_dataframe() for r in events_series], ignore_index=True)
-                   .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
-                   .reset_index(drop=True))
+        df = (pd.concat([r.output.to_dataframe() for r in events_series], ignore_index=True)
+              .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
+              .reset_index(drop=True))
+
+        if input.from_block is not None and input.from_block > 0:
+            df = df[df['blockNumber'] >= input.from_block]
 
         return ContractEventsOutput(
-            records=Records.from_dataframe(df_comb),
+            records=Records.from_dataframe(df),
         )
