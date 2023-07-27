@@ -5,6 +5,7 @@ from credmark.cmf.types import (
 )
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import EmptyInput
+from random import randint
 
 
 @ImmutableModel.describe(
@@ -54,7 +55,7 @@ class ExampleIncrementalWrong(IncrementalModel):
 
 @IncrementalModel.describe(
     slug="example.incremental",
-    version="0.1",
+    version="0.2",
     display_name="Token Information - deployment",
     developer="Credmark",
     category='protocol',
@@ -63,18 +64,23 @@ class ExampleIncrementalWrong(IncrementalModel):
     output=BlockSeries[int])
 class ExampleIncremental(IncrementalModel):
     def run(self, input: EmptyInput, from_block: BlockNumber) -> BlockSeries[int]:
+        to_block = self.context.block_number
         self.logger.info(f'{from_block=}')
-        return BlockSeries(series=[
-            BlockSeriesRow(
-                blockNumber=0,
-                blockTimestamp=0,
-                sampleTimestamp=0,
-                output=1
-            ),
-            BlockSeriesRow(
-                blockNumber=1,
-                blockTimestamp=1,
-                sampleTimestamp=1,
-                output=2
-            ),
-        ])
+        self.logger.info(f'{to_block=}')
+        series = []
+        if int(from_block) > 0:
+            series.append(BlockSeriesRow(
+                blockNumber=from_block,
+                blockTimestamp=from_block.timestamp,
+                sampleTimestamp=from_block.sample_timestamp,
+                output=randint(100, 100000000)
+            ))
+
+        if int(from_block) != int(to_block):
+            series.append(BlockSeriesRow(
+                blockNumber=to_block,
+                blockTimestamp=to_block.timestamp,
+                sampleTimestamp=to_block.sample_timestamp,
+                output=randint(100, 100000000)
+            ))
+        return BlockSeries(series=series)
