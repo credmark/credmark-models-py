@@ -152,3 +152,5 @@ tmp/
 # ruff
 /.ruff_cache
 /vector_store
+
+main.py
