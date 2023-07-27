@@ -85,7 +85,7 @@ class IchiVault(DTO):
 
 
 @IncrementalModel.describe(slug='ichi.vaults-block-series',
-                           version='0.1',
+                           version='0.2',
                            display_name='ICHI vaults block series',
                            description='ICHI vaults block series',
                            category='protocol',
@@ -99,31 +99,15 @@ class IchiVaultsBlock(IncrementalModel):
         vault_factory = Contract(self.ICHI_VAULT_FACTORY).set_abi(
             ICHI_VAULT_FACTORY, set_loaded=True)
 
-        def _use_fetch_events():
-            deployed_info = self.context.run_model('token.deployment', {
-                "address": self.ICHI_VAULT_FACTORY, "ignore_proxy": True})
-            self.logger.info('Use by_range=10_000')
-            deployed_block_number = deployed_info['deployed_block_number']
-            # 25_697_834 for vault_factory
-            vault_created_events = pd.DataFrame(vault_factory.fetch_events(
-                vault_factory.events.ICHIVaultCreated,
-                from_block=max(from_block, deployed_block_number),
-                by_range=10_000))
-
-            return vault_created_events
-
-        def use_contract_events():
-            assert vault_factory.abi
-            vault_created_events = self.context.run_model(
-                'contract.events',
-                ContractEventsInput(address=vault_factory.address,
-                                    event_name='ICHIVaultCreated',
-                                    event_abi=vault_factory.abi.events.ICHIVaultCreated.raw_abi,
-                                    argument_filters=None),
-                return_type=ContractEventsOutput).records.to_dataframe()
-            return vault_created_events
-
-        vault_created_events = use_contract_events()
+        assert vault_factory.abi
+        vault_created_events = self.context.run_model(
+            'contract.events',
+            ContractEventsInput(address=vault_factory.address,
+                                event_name='ICHIVaultCreated',
+                                event_abi=vault_factory.abi.events.ICHIVaultCreated.raw_abi,
+                                argument_filters=None,
+                                from_block=int(from_block)),
+            return_type=ContractEventsOutput).records.to_dataframe()
 
         outputs_by_block: DefaultDict[int, List[IchiVault]] = defaultdict(list)
 
@@ -620,14 +604,16 @@ class IchiVaultCashflowSeries(IncrementalModel):
             'contract.events',
             ContractEventsInput(address=input.address, event_name='Deposit',
                                 event_abi=deposit_event_abi,
-                                argument_filters=None),
+                                argument_filters=None,
+                                from_block=int(from_block)),
             return_type=ContractEventsOutput).records.to_dataframe()
 
         df_withdraw = self.context.run_model(
             'contract.events',
             ContractEventsInput(address=input.address, event_name='Withdraw',
                                 event_abi=withdraw_event_abi,
-                                argument_filters=None),
+                                argument_filters=None,
+                                from_block=int(from_block)),
             return_type=ContractEventsOutput).records.to_dataframe()
 
         if not df_deposit.empty:
@@ -646,10 +632,8 @@ class IchiVaultCashflowSeries(IncrementalModel):
                                                         (10 ** token0_decimals)),
                                    amount1=lambda df: -(df.amount1.apply(int) / (10 ** token1_decimals))))
 
-        _from_block_number = int(from_block)  # pylint: disable=unused-variable
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
         df_comb = (df_comb
-                   .query('blockNumber >= @_from_block_number')
                    .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
                    .reset_index(drop=True))
 
