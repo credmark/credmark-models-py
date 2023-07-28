@@ -23,9 +23,8 @@ from credmark.cmf.types import (
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
 from credmark.dto import DTOField
-from requests.exceptions import HTTPError
 
-from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput, fetch_events_with_range
 from models.credmark.tokens.token import get_eip1967_proxy_err
 from models.tmp_abi_lookup import AAVE_DATA_PROVIDER, STAKED_AAVE
 
@@ -91,7 +90,7 @@ class AaveV2AccountHistorical(AaveV2LPAccount):
 
 
 @Model.describe(slug="aave-v2.account-info-reserve",
-                version="0.4",
+                version="0.5",
                 display_name="Aave V2 user account info for one reserve token",
                 description="Aave V2 user balance (principal and interest) and debt",
                 category="protocol",
@@ -145,35 +144,23 @@ class AaveV2GetAccountInfoAsset(Model):
 
         # Fetch aToken transfer for an account
         def _use_fetch_events():
-            try:
-                _minted = pd.DataFrame(aToken.fetch_events(
-                    aToken.events.Transfer,
-                    argument_filters={'to': user_address},
-                    from_block=0,
-                    contract_address=aToken.address.checksum))
-            except HTTPError:
-                _minted = pd.DataFrame(aToken.fetch_events(
-                    aToken.events.Transfer,
-                    argument_filters={'to': user_address},
-                    from_block=0,
-                    contract_address=aToken.address.checksum,
-                    by_range=10_000))
-
-            try:
-                _burnt = pd.DataFrame(aToken.fetch_events(
-                    aToken.events.Transfer,
-                    argument_filters={
-                        'from': user_address},
-                    from_block=0,
-                    contract_address=aToken.address.checksum))
-            except HTTPError:
-                _burnt = pd.DataFrame(aToken.fetch_events(
-                    aToken.events.Transfer,
-                    argument_filters={'from': user_address},
-                    from_block=0,
-                    contract_address=aToken.address.checksum,
-                    by_range=10_000))
-            return _minted, _burnt
+            _received = fetch_events_with_range(
+                self.logger,
+                aToken,
+                aToken.events.Transfer,
+                from_block=0,
+                to_block=None,
+                argument_filters={'to': user_address},
+                contract_address=aToken.address.checksum)
+            _sent = fetch_events_with_range(
+                self.logger,
+                aToken,
+                aToken.events.Transfer,
+                from_block=0,
+                to_block=None,
+                argument_filters={'from': user_address},
+                contract_address=aToken.address.checksum)
+            return _received, _sent
 
         def use_contract_events():
             if aToken.proxy_for and aToken.proxy_for.abi:
@@ -183,41 +170,43 @@ class AaveV2GetAccountInfoAsset(Model):
             else:
                 raise ModelRunError('No abi found for aToken')
 
-            _minted = self.context.run_model(
+            _received = self.context.run_model(
                 'contract.events',
                 ContractEventsInput(
                     address=aToken.address,
                     event_name='Transfer',
                     event_abi=transfer_abi,
-                    argument_filters={'to': user_address}),
+                    argument_filters={'to': user_address},
+                    from_block=0),
                 return_type=ContractEventsOutput).records.to_dataframe()
 
-            _burnt = self.context.run_model(
+            _sent = self.context.run_model(
                 'contract.events',
                 ContractEventsInput(
                     address=aToken.address,
                     event_name='Transfer',
                     event_abi=transfer_abi,
-                    argument_filters={'from': user_address}),
+                    argument_filters={'from': user_address},
+                    from_block=0),
                 return_type=ContractEventsOutput).records.to_dataframe()
-            return _minted, _burnt
+            return _received, _sent
 
-        _minted, _burnt = use_contract_events()
+        _received, _sent = use_contract_events()
 
-        if _minted.empty and _burnt.empty:
+        if _received.empty and _sent.empty:
             atoken_tx = 0.0
-        elif _minted.empty or _burnt.empty:
+        elif _received.empty or _sent.empty:
             _combined = pd.DataFrame()
-            if _minted.empty:
-                _combined = _burnt.assign(value=lambda x: x.value*-1)
-            elif _burnt.empty:
-                _combined = _minted
+            if _received.empty:
+                _combined = _sent.assign(value=lambda x: x.value*-1)
+            elif _sent.empty:
+                _combined = _received
             atoken_tx = aToken.scaled(_combined.value.sum())
         else:
             _combined = (pd.concat(
-                [_minted.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
-                    (_burnt.loc[:, ['blockNumber', 'logIndex', 'from',
-                                    'to', 'value']].assign(value=lambda x: x.value*-1))
+                [_received.loc[:, ['blockNumber', 'logIndex', 'from', 'to', 'value']],
+                    (_sent.loc[:, ['blockNumber', 'logIndex', 'from',
+                                   'to', 'value']].assign(value=lambda x: x.value*-1))
                  ])
                 .sort_values(['blockNumber', 'logIndex'])
                 .reset_index(drop=True))
@@ -268,7 +257,7 @@ class AaveV2GetAccountInfoAsset(Model):
 # credmark-dev run aave-v2.get-lp-reward -i '{"address": "0x5a7ED8CB7360db852E8AB5B10D10Abd806dB510D"}' -b 16325819 -j
 
 @Model.describe(slug="aave-v2.get-lp-reward",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 - Get incentive controller",
                 description="Aave V2 - Get incentive controller",
                 category='protocol',
@@ -333,7 +322,8 @@ class AaveV2GetLPIncentive(Model):
                         address=incentive_controller.address,
                         event_name='RewardsAccrued',
                         event_abi=incentive_controller.proxy_for.abi.events.RewardsAccrued.raw_abi,
-                        argument_filters={'user': str(input.address)}),
+                        argument_filters={'user': str(input.address)},
+                        from_block=0),
                     return_type=ContractEventsOutput).records.to_dataframe()
 
                 df_claimed = self.context.run_model(
@@ -342,7 +332,8 @@ class AaveV2GetLPIncentive(Model):
                         address=incentive_controller.address,
                         event_name='RewardsClaimed',
                         event_abi=incentive_controller.proxy_for.abi.events.RewardsClaimed.raw_abi,
-                        argument_filters={'claimer': str(input.address)}),
+                        argument_filters={'claimer': str(input.address)},
+                        from_block=0),
                     return_type=ContractEventsOutput).records.to_dataframe()
             else:
                 raise ModelDataError('Incentive Controller ABI missing')
@@ -363,7 +354,7 @@ class AaveV2GetLPIncentive(Model):
 
 
 @Model.describe(slug="aave-v2.get-staking-reward",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 - Get staking controller",
                 description="Aave V2 - Get staking controller",
                 category='protocol',
@@ -398,10 +389,12 @@ class AaveV2GetStakingIncentive(Model):
 
             df_rewards_claimed = self.context.run_model(
                 'contract.events',
-                ContractEventsInput(address=staked_aave.address,
-                                    event_name='RewardsClaimed',
-                                    event_abi=rewards_claimed_event_abi,
-                                    argument_filters={'from': str(input.address.checksum)}),
+                ContractEventsInput(
+                    address=staked_aave.address,
+                    event_name='RewardsClaimed',
+                    event_abi=rewards_claimed_event_abi,
+                    argument_filters={'from': str(input.address.checksum)},
+                    from_block=0),
                 return_type=ContractEventsOutput).records.to_dataframe()
 
             return df_rewards_claimed
@@ -409,8 +402,7 @@ class AaveV2GetStakingIncentive(Model):
         def _use_fetch_events():
             df_rewards_claimed = pd.DataFrame(staked_aave.fetch_events(
                 staked_aave.events.RewardsClaimed,
-                argument_filters={
-                    'from': input.address.checksum},
+                argument_filters={'from': input.address.checksum},
                 from_block=0,
                 contract_address=staked_aave.address.checksum))
             return df_rewards_claimed
@@ -562,7 +554,7 @@ class AaveV2GetAccountSummary(Model):
 # credmark-dev run aave-v2.account-summary-historical -i '{"address": "0x57E04786E231Af3343562C062E0d058F25daCE9E", "window": "10 days", "interval": "1 days"}'  -b 16325819 -j
 
 @Model.describe(slug="aave-v2.account-summary-historical",
-                version="0.2",
+                version="0.3",
                 display_name="Aave V2 user account summary historical",
                 description=("Aave V2 user total collateral, debt, available borrows in ETH, current liquidation threshold and ltv.\n"
                              "Assume there are \"efficient liquidators\" to act upon each breach of health factor."),
@@ -626,7 +618,8 @@ class AaveV2GetAccountSummaryHistorical(Model):
                     lending_pool.fetch_events(
                         lending_pool.proxy_for.events.LiquidationCall,
                         argument_filters={'user': input.address.checksum},
-                        from_block=first_block, to_block=last_block,
+                        from_block=first_block,
+                        to_block=last_block,
                         contract_address=lending_pool.address,
                     ))  # type: ignore
                 return df
@@ -644,7 +637,9 @@ class AaveV2GetAccountSummaryHistorical(Model):
                         address=lending_pool.address,
                         event_name='LiquidationCall',
                         event_abi=liquidity_call_abi,
-                        argument_filters={'user': str(input.address.checksum)}),
+                        argument_filters={'user': str(input.address.checksum)},
+                        from_block=first_block),
+                    block_number=last_block,
                     return_type=ContractEventsOutput).records.to_dataframe()
                 return df
 

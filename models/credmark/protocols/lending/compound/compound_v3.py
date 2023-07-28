@@ -3,8 +3,8 @@ from typing import cast
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Address, Contract, Network, Token
-from credmark.cmf.types.contract import SLOT_EIP1967
 from credmark.dto import DTO, EmptyInput
+from web3 import Web3
 
 from models.tmp_abi_lookup import CHAINLINK_AGG, COMPOUND_V3_COMET, COMPOUND_V3_COMET_PROXY
 
@@ -25,10 +25,12 @@ class CompoundV3Meta(Model):
 
     SECONDS_PER_YEAR = 60 * 60 * 24 * 365
 
+    SLOT_EIP1967 = int(Web3.keccak(text='eip1967.proxy.implementation').hex(), 16) - 1
+
     def fix_contract(self, address):
         cc = Contract(address).set_abi(COMPOUND_V3_COMET_PROXY, set_loaded=True)
         slot_proxy_address = Address(
-            self.context.web3.eth.get_storage_at(address, SLOT_EIP1967))
+            self.context.web3.eth.get_storage_at(address, self.SLOT_EIP1967))
         # pylint: disable = protected-access
         cc._meta.proxy_implementation = Contract(
             slot_proxy_address).set_abi(COMPOUND_V3_COMET, set_loaded=True)

@@ -82,7 +82,9 @@ def setv2_fee(_context, _setv_module, _start_block, _end_block, _set_token_addr)
                 address=_setv_module.address,
                 event_name='SetTokenIssued',
                 event_abi=_setv_module.abi.events.SetTokenIssued.raw_abi,
-                argument_filters={'_setToken': str(set_token_addr)}),
+                argument_filters={'_setToken': str(set_token_addr)},
+                from_block=_start_block),
+            block_number=_end_block,
             return_type=ContractEventsOutput).records.to_dataframe()
 
         df_burn = _context.run_model(
@@ -91,7 +93,9 @@ def setv2_fee(_context, _setv_module, _start_block, _end_block, _set_token_addr)
                 address=_setv_module.address,
                 event_name='SetTokenRedeemed',
                 event_abi=_setv_module.abi.events.SetTokenRedeemed.raw_abi,
-                argument_filters={'_setToken': str(set_token_addr)}),
+                argument_filters={'_setToken': str(set_token_addr)},
+                from_block=_start_block),
+            block_number=_end_block,
             return_type=ContractEventsOutput).records.to_dataframe()
 
         if not df_mint.empty:

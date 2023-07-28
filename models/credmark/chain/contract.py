@@ -1,4 +1,4 @@
-# pylint: disable=pointless-string-statement
+# pylint: disable=pointless-string-statement, line-too-long
 
 from datetime import datetime
 from typing import Any, Optional
@@ -28,11 +28,83 @@ class ContractEventsBlockSeriesInput(Contract):
 
 
 class ContractEventsInput(ContractEventsBlockSeriesInput):
-    from_block: int | None = None
+    from_block: int | None = DTOField(
+        None, gte=0, description='Block number to start fetching events from')
+
+
+def fetch_events_with_range(logger,
+                            contract: Contract,
+                            contract_event,
+                            from_block: int,
+                            to_block: Optional[int],
+                            contract_address=None,
+                            argument_filters=None
+                            ):
+    try:
+        df_events = pd.DataFrame(contract.fetch_events(
+            contract_event,
+            from_block=from_block,
+            to_block=to_block,
+            contract_address=contract_address,
+            argument_filters=argument_filters))
+    except HTTPError:
+        try:
+            df_events = pd.DataFrame(contract.fetch_events(
+                contract_event,
+                from_block=from_block,
+                to_block=to_block,
+                contract_address=contract_address,
+                argument_filters=argument_filters,
+                by_range=10_000))
+            logger.info('Use by_range=10_000')
+        except ValueError:
+            try:
+                df_events = pd.DataFrame(contract.fetch_events(
+                    contract_event,
+                    from_block=from_block,
+                    to_block=to_block,
+                    contract_address=contract_address,
+                    argument_filters=argument_filters,
+                    by_range=5_000))
+                logger.info('Use by_range=5_000')
+            except ValueError:
+                try:
+                    df_events = pd.DataFrame(contract.fetch_events(
+                        contract_event,
+                        from_block=from_block,
+                        to_block=to_block,
+                        contract_address=contract_address,
+                        argument_filters=argument_filters,
+                        by_range=2_000))
+                    logger.info('Use by_range=2_000')
+                except ValueError:
+                    try:
+                        df_events = pd.DataFrame(contract.fetch_events(
+                            contract_event,
+                            from_block=from_block,
+                            to_block=to_block,
+                            contract_address=contract_address,
+                            argument_filters=argument_filters,
+                            by_range=1_000))
+                        logger.info('Use by_range=1_000')
+                    except ValueError:
+                        try:
+                            df_events = pd.DataFrame(contract.fetch_events(
+                                contract_event,
+                                from_block=from_block,
+                                to_block=to_block,
+                                contract_address=contract_address,
+                                argument_filters=argument_filters,
+                                by_range=100))
+                            logger.info('Use by_range=100')
+                        except ValueError as _err:
+                            raise ValueError(
+                                f'Can not fetch events for {contract.address} between [{from_block}-{to_block}]') from _err
+    return df_events
 
 
 @IncrementalModel.describe(slug='contract.events-block-series',
-                           version='0.11',
+                           version='0.13',
                            display_name='Events from contract (non-mainnet)',
                            description='Get the past events from a contract in block series',
                            category='contract',
@@ -57,63 +129,13 @@ class ContractEventsSeries(IncrementalModel):
                     return BlockSeries()
                 raise
 
-        try:
-            df_events = pd.DataFrame(input_contract.fetch_events(
-                input_contract.events[input.event_name],
-                from_block=from_block_number,
-                to_block=int(self.context.block_number),
-                contract_address=input_contract.address.checksum,
-                argument_filters=input.argument_filters))
-        except HTTPError:
-            try:
-                df_events = pd.DataFrame(input_contract.fetch_events(
-                    input_contract.events[input.event_name],
-                    from_block=from_block_number,
-                    to_block=int(self.context.block_number),
-                    contract_address=input_contract.address.checksum,
-                    argument_filters=input.argument_filters,
-                    by_range=10_000))
-                self.logger.info('Use by_range=10_000')
-            except HTTPError:
-                try:
-                    df_events = pd.DataFrame(input_contract.fetch_events(
-                        input_contract.events[input.event_name],
-                        from_block=from_block_number,
-                        to_block=int(self.context.block_number),
-                        contract_address=input_contract.address.checksum,
-                        argument_filters=input.argument_filters,
-                        by_range=5_000))
-                    self.logger.info('Use by_range=5_000')
-                except HTTPError:
-                    try:
-                        df_events = pd.DataFrame(input_contract.fetch_events(
-                            input_contract.events[input.event_name],
-                            from_block=from_block_number,
-                            to_block=int(self.context.block_number),
-                            contract_address=input_contract.address.checksum,
-                            argument_filters=input.argument_filters,
-                            by_range=2_000))
-                        self.logger.info('Use by_range=2_000')
-                    except HTTPError:
-                        try:
-                            df_events = pd.DataFrame(input_contract.fetch_events(
-                                input_contract.events[input.event_name],
-                                from_block=from_block_number,
-                                to_block=int(self.context.block_number),
-                                contract_address=input_contract.address.checksum,
-                                argument_filters=input.argument_filters,
-                                by_range=1_000))
-                            self.logger.info('Use by_range=1_000')
-                        except HTTPError:
-                            df_events = pd.DataFrame(input_contract.fetch_events(
-                                input_contract.events[input.event_name],
-                                from_block=from_block_number,
-                                to_block=int(self.context.block_number),
-                                contract_address=input_contract.address.checksum,
-                                argument_filters=input.argument_filters,
-                                by_range=100))
-                            self.logger.info('Use by_range=100')
-
+        df_events = fetch_events_with_range(self.logger,
+                                            input_contract,
+                                            input_contract.events[input.event_name],
+                                            from_block_number,
+                                            int(self.context.block_number),
+                                            input_contract.address.checksum,
+                                            input.argument_filters)
         self.logger.info(
             f'[{self.slug}] Finished fetching event {input.event_name} from {from_block_number} '
             f'to {int(self.context.block_number)} on {datetime.now()}')
@@ -145,7 +167,7 @@ class ContractEventsOutput(DTO):
 
 
 @Model.describe(slug='contract.events',
-                version='0.12',
+                version='0.13',
                 display_name='Events from contract (non-mainnet)',
                 description='Get the past events from a contract',
                 category='contract',
@@ -155,13 +177,14 @@ class ContractEventsOutput(DTO):
                 cache=CachePolicy.SKIP)
 class ContractEvents(Model):
     def run(self, input: ContractEventsInput) -> ContractEventsOutput:
-        events_series = self.context.run_model('contract.events-block-series',
-                                               input=ContractEventsBlockSeriesInput(
-                                                   address=input.address,
-                                                   event_name=input.event_name,
-                                                   event_abi=input.event_abi,
-                                                   argument_filters=input.argument_filters),
-                                               return_type=BlockSeries[Records])
+        events_series = self.context.run_model(
+            'contract.events-block-series',
+            input=ContractEventsBlockSeriesInput(
+                address=input.address,
+                event_name=input.event_name,
+                event_abi=input.event_abi,
+                argument_filters=input.argument_filters),
+            return_type=BlockSeries[Records])
         if len(events_series.series) == 0:
             return ContractEventsOutput(records=Records.from_dataframe(pd.DataFrame()))
 
@@ -169,7 +192,7 @@ class ContractEvents(Model):
               .sort_values(['blockNumber', 'transactionIndex', 'logIndex'])
               .reset_index(drop=True))
 
-        if input.from_block is not None and input.from_block > 0:
+        if input.from_block is not None and input.from_block >= 0:
             df = df[df['blockNumber'] >= input.from_block]
 
         return ContractEventsOutput(
