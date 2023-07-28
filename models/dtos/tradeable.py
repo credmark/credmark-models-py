@@ -114,4 +114,4 @@ class TokenTradeable(Tradeable):
             new_pnl = self.value(block_number, tag, mkt,
                                  lambda x, scen=scen: x * scen)
             scen_pnl.append(new_pnl)
-        return np.array(scen_pnl) - base_pnl
+        return np.array(scen_pnl) - base_pnl #type: ignore
