@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Optional
+
 from credmark.cmf.types import Address
 from credmark.dto import DTO, DTOField
 
