@@ -276,7 +276,7 @@ class IndexCoopStreamingFeeInput(Contract):
 
 
 @Model.describe(slug='indexcoop.fee',
-                version='0.5',
+                version='0.6',
                 display_name='Index Coop Product - Streaming fee',
                 description='calculate fee collected from Index Coop\'s products, from AUM and Mint/Burn',
                 category='protocol',

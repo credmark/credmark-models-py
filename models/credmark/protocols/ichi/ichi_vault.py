@@ -3,7 +3,7 @@
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import DefaultDict, List, Optional
+from typing import DefaultDict, List
 
 import numpy as np
 import numpy_financial as npf
@@ -20,9 +20,8 @@ from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, DTOField, EmptyInput
 from pyxirr import InvalidPaymentsError, xirr
-from requests.exceptions import HTTPError
 
-from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput
+from models.credmark.chain.contract import ContractEventsInput, ContractEventsOutput, fetch_events_with_range
 from models.credmark.protocols.dexes.uniswap.univ3_math import tick_to_price
 from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
 
@@ -85,7 +84,7 @@ class IchiVault(DTO):
 
 
 @IncrementalModel.describe(slug='ichi.vaults-block-series',
-                           version='0.2',
+                           version='0.4',
                            display_name='ICHI vaults block series',
                            description='ICHI vaults block series',
                            category='protocol',
@@ -99,15 +98,35 @@ class IchiVaultsBlock(IncrementalModel):
         vault_factory = Contract(self.ICHI_VAULT_FACTORY).set_abi(
             ICHI_VAULT_FACTORY, set_loaded=True)
 
-        assert vault_factory.abi
-        vault_created_events = self.context.run_model(
-            'contract.events',
-            ContractEventsInput(address=vault_factory.address,
-                                event_name='ICHIVaultCreated',
-                                event_abi=vault_factory.abi.events.ICHIVaultCreated.raw_abi,
-                                argument_filters=None,
-                                from_block=int(from_block)),
-            return_type=ContractEventsOutput).records.to_dataframe()
+        def _use_fetch_events():
+            deployed_info = self.context.run_model('token.deployment', {
+                "address": self.ICHI_VAULT_FACTORY, "ignore_proxy": True})
+            deployed_block_number = deployed_info['deployed_block_number']
+            # 25_697_834 for vault_factory on Polygon
+
+            vault_created_events = fetch_events_with_range(
+                self.logger,
+                vault_factory,
+                vault_factory.events.ICHIVaultCreated,
+                from_block=max(from_block, deployed_block_number),
+                to_block=None)
+
+            return vault_created_events
+
+        def use_contract_events():
+            assert vault_factory.abi
+            vault_created_events = self.context.run_model(
+                'contract.events',
+                ContractEventsInput(
+                    address=vault_factory.address,
+                    event_name='ICHIVaultCreated',
+                    event_abi=vault_factory.abi.events.ICHIVaultCreated.raw_abi,
+                    argument_filters=None,
+                    from_block=int(from_block)),
+                return_type=ContractEventsOutput).records.to_dataframe()
+            return vault_created_events
+
+        vault_created_events = use_contract_events()
 
         outputs_by_block: DefaultDict[int, List[IchiVault]] = defaultdict(list)
 
@@ -454,7 +473,7 @@ class IchiVaultFirstDepositOutput(ImmutableOutput):
 
 
 @ImmutableModel.describe(slug='ichi.vault-first-deposit',
-                         version='0.6',
+                         version='0.7',
                          display_name='ICHI vault first deposit',
                          description='Get the block_number of the first deposit of an ICHI vault',
                          category='protocol',
@@ -462,50 +481,6 @@ class IchiVaultFirstDepositOutput(ImmutableOutput):
                          input=IchiVaultContract,
                          output=IchiVaultFirstDepositOutput)
 class IchiVaultFirstDeposit(ImmutableModel):
-    def fetch_events_with_range(self,
-                                contract: Contract,
-                                contract_event,
-                                from_block: int,
-                                to_block: Optional[int]):
-        try:
-            df_first_deposit = pd.DataFrame(
-                contract.fetch_events(
-                    contract_event,
-                    from_block=from_block,
-                    to_block=to_block))
-        except HTTPError:
-            try:
-                df_first_deposit = pd.DataFrame(contract.fetch_events(
-                    contract_event,
-                    from_block=from_block,
-                    to_block=to_block,
-                    by_range=10_000))
-            except ValueError:
-                try:
-                    df_first_deposit = pd.DataFrame(contract.fetch_events(
-                        contract_event,
-                        from_block=from_block,
-                        to_block=to_block,
-                        by_range=1_000))
-                except ValueError:
-                    try:
-                        df_first_deposit = pd.DataFrame(contract.fetch_events(
-                            contract_event,
-                            from_block=from_block,
-                            to_block=to_block,
-                            by_range=10_000))
-                    except ValueError:
-                        try:
-                            df_first_deposit = pd.DataFrame(contract.fetch_events(
-                                contract_event,
-                                from_block=from_block,
-                                to_block=to_block,
-                                by_range=1_000))
-                        except ValueError as err:
-                            raise ValueError(
-                                f'Can not fetch events for {contract.address} between [{from_block}-{to_block}]') from err
-        return df_first_deposit
-
     def run(self, input: IchiVaultContract) -> IchiVaultFirstDepositOutput:
         vault_addr = input.address
         vault_ichi = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
@@ -519,8 +494,8 @@ class IchiVaultFirstDeposit(ImmutableModel):
             raise ModelDataError(
                 f'Vault {vault_addr} (deployed_block_number) has not been deployed yet on {self.context.block_number}')
 
-        df_first_deposit = self.fetch_events_with_range(
-            vault_ichi, vault_ichi.events.Deposit, deployed_block_number, None)
+        df_first_deposit = fetch_events_with_range(
+            self.logger, vault_ichi, vault_ichi.events.Deposit, deployed_block_number, None)
 
         if df_first_deposit.empty:
             raise ModelDataError('No deposit has been made to the model')
@@ -543,7 +518,7 @@ class IchiVaultFirstDeposit(ImmutableModel):
 
 @IncrementalModel.describe(
     slug='ichi.vault-cashflow-block-series',
-    version='0.23',
+    version='0.24',
     display_name='ICHI vault cashflow',
     description='Get the past deposit and withdraw events of an ICHI vault',
     category='protocol',
@@ -555,7 +530,7 @@ class IchiVaultCashflowSeries(IncrementalModel):
         Network.Polygon.value: '0xA5cE107711789b350e04063D4EffBe6aB6eB05a4'
     }
 
-    def fetch_deposit_forwarded(self, allow_token0, address_checksum):
+    def fetch_deposit_forwarded(self, allow_token0, address_checksum, from_block):
         vault_deposit_guard = (
             Contract(self.ICHI_VAULT_DEPOSIT_GUARD[self.context.chain_id]).set_abi(
                 ICHI_VAULT_DEPOSIT_GUARD, set_loaded=True))
@@ -565,10 +540,12 @@ class IchiVaultCashflowSeries(IncrementalModel):
 
         df_deposit_forwarded = self.context.run_model(
             'contract.events',
-            ContractEventsInput(address=vault_deposit_guard.address, event_name='DepositForwarded',
-                                event_abi=deposit_forwarded_event_abi,
-                                argument_filters={'vault': str(address_checksum)}
-                                ),
+            ContractEventsInput(
+                address=vault_deposit_guard.address,
+                event_name='DepositForwarded',
+                event_abi=deposit_forwarded_event_abi,
+                argument_filters={'vault': str(address_checksum)},
+                from_block=int(from_block)),
             return_type=ContractEventsOutput).records.to_dataframe()
 
         if not df_deposit_forwarded.empty:
@@ -602,35 +579,41 @@ class IchiVaultCashflowSeries(IncrementalModel):
 
         df_deposit = self.context.run_model(
             'contract.events',
-            ContractEventsInput(address=input.address, event_name='Deposit',
-                                event_abi=deposit_event_abi,
-                                argument_filters=None,
-                                from_block=int(from_block)),
+            ContractEventsInput(
+                address=input.address,
+                event_name='Deposit',
+                event_abi=deposit_event_abi,
+                argument_filters=None,
+                from_block=int(from_block)),
             return_type=ContractEventsOutput).records.to_dataframe()
 
         df_withdraw = self.context.run_model(
             'contract.events',
-            ContractEventsInput(address=input.address, event_name='Withdraw',
-                                event_abi=withdraw_event_abi,
-                                argument_filters=None,
-                                from_block=int(from_block)),
+            ContractEventsInput(
+                address=input.address,
+                event_name='Withdraw',
+                event_abi=withdraw_event_abi,
+                argument_filters=None,
+                from_block=int(from_block)),
             return_type=ContractEventsOutput).records.to_dataframe()
 
         if not df_deposit.empty:
-            df_deposit = (df_deposit
-                          .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
-                          .assign(shares=lambda df: df.shares.apply(int) / (10 ** vault_ichi_decimals),
-                                  amount0=lambda df: df.amount0.apply(
-                                      int) / (10 ** token0_decimals),
-                                  amount1=lambda df: df.amount1.apply(int) / (10 ** token1_decimals)))
+            df_deposit = (
+                df_deposit
+                .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
+                .assign(shares=lambda df: df.shares.apply(int) / (10 ** vault_ichi_decimals),
+                        amount0=lambda df: df.amount0.apply(
+                    int) / (10 ** token0_decimals),
+                    amount1=lambda df: df.amount1.apply(int) / (10 ** token1_decimals)))
 
         if not df_withdraw.empty:
-            df_withdraw = (df_withdraw
-                           .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
-                           .assign(shares=lambda df: -(df.shares.apply(int) / (10 ** vault_ichi_decimals)),
-                                   amount0=lambda df: -(df.amount0.apply(int) /
-                                                        (10 ** token0_decimals)),
-                                   amount1=lambda df: -(df.amount1.apply(int) / (10 ** token1_decimals))))
+            df_withdraw = (
+                df_withdraw
+                .loc[:, ['blockNumber', 'transactionIndex', 'logIndex', 'event', 'shares', 'amount0', 'amount1', 'to']]
+                .assign(shares=lambda df: -(df.shares.apply(int) / (10 ** vault_ichi_decimals)),
+                        amount0=lambda df: -(df.amount0.apply(int) /
+                                             (10 ** token0_decimals)),
+                        amount1=lambda df: -(df.amount1.apply(int) / (10 ** token1_decimals))))
 
         df_comb = pd.concat([df_deposit, df_withdraw], ignore_index=True)
         df_comb = (df_comb
@@ -688,7 +671,7 @@ class IchiVaultCashflowSeries(IncrementalModel):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.23',
+                version='0.24',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -745,7 +728,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.39',
+                version='0.40',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

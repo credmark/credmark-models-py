@@ -2,13 +2,13 @@ from datetime import datetime, timedelta
 from enum import Enum
 from time import sleep
 from typing import Any, Optional, Type, TypeVar
+from urllib.parse import urljoin
 
 import requests
 from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError
 from credmark.dto import DTO, DTOField
 from requests import HTTPError, JSONDecodeError, Response
-from urllib.parse import urljoin
 
 
 class DuneQueryState(str, Enum):

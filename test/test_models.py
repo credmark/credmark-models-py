@@ -40,8 +40,9 @@ class TestModels(CMFTest):
                        )
 
         self.run_model('example.immutable-wrong-output', {}, exit_code=1)
-        self.run_model('example.immutable', {}, block_number=100)
-        self.run_model('example.immutable', {}, block_number=99, exit_code=3)
+
+        self.run_model('example.immutable-good-output', {}, block_number=100, exit_code=0)
+        self.run_model('example.immutable-good-output', {}, block_number=99, exit_code=3)
 
     def test_incremental(self):
         # Because model result changes from block to block, we need to test for
@@ -49,9 +50,18 @@ class TestModels(CMFTest):
         # 2) under local model and remote model
 
         self.run_model('example.incremental-wrong-output', {}, exit_code=1)
-        self.run_model('example.incremental', {})
+        self.run_model('example.incremental-wrong-output-block-number', {})
 
-        # Test for completeness
+        # example.incremental-good-output-block-number contains results for 0 and 100
+        for block in [0, 10, 100, 101]:
+            self.run_model('example.incremental-good-output-block-number', {}, block_number=block)
+
+    def test_locally(self):
+        # Test for local model
+        # make model to run locally
+        ...
+
+    def test_incremental_completeness(self):
         """
         cc = Contract('0x692437de2cAe5addd26CCF6650CaD722d914d974')
         from models.tmp_abi_lookup import ICHI_VAULT, ICHI_VAULT_DEPOSIT_GUARD, ICHI_VAULT_FACTORY, UNISWAP_V3_POOL_ABI
@@ -77,6 +87,8 @@ class TestModels(CMFTest):
         -b 43752597 -c 137 -l - | grep n_rows
         """
 
+        self.title('Test incremental model completeness')
+
         events_result = self.run_model_with_output(
             'contract.events-block-series',
             {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {
@@ -87,18 +99,15 @@ class TestModels(CMFTest):
 
         self.assertEqual(len(events_result['output']['series']), 6)
 
-        # Test for local model
-        # make model to run locally
-
     def test_cache_skip(self):
         # It skips the cache, local or model would have the same result
         # Nothing to test
-        pass
+        ...
 
     def test_cache_off_chain(self):
         # Nothing to test
-        pass
+        ...
 
     def test_cache_ignore_block(self):
         # Nothing to test
-        pass
+        ...

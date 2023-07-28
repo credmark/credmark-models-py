@@ -214,7 +214,7 @@ def uniswap_v2_fee_sample_data():
 
 # pylint: disable=line-too-long
 @Model.describe(slug='uniswap-v2.lp-fee-history',
-                version='1.1',
+                version='1.2',
                 display_name='Uniswap v2 (SushiSwap) LP Position and Fee history for account',
                 description='Returns LP Position and Fee history for account',
                 category='protocol',
@@ -289,12 +289,14 @@ class UniswapV2LPFeeHistory(Model):
                 minted = pd.DataFrame(pool.fetch_events(
                     pool.events.Transfer,
                     argument_filters={'to': lp.checksum},
-                    from_block=0, to_block=self.context.block_number,
+                    from_block=0,
+                    to_block=self.context.block_number,
                     contract_address=pool.address.checksum))
                 burnt = pd.DataFrame(pool.fetch_events(
                     pool.events.Transfer,
                     argument_filters={'from': lp.checksum},
-                    from_block=0, to_block=self.context.block_number,
+                    from_block=0,
+                    to_block=self.context.block_number,
                     contract_address=pool.address.checksum))
                 if not minted.empty:
                     minted = minted.assign(
@@ -312,7 +314,8 @@ class UniswapV2LPFeeHistory(Model):
                         address=pool.address,
                         event_name='Transfer',
                         event_abi=pool.abi.events.Transfer.raw_abi,
-                        argument_filters={'to': str(lp.checksum)}),
+                        argument_filters={'to': str(lp.checksum)},
+                        from_block=0),
                     return_type=ContractEventsOutput).records.to_dataframe()
                 burnt = self.context.run_model(
                     'contract.events',
@@ -320,7 +323,8 @@ class UniswapV2LPFeeHistory(Model):
                         address=pool.address,
                         event_name='Transfer',
                         event_abi=pool.abi.events.Transfer.raw_abi,
-                        argument_filters={'from': str(lp.checksum)}),
+                        argument_filters={'from': str(lp.checksum)},
+                        from_block=0),
                     return_type=ContractEventsOutput).records.to_dataframe()
                 return minted, burnt
 
