@@ -170,7 +170,8 @@ class ChainLinkPriceByRegistry(Model):
                 tuple[int, int, int, int, int],
                 registry.functions.latestRoundData(base_address, quote_address).call())
             decimals = cast(int, registry.functions.decimals(base_address, quote_address).call())
-            description = cast(str, registry.functions.description(base_address, quote_address).call())
+            description = cast(str, registry.functions.description(
+                base_address, quote_address).call())
             version = cast(int, registry.functions.version(base_address, quote_address).call())
             isFeedEnabled = cast(bool, registry.functions.isFeedEnabled(feed).call())
 

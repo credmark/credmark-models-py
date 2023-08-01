@@ -56,7 +56,8 @@ def fetch_events_with_range(logger,
                 contract_address=contract_address,
                 argument_filters=argument_filters,
                 by_range=10_000))
-            logger.info('Use by_range=10_000')
+            if logger:
+                logger.info('Use by_range=10_000')
         except ValueError:
             try:
                 df_events = pd.DataFrame(contract.fetch_events(
@@ -66,7 +67,8 @@ def fetch_events_with_range(logger,
                     contract_address=contract_address,
                     argument_filters=argument_filters,
                     by_range=5_000))
-                logger.info('Use by_range=5_000')
+                if logger:
+                    logger.info('Use by_range=5_000')
             except ValueError:
                 try:
                     df_events = pd.DataFrame(contract.fetch_events(
@@ -76,7 +78,8 @@ def fetch_events_with_range(logger,
                         contract_address=contract_address,
                         argument_filters=argument_filters,
                         by_range=2_000))
-                    logger.info('Use by_range=2_000')
+                    if logger:
+                        logger.info('Use by_range=2_000')
                 except ValueError:
                     try:
                         df_events = pd.DataFrame(contract.fetch_events(
@@ -86,7 +89,8 @@ def fetch_events_with_range(logger,
                             contract_address=contract_address,
                             argument_filters=argument_filters,
                             by_range=1_000))
-                        logger.info('Use by_range=1_000')
+                        if logger:
+                            logger.info('Use by_range=1_000')
                     except ValueError:
                         try:
                             df_events = pd.DataFrame(contract.fetch_events(
@@ -96,7 +100,8 @@ def fetch_events_with_range(logger,
                                 contract_address=contract_address,
                                 argument_filters=argument_filters,
                                 by_range=100))
-                            logger.info('Use by_range=100')
+                            if logger:
+                                logger.info('Use by_range=100')
                         except ValueError as _err:
                             raise ValueError(
                                 f'Can not fetch events for {contract.address} between [{from_block}-{to_block}]') from _err

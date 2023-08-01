@@ -1,6 +1,10 @@
 # pylint:disable=locally-disabled,line-too-long
 
+from datetime import datetime, timezone
+
 from cmf_test import CMFTest
+
+from models.credmark.price.data.chainlink_feeds import CHAINLINK_OVERRIDE_FEED
 
 
 class TestChainlink(CMFTest):
@@ -90,3 +94,19 @@ class TestChainlink(CMFTest):
                                  {"address": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6"})  # simple feed
         self.run_model_chainlink('chainlink.price-by-feed',
                                  {"address": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"})  # aggregator
+
+    def test_override(self):
+        self.title('Chainlink - Override')
+        test_time = datetime(2023, 7, 31, tzinfo=timezone.utc)
+
+        for chain_id, address_book in CHAINLINK_OVERRIDE_FEED.items():
+            test_block_number = self.run_model_with_output(
+                'chain.get-block',
+                {'timestamp': int(test_time.timestamp())},
+                chain_id=chain_id)['output']['block_number']
+
+            for address in address_book:
+                self.run_model('price.oracle-chainlink',
+                               {"base": address},
+                               chain_id=chain_id,
+                               block_number=test_block_number)
