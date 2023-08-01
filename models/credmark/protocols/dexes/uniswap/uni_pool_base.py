@@ -8,9 +8,7 @@ import sys
 from datetime import datetime
 
 import pandas as pd
-from credmark.cmf.model import ModelContext
 from credmark.cmf.types import Contract
-from requests.exceptions import HTTPError
 
 from models.credmark.chain.contract import fetch_events_with_range
 
