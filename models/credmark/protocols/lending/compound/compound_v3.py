@@ -47,21 +47,22 @@ class AssetInfo(DTO):
     asset: Address
     priceFeed: Address
     scale: int
-    borrowCollateralFactor: int
-    liquidateCollateralFactor: int
-    liquidationFactor: int
-    supplyCap: int
+    borrowCollateralFactor: float
+    liquidateCollateralFactor: float
+    liquidationFactor: float
+    supplyCap: float
 
     @classmethod
     def from_tuple(cls, t):
+        asset = Token(address=t[1])
         return cls(offset=t[0],
                    asset=Address(t[1]),
                    priceFeed=Address(t[2]),
                    scale=t[3],
-                   borrowCollateralFactor=t[4],
-                   liquidateCollateralFactor=t[5],
-                   liquidationFactor=t[6],
-                   supplyCap=t[7])
+                   borrowCollateralFactor=t[4] / 1e18,
+                   liquidateCollateralFactor=t[5] / 1e18,
+                   liquidationFactor=t[6] / 1e18,
+                   supplyCap=asset.scaled(t[7]))
 
     @staticmethod
     def get_price(price_feed):
@@ -82,7 +83,7 @@ class AssetInfoEx(AssetInfo):
     name: str
     price: float
     total_collateral: float
-    reserved: float
+    reserved_collateral: float
 
     @classmethod
     def from_asset_info(cls, info, _market, total_supply_asset, _reserved_collateral):
@@ -97,7 +98,7 @@ class AssetInfoEx(AssetInfo):
                    name=token.name,
                    price=price,
                    total_collateral=total_supply_asset,
-                   reserved=_reserved_collateral)
+                   reserved_collateral=_reserved_collateral)
 
 
 class MarketInfo(DTO):
@@ -119,7 +120,7 @@ class CompoundV3Markets(DTO):
 
 
 @Model.describe(slug="compound-v3.market",
-                version="1.0",
+                version="1.1",
                 display_name="Compound V3 - get market information",
                 description="Query the comet API for Compound V3 assets in the market",
                 category='protocol',
@@ -227,8 +228,32 @@ class UserBasic(DTO):
                    assetsIn=t[3])
 
 
+class CollateralInfo(DTO):
+    asset: Address
+    asset_symbol: str
+    balance: float
+    reserved: float
+    total: float
+    price: float
+    balance_value: float
+    reserved_value: float
+    total_value: float
+
+
+class AccountInfo(DTO):
+    balance: float
+    borrow_balance: float
+    balance_value: float
+    borrow_value: float
+    base_token_principal: float
+    base_token_interest: float
+    base_token_price: float
+    total_collateral_value: float
+    collateral: list[CollateralInfo]
+
+
 @Model.describe(slug="compound-v3.account",
-                version="1.0",
+                version="1.1",
                 display_name="Compound V3 - get account information",
                 description="Query the comet API for Compound V3 account information",
                 category='protocol',
@@ -236,7 +261,7 @@ class UserBasic(DTO):
                 input=CompoundV3LP,
                 output=dict)
 class CompoundV3Account(CompoundV3Meta):
-    def get_account_info(self, market_address, account_address) -> dict:
+    def get_account_info(self, market_address, account_address) -> AccountInfo:
         comet_market = self.fix_contract(market_address)
         base_token = Token(cast(Address, comet_market.functions.baseToken().call()))
         if base_token.address == Token('WETH').address:
@@ -253,8 +278,9 @@ class CompoundV3Account(CompoundV3Meta):
         user_basic = UserBasic.from_tuple(
             comet_market.functions.userBasic(account_address.checksum).call())
 
-        asset_infos = []
+        collateral_infos = []
         num_assets = cast(int, comet_market.functions.numAssets().call())
+        total_collateral_value = 0.0
         for i in range(num_assets):
             info = cast(tuple[int, str, str, int, int, int, int, int],
                         comet_market.functions.getAssetInfo(i).call())
@@ -263,26 +289,43 @@ class CompoundV3Account(CompoundV3Meta):
             asset = Token(asset_info.asset)
             balance, _reserved = comet_market.functions.userCollateral(
                 account_address.checksum, asset.address.checksum).call()
-            asset_info = {'asset': asset_info.asset,
-                          'balance': asset.scaled(balance),
-                          'reserved': asset.scaled(_reserved),
-                          'price': price}
-            asset_infos.append(asset_info)
+
+            balance_scaled = asset.scaled(balance)
+            reserved_scaled = asset.scaled(_reserved)
+            total_scaled = balance_scaled + reserved_scaled
+            balance_value = balance_scaled * price
+            reserved_value = reserved_scaled * price
+            total_value = (balance_scaled + reserved_scaled) * price
+            total_collateral_value += total_value
+            collateral_info = CollateralInfo(
+                asset=asset_info.asset,
+                asset_symbol=asset.symbol,
+                balance=balance_scaled,
+                reserved=reserved_scaled,
+                total=total_scaled,
+                balance_value=balance_value,
+                reserved_value=reserved_value,
+                total_value=total_value,
+                price=price)
+
+            collateral_infos.append(collateral_info)
 
         balance_scaled = base_token.scaled(balance_of)
         borrow_balance_scaled = base_token.scaled(borrow_balance_of)
-        account_info = {'balance': balance_scaled,
-                        'borrow_balance': borrow_balance_scaled,
-                        'balance_value': base_token_price * balance_scaled,
-                        'borrow_value': base_token_price * borrow_balance_scaled,
-                        'base_asset': base_token.scaled(user_basic.principal),
-                        'base_price': base_token_price,
-                        'base_interest': base_token.scaled(user_basic.baseTrackingAccrued),
-                        'collateral': asset_infos}
+        account_info = AccountInfo(
+            balance=balance_scaled,
+            borrow_balance=borrow_balance_scaled,
+            balance_value=base_token_price * balance_scaled,
+            borrow_value=base_token_price * borrow_balance_scaled,
+            base_token_principal=base_token.scaled(user_basic.principal),
+            base_token_interest=base_token.scaled(user_basic.baseTrackingAccrued),
+            base_token_price=base_token_price,
+            total_collateral_value=total_collateral_value,
+            collateral=collateral_infos)
 
         return account_info
 
-    def run(self, input: CompoundV3LP) -> dict:
+    def run(self, input: CompoundV3LP) -> AccountInfo:
         market_addresses = self.MARKETS.get(self.context.network, [])
 
         markets = {}
