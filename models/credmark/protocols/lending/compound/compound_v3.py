@@ -3,7 +3,7 @@ from typing import cast
 
 from credmark.cmf.model import Model
 from credmark.cmf.types import Account, Address, Contract, Network, Token
-from credmark.dto import DTO, EmptyInput
+from credmark.dto import DTO, DTOField, EmptyInput
 from web3 import Web3
 
 from models.tmp_abi_lookup import CHAINLINK_AGG, COMPOUND_V3_COMET, COMPOUND_V3_COMET_PROXY
@@ -63,6 +63,18 @@ class AssetInfo(DTO):
                    liquidationFactor=t[6],
                    supplyCap=t[7])
 
+    @staticmethod
+    def get_price(price_feed):
+        price_feed = Contract(address=price_feed).set_abi(CHAINLINK_AGG, set_loaded=True)
+        decimals = cast(int, price_feed.functions.decimals().call())
+        price = (cast(tuple[int, int, int, int, int],
+                      price_feed.functions.latestRoundData().call()))[1] / 10 ** decimals
+
+        # alternatively, use getPrice from market with the default decimals of 8 to scale
+        # price_scale = cast(int, market.functions.priceScale().call())
+        # price = market.functions.getPrice(price_feed).call() / 10 ** 8
+        return price
+
 
 class AssetInfoEx(AssetInfo):
     symbol: str
@@ -75,15 +87,10 @@ class AssetInfoEx(AssetInfo):
     @classmethod
     def from_asset_info(cls, info, _market, total_supply_asset, _reserved_collateral):
         token = Token(info.asset)
-        price_feed = Contract(address=info.priceFeed).set_abi(CHAINLINK_AGG, set_loaded=True)
-        decimals = cast(int, price_feed.functions.decimals().call())
-        price = (cast(tuple[int, int, int, int, int],
-                      price_feed.functions.latestRoundData().call()))[1] / 10 ** decimals
-        # alternatively, use getPrice
-        # price_scale = cast(int, _market.functions.priceScale().call())
-        # price = market.functions.getPrice(info.priceFeed).call() / 10 ** 8
+        price = AssetInfo.get_price(info.priceFeed)
         total_supply_asset = token.scaled(total_supply_asset)
         _reserved_collateral = token.scaled(_reserved_collateral)
+
         return cls(**info.dict(),
                    symbol=token.symbol,
                    decimals=token.decimals,
@@ -96,6 +103,7 @@ class AssetInfoEx(AssetInfo):
 class MarketInfo(DTO):
     base_token: Address
     base_symbol: str
+    base_token_price: float
     utilization: float
     supply_rate: float
     supply_apr: float
@@ -110,13 +118,6 @@ class CompoundV3Markets(DTO):
     markets: dict[Address, MarketInfo]
 
 
-class UserBasic(DTO):
-    principal: int
-    baseTrackingIndex: int
-    baseTrackingAccrued: int
-    assetsIn: int
-
-
 @Model.describe(slug="compound-v3.market",
                 version="1.0",
                 display_name="Compound V3 - get market information",
@@ -124,11 +125,19 @@ class UserBasic(DTO):
                 category='protocol',
                 subcategory='compound',
                 output=CompoundV3Markets)
-class CompoundV2GetAllPools(CompoundV3Meta):
+class CompoundV3GetAllPools(CompoundV3Meta):
     def get_market_info(self, market_address):
-
         comet_market = self.fix_contract(market_address)
         base_token = Token(cast(Address, comet_market.functions.baseToken().call()))
+        if base_token.address == Token('WETH').address:
+            # For WETH base token, price is set to constant 1.0
+            # Use external price oracle to get the price
+            base_token_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': base_token.address})['price']
+        else:
+            base_token_price_feed = comet_market.functions.baseTokenPriceFeed().call()
+            base_token_price = AssetInfo.get_price(base_token_price_feed)
+
         total_supply = base_token.scaled(cast(int, comet_market.functions.totalSupply().call()))
         total_borrow = base_token.scaled(cast(int, comet_market.functions.totalBorrow().call()))
         utilization = cast(int, comet_market.functions.getUtilization().call())
@@ -140,23 +149,9 @@ class CompoundV2GetAllPools(CompoundV3Meta):
             utilization).call()) / (1e18)
         borrow_apr = borrow_rate * self.SECONDS_PER_YEAR * 100
 
-        # Comet comet = Comet(0xCometAddress);
-        # TotalsCollateral totalsCollateral = comet.totalsCollateral(0xERC20Address);
-
-        # uint balance = comet.balanceOf(0xAccount);
-        # uint owed = comet.borrowBalanceOf(0xAccount);
-        # UserBasic userBasic = comet.userBasic(0xAccount);
-
-        """
-        comet_market.functions.balanceOf('0xa397a8C2086C554B531c02E29f3291c9704B00c7').call();
-        comet_market.functions.balanceOf('0xaa945599E60ab5f634D274087f0CEC7fC6d50C87').call();
-
-        comet_market.functions.borrowBalanceOf('0xa397a8C2086C554B531c02E29f3291c9704B00c7').call();
-        comet_market.functions.borrowBalanceOf('0xaa945599E60ab5f634D274087f0CEC7fC6d50C87').call();
-
-        comet_market.functions.userBasic('0xa397a8C2086C554B531c02E29f3291c9704B00c7').call();
-        comet_market.functions.userBasic('0xaa945599E60ab5f634D274087f0CEC7fC6d50C87').call();
-        """
+        # Collateral: meaning
+        # Borrow: meaning
+        # Lending: meaning
 
         asset_infos = []
         num_assets = cast(int, comet_market.functions.numAssets().call())
@@ -164,13 +159,16 @@ class CompoundV2GetAllPools(CompoundV3Meta):
             info = cast(tuple[int, str, str, int, int, int, int, int],
                         comet_market.functions.getAssetInfo(i).call())
             asset_info = AssetInfo.from_tuple(info)
-            total_supply_asset, _reserved_collateral = cast(tuple[int, int], comet_market.functions.totalsCollateral(
-                asset_info.asset).call())
+            total_supply_asset, _reserved_collateral = cast(
+                tuple[int, int],
+                comet_market.functions.totalsCollateral(asset_info.asset).call())
             asset_infos.append(AssetInfoEx.from_asset_info(
                 asset_info, comet_market, total_supply_asset, _reserved_collateral))
+
         return MarketInfo(
             base_symbol=base_token.symbol,
             base_token=base_token.address,
+            base_token_price=base_token_price,
             utilization=utilization / 1e18,
             supply_rate=supply_rate,
             supply_apr=supply_apr,
@@ -191,11 +189,104 @@ class CompoundV2GetAllPools(CompoundV3Meta):
 
 
 class CompoundV3LP(Account):
+    """
+    Found V3 LP accounts among the events of the market
+
+    supplyBase / withdrawBase / withdrawCollateral /  transferCollateral
+
+    event Supply(address indexed from, address indexed dst, uint amount)
+    event Transfer(address indexed from, address indexed to, uint amount)
+    event Withdraw(address indexed src, address indexed to, uint amount)
+
+    event SupplyCollateral(address indexed from, address indexed dst, address indexed asset, uint amount)
+    event TransferCollateral(address indexed from, address indexed to, address indexed asset, uint amount)
+    event WithdrawCollateral(address indexed src, address indexed to, address indexed asset, uint amount)
+    """
+
     class Config:
         schema_extra = {
             'examples': [
                 {"address": "0xaa945599E60ab5f634D274087f0CEC7fC6d50C87"},  # Deposit
-                {"address": "0xa397a8C2086C554B531c02E29f3291c9704B00c7"}  # SupplyCollateral
-
+                {"address": "0x52efFC15dFAA1eFC701a8b9522654E4e1C99b012"}   # SupplyCollateral
             ]
         }
+
+
+class UserBasic(DTO):
+    principal: int = DTOField(
+        description="the amount of base asset that the account has supplied (greater than zero) or owes (less than zero) to the protocol.")
+    baseTrackingIndex: int
+    baseTrackingAccrued: int
+    assetsIn: int
+
+    @classmethod
+    def from_tuple(cls, t):
+        return cls(principal=t[0],
+                   baseTrackingIndex=t[1],
+                   baseTrackingAccrued=t[2],
+                   assetsIn=t[3])
+
+
+@Model.describe(slug="compound-v3.account",
+                version="1.0",
+                display_name="Compound V3 - get account information",
+                description="Query the comet API for Compound V3 account information",
+                category='protocol',
+                subcategory='compound',
+                input=CompoundV3LP,
+                output=dict)
+class CompoundV3Account(CompoundV3Meta):
+    def get_account_info(self, market_address, account_address) -> dict:
+        comet_market = self.fix_contract(market_address)
+        base_token = Token(cast(Address, comet_market.functions.baseToken().call()))
+        if base_token.address == Token('WETH').address:
+            # For WETH base token, price is set to constant 1.0
+            # Use external price oracle to get the price
+            base_token_price = self.context.run_model(
+                'price.oracle-chainlink', {'base': base_token.address})['price']
+        else:
+            base_token_price_feed = comet_market.functions.baseTokenPriceFeed().call()
+            base_token_price = AssetInfo.get_price(base_token_price_feed)
+
+        balance_of = comet_market.functions.balanceOf(account_address.checksum).call()
+        borrow_balance_of = comet_market.functions.borrowBalanceOf(account_address.checksum).call()
+        user_basic = UserBasic.from_tuple(
+            comet_market.functions.userBasic(account_address.checksum).call())
+
+        asset_infos = []
+        num_assets = cast(int, comet_market.functions.numAssets().call())
+        for i in range(num_assets):
+            info = cast(tuple[int, str, str, int, int, int, int, int],
+                        comet_market.functions.getAssetInfo(i).call())
+            asset_info = AssetInfo.from_tuple(info)
+            price = AssetInfo.get_price(asset_info.priceFeed)
+            asset = Token(asset_info.asset)
+            balance, _reserved = comet_market.functions.userCollateral(
+                account_address.checksum, asset.address.checksum).call()
+            asset_info = {'asset': asset_info.asset,
+                          'balance': asset.scaled(balance),
+                          'reserved': asset.scaled(_reserved),
+                          'price': price}
+            asset_infos.append(asset_info)
+
+        balance_scaled = base_token.scaled(balance_of)
+        borrow_balance_scaled = base_token.scaled(borrow_balance_of)
+        account_info = {'balance': balance_scaled,
+                        'borrow_balance': borrow_balance_scaled,
+                        'balance_value': base_token_price * balance_scaled,
+                        'borrow_value': base_token_price * borrow_balance_scaled,
+                        'base_asset': base_token.scaled(user_basic.principal),
+                        'base_price': base_token_price,
+                        'base_interest': base_token.scaled(user_basic.baseTrackingAccrued),
+                        'collateral': asset_infos}
+
+        return account_info
+
+    def run(self, input: CompoundV3LP) -> dict:
+        market_addresses = self.MARKETS.get(self.context.network, [])
+
+        markets = {}
+        for market_address in market_addresses:
+            markets[market_address] = self.get_account_info(market_address, input.address)
+
+        return markets
