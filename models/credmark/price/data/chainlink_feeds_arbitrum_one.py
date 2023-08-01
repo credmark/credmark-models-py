@@ -32,15 +32,7 @@ CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE = {
         'quote': {'symbol': 'ETH'}},
     # BTC / USD
     Address('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # BTC / USD
-    Address('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'):
     {'feed': {'address': '0x6ce185860a4963106506C203335A2910413708e9'},
-        'quote': {'symbol': 'USD'}},
-    # BTC / USD
-    Address('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
         'quote': {'symbol': 'USD'}},
     # BUSD / USD
     Address('0x31190254504622cefdfa55a7d3d272e6462629a2'):
@@ -64,15 +56,7 @@ CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE = {
         'quote': {'symbol': 'USD'}},
     # DAI / USD
     Address('0xda10009cbd5d07dd0cecc66161fc93d7c9000da1'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # DAI / USD
-    Address('0xda10009cbd5d07dd0cecc66161fc93d7c9000da1'):
     {'feed': {'address': '0xc5C8E77B397E531B8EC06BFb0048328B30E9eCfB'},
-        'quote': {'symbol': 'USD'}},
-    # DAI / USD
-    Address('0xda10009cbd5d07dd0cecc66161fc93d7c9000da1'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
         'quote': {'symbol': 'USD'}},
     # DODO / USD
     Address('0x69eb4fa4a2fbd498c257c57ea8b7655a2559a581'):
@@ -86,13 +70,9 @@ CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE = {
     Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
     {'feed': {'address': '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'},
         'quote': {'symbol': 'USD'}},
-    # ETH / USD
-    Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # ETH / USD
-    Address('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
+    # WETH / USD
+    Address('0x82af49447d8a07e3bd95bd0d56f35241523fbab1'):
+    {'feed': {'address': '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'},
         'quote': {'symbol': 'USD'}},
     # FRAX / USD
     Address('0x17fc002b466eec40dae837fc4be5c67993ddbd6f'):
@@ -124,15 +104,7 @@ CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE = {
         'quote': {'symbol': 'ETH'}},
     # LINK / USD
     Address('0xf97f4df75117a78c1a5a0dbb814af92458539fb4'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # LINK / USD
-    Address('0xf97f4df75117a78c1a5a0dbb814af92458539fb4'):
     {'feed': {'address': '0x86E53CF1B870786351Da77A57575e79CB55812CB'},
-        'quote': {'symbol': 'USD'}},
-    # LINK / USD
-    Address('0xf97f4df75117a78c1a5a0dbb814af92458539fb4'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
         'quote': {'symbol': 'USD'}},
     # LUSD / USD
     Address('0x93b346b6bc2548da6a1e7d98e9a421b42541425b'):
@@ -190,29 +162,13 @@ CHAINLINK_OVERRIDE_FEED_ARBITRUM_ONE = {
     Address('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'):
     {'feed': {'address': '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'},
         'quote': {'symbol': 'USD'}},
-    # USDC / USD
-    Address('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # USDC / USD
-    Address('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
-        'quote': {'symbol': 'USD'}},
     # USDD / USD
     Address('0x680447595e8b7b3aa1b43beb9f6098c79ac2ab3f'):
     {'feed': {'address': '0x4Ee1f9ec1048979930aC832a3C1d18a0b4955a02'},
         'quote': {'symbol': 'USD'}},
     # USDT / USD
     Address('0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'):
-    {'feed': {'address': '0x6624405E5f730f3ebd5FdBdc56C7555C13639467'},
-        'quote': {'symbol': 'USD'}},
-    # USDT / USD
-    Address('0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'):
     {'feed': {'address': '0x3f3f5dF88dC9F13eac63DF89EC16ef6e7E25DdE7'},
-        'quote': {'symbol': 'USD'}},
-    # USDT / USD
-    Address('0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'):
-    {'feed': {'address': '0xe2604276D46e7dFc936ddcDCe375BFa9A0B8A363'},
         'quote': {'symbol': 'USD'}},
     # WBTC / BTC
     Address('0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f'):
