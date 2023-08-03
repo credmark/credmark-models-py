@@ -76,6 +76,8 @@ class IchiVault(DTO):
     vault: str
     owner: str
     pool: str
+    token0_address: str
+    token1_address: str
     token0_symbol: str
     token1_symbol: str
     allow_token0: bool
@@ -84,7 +86,7 @@ class IchiVault(DTO):
 
 
 @IncrementalModel.describe(slug='ichi.vaults-block-series',
-                           version='0.4',
+                           version='0.5',
                            display_name='ICHI vaults block series',
                            description='ICHI vaults block series',
                            category='protocol',
@@ -142,6 +144,8 @@ class IchiVaultsBlock(IncrementalModel):
                 vault=vault_addr,
                 owner=vault.functions.owner().call(),
                 pool=vault.functions.pool().call(),
+                token0_address=token0.address,
+                token1_address=token1.address,
                 token0_symbol=token0.symbol,
                 token1_symbol=token1.symbol,
                 allow_token0=vault.functions.allowToken0().call(),
