@@ -22,8 +22,12 @@ class ZapperRefreshBalancesInput(ZapperInput):
     networks: list[str] | None
 
 
-class ZapperGetBalancesInput(ZapperRefreshBalancesInput, ZapperRefreshInput):
+class ZapperGetAppsBalancesInput(ZapperRefreshBalancesInput, ZapperRefreshInput):
     pass
+
+
+class ZapperGetAppBalancesInput(ZapperRefreshBalancesInput):
+    appId: str
 
 
 class ZapperBalancesJobStatusInput(ZapperInput):
@@ -37,13 +41,13 @@ class Value(DTO):
 
 class StatsItem(DTO):
     label: str
-    value: Value
+    value: Optional[Value | str]
 
 
 class DisplayProps(DTO):
     label: str
     images: list[str]
-    secondaryLabel: Optional[Value] = None
+    secondaryLabel: Optional[Value | str] = None
     statsItems: Optional[list[StatsItem]] = None
     labelDetailed: Optional[str] = None
     tertiaryLabel: Optional[str] = None
@@ -120,6 +124,15 @@ class ZapperBalancesResponse(DTO):
 
 class ZapperBalancesOutput(DTO):
     balances: list[ZapperBalance]
+
+
+class ZapperAppBalance(DTO):
+    products: list[Product]
+    meta: list[MetaItem]
+
+
+class ZapperAppBalancesOutput(DTO):
+    balances: dict[str, ZapperAppBalance]
 
 
 class ZapperRefreshBalancesOutput(DTO):

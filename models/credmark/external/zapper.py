@@ -12,6 +12,7 @@ from requests.auth import HTTPBasicAuth
 
 from models.credmark.external.zapper_dto import (
     ZapperApp,
+    ZapperAppBalancesOutput,
     ZapperAppInput,
     ZapperAppPositionsInput,
     ZapperAppPositionsOutput,
@@ -29,7 +30,8 @@ from models.credmark.external.zapper_dto import (
     ZapperCollectionsBalancesOutput,
     ZapperCollectionsTotalsInput,
     ZapperCollectionsTotalsOutput,
-    ZapperGetBalancesInput,
+    ZapperGetAppBalancesInput,
+    ZapperGetAppsBalancesInput,
     ZapperInput,
     ZapperJobStatus,
     ZapperNftBalancesInput,
@@ -59,7 +61,8 @@ class ZapperClient:
     ) -> T:
         try:
             response.raise_for_status()
-            return dto_cls.parse_obj(response.json())
+            json = response.json()
+            return dto_cls.parse_obj(json)
         except HTTPError as err:
             raise ModelDataError("Error from zapper: " + str(err)) from None
         except JSONDecodeError:
@@ -138,16 +141,16 @@ class ZapperRefreshAppBalances(Model, ZapperClient):
 
 
 @Model.describe(
-    slug="zapper.app-balances",
-    version="1.0",
-    display_name="Zapper - Get wallet-specific app balances",
+    slug="zapper.apps-balances",
+    version="1.1",
+    display_name="Zapper - Get wallet-specific balances for all apps",
     category="external",
     subcategory="zapper",
     cache=CachePolicy.SKIP,
-    input=ZapperGetBalancesInput,
+    input=ZapperGetAppsBalancesInput,
     output=ZapperBalancesOutput)
-class ZapperGetAppBalances(Model, ZapperClient):
-    def run(self, input: ZapperGetBalancesInput) -> ZapperBalancesOutput:
+class ZapperGetAppsBalances(Model, ZapperClient):
+    def run(self, input: ZapperGetAppsBalancesInput) -> ZapperBalancesOutput:
         params: dict = {
             "addresses[]": input.addresses
         }
@@ -194,6 +197,30 @@ class ZapperGetAppBalances(Model, ZapperClient):
 
 
 @Model.describe(
+    slug="zapper.app-balances",
+    version="1.1",
+    display_name="Zapper - Get wallet-specific balances for an app",
+    category="external",
+    subcategory="zapper",
+    cache=CachePolicy.SKIP,
+    input=ZapperGetAppBalancesInput,
+    output=ZapperAppBalancesOutput)
+class ZapperGetAppBalances(Model, ZapperClient):
+    def run(self, input: ZapperGetAppBalancesInput) -> ZapperAppBalancesOutput:
+        params: dict = {
+            "addresses[]": input.addresses
+        }
+
+        if input.networks:
+            params['networks[]'] = input.networks
+
+        return self._get(api_key=input.apiKey,
+                         route=f"v2/apps/{input.appId}/balances",
+                         query_params=params,
+                         dto_cls=ZapperAppBalancesOutput)
+
+
+@Model.describe(
     slug="zapper.refresh-token-balances",
     version="1.0",
     display_name="Zapper - Refresh wallet-specific token balances",
@@ -224,10 +251,10 @@ class ZapperRefreshTokenBalances(Model, ZapperClient):
     category="external",
     subcategory="zapper",
     cache=CachePolicy.SKIP,
-    input=ZapperGetBalancesInput,
+    input=ZapperGetAppsBalancesInput,
     output=ZapperTokenBalancesOutput)
 class ZapperGetTokenBalances(Model, ZapperClient):
-    def run(self, input: ZapperGetBalancesInput) -> ZapperTokenBalancesOutput:
+    def run(self, input: ZapperGetAppsBalancesInput) -> ZapperTokenBalancesOutput:
         params: dict = {
             "addresses[]": input.addresses
         }
