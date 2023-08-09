@@ -252,15 +252,19 @@ class AccountInfo(DTO):
     collateral: list[CollateralInfo]
 
 
+class CompoundV3Account(DTO):
+    markets: dict[Address, AccountInfo]
+
+
 @Model.describe(slug="compound-v3.account",
-                version="1.1",
+                version="1.2",
                 display_name="Compound V3 - get account information",
                 description="Query the comet API for Compound V3 account information",
                 category='protocol',
                 subcategory='compound',
                 input=CompoundV3LP,
-                output=dict)
-class CompoundV3Account(CompoundV3Meta):
+                output=CompoundV3Account)
+class CompoundV3Account4Network(CompoundV3Meta):
     def get_account_info(self, market_address, account_address) -> AccountInfo:
         comet_market = self.fix_contract(market_address)
         base_token = Token(cast(Address, comet_market.functions.baseToken().call()))
@@ -312,6 +316,7 @@ class CompoundV3Account(CompoundV3Meta):
 
         balance_scaled = base_token.scaled(balance_of)
         borrow_balance_scaled = base_token.scaled(borrow_balance_of)
+
         account_info = AccountInfo(
             balance=balance_scaled,
             borrow_balance=borrow_balance_scaled,
@@ -325,11 +330,11 @@ class CompoundV3Account(CompoundV3Meta):
 
         return account_info
 
-    def run(self, input: CompoundV3LP) -> AccountInfo:
+    def run(self, input: CompoundV3LP) -> CompoundV3Account:
         market_addresses = self.MARKETS.get(self.context.network, [])
 
         markets = {}
         for market_address in market_addresses:
             markets[market_address] = self.get_account_info(market_address, input.address)
 
-        return markets
+        return CompoundV3Account(markets=markets)

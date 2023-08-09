@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 from cmf_test import CMFTest
+from credmark.cmf.types import Network
 
 from models.credmark.protocols.lending.compound.compound_v3 import CompoundV3Meta
 
@@ -61,9 +62,10 @@ class TestCompoundV3(CMFTest):
         credmark-dev run compound-v3.market -j -c 137
         credmark-dev run compound-v3.market -j -c 42161
         """
-        self.title('Compound')
+        self.title('Compound V3')
 
         for network in CompoundV3Meta.MARKETS:
+            # if network == Network.Mainnet:
             self.run_model('compound-v3.market', {}, chain_id=network.value, latest_block=True)
 
     def test_account(self):

@@ -17,7 +17,7 @@ from credmark.cmf.types import (
     Token,
 )
 from credmark.cmf.types.compose import MapInputsOutput
-from credmark.dto import DTO
+from credmark.dto import DTO, EmptyInput
 
 from models.dtos.tvl import LendingPoolPortfolios
 
@@ -578,3 +578,33 @@ class CompoundV2GetPoolPortfolio(Model):
             debt_value=debt_value,
             net_value=net_value,
             tvl=tvl_value)
+
+# 17768798
+# 0xFCcE99EC4f62F0a6714dABda4571968005cA8C64
+# https://debank.com/profile/0xFCcE99EC4f62F0a6714dABda4571968005cA8C64
+
+
+@Model.describe(slug="compound-v2.account",
+                version="1.7",
+                display_name="Compound V2 - account information",
+                description="Compound V2 - account information",
+                category='protocol',
+                subcategory='compound',
+                input=EmptyInput,
+                output=dict)
+class CompoundV2GetAccountInfo(CompoundV2Meta):
+    """
+    (Skip 9 and 10 because they need a user account)
+    balanceOf()
+
+    9. balanceOfUnderlying(): balance of cToken * exchangeRate.
+    10. borrowBalance(): balance of liability including interest
+
+    getAccountSnapshot()
+    borrowBalanceStored(): balance of liability without interest??
+
+    The user’s underlying balance, representing their assets in the protocol, is equal to the user’s cToken balance multiplied by the Exchange Rate.
+    """
+
+    def run(self, _input: EmptyInput) -> dict:
+        return {}

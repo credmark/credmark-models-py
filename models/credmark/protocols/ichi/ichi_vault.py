@@ -257,9 +257,11 @@ class IchiVaultTokensInfo(ImmutableModel):
             token1_symbol=token1.symbol,
         )
 
+# credmark-dev run ichi.vault-info -i '{"address":"0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137
+
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.15',
+                version='0.16',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
@@ -333,6 +335,7 @@ class IchiVaultInfo(Model):
             token1_chainlink_price = token0_chainlink_price / _tick_price0
 
         return {
+            'pool': vault_pool_addr,
             'token0': token0_address_checksum,
             'token1': token1_address_checksum,
             'token0_decimals': token0_decimals,
@@ -441,6 +444,7 @@ class IchiVaultInfoFull(Model):
             total_amount_in_token = token1_amount + token0_in_token1_amount
 
         return {
+            'pool': vault_pool_addr,
             'token0': token0.address.checksum,
             'token1': token1.address.checksum,
             'token0_symbol': token0.symbol,
@@ -728,7 +732,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.40',
+                version='0.42',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -1066,6 +1070,8 @@ class IchiVaultPerformance(Model):
         vault_info_current = self.context.run_model(
             'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
 
+        pool_addr = vault_info_current['pool']
+
         try:
             first_deposit = self.context.run_model(
                 'ichi.vault-first-deposit', {'address': vault_addr}, return_type=IchiVaultFirstDepositOutput)
@@ -1087,6 +1093,7 @@ class IchiVaultPerformance(Model):
 
         result = {
             'vault': vault_addr,
+            'pool': pool_addr,
             'token0': vault_info_current['token0'],
             'token1': vault_info_current['token1'],
             'tvl': vault_info_current['tvl'],
@@ -1185,7 +1192,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.34',
+                version='0.35',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
