@@ -1,4 +1,4 @@
-# pylint:disable=locally-disabled,line-too-long
+# pylint:disable=locally-disabled,line-too-long,unused-import
 
 from datetime import datetime, timezone
 
@@ -53,6 +53,11 @@ class TestCompound(CMFTest):
                             'interval': '1 days',
                             'model_input': {'address': '0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4'}},
                            block_number=block_number)
+
+    def test_account(self):
+        self.run_model('compound-v2.account',
+                       {"address": "0xFCcE99EC4f62F0a6714dABda4571968005cA8C64"},
+                       block_number=17768798)
 
 
 class TestCompoundV3(CMFTest):

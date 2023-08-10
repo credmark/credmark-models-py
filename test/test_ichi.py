@@ -28,6 +28,13 @@ class TestICHI(CMFTest):
         for ichi_vault_addr in list(ichi_vaults['output']['vaults'].keys())[::7]:
             self.get_token_deployment_block(ichi_vault_addr, last_block, chain_id)
 
+    def test_chains(self):
+        self.title('ICHI - Mainnet')
+        # credmark-dev run ichi.vaults -b 14787832
+        # credmark-dev run ichi.vaults -c 42161
+        self.run_model('ichi.vaults', block_number=14787832)
+        # self.run_model('ichi.vaults', chain_id=42161, block_number=102858581+200_000)
+
     def test_polygon(self):
         self.title('ICHI - Polygon')
 
