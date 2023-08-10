@@ -367,7 +367,7 @@ class UniswapV2PoolMeta(Model):
                                             m_input,
                                             return_type=Maybe[PoolPriceInfo],
                                             local=local)
-                if pi.is_just():
+                if pi.just:
                     infos.append(pi.just)
             return infos
 

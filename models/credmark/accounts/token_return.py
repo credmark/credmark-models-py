@@ -47,7 +47,8 @@ def token_return(_context, _logger, _df, _token_list, quote=None) -> TokenReturn
     elif _token_list == 'all':
         token_list = None
     else:
-        raise ModelInputError('The token_list field in input shall be one of all or cmf (token list from token.list)')
+        raise ModelInputError(
+            'The token_list field in input shall be one of all or cmf (token list from token.list)')
 
     all_tokens = []
 
@@ -95,7 +96,7 @@ def token_return(_context, _logger, _df, _token_list, quote=None) -> TokenReturn
                                          input=input,
                                          return_type=Maybe[PriceWithQuote],
                                          block_number=min_block_number)
-            if then_pq.is_just():
+            if then_pq.just:
                 then_price = then_pq.just.price
             else:
                 then_price = None

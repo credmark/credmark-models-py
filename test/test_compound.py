@@ -1,8 +1,9 @@
-# pylint:disable=locally-disabled,line-too-long
+# pylint:disable=locally-disabled,line-too-long,unused-import
 
 from datetime import datetime, timezone
 
 from cmf_test import CMFTest
+from credmark.cmf.types import Network
 
 from models.credmark.protocols.lending.compound.compound_v3 import CompoundV3Meta
 
@@ -53,6 +54,11 @@ class TestCompound(CMFTest):
                             'model_input': {'address': '0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4'}},
                            block_number=block_number)
 
+    def test_account(self):
+        self.run_model('compound-v2.account',
+                       {"address": "0xFCcE99EC4f62F0a6714dABda4571968005cA8C64"},
+                       block_number=17768798)
+
 
 class TestCompoundV3(CMFTest):
     def test_markets(self):
@@ -61,9 +67,10 @@ class TestCompoundV3(CMFTest):
         credmark-dev run compound-v3.market -j -c 137
         credmark-dev run compound-v3.market -j -c 42161
         """
-        self.title('Compound')
+        self.title('Compound V3')
 
         for network in CompoundV3Meta.MARKETS:
+            # if network == Network.Mainnet:
             self.run_model('compound-v3.market', {}, chain_id=network.value, latest_block=True)
 
     def test_account(self):

@@ -1,14 +1,17 @@
 # pylint:disable=line-too-long
 
 import math
+from collections import namedtuple
 from typing import cast
 
 import numpy as np
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (
+    Account,
     Address,
     Contract,
+    Maybe,
     Network,
     Portfolio,
     Position,
@@ -166,6 +169,33 @@ class CompoundV2Meta(Model):
         comptroller._meta.proxy_implementation = contract_implementation
         return comptroller
 
+    def get_token_from_ctoken(self, ctoken):
+        if ctoken.symbol == 'cETH':
+            token = Token(
+                address=self.ASSETS[self.context.network]['WETH'])
+        elif (ctoken.address == self.CTOKENS[self.context.network]['cSAI'] and
+              ctoken.symbol == 'cDAI'):
+            # When input = cSAI, it has been renamed to cDAI in the contract.
+            # We will still call up SAI
+            token = Token(
+                address=self.ASSETS[self.context.network]['SAI'])
+        else:
+            token = Token(address=ctoken.functions.underlying().call())
+
+        return token
+
+    def get_rates(self, ctoken):
+        borrowRate = cast(int, ctoken.functions.borrowRatePerBlock().call()) / self.ETH_MANTISSA
+        supplyRate = cast(int, ctoken.functions.supplyRatePerBlock().call()) / self.ETH_MANTISSA
+
+        supplyAPY = (supplyRate * self.BLOCKS_PER_DAY +
+                     1) ** self.DAYS_PER_YEAR - 1
+        borrowAPY = (borrowRate * self.BLOCKS_PER_DAY +
+                     1) ** self.DAYS_PER_YEAR - 1
+
+        Rates = namedtuple('Point', ['borrowRate', 'supplyRate', 'supplyAPY', 'borrowAPY'])
+        return Rates(borrowRate, supplyRate, supplyAPY, borrowAPY)
+
 
 @Model.describe(slug="compound-v2.get-comptroller",
                 version="1.2",
@@ -205,7 +235,7 @@ class CompoundV2GetAllPools(CompoundV2Meta):
 
 
 @Model.describe(slug="compound-v2.all-pools-info",
-                version="1.5",
+                version="1.6",
                 display_name="Compound V2 - get all pool info",
                 description="Get all pools and query for their info (deposit, borrow, rates)",
                 category='protocol',
@@ -309,9 +339,11 @@ class CompoundV2Token(Token):
         schema_extra = {
             "examples": [{"address": "0x70e36f6bf80a52b3b46b3af8e106cc0ed743e8e4"}]}  # cCOMP
 
+# credmark-dev run compound-v2.pool-info -i '{"address":"0x6c8c6b02e7b2be14d4fa6022dfd6d75921d90e4e"}'
+
 
 @Model.describe(slug="compound-v2.pool-info",
-                version="1.7",
+                version="1.8",
                 display_name="Compound V2 - pool/market information",
                 description="Compound V2 - pool/market information",
                 category='protocol',
@@ -340,7 +372,7 @@ class CompoundV2GetPoolInfo(CompoundV2Meta):
 
     (Skip 9 and 10 because they need a user account)
     9. balanceOfUnderlying(): balance of cToken * exchangeRate.
-    10. borrowBalance(): balance of liability including interest
+    10. borrowBalanceStored(): balance of liability including interest
 
     11. accrualBlockNumber
     12. exchangeRateStored
@@ -371,17 +403,7 @@ class CompoundV2GetPoolInfo(CompoundV2Meta):
         collateralFactorMantissa /= pow(10, 18)
 
         # From cToken to Token
-        if input.symbol == 'cETH':
-            token = Token(
-                address=self.ASSETS[self.context.network]['WETH'])
-        elif (input.address == self.CTOKENS[self.context.network]['cSAI'] and
-              input.symbol == 'cDAI'):
-            # When input = cSAI, it has been renamed to cDAI in the contract.
-            # We will still call up SAI
-            token = Token(
-                address=self.ASSETS[self.context.network]['SAI'])
-        else:
-            token = Token(address=cToken.functions.underlying().call())
+        token = self.get_token_from_ctoken(input)
 
         self.logger.info(f'{cToken.address, cToken.symbol}')
 
@@ -425,20 +447,16 @@ class CompoundV2GetPoolInfo(CompoundV2Meta):
 
         reserveFactor = cast(
             int, cToken.functions.reserveFactorMantissa().call()) / self.ETH_MANTISSA
-        borrowRate = cast(int, cToken.functions.borrowRatePerBlock().call()) / self.ETH_MANTISSA
-        supplyRate = cast(int, cToken.functions.supplyRatePerBlock().call()) / self.ETH_MANTISSA
 
         if math.isclose(cash + totalBorrows - totalReserves, 0):
             utilizationRate = 0
         else:
             utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves)
 
-        supplyAPY = (supplyRate * self.BLOCKS_PER_DAY +
-                     1) ** self.DAYS_PER_YEAR - 1
-        borrowAPY = (borrowRate * self.BLOCKS_PER_DAY +
-                     1) ** self.DAYS_PER_YEAR - 1
         # By definition, this is how supplyRate is derived.
         # supplyRate ~= borrowRate * utilizationRate * (1 - reserveFactor)
+        # borrowRate, supplyRate, borrowAPY, supplyAPY
+        rates = self.get_rates(cToken)
 
         block_dt = self.context.block_number.timestamp_datetime.replace(
             tzinfo=None).isoformat()
@@ -457,10 +475,10 @@ class CompoundV2GetPoolInfo(CompoundV2Meta):
             totalcTokenSupply=totalcTokenSupply,
             exchangeRate=exchangeRate,
             invExchangeRate=invExchangeRate,
-            borrowRate=borrowRate,
-            supplyRate=supplyRate,
-            supplyAPY=supplyAPY,
-            borrowAPY=borrowAPY,
+            borrowRate=rates.borrowRate,
+            supplyRate=rates.supplyRate,
+            supplyAPY=rates.supplyAPY,
+            borrowAPY=rates.borrowAPY,
             utilizationRate=utilizationRate,
             reserveFactor=reserveFactor,
             isListed=isListed,
@@ -475,7 +493,7 @@ class CompoundV2GetPoolInfo(CompoundV2Meta):
 
 
 @Model.describe(slug="compound-v2.pool-value",
-                version="1.9",
+                version="1.10",
                 display_name="Compound V2 - value of a market",
                 description="Compound V2 - value of a market",
                 category='protocol',
@@ -578,3 +596,102 @@ class CompoundV2GetPoolPortfolio(Model):
             debt_value=debt_value,
             net_value=net_value,
             tvl=tvl_value)
+
+# credmark-dev run compound-v2.account -i '{"address":"0xFCcE99EC4f62F0a6714dABda4571968005cA8C64"}' -b 17768798
+# https://debank.com/profile/0xFCcE99EC4f62F0a6714dABda4571968005cA8C64
+
+
+class CompoundV2Account(Account):
+    class Config:
+        schema_extra = {
+            "examples": [{"address": "0xFCcE99EC4f62F0a6714dABda4571968005cA8C64"}]}  # as of block number = 17768798
+
+
+@Model.describe(slug="compound-v2.account",
+                version="1.7",
+                display_name="Compound V2 - account information",
+                description="Compound V2 - account information",
+                category='protocol',
+                subcategory='compound',
+                input=CompoundV2Account,
+                output=dict)
+class CompoundV2GetAccountInfo(CompoundV2Meta):
+    """
+    (Skip 9 and 10 because they need a user account)
+    balanceOf()
+
+    9. balanceOfUnderlying(): balance of cToken * exchangeRate.
+    10. borrowBalanceStored(): balance of liability without interest??
+    11. getAccountSnapshot()
+
+    The user’s underlying balance, representing their assets in the protocol, is equal to the user’s cToken balance multiplied by the Exchange Rate.
+    """
+
+    def run(self, input: CompoundV2Account) -> dict:
+        pools = self.context.run_model('compound-v2.get-pools', {}, return_type=Some[Address])
+        pools_info = []
+        total_deposit_value = 0
+        total_borrow_value = 0
+        for pool_address in pools:
+            cToken = Token(address=pool_address)
+            underlying = self.get_token_from_ctoken(cToken)
+
+            deposit = cToken.balance_of_scaled(input.address.checksum)
+
+            borrow = underlying.scaled(
+                cToken.functions.borrowBalanceStored(input.address.checksum).call())
+
+            balance_of_underlying = underlying.scaled(cToken.functions.balanceOfUnderlying(
+                input.address.checksum).call())
+
+            # [NO_ERROR, deposit, borrow, exchangeRateMantissa] = cToken.getAccountSnapshot(account)
+            # snapshot = cToken.functions.getAccountSnapshot(input.address.checksum).call()
+
+            rates = self.get_rates(cToken)
+
+            underlying_price = self.context.run_model(
+                'price.oracle-chainlink-maybe',
+                {'base': underlying.address, 'quote': 'USD'},
+                return_type=Maybe[PriceWithQuote])
+
+            if not underlying_price.just:
+                underlying_price = self.context.run_model(
+                    'price.dex-maybe',
+                    {'base': underlying.address, 'quote': 'USD'},
+                    return_type=Maybe[PriceWithQuote])
+
+            if underlying_price.just:
+                underlying_price = underlying_price.just
+            else:
+                raise ModelRunError(
+                    f'Unable to get price for underlying {underlying.address} from Chainlink or DEX')
+
+            if not (math.isclose(deposit, 0.0) and math.isclose(borrow, 0.0)):
+                deposit_value = balance_of_underlying * underlying_price.price
+                borrow_value = borrow * underlying_price.price
+                total_deposit_value += deposit_value
+                total_borrow_value += borrow_value
+                pool_info = {
+                    'cToken': cToken.address,
+                    'underlying': underlying.address,
+                    'cToken_symbol': cToken.symbol,
+                    'underlying_symbol': underlying.symbol,
+                    'deposit': deposit,
+                    'balance_of_deposit': balance_of_underlying,
+                    'borrow': borrow,
+                    'deposit_value': deposit_value,
+                    'borrow_value': borrow_value,
+                    'supply_apy': rates.supplyAPY,
+                    'borrow_apy': rates.borrowAPY,
+                    'underlying_price': underlying_price,
+                }
+                pools_info.append(pool_info)
+                self.logger.info(
+                    f'{cToken.address}/{underlying.address}: {cToken.symbol} {deposit=} {balance_of_underlying=} {borrow=}')
+
+        return {
+            'total_deposit_value': total_deposit_value,
+            'total_borrow_value': total_borrow_value,
+            'total_net_value': total_deposit_value - total_borrow_value,
+            'pools': pools_info
+        }

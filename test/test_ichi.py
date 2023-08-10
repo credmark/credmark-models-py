@@ -28,6 +28,25 @@ class TestICHI(CMFTest):
         for ichi_vault_addr in list(ichi_vaults['output']['vaults'].keys())[::7]:
             self.get_token_deployment_block(ichi_vault_addr, last_block, chain_id)
 
+    def test_chains(self):
+        self.title('ICHI - Mainnet')
+        # credmark-dev run ichi.vaults -b 14787832
+        self.run_model('ichi.vaults', block_number=14787832)
+
+        # Wrongly deployed vault with both tokens allowed
+        # credmark-dev run ichi.vault-info -i '{"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"}' --api_url=http://localhost:8700 -j -b 17880000 --api_url=http://localhost:8700 -l '*'
+        self.run_model(
+            'ichi.vault-info', {"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"},
+            block_number=17880000,
+            exit_code=0)
+
+        # credmark-dev run ichi.vaults-performance --api_url=http://localhost:8700 -j -b
+        self.run_model('ichi.vaults-performance', block_number=17880000)
+
+        self.title('ICHI - ArbitrumOne')
+        # credmark-dev run ichi.vaults -c 42161
+        # self.run_model('ichi.vaults', chain_id=42161, block_number=102858581+200_000)
+
     def test_polygon(self):
         self.title('ICHI - Polygon')
 
