@@ -654,19 +654,19 @@ class CompoundV2GetAccountInfo(CompoundV2Meta):
                 {'base': underlying.address, 'quote': 'USD'},
                 return_type=Maybe[PriceWithQuote])
 
-            if not underlying_price.is_just:
+            if not underlying_price.just:
                 underlying_price = self.context.run_model(
                     'price.dex-maybe',
                     {'base': underlying.address, 'quote': 'USD'},
                     return_type=Maybe[PriceWithQuote])
 
-            if underlying_price.is_just:
+            if underlying_price.just:
                 underlying_price = underlying_price.just
             else:
                 raise ModelRunError(
                     f'Unable to get price for underlying {underlying.address} from Chainlink or DEX')
 
-            if (not (math.isclose(deposit, 0.0) and math.isclose(borrow, 0.0))):
+            if not (math.isclose(deposit, 0.0) and math.isclose(borrow, 0.0)):
                 deposit_value = balance_of_underlying * underlying_price.price
                 borrow_value = borrow * underlying_price.price
                 total_deposit_value += deposit_value

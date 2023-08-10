@@ -293,7 +293,7 @@ class AccountsTokenReturnHistorical(Model):
 
                 for p_maybe, (token_addr, token_value) in zip(pqs_maybe.some, non_zero_bal_tokens_dict.items()):
                     asset_token = Token(token_addr).as_erc20(set_loaded=True)
-                    if p_maybe.is_just():
+                    if p_maybe.just:
                         continue
                     try:
                         _assets.append(Position(amount=asset_token.scaled(token_value),

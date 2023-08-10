@@ -31,8 +31,13 @@ class TestICHI(CMFTest):
     def test_chains(self):
         self.title('ICHI - Mainnet')
         # credmark-dev run ichi.vaults -b 14787832
-        # credmark-dev run ichi.vaults -c 42161
         self.run_model('ichi.vaults', block_number=14787832)
+
+        # credmark-dev run ichi.vaults-performance --api_url=http://localhost:8700 -j -b
+        self.run_model('ichi.vaults-performance', block_number=17880000)
+
+        self.title('ICHI - ArbitrumOne')
+        # credmark-dev run ichi.vaults -c 42161
         # self.run_model('ichi.vaults', chain_id=42161, block_number=102858581+200_000)
 
     def test_polygon(self):
