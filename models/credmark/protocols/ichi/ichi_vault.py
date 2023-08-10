@@ -15,7 +15,7 @@ from credmark.cmf.model.errors import (
     ModelRunError,
     create_instance_from_error_dict,
 )
-from credmark.cmf.types import Address, BlockNumber, Contract, Network, Records, Token
+from credmark.cmf.types import Address, BlockNumber, Contract, Maybe, Network, PriceWithQuote, Records, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 from credmark.dto import DTO, DTOField, EmptyInput
@@ -110,6 +110,50 @@ class IchiVaultMeta:
             _ = token1.symbol
 
         return VaultTokens(token0, token1)
+
+    ONLY_USE_CHAINLINK_PRICE = True
+
+    def get_price(self, context, token_address):
+        try:
+            token_price_quote = context.run_model(
+                'price.oracle-chainlink', {'base': token_address})
+            token_price = token_price_quote['price']
+            src = token_price_quote['src']
+        except ModelRunError:
+            if not self.ONLY_USE_CHAINLINK_PRICE and context.network == Network.Mainnet:
+                token_price_quote = context.run_model(
+                    'price.dex-maybe', {'base': token_address},
+                    return_type=Maybe[PriceWithQuote])
+                if token_price_quote.just:
+                    token_price = token_price_quote.just.price
+                    src = token_price_quote.just.src
+                else:
+                    token_price = None
+                    src = None
+            else:
+                token_price = None
+                src = None
+        return token_price, src
+
+    def get_prices(self, context, token0_address, token1_address, _tick_price0):
+        """
+        Use price.dex-maybe so that we may get price for one of the tokens
+        Then we use ratio to derive the price of the other token
+        """
+
+        token0_price, token0_src = self.get_price(context, token0_address)
+        token1_price, token1_src = self.get_price(context, token1_address)
+
+        if token0_price is None and token1_price is not None:
+            token0_price = token1_price * _tick_price0
+            token0_src = 'Inferred from ' + (token1_src if token1_src else '')
+
+        if token1_price is None and token0_price is not None:
+            token1_price = token0_price / _tick_price0
+            token1_src = 'Inferred via ' + (token0_src if token0_src else '')
+
+        Prices = namedtuple('Prices', ['token0', 'token1', 'token0_src', 'token1_src'])
+        return Prices(token0_price, token1_price, token0_src, token1_src)
 
 
 class IchiVault(DTO):
@@ -276,17 +320,20 @@ class IchiVaultTokensInfo(ImmutableModel, IchiVaultMeta):
         )
 
 # credmark-dev run ichi.vault-info -i '{"address":"0x692437de2cAe5addd26CCF6650CaD722d914d974"}' -c 137
+# credmark-dev run ichi.vault-info -i '{"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"}' --api_url=http://localhost:8700 -j -b 17880000 -l '*'
+# credmark-dev run ichi.vault-info -i '{"address": "0xfaeccee632912c42a7c88c3544885a8d455408fa"}' --api_url=http://localhost:8700 -j -b 17880030 -l '*'
+# credmark-dev run ichi.vault-info -i '{"address": "0xe52bcb075d0dcd994da43a343d16bec77314858d"}' --api_url=http://localhost:8700 -j -b 17880030 -l '*'
 
 
 @Model.describe(slug='ichi.vault-info',
-                version='0.17',
+                version='0.18',
                 display_name='ICHI vault info',
                 description='Get the value of vault token for an ICHI vault',
                 category='protocol',
                 subcategory='ichi',
                 input=IchiVaultContract,
                 output=dict)
-class IchiVaultInfo(Model):
+class IchiVaultInfo(Model, IchiVaultMeta):
     def run(self, input: IchiVaultContract) -> dict:
         vault_addr = input.address
         ichi_vault = Token(vault_addr).set_abi(abi=ICHI_VAULT, set_loaded=True)
@@ -297,8 +344,11 @@ class IchiVaultInfo(Model):
         allow_token0 = ichi_vault.functions.allowToken0().call()
         allow_token1 = ichi_vault.functions.allowToken1().call()
 
-        assert not (allow_token0 and allow_token1) and (
-            allow_token0 or allow_token1)
+        if allow_token0 and allow_token1:
+            self.logger.warning(f'Wrongly deployed vault {input.address=} with both tokens allowed')
+            # raise ModelRunError('Wrongly deployed vault with both tokens allowed')
+
+        # assert allow_token0 or allow_token1
 
         tokens = self.context.run_model('ichi.vault-tokens-info',
                                         ichi_vault,
@@ -334,23 +384,12 @@ class IchiVaultInfo(Model):
 
         amount_scaling = 10 ** (token0_decimals if allow_token0 else token1_decimals)
 
-        try:
-            token0_chainlink_price = self.context.run_model(
-                'price.oracle-chainlink', {'base': token0_address_checksum})['price']
-        except ModelRunError:
-            token0_chainlink_price = None
-
-        try:
-            token1_chainlink_price = self.context.run_model(
-                'price.oracle-chainlink', {'base': token1_address_checksum})['price']
-        except ModelRunError:
-            token1_chainlink_price = None
-
-        if token0_chainlink_price is None and token1_chainlink_price is not None:
-            token0_chainlink_price = token1_chainlink_price * _tick_price0
-
-        if token1_chainlink_price is None and token0_chainlink_price is not None:
-            token1_chainlink_price = token0_chainlink_price / _tick_price0
+        prices = self.get_prices(self.context, token0_address_checksum,
+                                 token1_address_checksum, _tick_price0)
+        token0_price = prices.token0
+        token1_price = prices.token1
+        token0_price_src = prices.token0_src
+        token1_price_src = prices.token1_src
 
         return {
             'pool': vault_pool_addr,
@@ -378,16 +417,18 @@ class IchiVaultInfo(Model):
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
             'tvl': (
-                (token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price)
-                if token0_chainlink_price is not None and token1_chainlink_price is not None
+                (token0_amount * token0_price + token1_amount * token1_price)
+                if token0_price is not None and token1_price is not None
                 else None),
-            'token0_chainlink_price': token0_chainlink_price,
-            'token1_chainlink_price': token1_chainlink_price,
+            'token0_price': token0_price,
+            'token1_price': token1_price,
+            'token0_price_src': token0_price_src,
+            'token1_price_src': token1_price_src,
         }
 
 
 @Model.describe(slug='ichi.vault-info-full',
-                version='0.6',
+                version='0.7',
                 display_name='ICHI vault info (full)',
                 description='Get the vault info from ICHI vault',
                 category='protocol',
@@ -418,8 +459,9 @@ class IchiVaultInfoFull(Model, IchiVaultMeta):
         allow_token0 = ichi_vault.functions.allowToken0().call()
         allow_token1 = ichi_vault.functions.allowToken1().call()
 
-        assert not (allow_token0 and allow_token1) and (
-            allow_token0 or allow_token1)
+        if allow_token0 and allow_token1:
+            self.logger.warning(f'Wrongly deployed vault {input.address=} with both tokens allowed')
+            assert allow_token0 or allow_token1
 
         # (vault_addr, vault_pool, affiliate, fee_recipient, allow_token0, allow_token1, baseFee / 1e18, baseFeeSplit / 1e18)
 
@@ -434,17 +476,11 @@ class IchiVaultInfoFull(Model, IchiVaultMeta):
         _tick_price0 = tick_to_price(current_tick) * scale_multiplier
         _ratio_price0 = sqrtPriceX96 * sqrtPriceX96 / (2 ** 192) * scale_multiplier
 
-        try:
-            token0_chainlink_price = self.context.run_model(
-                'price.oracle-chainlink', {'base': token0.address.checksum})['price']
-        except ModelRunError:
-            token0_chainlink_price = None
-
-        try:
-            token1_chainlink_price = self.context.run_model(
-                'price.oracle-chainlink', {'base': token1.address.checksum})['price']
-        except ModelRunError:
-            token1_chainlink_price = None
+        prices = self.get_prices(self.context, token0.address, token1.address, _tick_price0)
+        token0_price = prices.token0
+        token1_price = prices.token1
+        token0_price_src = prices.token0_src
+        token1_price_src = prices.token1_src
 
         # value of ichi vault token at a block
         total_supply = ichi_vault.total_supply
@@ -475,13 +511,15 @@ class IchiVaultInfoFull(Model, IchiVaultMeta):
                                   else (total_amount_in_token / (token0.scaled(1) if allow_token0 else token1.scaled(1)) / total_supply)),
             'pool_price0': _tick_price0,
             'ratio_price0': _ratio_price0,
-            'token0_chainlink_price': token0_chainlink_price,
-            'token1_chainlink_price': token1_chainlink_price,
+            'token0_price': token0_price,
+            'token1_price': token1_price,
             'vault_token_value_chainlink': (
                 0 if math.isclose(total_supply_scaled, 0)
-                else (((token0_amount * token0_chainlink_price + token1_amount * token1_chainlink_price) / total_supply_scaled)
-                      if token0_chainlink_price is not None and token1_chainlink_price is not None
+                else (((token0_amount * token0_price + token1_amount * token1_price) / total_supply_scaled)
+                      if token0_price is not None and token1_price is not None
                       else None)),
+            'token0_price_src': token0_price_src,
+            'token1_price_src': token1_price_src,
         }
 
 
@@ -494,7 +532,7 @@ class IchiVaultFirstDepositOutput(ImmutableOutput):
 
 
 @ImmutableModel.describe(slug='ichi.vault-first-deposit',
-                         version='0.8',
+                         version='0.9',
                          display_name='ICHI vault first deposit',
                          description='Get the block_number of the first deposit of an ICHI vault',
                          category='protocol',
@@ -539,7 +577,7 @@ class IchiVaultFirstDeposit(ImmutableModel):
 
 @IncrementalModel.describe(
     slug='ichi.vault-cashflow-block-series',
-    version='0.25',
+    version='0.26',
     display_name='ICHI vault cashflow',
     description='Get the past deposit and withdraw events of an ICHI vault',
     category='protocol',
@@ -692,7 +730,7 @@ class IchiVaultCashflowSeries(IncrementalModel, IchiVaultMeta):
 
 
 @Model.describe(slug='ichi.vault-cashflow',
-                version='0.25',
+                version='0.26',
                 display_name='ICHI vault cashflow',
                 description='Get the past deposit and withdraw events of an ICHI vault',
                 category='protocol',
@@ -749,7 +787,7 @@ class IchiVaultPerformanceInput(IchiVaultContract, IchiPerformanceInput):
 
 
 @Model.describe(slug='ichi.vault-performance',
-                version='0.43',
+                version='0.44',
                 display_name='ICHI vault performance',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',
@@ -918,13 +956,13 @@ class IchiVaultPerformance(Model):
 
         try:
             if vault_info_current['allowed_token'] == 0:
-                value_hold = base / vault_info_past['token0_chainlink_price'] * \
-                    vault_info_current['token0_chainlink_price']
+                value_hold = base / vault_info_past['token0_price'] * \
+                    vault_info_current['token0_price']
                 value_vault = value_hold / vault_info_past['vault_token_ratio'] * \
                     vault_info_current['vault_token_ratio']
             else:
-                value_hold = base / vault_info_past['token1_chainlink_price'] * \
-                    vault_info_current['token1_chainlink_price']
+                value_hold = base / vault_info_past['token1_price'] * \
+                    vault_info_current['token1_price']
                 value_vault = value_hold / vault_info_past['vault_token_ratio'] * \
                     vault_info_current['vault_token_ratio']
         except TypeError:
@@ -1006,22 +1044,22 @@ class IchiVaultPerformance(Model):
 
         try:
             if vault_info_current['allowed_token'] == 0:
-                token0_amount = base / 2 / vault_info_past['token0_chainlink_price']
+                token0_amount = base / 2 / vault_info_past['token0_price']
                 token1_amount = token0_amount * vault_info_past['ratio_price0']
                 liquidity = token0_amount * token1_amount
                 token0_amount_new = np.sqrt(
                     liquidity / vault_info_current['ratio_price0'])
                 _past_value = 1_000
-                current_value = token0_amount_new * 2 * vault_info_current['token0_chainlink_price']
+                current_value = token0_amount_new * 2 * vault_info_current['token0_price']
             else:
-                token1_amount = base / 2 / vault_info_past['token1_chainlink_price']
+                token1_amount = base / 2 / vault_info_past['token1_price']
                 token0_amount = token1_amount / vault_info_past['ratio_price0']
 
                 liquidity = token0_amount * token1_amount
                 token1_amount_new = np.sqrt(
                     liquidity * vault_info_current['ratio_price0'])
                 _past_value = 1_000
-                current_value = token1_amount_new * 2 * vault_info_current['token1_chainlink_price']
+                current_value = token1_amount_new * 2 * vault_info_current['token1_price']
         except TypeError:
             return None
 
@@ -1036,37 +1074,37 @@ class IchiVaultPerformance(Model):
         allowed_token = vault_info_current['allowed_token']
         try:
             if allowed_token == 0:
-                token0_amount = base / vault_info_past['token0_chainlink_price']
+                token0_amount = base / vault_info_past['token0_price']
                 token1_amount = token0_amount * vault_info_past['ratio_price0']
                 liquidity = token0_amount * token1_amount
                 token0_amount_new = np.sqrt(liquidity / vault_info_current['ratio_price0'])
                 token1_amount_new = np.sqrt(liquidity * vault_info_current['ratio_price0'])
                 current_token_value = token0_amount_new * \
-                    vault_info_current['token0_chainlink_price']
+                    vault_info_current['token0_price']
                 make_up_token_value = (token1_amount_new - token1_amount) * \
-                    vault_info_current['token1_chainlink_price']
+                    vault_info_current['token1_price']
                 current_value = current_token_value + make_up_token_value
             else:
-                token1_amount = base / vault_info_past['token1_chainlink_price']
+                token1_amount = base / vault_info_past['token1_price']
                 token0_amount = token1_amount / vault_info_past['ratio_price0']
                 liquidity = token0_amount * token1_amount
 
                 token0_amount_new = np.sqrt(liquidity / vault_info_current['ratio_price0'])
                 token1_amount_new = np.sqrt(liquidity * vault_info_current['ratio_price0'])
                 current_token_value = token1_amount_new * \
-                    vault_info_current['token1_chainlink_price']
+                    vault_info_current['token1_price']
                 make_up_token_value = (token0_amount_new - token0_amount) * \
-                    vault_info_current['token0_chainlink_price']
+                    vault_info_current['token0_price']
                 current_value = current_token_value + make_up_token_value
         except TypeError:
             return None
 
         self.logger.info(('calc_uniswap_lp', allowed_token,
                          f't0: {token0_amount} => {token0_amount_new}', f't1: {token1_amount} => {token1_amount_new}'))
-        self.logger.info(('t0_price', vault_info_past['token0_chainlink_price'],
-                         vault_info_current['token0_chainlink_price']))
-        self.logger.info(('t1_price', vault_info_past['token1_chainlink_price'],
-                         vault_info_current['token1_chainlink_price']))
+        self.logger.info(('t0_price', vault_info_past['token0_price'],
+                         vault_info_current['token0_price']))
+        self.logger.info(('t1_price', vault_info_past['token1_price'],
+                         vault_info_current['token1_price']))
         self.logger.info((f'{current_token_value} + {make_up_token_value} = {current_value}'))
 
         return current_value
@@ -1084,8 +1122,31 @@ class IchiVaultPerformance(Model):
         days_since_deployment = (
             self.context.block_number.timestamp - deployed_block_timestamp) / (60 * 60 * 24)
 
-        vault_info_current = self.context.run_model(
-            'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
+        try:
+            vault_info_current = self.context.run_model(
+                'ichi.vault-info', {"address": vault_addr}, block_number=self.context.block_number)
+        except ModelRunError as err:
+            if err.data.message.startswith('Wrongly deployed vault with both tokens allowed'):
+                return {
+                    'vault': vault_addr,
+                    'pool': None,
+                    'token0': None,
+                    'token1': None,
+                    'tvl': None,
+                    'token0_symbol': None,
+                    'token1_symbol': None,
+                    'token0_amount': None,
+                    'token1_amount': None,
+                    'allowed_token': None,
+                    'allowed_token_n': None,
+                    'deployment_block_number': deployed_block_number,
+                    'deployment_block_timestamp': deployed_block_timestamp,
+                    'first_deposit_block_number': None,
+                    'first_deposit_block_timestamp': None,
+                    'days_since_first_deposit': None,
+                    'days_since_deployment': days_since_deployment,
+                }
+            raise
 
         pool_addr = vault_info_current['pool']
 
@@ -1210,7 +1271,7 @@ class IchiVaultPerformance(Model):
 
 
 @Model.describe(slug='ichi.vaults-performance',
-                version='0.36',
+                version='0.37',
                 display_name='ICHI vaults performance on a chain',
                 description='Get the vault performance from ICHI vault',
                 category='protocol',

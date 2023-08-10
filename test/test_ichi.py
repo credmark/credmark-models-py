@@ -33,6 +33,13 @@ class TestICHI(CMFTest):
         # credmark-dev run ichi.vaults -b 14787832
         self.run_model('ichi.vaults', block_number=14787832)
 
+        # Wrongly deployed vault with both tokens allowed
+        # credmark-dev run ichi.vault-info -i '{"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"}' --api_url=http://localhost:8700 -j -b 17880000 --api_url=http://localhost:8700 -l '*'
+        self.run_model(
+            'ichi.vault-info', {"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"},
+            block_number=17880000,
+            exit_code=0)
+
         # credmark-dev run ichi.vaults-performance --api_url=http://localhost:8700 -j -b
         self.run_model('ichi.vaults-performance', block_number=17880000)
 

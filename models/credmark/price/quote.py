@@ -464,10 +464,12 @@ class PriceCommon:
 
         if token0_error is not None and token1_price is not None:
             token0_price = token1_price.copy()
-            token0_price['price'] = token1_price['price'] * uniswap_pos.token1_amount / uniswap_pos.token0_amount
+            token0_price['price'] = token1_price['price'] * \
+                uniswap_pos.token1_amount / uniswap_pos.token0_amount
         elif token1_error is not None and token0_price is not None:
             token1_price = token0_price.copy()
-            token1_price['price'] = token0_price['price'] * uniswap_pos.token0_amount / uniswap_pos.token1_amount
+            token1_price['price'] = token0_price['price'] * \
+                uniswap_pos.token0_amount / uniswap_pos.token1_amount
 
         return token0_price, token1_price
 
@@ -492,7 +494,8 @@ class PriceCommon:
                                                 input=input.base,
                                                 return_type=UniswapV2PoolLPPosition)
 
-                token0_price, token1_price = __class__.get_price_for_uniswap(context, slug, uniswap_pos)
+                token0_price, token1_price = __class__.get_price_for_uniswap(
+                    context, slug, uniswap_pos)
 
                 logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
                             f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
@@ -530,7 +533,8 @@ class PriceCommon:
                                                     input=input_base,
                                                     return_type=UniswapV2PoolLPPosition)
 
-                    token0_price, token1_price = __class__.get_price_for_uniswap(context, slug, uniswap_pos)
+                    token0_price, token1_price = __class__.get_price_for_uniswap(
+                        context, slug, uniswap_pos)
 
                     logger.info(f'Uniswap LP position: {uniswap_pos.token0_amount} * {token0_price["price"]} + '
                                 f'{uniswap_pos.token1_amount} * {token1_price["price"]}')
@@ -543,7 +547,8 @@ class PriceCommon:
 
             if Address(input_base.address) == Address(STAKED_CREDMARK_ADDRESS):
                 xcmk_decimals = input_base.functions.decimals().call()
-                ratio = input_base.functions.sharesToCmk(10 ** xcmk_decimals).call() / 10 ** xcmk_decimals
+                ratio = input_base.functions.sharesToCmk(
+                    10 ** xcmk_decimals).call() / 10 ** xcmk_decimals
                 logger.info(f'xCMK ratio: {ratio}')
                 cmk_price = context.run_model(slug, {"base": CMK_ADDRESS})
                 return PriceWithQuote.usd(price=cmk_price['price'] * ratio, src=f'xCMK | {cmk_price["src"]}')
@@ -675,7 +680,7 @@ class PriceDexMaybe(Model):
             price = self.context.run_model(
                 'price.dex', input=input, return_type=PriceWithQuote, local=True)
             return Maybe[PriceWithQuote](just=price)
-        except (ModelRunError, ModelDataError):
+        except (ModelRunError, ModelDataError) as _err:
             return Maybe.none()
 
 
