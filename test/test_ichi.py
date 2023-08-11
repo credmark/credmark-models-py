@@ -40,12 +40,23 @@ class TestICHI(CMFTest):
             block_number=17880000,
             exit_code=0)
 
+        # credmark-dev run ichi.vaults-performance -j
         # credmark-dev run ichi.vaults-performance --api_url=http://localhost:8700 -j -b
         self.run_model('ichi.vaults-performance', block_number=17880000)
 
-        self.title('ICHI - ArbitrumOne')
-        # credmark-dev run ichi.vaults -c 42161
-        # self.run_model('ichi.vaults', chain_id=42161, block_number=102858581+200_000)
+        if '--api_url=http://localhost:8700' not in self.post_flag:
+            self.title('ICHI - ArbitrumOne')
+            # credmark-dev run ichi.vaults -c 42161
+            self.run_model('ichi.vaults', chain_id=42161, block_number=102858581+200_000)
+
+            # credmark-dev run ichi.vaults-performance -j -b -c 42161
+            self.run_model('ichi.vaults-performance', chain_id=42161, block_number=120210057)
+
+            # WBTC/ICHI: 0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f
+            # credmark-dev run ichi.vault-info -i '{"address": "0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f"}' -c 42161
+            self.run_model('ichi.vault-info',
+                           {"address": "0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f"},
+                           chain_id=42161, block_number=120210057)
 
     def test_polygon(self):
         self.title('ICHI - Polygon')
