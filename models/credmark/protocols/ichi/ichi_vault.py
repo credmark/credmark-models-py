@@ -327,6 +327,7 @@ class IchiVaultTokensInfo(ImmutableModel, IchiVaultMeta):
 # credmark-dev run ichi.vault-info -i '{"address": "0xfe08245952cbb572c2fb692a38cf83d4921db662"}' --api_url=http://localhost:8700 -j -b 17880000 -l '*'
 # credmark-dev run ichi.vault-info -i '{"address": "0xfaeccee632912c42a7c88c3544885a8d455408fa"}' --api_url=http://localhost:8700 -j -b 17880030 -l '*'
 # credmark-dev run ichi.vault-info -i '{"address": "0xe52bcb075d0dcd994da43a343d16bec77314858d"}' --api_url=http://localhost:8700 -j -b 17880030 -l '*'
+# credmark-dev run ichi.vault-info -i '{"address": "0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f"}' -c 42161
 
 
 @Model.describe(slug='ichi.vault-info',
@@ -577,6 +578,7 @@ class IchiVaultFirstDeposit(ImmutableModel):
 
 # credmark-dev run ichi.vault-cashflow-block-series -i '{"address": "0x692437de2cae5addd26ccf6650cad722d914d974"}' -c 137 --api_url=http://localhost:8700 -j -b 42454582
 # credmark-dev run ichi.vault-cashflow-block-series -i '{"address": "0x692437de2cae5addd26ccf6650cad722d914d974"}' -c 137 -j -b 42454582
+# credmark-dev run ichi.vault-cashflow-block-series -i '{"address": "0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f"}' -c 42161
 
 
 @IncrementalModel.describe(
@@ -731,6 +733,8 @@ class IchiVaultCashflowSeries(IncrementalModel, IchiVaultMeta):
                 output=Records.from_dataframe(group)
             ))
         return BlockSeries(series=series)
+
+# credmark-dev run ichi.vault-cashflow -i '{"address": "0x68c34c8bd1bb40655cabbdf5efefed9e4037a81f"}' -c 42161
 
 
 @Model.describe(slug='ichi.vault-cashflow',
