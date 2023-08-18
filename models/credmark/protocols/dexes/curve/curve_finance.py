@@ -1,4 +1,5 @@
 # pylint: disable=locally-disabled, line-too-long
+from abc import abstractmethod
 from typing import List
 
 import numpy as np
@@ -28,15 +29,13 @@ from web3.exceptions import (
 )
 
 from models.dtos.tvl import TVLInfo
-from models.tmp_abi_lookup import CURVE_VYPER_POOL
+from models.tmp_abi_lookup import CURVE_ADDRESS_PROVIDER_ABI, CURVE_REGISTRY_ABI, CURVE_VYPER_POOL, GAUGE_ABI_LP_TOKEN
 
 np.seterr(all='raise')
 
-GAUGE_ABI_LP_TOKEN = '[{"stateMutability":"view","type":"function","name":"lp_token","inputs":[],"outputs":[{"name":"","type":"address"}],"gas":3168}]'  # pylint:disable=line-too-long
-
-
 # MetaRegistry
 # 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC
+
 
 class CurveFiPoolInfoToken(Contract):
     tokens: Tokens
@@ -62,6 +61,32 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
     gauges_type: List[int]
 
 
+class CurveMeta(Model):
+    CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
+
+    def get_provider(self):
+        return (Contract(address=Address(self.CURVE_PROVIDER_ALL_NETWORK).checksum)
+                .set_abi(CURVE_ADDRESS_PROVIDER_ABI, set_loaded=True))
+
+    def get_registry(self):
+        provider = self.get_provider()
+        reg_addr = provider.functions.get_registry().call()
+        registry = (Contract(address=Address(reg_addr).checksum)
+                    .set_abi(CURVE_REGISTRY_ABI, set_loaded=True))
+        return registry
+
+    def get_gauge_controller(self):
+        registry = self.get_registry()
+        gauge_addr = registry.functions.gauge_controller().call()
+        gauge_controller = Contract(address=Address(gauge_addr))
+        _ = gauge_controller.abi
+        return gauge_controller
+
+    @abstractmethod
+    def run(self, input):
+        ...
+
+
 @Model.describe(slug='curve-fi.get-provider',
                 version='1.2',
                 display_name='Curve Finance - Get Provider',
@@ -69,14 +94,9 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetProvider(Model):
-    CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
-
+class CurveFinanceGetProvider(CurveMeta):
     def run(self, _) -> Contract:
-        provider = Contract(address=Address(
-            self.CURVE_PROVIDER_ALL_NETWORK).checksum)
-        _ = provider.abi
-        return provider
+        return self.get_provider()
 
 
 @Model.describe(slug='curve-fi.get-registry',
@@ -86,13 +106,9 @@ class CurveFinanceGetProvider(Model):
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetRegistry(Model):
+class CurveFinanceGetRegistry(CurveMeta):
     def run(self, _) -> Contract:
-        provider = Contract(**self.context.models.curve_fi.get_provider())
-        reg_addr = provider.functions.get_registry().call()
-        cc = Contract(address=Address(reg_addr).checksum)
-        _ = cc.abi
-        return cc
+        return self.get_registry()
 
 
 @Model.describe(slug="curve-fi.get-gauge-controller",
@@ -102,13 +118,9 @@ class CurveFinanceGetRegistry(Model):
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetGauge(Model):
+class CurveFinanceGetGauge(CurveMeta):
     def run(self, _):
-        registry = Contract(**self.context.models.curve_fi.get_registry())
-        gauge_addr = registry.functions.gauge_controller().call()
-        cc = Contract(address=Address(gauge_addr))
-        _ = cc.abi
-        return cc
+        return self.get_gauge_controller()
 
 
 @Model.describe(slug="curve-fi.all-pools",
@@ -118,11 +130,9 @@ class CurveFinanceGetGauge(Model):
                 category='protocol',
                 subcategory='curve',
                 output=Contracts)
-class CurveFinanceAllPools(Model):
+class CurveFinanceAllPools(CurveMeta):
     def run(self, _) -> Contracts:
-        registry = self.context.run_model('curve-fi.get-registry', {},
-                                          return_type=Contract)
-
+        registry = self.get_registry()
         total_pools = registry.functions.pool_count().call()
         pool_contracts = [None] * total_pools
         for i in range(0, total_pools):
@@ -190,7 +200,8 @@ class CurveFinancePoolInfoTokens(Model):
             try:
                 _ = input.abi
             except ModelDataError:
-                input = CurvePoolContract(address=input.address).set_abi(CURVE_VYPER_POOL, set_loaded=True)
+                input = CurvePoolContract(address=input.address).set_abi(
+                    CURVE_VYPER_POOL, set_loaded=True)
 
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
@@ -256,7 +267,8 @@ class CurveFinancePoolInfoTokens(Model):
                         'curve-fi.get-provider', {}, return_type=Contract)
                     pool_info_addr = Address(provider.functions.get_address(1).call())
                     pool_info_contract = Contract(address=pool_info_addr.checksum)
-                    pool_info = (pool_info_contract.functions.get_pool_info(input.address.checksum).call())
+                    pool_info = (pool_info_contract.functions.get_pool_info(
+                        input.address.checksum).call())
                     lp_token_addr = Address(pool_info[5])
                 except ContractLogicError:
                     pass
@@ -646,6 +658,7 @@ class CurveFinanceAverageGaugeYield(Model):
 
         registry = self.context.run_model(
             'curve-fi.get-registry', {}, return_type=Contract)
+
         pool_addr = registry.functions.get_pool_from_lp_token(
             lp_token_addr).call()
         if not Address(pool_addr).is_null():
@@ -692,7 +705,8 @@ class CurveFinanceAverageGaugeYield(Model):
                             old_portfolio_value = y1_rewards_value + y1_liquidity_value
                             if old_portfolio_value > new_portfolio_value:
                                 break
-                            yields.append((new_portfolio_value - old_portfolio_value) / old_portfolio_value)
+                            yields.append(
+                                (new_portfolio_value - old_portfolio_value) / old_portfolio_value)
                             break
         if len(yields) == 0:
             return {}
