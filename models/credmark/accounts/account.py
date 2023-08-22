@@ -2,35 +2,28 @@
 
 import functools
 import math
+from collections import defaultdict
 from enum import Enum
-from typing import List
+from typing import List, Set, cast
 
 import numpy as np
 import pandas as pd
 from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (
-    Account,
-    Accounts,
-    BlockNumber,
-    Currency,
-    FiatCurrency,
-    Maybe,
-    NativeToken,
-    Network,
-    Portfolio,
-    Position,
-    PriceWithQuote,
-    Records,
-    Some,
-    Token,
-)
-from credmark.cmf.types.compose import MapBlockResult, MapBlocksOutput, MapBlockTimeSeriesOutput
+from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
+                                Currency, FiatCurrency, Maybe, NativeToken,
+                                Network, Portfolio, Position, PriceWithQuote,
+                                Records, Some, Token)
+from credmark.cmf.types.compose import (MapBlockResult, MapBlocksOutput,
+                                        MapBlockTimeSeriesOutput)
 from credmark.dto import DTO, DTOField, cross_examples
+from eth_typing import ChecksumAddress
 from web3.exceptions import ContractLogicError
 
-from models.credmark.accounts.token_return import TokenReturnOutput, token_return
-from models.credmark.ledger.transfers import get_native_transfer, get_token_transfer
+from models.credmark.accounts.token_return import (TokenReturnOutput,
+                                                   token_return)
+from models.credmark.ledger.transfers import (get_native_transfer,
+                                              get_token_transfer)
 from models.dtos.historical import HistoricalDTO
 
 np.seterr(all='raise')
@@ -670,40 +663,70 @@ class AccountPortfolio(Model):
                 input=AccountsWithPrice,
                 output=Portfolio)
 class AccountsPortfolio(Model):
+    def get_token_decimals(self, tokens: Set[ChecksumAddress]):
+        fn = Token('WETH').as_erc20(True).functions.decimals()
+        fn_fallback = Token('WETH').as_erc20(True).functions.DECIMALS()
+        decimals = self.context.multicall.try_aggregate_same_function(
+            fn,
+            list(tokens),
+            fallback_contract_function=fn_fallback
+        )
+
+        decimals = [cast(int, result.return_data_decoded)
+                    if result.success else None for result in decimals]
+        return dict(zip(tokens, decimals))
+
     def run(self, input: AccountsWithPrice) -> Portfolio:
-        positions = []
+        native_positions = []
         native_token = NativeToken()
         native_amount = 0
         for acc in input.accounts:
             native_amount += native_token.balance_of(acc.address.checksum)
 
         if not math.isclose(native_amount, 0):
-            positions.append(
+            native_positions.append(
                 Position(amount=native_token.scaled(native_amount),
                          asset=native_token))
 
         with self.context.ledger.TokenBalance as bal:
-            token_balances = bal.select(
+            result = bal.select(
                 aggregates=[
-                    (f'{bal.TRANSACTION_VALUE.as_numeric().sum_()}', 'balance'),
-                    (f'{bal.TOKEN_ADDRESS}', 'address'),
+                    (bal.TOKEN_ADDRESS, 'token_address'),
+                    (bal.ADDRESS, 'address'),
                 ],
-                having=bal.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
                 where=bal.ADDRESS.in_(input.to_address()),
-                group_by=[bal.TOKEN_ADDRESS],
+                group_by=[bal.ADDRESS, bal.TOKEN_ADDRESS],
             )
 
-        for token_balance in token_balances:
-            try:
-                token = Token(address=token_balance['address'])
-                balance = token.scaled(int(token_balance['balance']))
-                if balance > 0 and not math.isclose(balance, 0):
-                    positions.append(Position(asset=token, amount=balance))
-            except Exception:
-                # TODO: currently skip NFTs
-                self.logger.info(
-                    f"Skipping {token_balance['address']} as it is not ERC20")
+        tokens_by_wallet: dict[str, list[ChecksumAddress]] = defaultdict(list)
+        tokens: Set[ChecksumAddress] = set()
+        for row in result:
+            address = row['address']
+            token_address = Address(row['token_address']).checksum
+            tokens_by_wallet[address].append(token_address)
+            tokens.add(token_address)
 
+        token_decimals = self.get_token_decimals(tokens)
+
+        overall_portfolio = Portfolio(positions=native_positions)
+        for address, token_addresses in tokens_by_wallet.items():
+            fn = Token('WETH').as_erc20(True).functions.balanceOf(Address(address).checksum)
+            balances = self.context.multicall.try_aggregate_same_function(
+                fn,
+                token_addresses,
+            )
+
+            positions = []
+
+            for token_address, result in zip(token_addresses, balances):
+                decimals = token_decimals[token_address]
+                if result.success and decimals is not None:
+                    balance = result.return_data_decoded / 10 ** decimals
+                    if not math.isclose(balance, 0):
+                        positions.append(Position(asset=Token(token_address), amount=balance))
+            overall_portfolio = Portfolio.merge(overall_portfolio, Portfolio(positions=positions))
+
+        positions = overall_portfolio.positions
         if self.context.network is Network.Mainnet and input.include_curve_positions:
             curve_lp_position = self.context.run_model(
                 'curve.lp-accounts',
@@ -849,6 +872,19 @@ class AccountBalances(Model):
                 input=AccountsBalancesInput,
                 output=Portfolio)
 class AccountsBalances(Model):
+    def get_token_decimals(self, tokens: list[ChecksumAddress]):
+        fn = Token('WETH').as_erc20(True).functions.decimals()
+        fn_fallback = Token('WETH').as_erc20(True).functions.DECIMALS()
+        decimals = self.context.multicall.try_aggregate_same_function(
+            fn,
+            list(tokens),
+            fallback_contract_function=fn_fallback
+        )
+
+        decimals = [cast(int, result.return_data_decoded)
+                    if result.success else None for result in decimals]
+        return dict(zip(tokens, decimals))
+
     def include_price(self, positions: List[Position], quote: Currency) -> List[Position]:
         pqs_maybe = self.context.run_model(
             slug='price.quote-multiple-maybe',
@@ -869,12 +905,12 @@ class AccountsBalances(Model):
 
     def run(self, input: AccountsBalancesInput) -> Portfolio:
         native_token = None
-        tokens = []
+        tokens: list[ChecksumAddress] = []
         for token in input.tokens:
             if isinstance(token, NativeToken):
                 native_token = token
             else:
-                tokens.append(token)
+                tokens.append(token.address.checksum)
 
         balances = {}
         if native_token is not None:
@@ -885,37 +921,27 @@ class AccountsBalances(Model):
             balances[str(native_token.address)] = Position(amount=native_amount,
                                                            asset=native_token)
 
-        with self.context.ledger.TokenBalance as bal:
-            token_balances = bal.select(
-                aggregates=[
-                    (f'{bal.TRANSACTION_VALUE.as_numeric().sum_()}', 'balance'),
-                    (f'{bal.TOKEN_ADDRESS}', 'address'),
-                ],
-                having=bal.TRANSACTION_VALUE.as_numeric().sum_().gt(0),
-                where=bal.ADDRESS.in_(input.to_address()).and_(
-                    bal.TOKEN_ADDRESS.in_([t.address for t in input.tokens])),
-                group_by=[bal.TOKEN_ADDRESS],
+        token_decimals = self.get_token_decimals(tokens)
+        overall_portfolio = Portfolio()
+        for account in input.accounts:
+            fn = Token('WETH').as_erc20(True).functions.balanceOf(account.address.checksum)
+            balances = self.context.multicall.try_aggregate_same_function(
+                fn,
+                tokens,
             )
 
-        for token_balance in token_balances:
-            try:
-                token = Token(address=token_balance['address'])
-                balance = token.scaled(int(token_balance['balance']))
-                if balance > 0 and not math.isclose(balance, 0):
-                    balances[str(token.address)] = Position(asset=token, amount=balance)
-            except Exception:
-                # TODO: currently skip NFTs
-                self.logger.info(
-                    f"Skipping {token_balance['address']} as it is not ERC20")
+            positions = []
 
-        positions: List[Position] = []
-        for token in input.tokens:
-            token_address = str(token.address)
-            if token_address in balances:
-                positions.append(balances[token_address])
-            else:
-                positions.append(Position(amount=0, asset=token))
+            for token_address, result in zip(tokens, balances):
+                decimals = token_decimals[token_address]
+                if result.success and decimals is not None:
+                    balance = result.return_data_decoded / 10 ** decimals
+                    positions.append(Position(asset=Token(token_address), amount=balance))
+                else:
+                    positions.append(Position(asset=Token(token_address), amount=0))
+            overall_portfolio = Portfolio.merge(overall_portfolio, Portfolio(positions=positions))
 
+        positions = overall_portfolio.positions
         if input.include_price:
             positions = self.include_price(positions, input.quote)
 
