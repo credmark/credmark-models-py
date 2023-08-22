@@ -100,7 +100,7 @@ class CurveFinanceGetGauge(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.6",
+                version="1.7",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
@@ -108,22 +108,25 @@ class CurveFinanceGetGauge(Model, CurveMeta):
                 output=CurvePools)
 class CurveFinanceAllPools(Model, CurveMeta):
     def run(self, _) -> CurvePools:
+        m = self.context.multicall
         all_addrs = set()
         pool_contracts = []
 
         registry = self.get_registry()
         if not registry.address.is_null():
             total_pools = registry.functions.pool_count().call()
-            for i in range(0, total_pools):
-                pool_address = Address(registry.functions.pool_list(i).call())
-                is_meta = registry.functions.is_meta(pool_address).call()
-                if is_meta:
-                    pool_contracts.append(CurvePool(address=pool_address,
-                                                    pool_type=CurvePoolType.MetaPool))
-                else:
-                    pool_contracts.append(CurvePool(address=pool_address,
-                                                    pool_type=CurvePoolType.StableSwap))
 
+            res_addr = m.try_aggregate_unwrap(
+                [registry.functions.pool_list(i) for i in range(total_pools)])
+            res_is_meta = m.try_aggregate_unwrap(
+                [registry.functions.is_meta(res) for res in res_addr])
+            for pool_address, is_meta in zip(res_addr, res_is_meta):
+                if is_meta:
+                    pool_contracts.append(CurvePool(
+                        address=pool_address, pool_type=CurvePoolType.MetaPool))
+                else:
+                    pool_contracts.append(CurvePool(
+                        address=pool_address, pool_type=CurvePoolType.StableSwap))
                 if pool_address in all_addrs:
                     raise ModelDataError(f"Duplicate pool address {pool_address}")
                 all_addrs.add(pool_address)
@@ -134,21 +137,25 @@ class CurveFinanceAllPools(Model, CurveMeta):
         if not metapool_factory.address.is_null():
             total_pools = metapool_factory.functions.pool_count().call()
             duplicated = 0
-            for i in range(0, total_pools):
-                pool_address = Address(metapool_factory.functions.pool_list(i).call())
-                is_meta = metapool_factory.functions.is_meta(pool_address).call()
+
+            res_addr = m.try_aggregate_unwrap(
+                [metapool_factory.functions.pool_list(i) for i in range(total_pools)])
+            res_is_meta = m.try_aggregate_unwrap(
+                [metapool_factory.functions.is_meta(res) for res in res_addr])
+            for pool_address, is_meta in zip(res_addr, res_is_meta):
                 if pool_address in all_addrs:
                     self.logger.warning(
                         f"Duplicate pool address {pool_address}/{is_meta} in metapool factory")
                     duplicated += 1
                     continue
-                self.logger.info(f'Added {pool_address}/{is_meta} in metapool factory')
                 if is_meta:
-                    pool_contracts.append(CurvePool(address=pool_address,
-                                                    pool_type=CurvePoolType.MetaPool))
+                    pool_contracts.append(CurvePool(
+                        address=pool_address, pool_type=CurvePoolType.MetaPool))
                 else:
-                    pool_contracts.append(CurvePool(address=pool_address,
-                                                    pool_type=CurvePoolType.StableSwap))
+                    pool_contracts.append(CurvePool(
+                        address=pool_address, pool_type=CurvePoolType.StableSwap))
+                if pool_address in all_addrs:
+                    raise ModelDataError(f"Duplicate pool address {pool_address}")
                 all_addrs.add(pool_address)
             self.logger.info(
                 f'{len(all_addrs)}=+{total_pools} from metapool factory with {duplicated} duplicates')
@@ -158,8 +165,9 @@ class CurveFinanceAllPools(Model, CurveMeta):
         if not cryptoswap_registry.address.is_null():
             total_pools = cryptoswap_registry.functions.pool_count().call()
             duplicated = 0
-            for i in range(0, total_pools):
-                pool_address = Address(cryptoswap_registry.functions.pool_list(i).call())
+            res_addr = m.try_aggregate_unwrap(
+                [cryptoswap_registry.functions.pool_list(i) for i in range(total_pools)])
+            for pool_address in res_addr:
                 if pool_address in all_addrs:
                     self.logger.warning(
                         f"Duplicate pool address {pool_address} in cryptoswap registry")
@@ -176,8 +184,9 @@ class CurveFinanceAllPools(Model, CurveMeta):
         if not cryptoswap_factory.address.is_null():
             total_pools = cryptoswap_factory.functions.pool_count().call()
             duplicated = 0
-            for i in range(0, total_pools):
-                pool_address = Address(cryptoswap_factory.functions.pool_list(i).call())
+            res_addr = m.try_aggregate_unwrap(
+                [cryptoswap_factory.functions.pool_list(i) for i in range(total_pools)])
+            for pool_address in res_addr:
                 if pool_address in all_addrs:
                     self.logger.warning(
                         f"Duplicate pool address {pool_address} in cryptoswap factory")
