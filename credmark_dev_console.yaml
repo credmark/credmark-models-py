@@ -10,7 +10,7 @@ imports:
     - models.credmark.protocols.lending.aave.aave_v2.AaveDebtInfo
     - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolInfo
     - models.credmark.protocols.lending.compound.compound_v2.CompoundV2PoolValue
-    - models.credmark.protocols.dexes.curve.curve_finance.CurveFiPoolInfo
+    - models.credmark.protocols.dexes.curve.curve_finance.CurvePoolInfo
     - models.dtos.volume.TokenTradingVolume
     - models.dtos.pool.PoolPriceInfo
     - models.dtos.pool.PoolPriceInfoWithVolume

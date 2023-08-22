@@ -14,7 +14,7 @@ from web3.exceptions import (
     ContractLogicError,
 )
 
-from models.credmark.protocols.dexes.curve.curve_meta import CurveFiAllGaugesOutput, CurveMeta, CurvePoolContract
+from models.credmark.protocols.dexes.curve.curve_meta import CurveAllGaugesOutput, CurveMeta, CurvePool
 
 np.seterr(all='raise')
 
@@ -35,9 +35,9 @@ class CurveGaugeContract(Contract):
                 description="All Gauge Contracts for Curve Finance Pools",
                 category='protocol',
                 subcategory='curve',
-                output=CurveFiAllGaugesOutput)
-class CurveFinanceAllGauges(CurveMeta):
-    def run(self, _) -> CurveFiAllGaugesOutput:
+                output=CurveAllGaugesOutput)
+class CurveFinanceAllGauges(Model, CurveMeta):
+    def run(self, _) -> CurveAllGaugesOutput:
         gauge_controller = self.get_gauge_controller()
         gauges = []
         lp_tokens = []
@@ -58,8 +58,8 @@ class CurveFinanceAllGauges(CurveMeta):
                 lp_tokens.append(Account(address=lp_token_addr))
             except (BadFunctionCallOutput, ABIFunctionNotFound, ContractLogicError):
                 lp_tokens.append(Account(address=Address.null()))
-        return CurveFiAllGaugesOutput(contracts=gauges,
-                                      lp_tokens=Accounts(accounts=lp_tokens))
+        return CurveAllGaugesOutput(contracts=gauges,
+                                    lp_tokens=Accounts(accounts=lp_tokens))
 
 
 @Model.describe(slug='curve-fi.gauge-lp-dist',
@@ -91,10 +91,10 @@ class CurveFinanceLPDist(Model):
                 version='1.1',
                 display_name='Curve Finance Pool LP Distribution Historically',
                 description='gets the historical dist of LP holders for a given pool',
-                input=CurvePoolContract,
+                input=CurvePool,
                 output=dict)
 class CurveFinanceHistoricalLPDist(Model):
-    def run(self, input: CurvePoolContract) -> dict:
+    def run(self, input: CurvePool) -> dict:
         res = self.context.run_model(
             'historical.run-model',
             {'model_slug': 'curve-fi.gauge-lp-dist',
@@ -182,7 +182,7 @@ class CurveGaugeInput(DTO):
                 subcategory='curve',
                 input=CurveGaugeContract,
                 output=dict)
-class CurveFinanceAverageGaugeYield(CurveMeta):
+class CurveFinanceAverageGaugeYield(Model, CurveMeta):
     CRV_PRICE = 3.0
 
     def run(self, input: CurveGaugeContract) -> dict:

@@ -10,7 +10,7 @@ from credmark.cmf.types.series import BlockSeries, BlockSeriesRow
 
 from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
 from models.dtos.volume import TokenTradingVolume, VolumeInput, VolumeInputHistorical
-from models.tmp_abi_lookup import CURVE_VYPER_POOL
+from models.tmp_abi_lookup import CURVE_STABLESWAP_ABI
 
 
 class DexPoolContract(Contract):
@@ -204,7 +204,7 @@ class DexPoolSwapVolumeHistoricalLedger(Model):
                 pool = fix_univ3_pool(Contract(address=input.address))
             elif input.pool_info_model == 'curve-fi.pool-tvl':
                 pool = Contract(address=input.address).set_abi(
-                    CURVE_VYPER_POOL, set_loaded=True)
+                    CURVE_STABLESWAP_ABI, set_loaded=True)
             else:
                 raise
 

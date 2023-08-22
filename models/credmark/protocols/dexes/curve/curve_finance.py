@@ -27,16 +27,19 @@ from web3.exceptions import (
     ContractLogicError,
 )
 
-from models.credmark.protocols.dexes.curve.curve_meta import CurveFiAllGaugesOutput, CurveMeta, CurvePoolContract
+from models.credmark.protocols.dexes.curve.curve_meta import (
+    CurveAllGaugesOutput,
+    CurveMeta,
+    CurvePool,
+    CurvePools,
+    CurvePoolType,
+)
 from models.dtos.tvl import TVLInfo
 
 np.seterr(all='raise')
 
-# MetaRegistry
-# 0xF98B45FA17DE75FB1aD0e7aFD971b0ca00e379fC
 
-
-class CurveFiPoolInfoToken(Contract):
+class CurvePoolInfoToken(CurvePool):
     tokens: Tokens
     tokens_symbol: List[str]
     balances: List[float]  # exclude fee
@@ -49,7 +52,7 @@ class CurveFiPoolInfoToken(Contract):
     lp_token_addr: Address
 
 
-class CurveFiPoolInfo(CurveFiPoolInfoToken):
+class CurvePoolInfo(CurvePoolInfoToken):
     token_prices: List[PriceWithQuote]
     virtualPrice: int
     A: int
@@ -61,69 +64,144 @@ class CurveFiPoolInfo(CurveFiPoolInfoToken):
 
 
 @Model.describe(slug='curve-fi.get-provider',
-                version='1.3',
+                version='1.4',
                 display_name='Curve Finance - Get Provider',
                 description='Get provider contract',
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetProvider(CurveMeta):
+class CurveFinanceGetProvider(Model, CurveMeta):
     def run(self, _) -> Contract:
         return self.get_provider()
 
 
 @Model.describe(slug='curve-fi.get-registry',
-                version='1.3',
+                version='1.4',
                 display_name='Curve Finance - Get Registry',
                 description='Query provider to get the registry',
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetRegistry(CurveMeta):
+class CurveFinanceGetRegistry(Model, CurveMeta):
     def run(self, _) -> Contract:
         return self.get_registry()
 
 
 @Model.describe(slug="curve-fi.get-gauge-controller",
-                version='1.3',
+                version='1.4',
                 display_name="Curve Finance - Get Gauge Controller",
                 description="Query the registry for the gauge controller",
                 category='protocol',
                 subcategory='curve',
                 output=Contract)
-class CurveFinanceGetGauge(CurveMeta):
+class CurveFinanceGetGauge(Model, CurveMeta):
     def run(self, _):
         return self.get_gauge_controller()
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.4",
+                version="1.6",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
                 subcategory='curve',
-                output=Contracts)
-class CurveFinanceAllPools(CurveMeta):
-    def run(self, _) -> Contracts:
+                output=CurvePools)
+class CurveFinanceAllPools(Model, CurveMeta):
+    def run(self, _) -> CurvePools:
+        all_addrs = set()
+        pool_contracts = []
+
         registry = self.get_registry()
-        total_pools = registry.functions.pool_count().call()
-        pool_contracts = [None] * total_pools
-        for i in range(0, total_pools):
-            pool_contracts[i] = self.fix_pool(
-                Contract(address=registry.functions.pool_list(i).call()))
-            _abi = pool_contracts[i].abi
-        return Contracts(contracts=pool_contracts)
+        if not registry.address.is_null():
+            total_pools = registry.functions.pool_count().call()
+            for i in range(0, total_pools):
+                pool_address = Address(registry.functions.pool_list(i).call())
+                is_meta = registry.functions.is_meta(pool_address).call()
+                if is_meta:
+                    pool_contracts.append(CurvePool(address=pool_address,
+                                                    pool_type=CurvePoolType.MetaPool))
+                else:
+                    pool_contracts.append(CurvePool(address=pool_address,
+                                                    pool_type=CurvePoolType.StableSwap))
+
+                if pool_address in all_addrs:
+                    raise ModelDataError(f"Duplicate pool address {pool_address}")
+                all_addrs.add(pool_address)
+            self.logger.info(f'{len(all_addrs)} from registry')
+        del registry
+
+        metapool_factory = self.get_metapool_factory()
+        if not metapool_factory.address.is_null():
+            total_pools = metapool_factory.functions.pool_count().call()
+            duplicated = 0
+            for i in range(0, total_pools):
+                pool_address = Address(metapool_factory.functions.pool_list(i).call())
+                is_meta = metapool_factory.functions.is_meta(pool_address).call()
+                if pool_address in all_addrs:
+                    self.logger.warning(
+                        f"Duplicate pool address {pool_address}/{is_meta} in metapool factory")
+                    duplicated += 1
+                    continue
+                self.logger.info(f'Added {pool_address}/{is_meta} in metapool factory')
+                if is_meta:
+                    pool_contracts.append(CurvePool(address=pool_address,
+                                                    pool_type=CurvePoolType.MetaPool))
+                else:
+                    pool_contracts.append(CurvePool(address=pool_address,
+                                                    pool_type=CurvePoolType.StableSwap))
+                all_addrs.add(pool_address)
+            self.logger.info(
+                f'{len(all_addrs)}=+{total_pools} from metapool factory with {duplicated} duplicates')
+        del metapool_factory
+
+        cryptoswap_registry = self.get_cryptoswap_registry()
+        if not cryptoswap_registry.address.is_null():
+            total_pools = cryptoswap_registry.functions.pool_count().call()
+            duplicated = 0
+            for i in range(0, total_pools):
+                pool_address = Address(cryptoswap_registry.functions.pool_list(i).call())
+                if pool_address in all_addrs:
+                    self.logger.warning(
+                        f"Duplicate pool address {pool_address} in cryptoswap registry")
+                    duplicated += 1
+                    continue
+                pool_contracts.append(CurvePool(address=pool_address,
+                                                pool_type=CurvePoolType.CryptoSwap))
+                all_addrs.add(pool_address)
+            self.logger.info(
+                f'{len(all_addrs)}=+{total_pools} from cryptoswap registry with {duplicated} duplicates')
+        del cryptoswap_registry
+
+        cryptoswap_factory = self.get_cryptoswap_factory()
+        if not cryptoswap_factory.address.is_null():
+            total_pools = cryptoswap_factory.functions.pool_count().call()
+            duplicated = 0
+            for i in range(0, total_pools):
+                pool_address = Address(cryptoswap_factory.functions.pool_list(i).call())
+                if pool_address in all_addrs:
+                    self.logger.warning(
+                        f"Duplicate pool address {pool_address} in cryptoswap factory")
+                    duplicated += 1
+                    continue
+                pool_contracts.append(CurvePool(address=pool_address,
+                                                pool_type=CurvePoolType.CryptoSwapFactory))
+                all_addrs.add(pool_address)
+            self.logger.info(
+                f'{len(all_addrs)}=+{total_pools} from cryptoswap factory with {duplicated} duplicates')
+        del cryptoswap_factory
+
+        return CurvePools(contracts=pool_contracts)
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.15",
+                version="1.16",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
                 subcategory='curve',
-                input=CurvePoolContract,
-                output=CurveFiPoolInfoToken)
-class CurveFinancePoolInfoTokens(CurveMeta):
+                input=CurvePool,
+                output=CurvePoolInfoToken)
+class CurveFinancePoolInfoTokens(Model, CurveMeta):
     @staticmethod
     def check_token_address(addrs):
         token_list = Tokens()
@@ -141,9 +219,9 @@ class CurveFinancePoolInfoTokens(CurveMeta):
                 token_list.append(tok)
         return token_list, symbols_list
 
-    def run(self, input: CurvePoolContract) -> CurveFiPoolInfoToken:
+    def run(self, input: CurvePool) -> CurvePoolInfoToken:
+        input = input.get()
         registry = self.get_registry()
-
         balances = []
 
         # Equivalent to input.functions.balances(ii).call()
@@ -167,21 +245,21 @@ class CurveFinancePoolInfoTokens(CurveMeta):
             try:
                 _ = input.abi
             except ModelDataError:
-                input = self.fix_pool(CurvePoolContract(address=input.address))
+                input = CurvePool(address=input.address, pool_type=None).get()
 
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
                 return self.context.run_model(
                     self.slug,
                     input=Contract(address=Address(minter_addr)),
-                    return_type=CurveFiPoolInfoToken)
+                    return_type=CurvePoolInfoToken)
             try:
                 pool_addr = (registry.functions
                              .get_pool_from_lp_token(input.address.checksum).call())
                 if not Address(pool_addr).is_null():
                     return self.context.run_model(self.slug,
                                                   input=Contract(address=Address(pool_addr)),
-                                                  return_type=CurveFiPoolInfoToken)
+                                                  return_type=CurvePoolInfoToken)
             except Exception:
                 pass
 
@@ -208,8 +286,8 @@ class CurveFinancePoolInfoTokens(CurveMeta):
                 except ContractLogicError:
                     break
 
-        balances_token = [t.balance_of_scaled(
-            input.address.checksum) for t in tokens]
+        balances_token = [t.balance_of_scaled(input.address.checksum)
+                          for t in tokens]
 
         admin_fees = [bal_token-bal
                       for bal, bal_token in zip(balances, balances_token)]
@@ -229,11 +307,9 @@ class CurveFinancePoolInfoTokens(CurveMeta):
                 lp_token_addr = Address(input.functions.lp_token().call())
             except ABIFunctionNotFound:
                 try:
-                    provider = self.get_provider()
-                    pool_info_addr = Address(provider.functions.get_address(1).call())
-                    pool_info_contract = Contract(address=pool_info_addr.checksum)
-                    pool_info = (pool_info_contract.functions.get_pool_info(
-                        input.address.checksum).call())
+                    pool_info_contract = self.get_pool_info()
+                    pool_info = (pool_info_contract.functions
+                                 .get_pool_info(input.address.checksum).call())
                     lp_token_addr = Address(pool_info[5])
                 except ContractLogicError:
                     pass
@@ -255,36 +331,35 @@ class CurveFinancePoolInfoTokens(CurveMeta):
                 lp_token_name = lp_token.name
                 lp_token_addr = lp_token.address
 
-        return CurveFiPoolInfoToken(**(input.dict()),
-                                    tokens=tokens,
-                                    tokens_symbol=tokens_symbol,
-                                    balances=balances,
-                                    balances_token=balances_token,
-                                    admin_fees=admin_fees,
-                                    underlying=underlying,
-                                    underlying_symbol=underlying_symbol,
-                                    name=name,
-                                    lp_token_name=lp_token_name,
-                                    lp_token_addr=lp_token_addr
-                                    )
+        return CurvePoolInfoToken(**(input.dict()),
+                                  tokens=tokens,
+                                  tokens_symbol=tokens_symbol,
+                                  balances=balances,
+                                  balances_token=balances_token,
+                                  admin_fees=admin_fees,
+                                  underlying=underlying,
+                                  underlying_symbol=underlying_symbol,
+                                  name=name,
+                                  lp_token_name=lp_token_name,
+                                  lp_token_addr=lp_token_addr
+                                  )
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.32",
+                version="1.33",
                 display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
                 subcategory='curve',
-                input=CurvePoolContract,
-                output=CurveFiPoolInfo)
-class CurveFinancePoolInfo(CurveMeta):
-    def run(self, input: CurvePoolContract) -> CurveFiPoolInfo:
+                input=CurvePool,
+                output=CurvePoolInfo)
+class CurveFinancePoolInfo(Model, CurveMeta):
+    def run(self, input: CurvePool) -> CurvePoolInfo:
         registry = self.get_registry()
         pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                            input,
-                                           return_type=CurveFiPoolInfoToken)
-
-        pool_contract = self.fix_pool(Contract(address=pool_info.address))
+                                           return_type=CurvePoolInfoToken)
+        pool_contract = pool_info.get()
 
         def _use_for() -> List[PriceWithQuote]:
             token_prices = []
@@ -334,40 +409,39 @@ class CurveFinancePoolInfo(CurveMeta):
         if self.context.network == Network.Mainnet:
             if len(gauges) == 0:
                 gauges = self.context.run_model(
-                    'curve-fi.all-gauges', {}, return_type=CurveFiAllGaugesOutput)
+                    'curve-fi.all-gauges', {}, return_type=CurveAllGaugesOutput)
 
                 gauges = [Account(address=g.address)
                           for g, lp in zip(gauges, gauges.lp_tokens)
                           if lp.address == pool_info.lp_token_addr]
                 gauges_type = [0] * len(gauges)
 
-        is_meta = registry.functions.is_meta(
-            pool_contract.address.checksum).call()
+        is_meta = self.is_meta(pool_contract.address.checksum)
 
-        return CurveFiPoolInfo(**(pool_info.dict()),
-                               token_prices=token_prices,
-                               virtualPrice=virtual_price,
-                               A=pool_A,
-                               ratio=ratio,
-                               chi=chi,
-                               is_meta=is_meta,
-                               gauges=Accounts(accounts=gauges),
-                               gauges_type=gauges_type)
+        return CurvePoolInfo(**(pool_info.dict()),
+                             token_prices=token_prices,
+                             virtualPrice=virtual_price,
+                             A=pool_A,
+                             ratio=ratio,
+                             chi=chi,
+                             is_meta=is_meta,
+                             gauges=Accounts(accounts=gauges),
+                             gauges_type=gauges_type)
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.9",
+                version="1.10",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',
                 subcategory='curve',
-                input=CurvePoolContract,
+                input=CurvePool,
                 output=TVLInfo)
 class CurveFinancePoolTVL(Model):
-    def run(self, input: CurvePoolContract) -> TVLInfo:
+    def run(self, input: CurvePool) -> TVLInfo:
         pool_info = self.context.run_model('curve-fi.pool-info',
                                            input=input,
-                                           return_type=CurveFiPoolInfo)
+                                           return_type=CurvePoolInfo)
         positions = []
         tvl = 0.0
         for tok, tok_price, bal in zip(pool_info.tokens.tokens,
@@ -390,15 +464,15 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="2.2",
+                version="1.10",
                 display_name="Curve Finance Pool Liquidity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',
                 subcategory='curve',
                 input=EmptyInputSkipTest,
-                output=Some[CurveFiPoolInfo])
+                output=Some[CurvePoolInfo])
 class CurveFinanceTotalTokenLiquidity(Model):
-    def run(self, _) -> Some[CurveFiPoolInfo]:
+    def run(self, _) -> Some[CurvePoolInfo]:
         pool_contracts = self.context.run_model(
             'curve-fi.all-pools', {}, return_type=Contracts)
 
@@ -408,7 +482,7 @@ class CurveFinanceTotalTokenLiquidity(Model):
                 pool_info = self.context.run_model(
                     'curve-fi.pool-info',
                     pool,
-                    return_type=CurveFiPoolInfo)
+                    return_type=CurvePoolInfo)
                 pool_infos.append(pool_info)
             return pool_infos
 
@@ -418,7 +492,7 @@ class CurveFinanceTotalTokenLiquidity(Model):
                 slug='compose.map-inputs',
                 input={'modelSlug': model_slug,
                        'modelInputs': pool_contracts.contracts},
-                return_type=MapInputsOutput[Contract, CurveFiPoolInfo])
+                return_type=MapInputsOutput[Contract, CurvePoolInfo])
 
             pool_infos = []
             errors = []
@@ -443,7 +517,7 @@ class CurveFinanceTotalTokenLiquidity(Model):
         # pool_infos = _use_compose()
         pool_infos = _use_for()
 
-        all_pools_info = Some[CurveFiPoolInfo](some=pool_infos)
+        all_pools_info = Some[CurvePoolInfo](some=pool_infos)
 
         # (pd.DataFrame((all_pools_info.dict())['some'])
         # .to_csv(f'tmp/curve-all-info_{self.context.block_number}.csv'))
