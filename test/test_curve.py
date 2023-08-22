@@ -7,7 +7,7 @@ class TestCurve(CMFTest):
     def test_curve_gauge(self):
         if self.type != 'gw':
             self.run_model('contrib.curve-fi-get-gauge-amounts',
-                           {'address': '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'})
+                           {"address": "0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A"})
 
     def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
@@ -17,6 +17,12 @@ class TestCurve(CMFTest):
 
         if self.type != 'gw':
             self.run_model('curve-fi.all-pools-info')  # __all__
+            self.run_model('curve-fi.all-pools-info',
+                           chain_id=10,
+                           block_number=108_538_000)  # __all__
+            self.run_model('curve-fi.all-pools-info',
+                           chain_id=42161,
+                           block_number=123_736_000)  # __all__
 
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',

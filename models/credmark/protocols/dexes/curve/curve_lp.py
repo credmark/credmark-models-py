@@ -3,10 +3,10 @@
 from credmark.cmf.model import Model
 from credmark.cmf.types import Address, Contract
 
-from models.credmark.protocols.dexes.curve.curve_finance import CurvePoolContract
+from models.credmark.protocols.dexes.curve.curve_finance import CurvePool
 
 
-class CurvePoolContractSkipTest(CurvePoolContract):
+class CurvePoolSkipTest(CurvePool):
     class Config:
         schema_extra = {
             'skip_test': True
@@ -15,10 +15,10 @@ class CurvePoolContractSkipTest(CurvePoolContract):
 
 @Model.describe(slug='curve-fi.lp-pool-dist',
                 version='1.0',
-                input=CurvePoolContractSkipTest)
+                input=CurvePoolSkipTest)
 class CurveFinanceLPPoolDist(Model):
 
-    def run(self, input: CurvePoolContract) -> dict:
+    def run(self, input: CurvePool) -> dict:
         with self.context.ledger.Transaction as q:
             _addrs = q.select(
                 columns=[q.FROM_ADDRESS],

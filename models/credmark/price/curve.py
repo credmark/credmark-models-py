@@ -12,7 +12,7 @@ from credmark.cmf.types import (
     Token,
 )
 
-from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfoToken
+from models.credmark.protocols.dexes.curve.curve_finance import CurvePoolInfoToken
 
 np.seterr(all='raise')
 
@@ -155,7 +155,7 @@ class CurveFinancePrice(Model):
             pool = Contract(address=derived_info['pool_address'])
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
-                                               return_type=CurveFiPoolInfoToken)
+                                               return_type=CurvePoolInfoToken)
 
             n_token_input = np.where([tok == input for tok in pool_info.tokens])[
                 0].tolist()
@@ -203,7 +203,7 @@ class CurveFinancePrice(Model):
             pool = Contract(address=Address(pool_addr))
             pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                                input=pool,
-                                               return_type=CurveFiPoolInfoToken)
+                                               return_type=CurvePoolInfoToken)
 
             if input.address != pool_info.lp_token_addr:
                 raise ModelRunError(

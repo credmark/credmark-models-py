@@ -3,7 +3,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Accounts, Contract
 
-from models.credmark.protocols.dexes.curve.curve_finance import CurveGaugeContract
+from models.credmark.protocols.dexes.curve.curve_gauge import CurveGaugeContract
 
 
 @Model.describe(slug='contrib.curve-fi-get-gauge-amounts',

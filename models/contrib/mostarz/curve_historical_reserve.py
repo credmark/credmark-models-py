@@ -3,7 +3,7 @@ from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import BlockNumber, Contract
 from credmark.cmf.types.series import BlockSeries
 
-from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfo, CurvePoolContract
+from models.credmark.protocols.dexes.curve.curve_finance import CurvePool, CurvePoolInfo
 
 
 @Model.describe(slug="contrib.curve-fi-pool-historical-reserve",
@@ -13,7 +13,7 @@ from models.credmark.protocols.dexes.curve.curve_finance import CurveFiPoolInfo,
                 "pools in Curve for every day in the past year",
                 category='protocol',
                 subcategory='curve',
-                input=CurvePoolContract,
+                input=CurvePool,
                 output=dict)
 class CurveFinanceHistoricalReserve(Model):
     """
@@ -32,7 +32,7 @@ class CurveFinanceHistoricalReserve(Model):
              'window': '5 days',
              'interval': '1 days',
              'model_input': input},
-            return_type=BlockSeries[CurveFiPoolInfo])
+            return_type=BlockSeries[CurvePoolInfo])
 
         if res.errors is not None:
             raise ModelRunError(str(res.errors[0].dict()))

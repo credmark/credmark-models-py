@@ -10,20 +10,30 @@ import numpy as np
 import pandas as pd
 from credmark.cmf.model import CachePolicy, Model
 from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import (Account, Accounts, Address, BlockNumber,
-                                Currency, FiatCurrency, Maybe, NativeToken,
-                                Network, Portfolio, Position, PriceWithQuote,
-                                Records, Some, Token)
-from credmark.cmf.types.compose import (MapBlockResult, MapBlocksOutput,
-                                        MapBlockTimeSeriesOutput)
+from credmark.cmf.types import (
+    Account,
+    Accounts,
+    Address,
+    BlockNumber,
+    Currency,
+    FiatCurrency,
+    Maybe,
+    NativeToken,
+    Network,
+    Portfolio,
+    Position,
+    PriceWithQuote,
+    Records,
+    Some,
+    Token,
+)
+from credmark.cmf.types.compose import MapBlockResult, MapBlocksOutput, MapBlockTimeSeriesOutput
 from credmark.dto import DTO, DTOField, cross_examples
 from eth_typing import ChecksumAddress
 from web3.exceptions import ContractLogicError
 
-from models.credmark.accounts.token_return import (TokenReturnOutput,
-                                                   token_return)
-from models.credmark.ledger.transfers import (get_native_transfer,
-                                              get_token_transfer)
+from models.credmark.accounts.token_return import TokenReturnOutput, token_return
+from models.credmark.ledger.transfers import get_native_transfer, get_token_transfer
 from models.dtos.historical import HistoricalDTO
 
 np.seterr(all='raise')
