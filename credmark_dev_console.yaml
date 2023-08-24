@@ -24,3 +24,4 @@ imports:
     - models.dtos.historical.HistoricalDTO
     - models.dtos.historical.HistoricalRunModelInput
     - models.tmp_abi_lookup.PANCAKESWAP_V3_POOL_ABI
+    - models.credmark.protocols.dexes.curve.curve_meta.CurvePool

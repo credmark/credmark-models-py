@@ -3,14 +3,14 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Accounts, Contract
 
-from models.credmark.protocols.dexes.curve.curve_gauge import CurveGaugeContract
+from models.credmark.protocols.dexes.curve.curve_gauge import CurveGaugeInput
 
 
 @Model.describe(slug='contrib.curve-fi-get-gauge-amounts',
                 version='1.3',
                 category='protocol',
                 subcategory='curve',
-                input=CurveGaugeContract,
+                input=CurveGaugeInput,
                 output=dict)
 class CurveFinanceGaugeAmounts(Model):
     def run(self, input: Contract) -> dict:

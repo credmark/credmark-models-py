@@ -3,23 +3,18 @@ from typing import List
 
 import numpy as np
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError, ModelRunError
-from credmark.cmf.types import Account, Accounts, Address, Contract, Contracts
+from credmark.cmf.model.errors import ModelRunError
+from credmark.cmf.types import Account, Accounts, Address, Contract, Network, Token
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.types.series import BlockSeries
-from credmark.dto import DTO, EmptyInputSkipTest
-from web3.exceptions import (
-    ABIFunctionNotFound,
-    BadFunctionCallOutput,
-    ContractLogicError,
-)
+from credmark.dto import EmptyInputSkipTest
 
-from models.credmark.protocols.dexes.curve.curve_meta import CurveAllGaugesOutput, CurveMeta, CurvePool
+from models.credmark.protocols.dexes.curve.curve_meta import CurveGauge, CurveGauges, CurveMeta, CurvePool
 
 np.seterr(all='raise')
 
 
-class CurveGaugeContract(Contract):
+class CurveGaugeInput(Contract):
     class Config:
         schema_extra = {
             'examples': [{'address': '0x824F13f1a2F29cFEEa81154b46C0fc820677A637'},
@@ -30,43 +25,53 @@ class CurveGaugeContract(Contract):
 
 
 @Model.describe(slug="curve-fi.all-gauges",
-                version='1.4',
+                version='1.6',
                 display_name="Curve Finance Gauge List",
                 description="All Gauge Contracts for Curve Finance Pools",
                 category='protocol',
                 subcategory='curve',
-                output=CurveAllGaugesOutput)
+                output=CurveGauges)
 class CurveFinanceAllGauges(Model, CurveMeta):
-    def run(self, _) -> CurveAllGaugesOutput:
+    def add_lp_tokens(self, gauges: List[str]) -> CurveGauges:
+        m = self.context.multicall
+        n_gauges = len(gauges)
+        gauges_contract = [CurveGauge.fix_gauge_abi(
+            Contract(address=gauge)) for gauge in gauges]
+        lp_tokens = m.try_aggregate_unwrap([gauge.functions.lp_token()
+                                           for gauge in gauges_contract], replace_with=Address.null())
+        gauges_contract = [CurveGauge(address=Address(gauge), lp_token=Token(address=lp_token))
+                           for gauge, lp_token in zip(gauges, lp_tokens) if not Address(lp_token).is_null()]
+        self.logger.info(f'Removed {n_gauges-len(gauges_contract)} invalid gauges')
+        return CurveGauges(contracts=gauges_contract)
+
+    def mainnet(self):
+        m = self.context.multicall
         gauge_controller = self.get_gauge_controller()
-        gauges = []
-        lp_tokens = []
-        i = 0
-        while True:
-            addr = gauge_controller.functions.gauges(i).call()
-            if Address(addr).is_null():
-                break
-            gauge_contract = Contract(address=addr)
-            gauges.append(gauge_contract)
-            i += 1
-            try:
-                _ = gauge_contract.abi
-            except ModelDataError:
-                gauge_contract = self.fix_gauge_lp_token(Contract(gauge_contract.address))
-            try:
-                lp_token_addr = gauge_contract.functions.lp_token().call()
-                lp_tokens.append(Account(address=lp_token_addr))
-            except (BadFunctionCallOutput, ABIFunctionNotFound, ContractLogicError):
-                lp_tokens.append(Account(address=Address.null()))
-        return CurveAllGaugesOutput(contracts=gauges,
-                                    lp_tokens=Accounts(accounts=lp_tokens))
+        n_gauges = gauge_controller.functions.n_gauges().call()
+        gauges = m.try_aggregate_unwrap(
+            [gauge_controller.functions.gauges(i) for i in range(n_gauges)])
+        return self.add_lp_tokens(gauges)
+
+    def other(self):
+        m = self.context.multicall
+        x_chain_gauge_factory = self.get_x_chain_gauge_factory(self.context.network)
+        n_gauges = x_chain_gauge_factory.functions.get_gauge_count().call()
+        gauges = m.try_aggregate_unwrap(
+            [x_chain_gauge_factory.functions.get_gauge(i) for i in range(n_gauges)])
+        return self.add_lp_tokens(gauges)
+
+    def run(self, _) -> CurveGauges:
+        if self.context.network == Network.Mainnet:
+            return self.mainnet()
+
+        return self.other()
 
 
 @Model.describe(slug='curve-fi.gauge-lp-dist',
-                version='1.1',
-                input=CurveGaugeContract)
+                version='1.3',
+                input=CurveGaugeInput)
 class CurveFinanceLPDist(Model):
-    def run(self, input: CurveGaugeContract) -> dict:
+    def run(self, input: CurveGaugeInput) -> dict:
         with self.context.ledger.Transaction as q:
             _addrs = q.select(
                 columns=[q.FROM_ADDRESS],
@@ -88,7 +93,7 @@ class CurveFinanceLPDist(Model):
 
 
 @Model.describe(slug='curve-fi.historical-gauge-lp-dist',
-                version='1.1',
+                version='1.2',
                 display_name='Curve Finance Pool LP Distribution Historically',
                 description='gets the historical dist of LP holders for a given pool',
                 input=CurvePool,
@@ -115,13 +120,13 @@ class CurveFinanceHistoricalLPDist(Model):
 
 
 @Model.describe(slug='curve-fi.gauge-claim-addresses',
-                version='1.5',
+                version='1.7',
                 category='protocol',
                 subcategory='curve',
-                input=CurveGaugeContract,
+                input=CurveGaugeInput,
                 output=Accounts)
 class CurveFinanceAllGaugeAddresses(Model):
-    def run(self, input: CurveGaugeContract) -> Accounts:
+    def run(self, input: CurveGaugeInput) -> Accounts:
         with self.context.ledger.Transaction as txn:
             addrs = txn.select(
                 columns=[txn.FROM_ADDRESS],
@@ -137,13 +142,13 @@ class CurveFinanceAllGaugeAddresses(Model):
 
 
 @Model.describe(slug='curve-fi.get-gauge-stake-and-claimable-rewards',
-                version='1.3',
+                version='1.5',
                 category='protocol',
                 subcategory='curve',
-                input=CurveGaugeContract,
+                input=CurveGaugeInput,
                 output=dict)
 class CurveFinanceGaugeRewardsCRV(Model):
-    def run(self, input: CurveGaugeContract) -> dict:
+    def run(self, input: CurveGaugeInput) -> dict:
         yields = []
 
         all_addrs = Accounts(
@@ -171,21 +176,21 @@ class CurveFinanceGaugeRewardsCRV(Model):
 # _gauge.set_abi(CURVE_GAUGE_V1_ABI, set_loaded=True)
 
 
-class CurveGaugeInput(DTO):
+class CurveGaugeYieldInput(Contract):
     gaugeAddress: Address
     userAddresses: List[Account]
 
 
 @Model.describe(slug='curve-fi.gauge-yield',
-                version='1.6',
+                version='1.7',
                 category='protocol',
                 subcategory='curve',
-                input=CurveGaugeContract,
+                input=CurveGaugeInput,
                 output=dict)
 class CurveFinanceAverageGaugeYield(Model, CurveMeta):
     CRV_PRICE = 3.0
 
-    def run(self, input: CurveGaugeContract) -> dict:
+    def run(self, input: CurveGaugeInput) -> dict:
         """
         presuming that crv has a constant value of $3
         """
@@ -250,7 +255,7 @@ class CurveFinanceAverageGaugeYield(Model, CurveMeta):
 
 
 @Model.describe(slug='curve-fi.all-yield',
-                version='1.6',
+                version='1.8',
                 description="Yield from all Gauges",
                 category='protocol',
                 subcategory='curve',
@@ -259,7 +264,7 @@ class CurveFinanceAverageGaugeYield(Model, CurveMeta):
 class CurveFinanceAllYield(Model):
     def run(self, _) -> dict:
         gauge_contracts = self.context.run_model(
-            'curve-fi.all-gauges', {}, return_type=Contracts)
+            'curve-fi.all-gauges', {}, return_type=CurveGauges)
 
         self.logger.info(f'There are {len(gauge_contracts.contracts)} gauges.')
 
@@ -283,5 +288,4 @@ class CurveFinanceAllYield(Model):
             else:
                 raise ModelRunError(
                     'compose.map-inputs: output/error cannot be both None')
-
         return {"results": res}
