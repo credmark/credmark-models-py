@@ -91,7 +91,8 @@ class GetBlockYMD(Model):
         if isinstance(input.datetime, date):
             input.datetime = datetime.combine(input.datetime, datetime.min.time())
         return self.context.run_model('chain.get-block',
-                                      {'timestamp': input.datetime.replace(tzinfo=timezone.utc).timestamp()},
+                                      {'timestamp': input.datetime.replace(
+                                          tzinfo=timezone.utc).timestamp()},
                                       return_type=BlockOutput)
 
 
@@ -228,3 +229,25 @@ class GetLatestBlock(Model):
         block_timestamp = self.context.web3.eth.get_block(block_number).timestamp  # type: ignore
         self.context.web3.eth.default_block = original_default_block
         return LatestBlock(blockNumber=block_number, timestamp=block_timestamp)
+
+
+class CrossBlockInput(DTO):
+    cross_chain_id: int
+
+
+@Model.describe(slug="chain.cross-chain-block",
+                version="0.1",
+                display_name="Obtain cross block",
+                description='Get equivalent block from other chain',
+                category='chain',
+                cache=CachePolicy.SKIP,
+                input=CrossBlockInput,
+                output=BlockOutput)
+class CrossChainBlock(Model):
+    def run(self, input: CrossBlockInput) -> BlockOutput:
+        with self.context.fork(chain_id=input.cross_chain_id) as cross_context:
+            return BlockOutput(
+                block_number=int(cross_context.block_number),
+                block_timestamp=cross_context.block_number.timestamp,
+                sample_timestamp=cross_context.block_number.sample_timestamp
+            )
