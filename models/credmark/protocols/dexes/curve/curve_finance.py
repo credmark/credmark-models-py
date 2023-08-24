@@ -474,7 +474,7 @@ class CurveFinancePoolInfo(Model, CurveMeta):
                 gauges = [Account(address=g.address)
                           for g in gauges
                           if g.lp_token.address == pool_info.lp_token_addr]
-                gauges_type = [0] * len(gauges)
+                _gauges_type = [0] * len(gauges)
 
         is_meta = self.is_meta(pool_contract.address.checksum)
 
