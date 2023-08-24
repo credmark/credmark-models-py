@@ -3,12 +3,12 @@
 from enum import Enum
 from typing import Optional
 
+from credmark.cmf.model.errors import ModelRunError
 from credmark.cmf.types import (
-    Accounts,
     Address,
     Contract,
-    Contracts,
     Network,
+    Token,
 )
 from credmark.dto import DTOField, IterableListGenericDTO, PrivateAttr
 from web3.exceptions import BadFunctionCallOutput, ContractLogicError
@@ -18,17 +18,39 @@ from models.tmp_abi_lookup import (
     CRYPTOSWAP_REGISTRY_ABI,
     CURVE_ADDRESS_PROVIDER_ABI,
     CURVE_CRYTOSWAP_ABI,
+    CURVE_GAUGE_V3_ABI,
+    CURVE_LP_TOKEN_ABI,
+    CURVE_META_REGISTRY_ABI,
     CURVE_METAPOOL_ABI,
     CURVE_POOL_INFO_ABI,
     CURVE_REGISTRY_ABI,
     CURVE_STABLESWAP_ABI,
-    GAUGE_ABI_LP_TOKEN,
+    CURVE_X_CHAIN_GAUGE_FACTORY_ABI_ARB,
+    CURVE_X_CHAIN_GAUGE_FACTORY_ABI_OP,
     METAPOOL_FACTORY_ABI,
 )
 
 
-class CurveAllGaugesOutput(Contracts):
-    lp_tokens: Accounts
+class CurveGauge(Contract):
+    lp_token: Token
+
+    def get_lp_token(self):
+        return self.lp_token.set_abi(CURVE_LP_TOKEN_ABI, set_loaded=True)
+
+    def get_gauge(self):
+        self.fix_gauge_abi(self)
+        return self
+
+    @staticmethod
+    def fix_gauge_abi(contract):
+        contract.set_abi(CURVE_GAUGE_V3_ABI, set_loaded=True)
+        return contract
+
+
+class CurveGauges(IterableListGenericDTO[CurveGauge]):
+    contracts: list[CurveGauge] = DTOField(
+        default=[], description="A List of Contracts")
+    _iterator: str = PrivateAttr('contracts')
 
 
 class CurvePoolType(str, Enum):
@@ -40,6 +62,10 @@ class CurvePoolType(str, Enum):
 
 class CurveMeta:
     CURVE_PROVIDER_ALL_NETWORK = '0x0000000022D53366457F9d5E68Ec105046FC4383'
+    X_CHAIN_GAUGE_FACTORY = {
+        Network.ArbitrumOne: '0xabC000d88f23Bb45525E447528DBF656A9D55bf5',
+        Network.Optimism: '0xabC000d88f23Bb45525E447528DBF656A9D55bf5'
+    }
 
     STABLE_REGISTRY_ADDRESS = "0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5"
     STABLESWAP_FACTORY = {
@@ -100,14 +126,30 @@ class CurveMeta:
         return pool_info
 
     def get_gauge_controller(self):
+        # n_gauges
         registry = self.get_registry()
         gauge_addr = registry.functions.gauge_controller().call()
         gauge_controller = Contract(address=Address(gauge_addr))
         _ = gauge_controller.abi
         return gauge_controller
 
-    def fix_gauge_lp_token(self, token):
-        return token.set_abi(GAUGE_ABI_LP_TOKEN, set_loaded=True)
+    def get_x_chain_gauge_factory(self, network):
+        # get_gauge_from_lp_token/get_gauge_count/get_gauge
+        if network == Network.ArbitrumOne:
+            return (Contract(self.X_CHAIN_GAUGE_FACTORY[network])
+                    .set_abi(CURVE_X_CHAIN_GAUGE_FACTORY_ABI_ARB, set_loaded=True))
+        if network == Network.Optimism:
+            return (Contract(self.X_CHAIN_GAUGE_FACTORY[network])
+                    .set_abi(CURVE_X_CHAIN_GAUGE_FACTORY_ABI_OP, set_loaded=True))
+        raise ModelRunError(f'Unsupported network {network} for Curve x-chain gauge factory')
+
+    def get_meta_registry(self, network):
+        if network == Network.Mainnet:
+            provider = self.get_provider()
+            meta_reg_addr = provider.functions.get_address(7).call()
+            return (Contract(address=Address(meta_reg_addr).checksum)
+                    .set_abi(CURVE_META_REGISTRY_ABI, set_loaded=True))
+        raise ModelRunError(f'Unsupported network {network} for Curve meta registry')
 
     def is_meta(self, pool_address):
         pool_address_checked = Address(pool_address).checksum
@@ -161,9 +203,45 @@ class CurvePool(Contract):
             case CurvePoolType.CryptoSwapFactory:
                 return contract.set_abi(CURVE_CRYTOSWAP_ABI, set_loaded=True)
 
+    def __get_gauge(self, network, multicall, res_addr, res_lp_token):
+        raise ModelRunError(
+            'Registry and meta registry do not contain all the mapping for pool-gauge.')
+
+        curve_meta = CurveMeta()
+        registry = curve_meta.get_registry()
+        x_chain_gauge_factory = curve_meta.get_x_chain_gauge_factory(network)
+        meta_registry = curve_meta.get_meta_registry(network)
+
+        res_gauges = []
+        if network == Network.Mainnet and meta_registry:
+            res_gauges_raw = multicall.try_aggregate_unwrap(
+                [registry.functions.get_gauges(addr) for addr in res_addr])
+            res_gauges_list = [[g for g in res[0] if not Address(g).is_null()]
+                               for res in res_gauges_raw]
+            res_gauges = [res[0] if len(res) > 0 else None
+                          for res in res_gauges_list]
+            res_gauges = multicall.try_aggregate_unwrap(
+                [meta_registry.functions.get_gauge(addr) for addr in res_addr])
+
+        elif x_chain_gauge_factory:
+            res_gauges = multicall.try_aggregate_unwrap(
+                [x_chain_gauge_factory.functions.get_gauge_from_lp_token(addr) for addr in res_lp_token])
+        print(res_gauges)
+
 
 class CurvePools(IterableListGenericDTO[CurvePool]):
     contracts: list[CurvePool] = DTOField(
+        default=[], description="A List of Contracts")
+    _iterator: str = PrivateAttr('contracts')
+
+
+class CurvePoolMeta(CurvePool):
+    lp_token: Token
+    gauge: Optional[Contract]
+
+
+class CurvePoolMetas(IterableListGenericDTO[CurvePoolMeta]):
+    contracts: list[CurvePoolMeta] = DTOField(
         default=[], description="A List of Contracts")
     _iterator: str = PrivateAttr('contracts')
 

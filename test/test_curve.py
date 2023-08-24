@@ -9,20 +9,22 @@ class TestCurve(CMFTest):
             self.run_model('contrib.curve-fi-get-gauge-amounts',
                            {"address": "0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A"})
 
+    def no_test_all_pools_info(self):
+        # Pool list has grown too large to run this test
+        # The following tests are disabled because they take too long to run
+        self.run_model('curve-fi.all-pools-info')  # __all__
+        self.run_model('curve-fi.all-pools-info',
+                       chain_id=10,
+                       block_number=108_538_000)  # __all__
+        self.run_model('curve-fi.all-pools-info',
+                       chain_id=42161,
+                       block_number=123_736_000)  # __all__
+
     def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
 
         # curve-fi.get-registry,curve-fi.get-provider
         self.run_model('curve-fi.all-pools')
-
-        if self.type != 'gw':
-            self.run_model('curve-fi.all-pools-info')  # __all__
-            self.run_model('curve-fi.all-pools-info',
-                           chain_id=10,
-                           block_number=108_538_000)  # __all__
-            self.run_model('curve-fi.all-pools-info',
-                           chain_id=42161,
-                           block_number=123_736_000)  # __all__
 
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
@@ -40,9 +42,10 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.pool-info',
                        {"address": "0xc25a3a3b969415c80451098fa907ec722572917f"})
 
-        # Curve.fi USD-BTC-ETH 0xc4ad29ba4b3c580e6d59105fff484999997675ff
-        self.run_model('curve-fi.pool-info',
-                       {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
+        # Token: Curve.fi USD-BTC-ETH 0xc4ad29ba4b3c580e6d59105fff484999997675ff
+        # No longer support LP token
+        # self.run_model('curve-fi.pool-info',
+        #               {"address": "0xc4ad29ba4b3c580e6d59105fff484999997675ff"})
 
         # Pool Curve.fi USD-BTC-ETH 0xd51a44d3fae010294c616388b506acda1bfaae46
         self.run_model('curve-fi.pool-info',
@@ -51,6 +54,7 @@ class TestCurve(CMFTest):
         # Pool: Curve.fi ETH/aETH (ankrCRV) 0xa96a65c051bf88b4095ee1f2451c2a9d43f53ae2
         self.run_model('curve-fi.pool-info',
                        {"address": "0xa96a65c051bf88b4095ee1f2451c2a9d43f53ae2"})
+
         # Curve.fi ETH/aETH (ankrCRV) Token: 0xaA17A236F2bAdc98DDc0Cf999AbB47D47Fc0A6Cf
         self.run_model('curve-fi.pool-info',
                        {"address": "0xaA17A236F2bAdc98DDc0Cf999AbB47D47Fc0A6Cf"})
@@ -139,7 +143,9 @@ class TestCurve(CMFTest):
         self.run_model('curve-fi.gauge-claim-addresses',
                        {"address": "0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"})
 
-        # self.run_model('curve-fi.all-gauges', {}' curve-fi.get-gauge-controller
+        self.run_model('curve-fi.all-gauges', {})
+        self.run_model('curve-fi.all-gauges', {}, chain_id=10)
+        self.run_model('curve-fi.all-gauges', {}, chain_id=42161)
 
     def test_pool_info(self):
         block_number = 15311050
