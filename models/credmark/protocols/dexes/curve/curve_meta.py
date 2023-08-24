@@ -203,7 +203,8 @@ class CurvePool(Contract):
             case CurvePoolType.CryptoSwapFactory:
                 return contract.set_abi(CURVE_CRYTOSWAP_ABI, set_loaded=True)
 
-    def __get_gauge(self, network, multicall, res_addr, res_lp_token):
+    # pylint: disable=unreachable
+    def get_gauge(self, network, multicall, res_addr, res_lp_token):
         raise ModelRunError(
             'Registry and meta registry do not contain all the mapping for pool-gauge.')
 

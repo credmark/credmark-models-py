@@ -107,6 +107,7 @@ class CurveFinanceGetGauge(Model, CurveMeta):
                 subcategory='curve',
                 output=CurvePoolMetas)
 class CurveFinanceAllPools(Model, CurveMeta):
+    # pylint: disable=too-many-branches
     def run(self, _) -> CurvePoolMetas:
         all_gauges = self.context.run_model('curve-fi.all-gauges', {}, return_type=CurveGauges)
         all_gauges_dict = {g.lp_token.address: g.address for g in all_gauges.contracts}
