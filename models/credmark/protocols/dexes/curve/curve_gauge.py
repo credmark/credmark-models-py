@@ -25,7 +25,7 @@ class CurveGaugeInput(Contract):
 
 
 @Model.describe(slug="curve-fi.all-gauges",
-                version='1.6',
+                version='1.7',
                 display_name="Curve Finance Gauge List",
                 description="All Gauge Contracts for Curve Finance Pools",
                 category='protocol',
@@ -37,10 +37,12 @@ class CurveFinanceAllGauges(Model, CurveMeta):
         n_gauges = len(gauges)
         gauges_contract_raw = [CurveGauge.fix_gauge_abi(
             Contract(address=gauge)) for gauge in gauges]
-        lp_tokens = m.try_aggregate_unwrap([gauge.functions.lp_token()
-                                           for gauge in gauges_contract_raw], replace_with=Address.null())
-        is_killeds = m.try_aggregate_unwrap([gauge.functions.is_killed()
-                                             for gauge in gauges_contract_raw], replace_with=Address.null())
+        lp_tokens = m.try_aggregate_unwrap(
+            [gauge.functions.lp_token() for gauge in gauges_contract_raw],
+            replace_with=Address.null())
+        is_killeds = m.try_aggregate_unwrap(
+            [gauge.functions.is_killed() for gauge in gauges_contract_raw],
+            replace_with=Address.null())
         gauges_contract_comb = [CurveGauge(address=Address(gauge), lp_token=Token(address=lp_token))
                                 for gauge, lp_token, is_killed in zip(gauges, lp_tokens, is_killeds) if not Address(lp_token).is_null() and not is_killed]
         # When one LP token is used in multiple gauges, the later assigned gauge is used.

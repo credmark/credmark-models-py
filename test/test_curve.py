@@ -20,11 +20,22 @@ class TestCurve(CMFTest):
                        chain_id=42161,
                        block_number=123_736_000)  # __all__
 
+    def test_curve_account(self):
+        self.run_model(
+            'curve-fi.account', {'address': '0xe74b28c2eae8679e3ccc3a94d5d0de83ccb84705'}, chain_id=1, block_number=17_992_000)
+        self.run_model(
+            'curve-fi.account', {'address': '0x061b87122ed14b9526a813209c8a59a633257bab'}, chain_id=10, block_number=108_687_000)
+        self.run_model(
+            'curve-fi.account', {'address': '0x30df229cefa463e991e29d42db0bae2e122b2ac7'}, chain_id=42161, block_number=124_850_000)
+
     def test_curve_pool_info(self):
         self.title('Curve - Pool Info')
 
         # curve-fi.get-registry,curve-fi.get-provider
         self.run_model('curve-fi.all-pools')
+        self.run_model('curve-fi.all-pools', {}, chain_id=1, block_number=17_992_000)
+        self.run_model('curve-fi.all-pools', {}, chain_id=10, block_number=108_687_000)
+        self.run_model('curve-fi.all-pools', {}, chain_id=42161, block_number=124_850_000)
 
         # Curve.fi LINK/sLINK
         self.run_model('curve-fi.pool-info',
@@ -144,8 +155,8 @@ class TestCurve(CMFTest):
                        {"address": "0x72E158d38dbd50A483501c24f792bDAAA3e7D55C"})
 
         self.run_model('curve-fi.all-gauges', {})
-        self.run_model('curve-fi.all-gauges', {}, chain_id=10)
-        self.run_model('curve-fi.all-gauges', {}, chain_id=42161)
+        self.run_model('curve-fi.all-gauges', {}, chain_id=10, block_number=108687000)
+        self.run_model('curve-fi.all-gauges', {}, chain_id=42161, block_number=124850000)
 
     def test_pool_info(self):
         block_number = 15311050

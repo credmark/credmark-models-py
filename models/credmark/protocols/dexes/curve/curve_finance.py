@@ -1,5 +1,6 @@
 # pylint: disable=locally-disabled, line-too-long
 import math
+from collections import namedtuple
 from typing import List
 
 import numpy as np
@@ -102,7 +103,7 @@ class CurveFinanceGetGauge(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.11",
+                version="1.15",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
@@ -115,6 +116,12 @@ class CurveFinanceAllPools(Model, CurveMeta):
         total_pools = registry.functions.pool_count().call()
         res_addr = m.try_aggregate_unwrap(
             [registry.functions.pool_list(i) for i in range(total_pools)])
+        res_pool_info = m.try_aggregate_unwrap(
+            [registry.functions.get_balances(addr) for addr in res_addr] +
+            [registry.functions.get_coins(addr) for addr in res_addr] +
+            [registry.functions.get_decimals(addr) for addr in res_addr],
+            replace_with=[None])
+
         res_is_meta = m.try_aggregate_unwrap(
             [registry.functions.is_meta(res) for res in res_addr])
         if permissionless:
@@ -127,7 +134,17 @@ class CurveFinanceAllPools(Model, CurveMeta):
         assert all(not Address(x).is_null() for x in res_lp_token)
 
         duplicated = 0
-        for pool_address, is_meta, lp_token in zip(res_addr, res_is_meta, res_lp_token):
+        for (pool_address,
+             is_meta,
+             lp_token,
+             balances,
+             tokens,
+             decimals) in zip(res_addr,
+                              res_is_meta,
+                              res_lp_token,
+                              res_pool_info[:total_pools],
+                              res_pool_info[total_pools:total_pools*2],
+                              res_pool_info[total_pools*2:]):
             if pool_address in out_all_addrs:
                 self.logger.warning(
                     f"Duplicate pool address {pool_address}/{is_meta} in {registry_type}")
@@ -140,18 +157,20 @@ class CurveFinanceAllPools(Model, CurveMeta):
             else:
                 gauge = None
 
-            if is_meta:
-                out_pool_contracts.append(CurvePoolMeta(
-                    address=pool_address,
-                    pool_type=CurvePoolType.MetaPool,
-                    gauge=gauge,
-                    lp_token=Token(address=lp_token)))
-            else:
-                out_pool_contracts.append(CurvePoolMeta(
-                    address=pool_address,
-                    pool_type=CurvePoolType.StableSwap,
-                    gauge=gauge,
-                    lp_token=Token(address=lp_token)))
+            decimals = [int(x) for x in decimals if x != 0]
+            n_coins = len(decimals)
+
+            if balances == [None]:
+                balances = [0.0] * n_coins
+
+            out_pool_contracts.append(CurvePoolMeta(
+                address=pool_address,
+                pool_type=CurvePoolType.MetaPool if is_meta else CurvePoolType.StableSwap,
+                gauge=gauge,
+                lp_token=Token(address=lp_token),
+                pool_balances=[b/10**d for b, d in zip(balances[:n_coins], decimals)],
+                pool_tokens=tokens[:n_coins],
+                decimals=decimals))
             if pool_address in out_all_addrs:
                 raise ModelDataError(f"Duplicate pool address {pool_address}")
             out_all_addrs.add(pool_address)
@@ -165,6 +184,12 @@ class CurveFinanceAllPools(Model, CurveMeta):
         duplicated = 0
         res_addr = m.try_aggregate_unwrap(
             [factory.functions.pool_list(i) for i in range(total_pools)])
+        res_pool_info = m.try_aggregate_unwrap(
+            [factory.functions.get_balances(addr) for addr in res_addr] +
+            [factory.functions.get_coins(addr) for addr in res_addr] +
+            [factory.functions.get_decimals(addr) for addr in res_addr],
+            replace_with=[None])
+
         if permissionless:
             if use_pool_as_lp:
                 res_lp_token = res_addr
@@ -177,7 +202,13 @@ class CurveFinanceAllPools(Model, CurveMeta):
             res_lp_token = m.try_aggregate_unwrap(
                 [factory.functions.get_lp_token(addr) for addr in res_addr])
 
-        for pool_address, lp_token in zip(res_addr, res_lp_token):
+        for (pool_address, lp_token,
+             balances,
+             tokens,
+             decimals) in zip(res_addr, res_lp_token,
+                              res_pool_info[:total_pools],
+                              res_pool_info[total_pools:total_pools*2],
+                              res_pool_info[total_pools*2:]):
             if pool_address in out_all_addrs:
                 self.logger.warning(
                     f"Duplicate pool address {pool_address} in {factory_type}")
@@ -188,11 +219,21 @@ class CurveFinanceAllPools(Model, CurveMeta):
             gauge = None
             if gauge_addr:
                 gauge = Token(address=gauge_addr)
+
+            decimals = [int(x) for x in decimals if x != 0]
+            n_coins = len(decimals)
+
+            if balances == [None]:
+                balances = [0.0] * n_coins
+
             out_pool_contracts.append(CurvePoolMeta(
                 address=pool_address,
                 pool_type=pool_type,
                 gauge=gauge,
-                lp_token=Token(address=lp_token)))
+                lp_token=Token(address=lp_token),
+                pool_balances=[b/10**d for b, d in zip(balances[:n_coins], decimals)],
+                pool_tokens=tokens[:n_coins],
+                decimals=decimals))
             out_all_addrs.add(pool_address)
         self.logger.info(
             f'{original_length}+{total_pools}-{duplicated}={len(out_all_addrs)} from {factory_type}')
@@ -253,7 +294,7 @@ class CurveFinanceAllPools(Model, CurveMeta):
         cryptoswap_factory = self.get_cryptoswap_factory()
         if not cryptoswap_factory.address.is_null():
             if self.context.network == Network.Optimism:
-                #  There is no get_lp_token/get_token on Optimism factory
+                #  There is no get_lp_token/get_token in the Optimism factory
                 self.add_pools_from_cryptoswap(cryptoswap_factory, True, 'cryptoswap factory', True,
                                                all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
             else:
@@ -263,13 +304,19 @@ class CurveFinanceAllPools(Model, CurveMeta):
 
         if self.context.network in [Network.ArbitrumOne, Network.Mainnet]:
             tricrypto_ng_factory = self.get_tricrypto_ng_factory(self.context.network)
-            self.add_pools_from_cryptoswap(tricrypto_ng_factory, True, 'tricrypto-ng factory', True,
-                                           all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
+            deployment = self.context.run_model(
+                'token.deployment-maybe', {'address': tricrypto_ng_factory.address}, return_type=Maybe[dict])
+            if deployment.just:
+                self.add_pools_from_cryptoswap(tricrypto_ng_factory, True, 'tricrypto-ng factory', True,
+                                               all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
 
         if self.context.network in [Network.Mainnet]:
             crvusd_factory = self.get_crvusd_factory(self.context.network)
-            self.add_pools_from_stableswap(crvusd_factory, True, 'crvusd factory',
-                                           all_gauges_dict, all_addrs, pool_contracts)
+            deployment = self.context.run_model(
+                'token.deployment-maybe', {'address': crvusd_factory.address}, return_type=Maybe[dict])
+            if deployment.just:
+                self.add_pools_from_stableswap(crvusd_factory, True, 'crvusd factory',
+                                               all_gauges_dict, all_addrs, pool_contracts)
 
         self.logger.info(
             f'{len(all_gauges.contracts)}/{len(all_gauges_dict)} gauges, found {len([p for p in pool_contracts if p.gauge])} in pools')
@@ -290,7 +337,7 @@ class CurveFinanceAllPools(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.account",
-                version="0.1",
+                version="0.3",
                 display_name="Curve Finance Pool - Account",
                 description="The amount of user's liquidity in a Curve Pool / Gauge",
                 category='protocol',
@@ -300,14 +347,31 @@ class CurveFinanceAllPools(Model, CurveMeta):
 class CurveFinanceAccount(Model, CurveMeta):
     def run(self, input: Account) -> CurvePoolPositions:
         all_pools = self.context.run_model('curve-fi.all-pools', {}, return_type=CurvePoolMetas)
+        # ps = [p for p in all_pools if p.address == '0x7f90122bf0700f9e7e1f688fe926940e8839f353'][0]
+        # CurvePoolMeta(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353',
+        # pool_type=<CurvePoolType.StableSwap: 'stableswap'>,
+        # lp_token=Token(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353'),
+        # gauge=Token(address='0xce5f24b7a95e9cba7df4b54e911b4a3dc8cdaf6f'),
+        # pool_balances=[3550187.480267, 7027473.69205],
+        # pool_tokens=[Token(address='0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'),
+        # Token(address='0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9')],
+        # decimals=[6, 6])
+
+        # https://debank.com/profile/0x30df229cefa463e991e29d42db0bae2e122b2ac7?chain=arb
+        # TODO: How to find this gauge
+        # Curve.fi 2CRV RewardGauge Deposit (2CRV-gauge)
+        # 0xbF7E49483881C76487b0989CD7d9A8239B20CA41
+
         lp_calls = []
         lp_scale_calls = []
         gauge_calls = []
         gauge_scale_calls = []
         gauge_skips = []
+        lp_tokens = []
         for n_pool, pool in enumerate(all_pools):
             lp_token = pool.get_lp_token()
             gauge = pool.get_gauge()
+            lp_tokens.append(lp_token)
             lp_calls.append(lp_token.functions.balanceOf(input.address.checksum))
             lp_scale_calls.append(lp_token.functions.decimals())
 
@@ -331,17 +395,49 @@ class CurveFinanceAccount(Model, CurveMeta):
 
         assert len(res_gauge_call) == len(all_pools.contracts)
 
+        PoolPosition = namedtuple(
+            'PoolPosition',
+            "pool lp_balance gauge_balance lp_scale")
+
         positions = []
-        for pool, lp_bal, lp_scale, gauge_bal, gauge_scale in zip(all_pools, res_lp_call, res_lp_scale_call, res_gauge_call, res_gauge_scale_call):
+        pool_calls = []
+        for (pool,
+             lp_token,
+             lp_bal,
+             lp_scale,
+             gauge_bal,
+             gauge_scale) in zip(all_pools,
+                                 lp_tokens,
+                                 res_lp_call,
+                                 res_lp_scale_call,
+                                 res_gauge_call,
+                                 res_gauge_scale_call):
             if lp_bal > 0 or (gauge_bal and gauge_bal > 0):
-                positions.append(CurvePoolPosition(**pool.dict(),
-                                                   lp_balance=lp_bal / 10**lp_scale,
-                                                   gauge_balance=gauge_bal / 10**gauge_scale if gauge_bal else None))
-        return CurvePoolPositions(positions=positions)
+                lp_balance = lp_bal / 10**lp_scale
+                gauge_balance = gauge_bal / 10**gauge_scale if gauge_bal else 0.0
+                positions.append(PoolPosition(pool.dict(), lp_balance, gauge_balance, lp_scale))
+                pool_calls.append(lp_token.functions.totalSupply())
+
+        res_pool_call = m.try_aggregate_unwrap(pool_calls)
+
+        curve_positions = []
+        for pos, lp_total_supply in zip(positions, res_pool_call):
+            lp_total_supply_scaled = lp_total_supply / 10**pos.lp_scale
+            total_balance = pos.gauge_balance + pos.lp_balance
+            ratio = total_balance / lp_total_supply_scaled
+            curve_pos = CurvePoolPosition(**pos.pool,
+                                          lp_balance=pos.lp_balance,
+                                          gauge_balance=pos.gauge_balance,
+                                          account_balances=[
+                                              b * ratio for b in pos.pool['pool_balances']]
+                                          )
+            curve_positions.append(curve_pos)
+
+        return CurvePoolPositions(positions=curve_positions)
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
-                version="1.18",
+                version="1.19",
                 display_name="Curve Finance Pool - Tokens",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -493,7 +589,7 @@ class CurveFinancePoolInfoTokens(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.pool-info",
-                version="1.34",
+                version="1.35",
                 display_name="Curve Finance Pool Liquidity",
                 description="The amount of Liquidity for Each Token in a Curve Pool",
                 category='protocol',
@@ -575,7 +671,7 @@ class CurveFinancePoolInfo(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.pool-tvl",
-                version="1.11",
+                version="1.12",
                 display_name="Curve Finance Pool - TVL",
                 description="Total amount of TVL",
                 category='protocol',
@@ -609,7 +705,7 @@ class CurveFinancePoolTVL(Model):
 
 
 @Model.describe(slug="curve-fi.all-pools-info",
-                version="1.11",
+                version="1.12",
                 display_name="Curve Finance Pool Liquidity - All",
                 description="The amount of Liquidity for Each Token in a Curve Pool - All",
                 category='protocol',

@@ -130,6 +130,7 @@ class CurveMeta:
     def get_crvusd_factory(self, network):
         if network == Network.Mainnet:
             return Contract('0x4F8846Ae9380B90d2E71D5e3D042dff3E7ebb40d').set_abi(CRVUSD_POOL_FACTORY_ABI, set_loaded=True)
+        raise ModelRunError(f'Unsupported network {network} for Curve crvusd factory')
 
     def get_pool_info(self):
         provider = self.get_provider()
@@ -252,6 +253,9 @@ class CurvePools(IterableListGenericDTO[CurvePool]):
 class CurvePoolMeta(CurvePool):
     lp_token: Token
     gauge: Optional[Token]
+    pool_balances: list[float]
+    pool_tokens: list[Token]
+    decimals: list[int]
 
     def get_lp_token(self):
         return self.lp_token.set_abi(CURVE_LP_TOKEN_ABI, set_loaded=True)
@@ -271,6 +275,7 @@ class CurvePoolMetas(IterableListGenericDTO[CurvePoolMeta]):
 class CurvePoolPosition(CurvePoolMeta):
     lp_balance: float
     gauge_balance: Optional[float]
+    account_balances: list[float]
 
 
 class CurvePoolPositions(IterableListGenericDTO[CurvePoolPosition]):
