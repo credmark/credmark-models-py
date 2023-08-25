@@ -222,6 +222,25 @@ class TokenDeploymentOutput(ImmutableOutput):
         description='Proxy deployment')
 
 
+@Model.describe(slug="token.deployment-maybe",
+                version="0.12",
+                display_name="Token Information - deployment",
+                developer="Credmark",
+                category='protocol',
+                tags=['token'],
+                input=TokenDeploymentInput,
+                output=Maybe[TokenDeploymentOutput],
+                cache=CachePolicy.SKIP)
+class TokenInfoDeploymentMaybe(Model):
+    def run(self, input: TokenDeploymentInput) -> Maybe[TokenDeploymentOutput]:
+        try:
+            res = self.context.run_model('token.deployment', input,
+                                         return_type=TokenDeploymentOutput)
+            return Maybe(just=res)
+        except ModelDataError:
+            return Maybe(just=None)
+
+
 @ImmutableModel.describe(
     slug="token.deployment",
     version="0.12",
