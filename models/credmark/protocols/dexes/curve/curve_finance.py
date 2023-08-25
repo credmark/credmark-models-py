@@ -177,6 +177,7 @@ class CurveFinanceAllPools(Model, CurveMeta):
         self.logger.info(
             f'{original_length}+{total_pools}-{duplicated}={len(out_all_addrs)} from {registry_type}')
 
+    # pylint: disable=too-many-arguments
     def add_pools_from_cryptoswap(self, factory, permissionless, factory_type, use_pool_as_lp, all_gauges_dict, pool_type, out_all_addrs, out_pool_contracts):
         original_length = len(out_pool_contracts)
         m = self.context.multicall
