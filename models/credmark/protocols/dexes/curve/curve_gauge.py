@@ -35,14 +35,25 @@ class CurveFinanceAllGauges(Model, CurveMeta):
     def add_lp_tokens(self, gauges: List[str]) -> CurveGauges:
         m = self.context.multicall
         n_gauges = len(gauges)
-        gauges_contract = [CurveGauge.fix_gauge_abi(
+        gauges_contract_raw = [CurveGauge.fix_gauge_abi(
             Contract(address=gauge)) for gauge in gauges]
         lp_tokens = m.try_aggregate_unwrap([gauge.functions.lp_token()
-                                           for gauge in gauges_contract], replace_with=Address.null())
-        gauges_contract = [CurveGauge(address=Address(gauge), lp_token=Token(address=lp_token))
-                           for gauge, lp_token in zip(gauges, lp_tokens) if not Address(lp_token).is_null()]
-        self.logger.info(f'Removed {n_gauges-len(gauges_contract)} invalid gauges')
-        return CurveGauges(contracts=gauges_contract)
+                                           for gauge in gauges_contract_raw], replace_with=Address.null())
+        is_killeds = m.try_aggregate_unwrap([gauge.functions.is_killed()
+                                             for gauge in gauges_contract_raw], replace_with=Address.null())
+        gauges_contract_comb = [CurveGauge(address=Address(gauge), lp_token=Token(address=lp_token))
+                                for gauge, lp_token, is_killed in zip(gauges, lp_tokens, is_killeds) if not Address(lp_token).is_null() and not is_killed]
+        # When one LP token is used in multiple gauges, the later assigned gauge is used.
+        all_gauges_dict = {g.lp_token.address.checksum: g
+                           for g in gauges_contract_comb}
+        gauges_contract_reduced = list(all_gauges_dict.values())
+        n_killed = n_gauges-len(gauges_contract_comb)
+        n_dedup = len(gauges_contract_comb)-len(all_gauges_dict)
+        n_reduced = n_gauges-len(gauges_contract_reduced)
+        self.logger.info(
+            f'Removed {n_killed}(killed) + {n_dedup}(duped) = {n_reduced} invalid gauges. '
+            f'Got {len(gauges_contract_reduced)} gauges.')
+        return CurveGauges(contracts=gauges_contract_reduced)
 
     def mainnet(self):
         m = self.context.multicall

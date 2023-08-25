@@ -14,6 +14,7 @@ from credmark.dto import DTOField, IterableListGenericDTO, PrivateAttr
 from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
 from models.tmp_abi_lookup import (
+    CRVUSD_POOL_FACTORY_ABI,
     CRYPTOSWAP_FACTORY_ABI,
     CRYPTOSWAP_REGISTRY_ABI,
     CURVE_ADDRESS_PROVIDER_ABI,
@@ -28,6 +29,7 @@ from models.tmp_abi_lookup import (
     CURVE_X_CHAIN_GAUGE_FACTORY_ABI_ARB,
     CURVE_X_CHAIN_GAUGE_FACTORY_ABI_OP,
     METAPOOL_FACTORY_ABI,
+    TRICRYPTO_NG_FACTOR_ABI,
 )
 
 
@@ -118,6 +120,17 @@ class CurveMeta:
                     .set_abi(CRYPTOSWAP_FACTORY_ABI, set_loaded=True))
         return registry
 
+    def get_tricrypto_ng_factory(self, network):
+        if network == Network.Mainnet:
+            return Contract('0x0c0e5f2fF0ff18a3be9b835635039256dC4B4963').set_abi(TRICRYPTO_NG_FACTOR_ABI, set_loaded=True)
+        if network == Network.ArbitrumOne:
+            return Contract('0xbC0797015fcFc47d9C1856639CaE50D0e69FbEE8').set_abi(TRICRYPTO_NG_FACTOR_ABI, set_loaded=True)
+        raise ModelRunError(f'Unsupported network {network} for Curve tricrypto-ng factor')
+
+    def get_crvusd_factory(self, network):
+        if network == Network.Mainnet:
+            return Contract('0x4F8846Ae9380B90d2E71D5e3D042dff3E7ebb40d').set_abi(CRVUSD_POOL_FACTORY_ABI, set_loaded=True)
+
     def get_pool_info(self):
         provider = self.get_provider()
         pool_info_addr = provider.functions.get_address(1).call()
@@ -179,7 +192,7 @@ class CurvePool(Contract):
             'test_multi': True,
         }
 
-    def get(self):
+    def get_pool(self):
         contract = self
         if self.pool_type is None:
             try:
@@ -204,7 +217,7 @@ class CurvePool(Contract):
                 return contract.set_abi(CURVE_CRYTOSWAP_ABI, set_loaded=True)
 
     # pylint: disable=unreachable
-    def get_gauge(self, network, multicall, res_addr, res_lp_token):
+    def get_gauge_ref(self, network, multicall, res_addr, res_lp_token):
         raise ModelRunError(
             'Registry and meta registry do not contain all the mapping for pool-gauge.')
 
@@ -238,13 +251,29 @@ class CurvePools(IterableListGenericDTO[CurvePool]):
 
 class CurvePoolMeta(CurvePool):
     lp_token: Token
-    gauge: Optional[Contract]
+    gauge: Optional[Token]
+
+    def get_lp_token(self):
+        return self.lp_token.set_abi(CURVE_LP_TOKEN_ABI, set_loaded=True)
+
+    def get_gauge(self):
+        if self.gauge:
+            return CurveGauge.fix_gauge_abi(self.gauge)
+        return None
 
 
 class CurvePoolMetas(IterableListGenericDTO[CurvePoolMeta]):
     contracts: list[CurvePoolMeta] = DTOField(
-        default=[], description="A List of Contracts")
+        default=[], description="A List of Curve Pool Meta Information")
     _iterator: str = PrivateAttr('contracts')
 
-    def get(self, pool_id):
-        return self.contracts[pool_id].get()
+
+class CurvePoolPosition(CurvePoolMeta):
+    lp_balance: float
+    gauge_balance: Optional[float]
+
+
+class CurvePoolPositions(IterableListGenericDTO[CurvePoolPosition]):
+    positions: list[CurvePoolPosition] = DTOField(
+        default=[], description="A List of Curve Pool Positions")
+    _iterator: str = PrivateAttr('positions')

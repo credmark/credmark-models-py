@@ -33,6 +33,8 @@ from models.credmark.protocols.dexes.curve.curve_meta import (
     CurvePool,
     CurvePoolMeta,
     CurvePoolMetas,
+    CurvePoolPosition,
+    CurvePoolPositions,
     CurvePoolType,
 )
 from models.dtos.tvl import TVLInfo
@@ -100,159 +102,242 @@ class CurveFinanceGetGauge(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.9",
+                version="1.11",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
                 subcategory='curve',
                 output=CurvePoolMetas)
 class CurveFinanceAllPools(Model, CurveMeta):
+    def add_pools_from_stableswap(self, registry, permissionless, registry_type, all_gauges_dict, out_all_addrs, out_pool_contracts):
+        original_length = len(out_pool_contracts)
+        m = self.context.multicall
+        total_pools = registry.functions.pool_count().call()
+        res_addr = m.try_aggregate_unwrap(
+            [registry.functions.pool_list(i) for i in range(total_pools)])
+        res_is_meta = m.try_aggregate_unwrap(
+            [registry.functions.is_meta(res) for res in res_addr])
+        if permissionless:
+            # Factory: Use Pool / LP token to get gauge
+            res_lp_token = res_addr
+        else:
+            # Registry: Use LP token to get gauge
+            res_lp_token = m.try_aggregate_unwrap(
+                [registry.functions.get_lp_token(addr) for addr in res_addr])
+        assert all(not Address(x).is_null() for x in res_lp_token)
+
+        duplicated = 0
+        for pool_address, is_meta, lp_token in zip(res_addr, res_is_meta, res_lp_token):
+            if pool_address in out_all_addrs:
+                self.logger.warning(
+                    f"Duplicate pool address {pool_address}/{is_meta} in {registry_type}")
+                duplicated += 1
+                continue
+
+            gauge_addr = all_gauges_dict.get(lp_token)
+            if gauge_addr:
+                gauge = Token(address=gauge_addr)
+            else:
+                gauge = None
+
+            if is_meta:
+                out_pool_contracts.append(CurvePoolMeta(
+                    address=pool_address,
+                    pool_type=CurvePoolType.MetaPool,
+                    gauge=gauge,
+                    lp_token=Token(address=lp_token)))
+            else:
+                out_pool_contracts.append(CurvePoolMeta(
+                    address=pool_address,
+                    pool_type=CurvePoolType.StableSwap,
+                    gauge=gauge,
+                    lp_token=Token(address=lp_token)))
+            if pool_address in out_all_addrs:
+                raise ModelDataError(f"Duplicate pool address {pool_address}")
+            out_all_addrs.add(pool_address)
+        self.logger.info(
+            f'{original_length}+{total_pools}-{duplicated}={len(out_all_addrs)} from {registry_type}')
+
+    def add_pools_from_cryptoswap(self, factory, permissionless, factory_type, use_pool_as_lp, all_gauges_dict, pool_type, out_all_addrs, out_pool_contracts):
+        original_length = len(out_pool_contracts)
+        m = self.context.multicall
+        total_pools = factory.functions.pool_count().call()
+        duplicated = 0
+        res_addr = m.try_aggregate_unwrap(
+            [factory.functions.pool_list(i) for i in range(total_pools)])
+        if permissionless:
+            if use_pool_as_lp:
+                res_lp_token = res_addr
+            else:
+                # Factory: Use Pool / LP token to get gauge
+                res_lp_token = m.try_aggregate_unwrap(
+                    [factory.functions.get_token(addr) for addr in res_addr])
+        else:
+            # Registry: Use LP token to get gauge
+            res_lp_token = m.try_aggregate_unwrap(
+                [factory.functions.get_lp_token(addr) for addr in res_addr])
+
+        for pool_address, lp_token in zip(res_addr, res_lp_token):
+            if pool_address in out_all_addrs:
+                self.logger.warning(
+                    f"Duplicate pool address {pool_address} in {factory_type}")
+                duplicated += 1
+                continue
+
+            gauge_addr = all_gauges_dict.get(lp_token)
+            gauge = None
+            if gauge_addr:
+                gauge = Token(address=gauge_addr)
+            out_pool_contracts.append(CurvePoolMeta(
+                address=pool_address,
+                pool_type=pool_type,
+                gauge=gauge,
+                lp_token=Token(address=lp_token)))
+            out_all_addrs.add(pool_address)
+        self.logger.info(
+            f'{original_length}+{total_pools}-{duplicated}={len(out_all_addrs)} from {factory_type}')
+        return res_addr
+
     # pylint: disable=too-many-branches
     def run(self, _) -> CurvePoolMetas:
-        all_gauges = self.context.run_model('curve-fi.all-gauges', {}, return_type=CurveGauges)
-        all_gauges_dict = {g.lp_token.address: g.address for g in all_gauges.contracts}
+        '''
+        # Curve deployer on mainnet
+        0x90e00ace148ca3b23ac1bc8c240c2a7dd9c2d7f5
+        0xb9fc157394af804a3578134a6585c0dc9cc990d4
+        0x8f942c20d02befc377d41445793068908e2250d0
+        0xf18056bbd320e96a48e3fbf8bc061322531aac99
 
-        m = self.context.multicall
+        # APE deployer on mainnet (not included in main curve)
+        0xfD6f33A0509ec67dEFc500755322aBd9Df1bD5B8
+
+        # meta_registry on mainnet
+        # https://etherscan.io/address/0xf98b45fa17de75fb1ad0e7afd971b0ca00e379fc#readContract
+
+        sub-registry under meta_registry
+        0: https://etherscan.io/address/0x46a8a9CF4Fc8e99EC3A14558ACABC1D93A27de68: 49
+        1: https://etherscan.io/address/0x127db66E7F0b16470Bec194d0f496F9Fa065d0A9: 366
+        2: https://etherscan.io/address/0x5f493fEE8D67D3AE3bA730827B34126CFcA0ae94: 9
+        3: https://etherscan.io/address/0xC4F389020002396143B863F6325aA6ae481D19CE: 306
+        4: https://etherscan.io/address/0x538E984C2d5f821d51932dd9C570Dff192D3DF2D: 17
+        5: https://etherscan.io/address/0x30a4249C42be05215b6063691949710592859697: 5
+        49 + 366 +_9 + 306 + 17 + 5
+        '''
+
+        all_gauges = self.context.run_model('curve-fi.all-gauges', {}, return_type=CurveGauges)
+        all_gauges_dict = {g.lp_token.address.checksum: g.address.checksum
+                           for g in all_gauges.contracts}
+        # [g for g in all_gauges if g.lp_token.address == '0x7f90122bf0700f9e7e1f688fe926940e8839f353']
+
         all_addrs = set()
         pool_contracts = []
 
         registry = self.get_registry()
         if not registry.address.is_null():
-            total_pools = registry.functions.pool_count().call()
-            res_addr = m.try_aggregate_unwrap(
-                [registry.functions.pool_list(i) for i in range(total_pools)])
-            res_is_meta = m.try_aggregate_unwrap(
-                [registry.functions.is_meta(res) for res in res_addr])
-            res_lp_token = m.try_aggregate_unwrap(
-                [registry.functions.get_lp_token(addr) for addr in res_addr])
-            assert all(not Address(x).is_null() for x in res_lp_token)
-
-            for pool_address, is_meta, lp_token in zip(res_addr, res_is_meta, res_lp_token):
-                gauge_addr = all_gauges_dict.get(pool_address)
-                if gauge_addr:
-                    gauge = Contract(address=gauge_addr)
-                else:
-                    gauge = None
-
-                if is_meta:
-                    pool_contracts.append(CurvePoolMeta(
-                        address=pool_address,
-                        pool_type=CurvePoolType.MetaPool,
-                        gauge=gauge,
-                        lp_token=Token(address=lp_token)))
-                else:
-                    pool_contracts.append(CurvePoolMeta(
-                        address=pool_address,
-                        pool_type=CurvePoolType.StableSwap,
-                        gauge=gauge,
-                        lp_token=Token(address=lp_token)))
-                if pool_address in all_addrs:
-                    raise ModelDataError(f"Duplicate pool address {pool_address}")
-                all_addrs.add(pool_address)
-            self.logger.info(f'{len(all_addrs)} from registry')
+            self.add_pools_from_stableswap(registry, False, 'registry',
+                                           all_gauges_dict, all_addrs, pool_contracts)
         del registry
 
         metapool_factory = self.get_metapool_factory()
         if not metapool_factory.address.is_null():
-            total_pools = metapool_factory.functions.pool_count().call()
-            duplicated = 0
-            res_addr = m.try_aggregate_unwrap(
-                [metapool_factory.functions.pool_list(i) for i in range(total_pools)])
-            res_is_meta = m.try_aggregate_unwrap(
-                [metapool_factory.functions.is_meta(res) for res in res_addr])
-
-            for pool_address, is_meta in zip(res_addr, res_is_meta):
-                gauge_addr = all_gauges_dict.get(pool_address)
-                if pool_address in all_addrs:
-                    self.logger.warning(
-                        f"Duplicate pool address {pool_address}/{is_meta} in metapool factory")
-                    duplicated += 1
-                    continue
-
-                if gauge_addr:
-                    gauge = Contract(address=gauge_addr)
-                else:
-                    gauge = None
-
-                if is_meta:
-                    pool_contracts.append(CurvePoolMeta(
-                        address=pool_address,
-                        pool_type=CurvePoolType.MetaPool,
-                        gauge=gauge,
-                        lp_token=Token(address=pool_address)))
-                else:
-                    pool_contracts.append(CurvePoolMeta(
-                        address=pool_address,
-                        pool_type=CurvePoolType.StableSwap,
-                        gauge=gauge,
-                        lp_token=Token(address=pool_address)))
-                if pool_address in all_addrs:
-                    raise ModelDataError(f"Duplicate pool address {pool_address}")
-                all_addrs.add(pool_address)
-            self.logger.info(
-                f'{len(all_addrs)}=+{total_pools} from metapool factory with {duplicated} duplicates')
+            self.add_pools_from_stableswap(metapool_factory, True, 'metapool factory',
+                                           all_gauges_dict, all_addrs, pool_contracts)
         del metapool_factory
 
         cryptoswap_registry = self.get_cryptoswap_registry()
         if not cryptoswap_registry.address.is_null():
-            total_pools = cryptoswap_registry.functions.pool_count().call()
-            duplicated = 0
-            res_addr = m.try_aggregate_unwrap(
-                [cryptoswap_registry.functions.pool_list(i) for i in range(total_pools)])
-            res_lp_token = m.try_aggregate_unwrap(
-                [cryptoswap_registry.functions.get_lp_token(addr) for addr in res_addr])
-            assert all(not Address(x).is_null() for x in res_lp_token)
-
-            for pool_address, lp_token in zip(res_addr, res_lp_token):
-                gauge_addr = all_gauges_dict.get(pool_address)
-                if pool_address in all_addrs:
-                    self.logger.warning(
-                        f"Duplicate pool address {pool_address} in cryptoswap registry")
-                    duplicated += 1
-                    continue
-
-                if gauge_addr:
-                    gauge = Contract(address=gauge_addr)
-                else:
-                    gauge = None
-                pool_contracts.append(CurvePoolMeta(
-                    address=pool_address,
-                    pool_type=CurvePoolType.CryptoSwap,
-                    gauge=gauge,
-                    lp_token=Token(address=lp_token)))
-                all_addrs.add(pool_address)
-            self.logger.info(
-                f'{len(all_addrs)}=+{total_pools} from cryptoswap registry with {duplicated} duplicates')
+            self.add_pools_from_cryptoswap(cryptoswap_registry, False, 'cryptoswap registry', False,
+                                           all_gauges_dict, CurvePoolType.CryptoSwap, all_addrs, pool_contracts)
         del cryptoswap_registry
 
+        # Address('0x2889302a794da87fbf1d6db415c1492194663d13').checksum in res_addr
         cryptoswap_factory = self.get_cryptoswap_factory()
         if not cryptoswap_factory.address.is_null():
-            total_pools = cryptoswap_factory.functions.pool_count().call()
-            duplicated = 0
-            res_addr = m.try_aggregate_unwrap(
-                [cryptoswap_factory.functions.pool_list(i) for i in range(total_pools)])
-            for pool_address in res_addr:
-                if pool_address in all_addrs:
-                    self.logger.warning(
-                        f"Duplicate pool address {pool_address} in cryptoswap factory")
-                    duplicated += 1
-                    continue
-
-                gauge_addr = all_gauges_dict.get(pool_address)
-                if gauge_addr:
-                    gauge = Contract(address=gauge_addr)
-                else:
-                    gauge = None
-                pool_contracts.append(CurvePoolMeta(
-                    address=pool_address,
-                    pool_type=CurvePoolType.CryptoSwapFactory,
-                    gauge=gauge,
-                    lp_token=Token(address=pool_address)))
-                all_addrs.add(pool_address)
-            self.logger.info(
-                f'{len(all_addrs)}=+{total_pools} from cryptoswap factory with {duplicated} duplicates')
+            if self.context.network == Network.Optimism:
+                #  There is no get_lp_token/get_token on Optimism factory
+                self.add_pools_from_cryptoswap(cryptoswap_factory, True, 'cryptoswap factory', True,
+                                               all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
+            else:
+                self.add_pools_from_cryptoswap(cryptoswap_factory, True, 'cryptoswap factory', False,
+                                               all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
         del cryptoswap_factory
+
+        if self.context.network in [Network.ArbitrumOne, Network.Mainnet]:
+            tricrypto_ng_factory = self.get_tricrypto_ng_factory(self.context.network)
+            self.add_pools_from_cryptoswap(tricrypto_ng_factory, True, 'tricrypto-ng factory', True,
+                                           all_gauges_dict, CurvePoolType.CryptoSwapFactory, all_addrs, pool_contracts)
+
+        if self.context.network in [Network.Mainnet]:
+            crvusd_factory = self.get_crvusd_factory(self.context.network)
+            self.add_pools_from_stableswap(crvusd_factory, True, 'crvusd factory',
+                                           all_gauges_dict, all_addrs, pool_contracts)
+
+        self.logger.info(
+            f'{len(all_gauges.contracts)}/{len(all_gauges_dict)} gauges, found {len([p for p in pool_contracts if p.gauge])} in pools')
+
+        g_addr = set(x.address for x in all_gauges.contracts)
+        g_addr_in_pools = set(g.gauge.address for g in pool_contracts if g.gauge)
+        g_not_in_pools = g_addr - g_addr_in_pools
+        self.logger.info(
+            f'Outstanding gauges [{len(g_addr)-len(g_addr_in_pools)}]: {g_not_in_pools}')
+
+        # [g for g in pool_contracts if g.address == '0x6eb2dc694eb516b16dc9fbc678c60052bbdd7d80']
+        # [g for g in all_gauges if g.lp_token.address == '0xdbcd16e622c95acb2650b38ec799f76bfc557a0b']
+        # !list(x for x in all_gauges.contracts if x.address in ['0x02246583870b36be0fef2819e1d3a771d6c07546'])
+        # !list(x for x in pool_contracts if x.lp_token.address in ['0x137469b55d1f15651ba46a89d0588e97dd0b6562'])
+
+        self.logger.info(f'{len(pool_contracts)} pools on chain {self.context.network}')
         return CurvePoolMetas(contracts=pool_contracts)
+
+
+@Model.describe(slug="curve-fi.account",
+                version="0.1",
+                display_name="Curve Finance Pool - Account",
+                description="The amount of user's liquidity in a Curve Pool / Gauge",
+                category='protocol',
+                subcategory='curve',
+                input=Account,
+                output=CurvePoolPositions)
+class CurveFinanceAccount(Model, CurveMeta):
+    def run(self, input: Account) -> CurvePoolPositions:
+        all_pools = self.context.run_model('curve-fi.all-pools', {}, return_type=CurvePoolMetas)
+        lp_calls = []
+        lp_scale_calls = []
+        gauge_calls = []
+        gauge_scale_calls = []
+        gauge_skips = []
+        for n_pool, pool in enumerate(all_pools):
+            lp_token = pool.get_lp_token()
+            gauge = pool.get_gauge()
+            lp_calls.append(lp_token.functions.balanceOf(input.address.checksum))
+            lp_scale_calls.append(lp_token.functions.decimals())
+
+            if gauge:
+                gauge_calls.append(gauge.functions.balanceOf(input.address.checksum))
+                gauge_scale_calls.append(gauge.functions.decimals())
+                # if len(gauge_calls) == 8:
+                #    breakpoint()
+            else:
+                gauge_skips.append(n_pool)
+
+        m = self.context.multicall
+        res_lp_call = m.try_aggregate_unwrap(lp_calls)
+        res_lp_scale_call = m.try_aggregate_unwrap(lp_scale_calls)
+        res_gauge_call = m.try_aggregate_unwrap(gauge_calls)
+        res_gauge_scale_call = m.try_aggregate_unwrap(gauge_scale_calls, replace_with=18)
+
+        for s in gauge_skips:
+            res_gauge_call.insert(s, None)
+            res_gauge_scale_call.insert(s, None)
+
+        assert len(res_gauge_call) == len(all_pools.contracts)
+
+        positions = []
+        for pool, lp_bal, lp_scale, gauge_bal, gauge_scale in zip(all_pools, res_lp_call, res_lp_scale_call, res_gauge_call, res_gauge_scale_call):
+            if lp_bal > 0 or (gauge_bal and gauge_bal > 0):
+                positions.append(CurvePoolPosition(**pool.dict(),
+                                                   lp_balance=lp_bal / 10**lp_scale,
+                                                   gauge_balance=gauge_bal / 10**gauge_scale if gauge_bal else None))
+        return CurvePoolPositions(positions=positions)
 
 
 @Model.describe(slug="curve-fi.pool-info-tokens",
@@ -282,7 +367,7 @@ class CurveFinancePoolInfoTokens(Model, CurveMeta):
         return token_list, symbols_list
 
     def run(self, input: CurvePool) -> CurvePoolInfoToken:
-        input = input.get()
+        input = input.get_pool()
         registry = self.get_registry()
         balances = []
 
@@ -307,7 +392,7 @@ class CurveFinancePoolInfoTokens(Model, CurveMeta):
             try:
                 _ = input.abi
             except ModelDataError:
-                input = CurvePool(address=input.address, pool_type=None).get()
+                input = CurvePool(address=input.address, pool_type=None).get_pool()
 
             if input.abi is not None and 'minter' in input.abi.functions:
                 minter_addr = input.functions.minter().call()
@@ -421,7 +506,7 @@ class CurveFinancePoolInfo(Model, CurveMeta):
         pool_info = self.context.run_model('curve-fi.pool-info-tokens',
                                            input,
                                            return_type=CurvePoolInfoToken)
-        pool_contract = pool_info.get()
+        pool_contract = pool_info.get_pool()
 
         def _use_for() -> List[PriceWithQuote]:
             token_prices = []
