@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, line-too-long
+# pylint: disable=locally-disabled, line-too-long, pointless-string-statement
 import math
 from collections import namedtuple
 from typing import List
@@ -346,22 +346,45 @@ class CurveFinanceAllPools(Model, CurveMeta):
                 input=Account,
                 output=CurvePoolPositions)
 class CurveFinanceAccount(Model, CurveMeta):
+    """
+    ps = [p for p in all_pools if p.address == '0x7f90122bf0700f9e7e1f688fe926940e8839f353'][0]
+
+        CurvePoolMeta(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353',
+        pool_type=<CurvePoolType.StableSwap: 'stableswap'>,
+        lp_token=Token(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353'),
+        gauge=Token(address='0xce5f24b7a95e9cba7df4b54e911b4a3dc8cdaf6f'),
+        pool_balances=[3550187.480267, 7027473.69205],
+        pool_tokens=[Token(address='0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'),
+        Token(address='0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9')],
+        decimals=[6, 6])
+
+    credmark-dev run curve-fi.account -i '{"address": "0x30df229cefa463e991e29d42db0bae2e122b2ac7"}' -c 42161 -j
+    https://debank.com/profile/0x30df229cefa463e991e29d42db0bae2e122b2ac7?chain=arb
+
+    # Curve metapool deposit
+
+    2pool Pool/LP: 0x7f90122BF0700F9E7e1F688fe926940E8839F353
+    2pool gauge: 0xce5f24b7a95e9cba7df4b54e911b4a3dc8cdaf6f
+    RewardGauge: 0xbF7E49483881C76487b0989CD7d9A8239B20CA41 (Curve.fi 2CRV RewardGauge Deposit (2CRV-gauge))
+
+    from models.tmp_abi_lookup import CURVE_REWARD_GAUGE_ABI
+    reward_g = Token('0xbF7E49483881C76487b0989CD7d9A8239B20CA41').set_abi(CURVE_REWARD_GAUGE_ABI, set_loaded=True
+
+    Flow of this Tx
+    https://arbiscan.io/tx/0x3faed5b04903b6791d40766ee8de0ce472c7fbc549ee2c1424afc59e4e0746cc
+
+    1.  Deposit
+    0x0d69 (Depositor) -> 0x7544 (Zap) -> 0x7f901 (2pool)
+    2.  Reward
+    0x00 -> 0x7544 (Zap) -> 0x30df (MIM3CRV-f) -> 0xbf7e (2CRV-gauge)
+    3. Reward Gauge Token (0xbf7e)
+    0x00 -> 0x30df (MIM3CRV-f)
+    4.  MIM3CRV-f
+    0x00 -> 0x0d69 (Depositor)
+    """
+
     def run(self, input: Account) -> CurvePoolPositions:
         all_pools = self.context.run_model('curve-fi.all-pools', {}, return_type=CurvePoolMetas)
-        # ps = [p for p in all_pools if p.address == '0x7f90122bf0700f9e7e1f688fe926940e8839f353'][0]
-        # CurvePoolMeta(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353',
-        # pool_type=<CurvePoolType.StableSwap: 'stableswap'>,
-        # lp_token=Token(address='0x7f90122bf0700f9e7e1f688fe926940e8839f353'),
-        # gauge=Token(address='0xce5f24b7a95e9cba7df4b54e911b4a3dc8cdaf6f'),
-        # pool_balances=[3550187.480267, 7027473.69205],
-        # pool_tokens=[Token(address='0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'),
-        # Token(address='0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9')],
-        # decimals=[6, 6])
-
-        # https://debank.com/profile/0x30df229cefa463e991e29d42db0bae2e122b2ac7?chain=arb
-        # TODO: How to find this gauge
-        # Curve.fi 2CRV RewardGauge Deposit (2CRV-gauge)
-        # 0xbF7E49483881C76487b0989CD7d9A8239B20CA41
 
         lp_calls = []
         lp_scale_calls = []
