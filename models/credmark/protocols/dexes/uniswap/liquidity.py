@@ -46,7 +46,7 @@ class UniswapV3PoolLiquidityByTicksOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-liquidity-by-ticks',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
