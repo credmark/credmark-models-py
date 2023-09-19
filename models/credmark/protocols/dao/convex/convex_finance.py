@@ -3,7 +3,6 @@
 
 import numpy as np
 from credmark.cmf.model import Model
-from credmark.cmf.model.errors import ModelDataError
 from credmark.cmf.types import Account, Contract, Network, Some, Token
 from credmark.dto import DTO
 
