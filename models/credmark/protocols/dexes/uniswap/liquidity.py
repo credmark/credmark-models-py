@@ -46,7 +46,7 @@ class UniswapV3PoolLiquidityByTicksOutput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.get-liquidity-by-ticks',
-                version='0.2',
+                version='0.3',
                 display_name='Uniswap v3 - Liquidity',
                 description='Liquidity at every range - restored from Mint/Burn events',
                 category='protocol',
@@ -54,6 +54,31 @@ class UniswapV3PoolLiquidityByTicksOutput(DTO):
                 input=UniswapV3PoolLiquidityByTicksInput,
                 output=UniswapV3PoolLiquidityByTicksOutput)
 class UniswapV3LiquidityHistorical(Model):
+    def collect_ticks(self, pool_contract, min_tick, max_tick, tick_bottom, tick_spacing):
+        ticks_b = []
+        ticks_b_calls = []
+
+        x = 0
+        tick_b = tick_bottom
+        while tick_b >= min_tick:
+            ticks_b_calls.append(pool_contract.functions.ticks(tick_b))
+            ticks_b.append(tick_b)
+            x += 1
+            tick_b = tick_bottom - tick_spacing * x
+
+        x = 1
+        tick_b = tick_bottom + tick_spacing
+        while tick_b <= max_tick:
+            ticks_b_calls.append(pool_contract.functions.ticks(tick_b))
+            ticks_b.append(tick_b)
+            x += 1
+            tick_b = tick_bottom + tick_spacing * x
+
+        m = self.context.multicall
+        ticks_b_result = m.try_aggregate_unwrap(ticks_b_calls)
+        ticks_b_dict = dict(zip(ticks_b, ticks_b_result))
+        return ticks_b_dict
+
     def run(self, input: UniswapV3PoolLiquidityByTicksInput) -> UniswapV3PoolLiquidityByTicksOutput:
         pool_contract = input
 
@@ -87,11 +112,16 @@ class UniswapV3LiquidityHistorical(Model):
 
         # [ min_tick - tick_bottom - current_tick - tick_top - max_tick ]
 
+        # collect tick data
+        ticks_dict = self.collect_ticks(pool_contract, min_tick,
+                                        max_tick, tick_bottom, tick_spacing)
+
         liquidity = current_liquidity
         x = 0
         tick_b = tick_bottom
         while tick_b >= min_tick:
-            ticks = pool_contract.functions.ticks(tick_b).call()
+            # Replaced: ticks = pool_contract.functions.ticks(tick_b).call()
+            ticks = ticks_dict[tick_b]
             if ticks[1] != 0:
                 change_on_tick[tick_b] = ticks[1]
                 liquidity -= ticks[1]
@@ -109,7 +139,8 @@ class UniswapV3LiquidityHistorical(Model):
         x = 1
         tick_b = tick_bottom + tick_spacing
         while tick_b <= max_tick:
-            ticks = pool_contract.functions.ticks(tick_b).call()
+            # Replaced: ticks = pool_contract.functions.ticks(tick_b).call()
+            ticks = ticks_dict[tick_b]
             if ticks[1] != 0:
                 change_on_tick[tick_b] = ticks[1]
                 liquidity += ticks[1]
@@ -287,7 +318,8 @@ def get_amount_in_ticks(logger,
             if should_print_tick:
                 adjusted_amount0 = amount0 / (10 ** decimals0)
                 adjusted_amount1 = amount1 / (10 ** decimals1)
-                logger.info(f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
+                logger.info(
+                    f"{adjusted_amount0:.2f} {token0} locked, potentially worth {adjusted_amount1:.2f} {token1}")
 
         tick += tick_spacing
 
