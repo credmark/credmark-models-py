@@ -41,11 +41,8 @@ class ConvexFinanceBooster(Model):
 
 
 def fix_crv_reward(crv_rewards):
-    try:
-        _ = crv_rewards.abi
-    except ModelDataError:
-        crv_rewards = Contract(crv_rewards.address).set_abi(
-            CRV_REWARD, set_loaded=True)
+    crv_rewards = Contract(crv_rewards.address).set_abi(
+        CRV_REWARD, set_loaded=True)
     return crv_rewards
 
 
@@ -111,20 +108,34 @@ class ConvexFinanceEarning(Model):
         all_pools = self.context.run_model('convex-fi.all-pool-info',
                                            {}, return_type=Some[ConvexPoolInfo])
 
-        earnings = []
+        m = self.context.multicall
+
+        calls = []
         for pp in all_pools:
             pp.crv_rewards = fix_crv_reward(pp.crv_rewards)
-
-            balance = pp.crv_rewards.functions.balanceOf(
-                input.address.checksum).call()
-            earned = pp.crv_rewards.functions.earned(
-                input.address.checksum).call()
-            rewards = pp.crv_rewards.functions.rewards(
-                input.address.checksum).call()
-            reward_token = pp.crv_rewards.functions.rewardToken().call()
+            calls.append(pp.crv_rewards.functions.balanceOf(input.address.checksum))
+            calls.append(pp.crv_rewards.functions.earned(input.address.checksum))
+            calls.append(pp.crv_rewards.functions.rewards(input.address.checksum))
+            calls.append(pp.crv_rewards.functions.rewardToken())
             # NOTE: pp.crv_rewards.functions.stakingToken() == deposit_token
-            user_reward_per_token_paid = (pp.crv_rewards.functions
-                                          .userRewardPerTokenPaid(input.address.checksum).call())
+            calls.append(pp.crv_rewards.functions.userRewardPerTokenPaid(input.address.checksum))
+
+        results = m.try_aggregate_unwrap(calls)
+
+        i = 0
+        earnings = []
+        for pp in all_pools:
+            balance = results[i]
+            i += 1
+            earned = results[i]
+            i += 1
+            rewards = results[i]
+            i += 1
+            reward_token = results[i]
+            i += 1
+            user_reward_per_token_paid = results[i]
+            i += 1
+
             if balance != 0 or earned != 0 or rewards != 0:
                 earnings.append(ConvexPoolEarning(
                     lp_token=pp.lp_token,

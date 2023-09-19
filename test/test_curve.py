@@ -211,4 +211,4 @@ class TestCurve(CMFTest):
         self.title('Curve - Convex')
         self.run_model('convex-fi.all-pool-info')
         self.run_model(
-            'convex-fi.earned', {'address': '0x5291fBB0ee9F51225f0928Ff6a83108c86327636'})
+            'convex-fi.earned', {"address": "0x5291fBB0ee9F51225f0928Ff6a83108c86327636"})

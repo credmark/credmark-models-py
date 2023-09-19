@@ -144,7 +144,8 @@ class PoolyNFTFundRaiseUSD(Model, PoolyNFT):
         df_price_series = (pd.DataFrame(price_series['results'])
                            .loc[:, ['sampleTimestamp', 'price']]
                            .assign(sampleTimestamp=lambda df: df.sampleTimestamp.astype(int)))
-        df_all = df_all.merge(df_price_series, left_on='block_timestamp_day', right_on='sampleTimestamp', how='left')
+        df_all = df_all.merge(df_price_series, left_on='block_timestamp_day',
+                              right_on='sampleTimestamp', how='left')
         total_raised_value = (df_all.value / 1e18 * df_all.price).sum()
 
         return {'total_supporters': df_all.from_address.nunique(),
