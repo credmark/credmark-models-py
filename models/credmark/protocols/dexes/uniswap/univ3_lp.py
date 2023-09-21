@@ -45,11 +45,25 @@ class UniswapV3LPInput(DTO):
 
 
 class UniswapV3LPPosition(DTO):
+    class LPPositionDetail(DTO):
+        nonce: int
+        operator: Address
+        token0: Address
+        token1: Address
+        fee: int
+        tickLower: int
+        tickUpper: int
+        liquidity: int
+        feeGrowthInside0LastX128: int
+        feeGrowthInside1LastX128: int
+        tokensOwed0: int
+        tokensOwed1: int
     lp: Address = DTOField(description='Account')
     id: int
     pool: Address
     tokens: List[PositionWithFee]
     in_range: str
+    detail: LPPositionDetail = DTOField(description='Position detail')
 
 
 class UniswapV3LPOutput(DTO):
@@ -136,7 +150,7 @@ class UniswapV3IDInput(DTO):
 
 
 @Model.describe(slug='uniswap-v3.id',
-                version='0.4',
+                version='0.5',
                 display_name='Uniswap v3 LP Position and Fee for NFT ID',
                 description='Returns position and Fee for NFT ID',
                 category='protocol',
@@ -256,4 +270,5 @@ class UniswapV2LPId(Model):
         return UniswapV3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
                                    tokens=[PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
                                            PositionWithFee(amount=a1, fee=fee_token1, asset=token1)],
-                                   in_range=in_range_str)
+                                   in_range=in_range_str,
+                                   detail=UniswapV3LPPosition.LPPositionDetail(**position._asdict()))
