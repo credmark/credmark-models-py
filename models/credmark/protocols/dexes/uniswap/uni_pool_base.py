@@ -5,12 +5,15 @@ Uni V2 Pool
 """
 
 import sys
+import warnings
 from datetime import datetime
 
 import pandas as pd
 from credmark.cmf.types import Contract
 
 from models.credmark.chain.contract import fetch_events_with_range
+
+warnings.filterwarnings("error")
 
 
 class UniswapPoolBase:
@@ -63,7 +66,11 @@ class UniswapPoolBase:
                 pool_id, event_name, fix_df_events, protocol, from_block, to_block)
             self.df_evt[event_name] = df_evt
 
-        df_comb_evt = pd.concat(self.df_evt.values())
+        to_concat = [d for d in self.df_evt.values() if d.shape[0] > 0]
+        if len(to_concat) == 0:
+            return pd.DataFrame()
+
+        df_comb_evt = pd.concat(to_concat)
 
         if df_comb_evt.empty:
             return df_comb_evt
