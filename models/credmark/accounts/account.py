@@ -676,14 +676,13 @@ class AccountsPortfolio(Model):
     def get_token_decimals(self, tokens: Set[ChecksumAddress]):
         fn = Token('WETH').as_erc20(True).functions.decimals()
         fn_fallback = Token('WETH').as_erc20(True).functions.DECIMALS()
-        decimals = self.context.multicall.try_aggregate_same_function(
+        decimals = self.context.web3_batch.call_same_function(
             fn,
             list(tokens),
-            fallback_contract_function=fn_fallback
+            fallback_contract_function=fn_fallback,
+            unwrap=True
         )
 
-        decimals = [cast(int, result.return_data_decoded)
-                    if result.success else None for result in decimals]
         return dict(zip(tokens, decimals))
 
     def run(self, input: AccountsWithPrice) -> Portfolio:
@@ -721,7 +720,7 @@ class AccountsPortfolio(Model):
         overall_portfolio = Portfolio(positions=native_positions)
         for address, token_addresses in tokens_by_wallet.items():
             fn = Token('WETH').as_erc20(True).functions.balanceOf(Address(address).checksum)
-            balances = self.context.multicall.try_aggregate_same_function(
+            balances = self.context.web3_batch.call_same_function(
                 fn,
                 token_addresses,
             )
@@ -885,14 +884,13 @@ class AccountsBalances(Model):
     def get_token_decimals(self, tokens: list[ChecksumAddress]):
         fn = Token('WETH').as_erc20(True).functions.decimals()
         fn_fallback = Token('WETH').as_erc20(True).functions.DECIMALS()
-        decimals = self.context.multicall.try_aggregate_same_function(
+        decimals = self.context.web3_batch.call_same_function(
             fn,
             list(tokens),
-            fallback_contract_function=fn_fallback
+            fallback_contract_function=fn_fallback,
+            unwrap=True
         )
 
-        decimals = [cast(int, result.return_data_decoded)
-                    if result.success else None for result in decimals]
         return dict(zip(tokens, decimals))
 
     def include_price(self, positions: List[Position], quote: Currency) -> List[Position]:
@@ -935,7 +933,7 @@ class AccountsBalances(Model):
         overall_portfolio = Portfolio()
         for account in input.accounts:
             fn = Token('WETH').as_erc20(True).functions.balanceOf(account.address.checksum)
-            balances = self.context.multicall.try_aggregate_same_function(
+            balances = self.context.web3_batch.call_same_function(
                 fn,
                 tokens,
             )

@@ -112,25 +112,29 @@ class CurveFinanceGetGauge(Model, CurveMeta):
 class CurveFinanceAllPools(Model, CurveMeta):
     def add_pools_from_stableswap(self, registry, permissionless, registry_type, all_gauges_dict, out_all_addrs, out_pool_contracts):
         original_length = len(out_pool_contracts)
-        m = self.context.multicall
+        batch = self.context.web3_batch
         total_pools = registry.functions.pool_count().call()
-        res_addr = m.try_aggregate_unwrap(
-            [registry.functions.pool_list(i) for i in range(total_pools)])
-        res_pool_info = m.try_aggregate_unwrap(
+        res_addr = batch.call(
+            [registry.functions.pool_list(i) for i in range(total_pools)],
+            unwrap=True)
+        res_pool_info = batch.call(
             [registry.functions.get_balances(addr) for addr in res_addr] +
             [registry.functions.get_coins(addr) for addr in res_addr] +
             [registry.functions.get_decimals(addr) for addr in res_addr],
-            replace_with=[None])
+            unwrap=True,
+            unwrap_default=[None])
 
-        res_is_meta = m.try_aggregate_unwrap(
-            [registry.functions.is_meta(res) for res in res_addr])
+        res_is_meta = batch.call(
+            [registry.functions.is_meta(res) for res in res_addr],
+            unwrap=True)
         if permissionless:
             # Factory: Use Pool / LP token to get gauge
             res_lp_token = res_addr
         else:
             # Registry: Use LP token to get gauge
-            res_lp_token = m.try_aggregate_unwrap(
-                [registry.functions.get_lp_token(addr) for addr in res_addr])
+            res_lp_token = batch.call(
+                [registry.functions.get_lp_token(addr) for addr in res_addr],
+                unwrap=True)
         assert all(not Address(x).is_null() for x in res_lp_token)
 
         duplicated = 0
@@ -180,27 +184,29 @@ class CurveFinanceAllPools(Model, CurveMeta):
     # pylint: disable=too-many-arguments
     def add_pools_from_cryptoswap(self, factory, permissionless, factory_type, use_pool_as_lp, all_gauges_dict, pool_type, out_all_addrs, out_pool_contracts):
         original_length = len(out_pool_contracts)
-        m = self.context.multicall
+        batch = self.context.web3_batch
         total_pools = factory.functions.pool_count().call()
         duplicated = 0
-        res_addr = m.try_aggregate_unwrap(
-            [factory.functions.pool_list(i) for i in range(total_pools)])
-        res_pool_info = m.try_aggregate_unwrap(
+        res_addr = batch.call(
+            [factory.functions.pool_list(i) for i in range(total_pools)],
+            unwrap=True)
+        res_pool_info = batch.call(
             [factory.functions.get_balances(addr) for addr in res_addr] +
             [factory.functions.get_coins(addr) for addr in res_addr] +
             [factory.functions.get_decimals(addr) for addr in res_addr],
-            replace_with=[None])
+            unwrap=True,
+            unwrap_default=[None])
 
         if permissionless:
             if use_pool_as_lp:
                 res_lp_token = res_addr
             else:
                 # Factory: Use Pool / LP token to get gauge
-                res_lp_token = m.try_aggregate_unwrap(
+                res_lp_token = batch.call(
                     [factory.functions.get_token(addr) for addr in res_addr])
         else:
             # Registry: Use LP token to get gauge
-            res_lp_token = m.try_aggregate_unwrap(
+            res_lp_token = batch.call(
                 [factory.functions.get_lp_token(addr) for addr in res_addr])
 
         for (pool_address, lp_token,
@@ -407,11 +413,11 @@ class CurveFinanceAccount(Model, CurveMeta):
             else:
                 gauge_skips.append(n_pool)
 
-        m = self.context.multicall
-        res_lp_call = m.try_aggregate_unwrap(lp_calls)
-        res_lp_scale_call = m.try_aggregate_unwrap(lp_scale_calls)
-        res_gauge_call = m.try_aggregate_unwrap(gauge_calls)
-        res_gauge_scale_call = m.try_aggregate_unwrap(gauge_scale_calls, replace_with=18)
+        batch = self.context.web3_batch
+        res_lp_call = batch.call(lp_calls, unwrap=True)
+        res_lp_scale_call = batch.call(lp_scale_calls, unwrap=True)
+        res_gauge_call = batch.call(gauge_calls, unwrap=True)
+        res_gauge_scale_call = batch.call(gauge_scale_calls, unwrap=True, unwrap_default=18)
 
         for s in gauge_skips:
             res_gauge_call.insert(s, None)
@@ -442,7 +448,7 @@ class CurveFinanceAccount(Model, CurveMeta):
                 positions.append(PoolPosition(pool.dict(), lp_balance, gauge_balance, lp_scale))
                 pool_calls.append(lp_token.functions.totalSupply())
 
-        res_pool_call = m.try_aggregate_unwrap(pool_calls)
+        res_pool_call = batch.call(pool_calls)
 
         curve_positions = []
         for pos, lp_total_supply in zip(positions, res_pool_call):

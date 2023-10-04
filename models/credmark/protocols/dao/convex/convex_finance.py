@@ -107,7 +107,7 @@ class ConvexFinanceEarning(Model):
         all_pools = self.context.run_model('convex-fi.all-pool-info',
                                            {}, return_type=Some[ConvexPoolInfo])
 
-        m = self.context.multicall
+        batch = self.context.web3_batch
 
         calls = []
         for pp in all_pools:
@@ -119,7 +119,7 @@ class ConvexFinanceEarning(Model):
             # NOTE: pp.crv_rewards.functions.stakingToken() == deposit_token
             calls.append(pp.crv_rewards.functions.userRewardPerTokenPaid(input.address.checksum))
 
-        results = m.try_aggregate_unwrap(calls)
+        results = batch.call(calls, unwrap=True)
 
         i = 0
         earnings = []

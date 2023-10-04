@@ -74,8 +74,8 @@ class UniswapV3LiquidityHistorical(Model):
             x += 1
             tick_b = tick_bottom + tick_spacing * x
 
-        m = self.context.multicall
-        ticks_b_result = m.try_aggregate_unwrap(ticks_b_calls)
+        batch = self.context.web3_batch
+        ticks_b_result = batch.call(ticks_b_calls, unwrap=True)
         ticks_b_dict = dict(zip(ticks_b, ticks_b_result))
         return ticks_b_dict
 

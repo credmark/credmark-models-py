@@ -218,7 +218,7 @@ class CurvePool(Contract):
                 return contract.set_abi(CURVE_CRYTOSWAP_ABI, set_loaded=True)
 
     # pylint: disable=unreachable
-    def get_gauge_ref(self, network, multicall, res_addr, res_lp_token):
+    def get_gauge_ref(self, network, batch, res_addr, res_lp_token):
         raise ModelRunError(
             'Registry and meta registry do not contain all the mapping for pool-gauge.')
 
@@ -229,18 +229,22 @@ class CurvePool(Contract):
 
         res_gauges = []
         if network == Network.Mainnet and meta_registry:
-            res_gauges_raw = multicall.try_aggregate_unwrap(
-                [registry.functions.get_gauges(addr) for addr in res_addr])
+            res_gauges_raw = batch.call(
+                [registry.functions.get_gauges(addr) for addr in res_addr],
+                unwrap=True)
             res_gauges_list = [[g for g in res[0] if not Address(g).is_null()]
                                for res in res_gauges_raw]
             res_gauges = [res[0] if len(res) > 0 else None
                           for res in res_gauges_list]
-            res_gauges = multicall.try_aggregate_unwrap(
-                [meta_registry.functions.get_gauge(addr) for addr in res_addr])
+            res_gauges = batch.call(
+                [meta_registry.functions.get_gauge(addr) for addr in res_addr],
+                unwrap=True)
 
         elif x_chain_gauge_factory:
-            res_gauges = multicall.try_aggregate_unwrap(
-                [x_chain_gauge_factory.functions.get_gauge_from_lp_token(addr) for addr in res_lp_token])
+            res_gauges = batch.call(
+                [x_chain_gauge_factory.functions.get_gauge_from_lp_token(
+                    addr) for addr in res_lp_token],
+                unwrap=True)
         print(res_gauges)
 
 

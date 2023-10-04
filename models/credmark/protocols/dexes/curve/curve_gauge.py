@@ -33,16 +33,18 @@ class CurveGaugeInput(Contract):
                 output=CurveGauges)
 class CurveFinanceAllGauges(Model, CurveMeta):
     def add_lp_tokens(self, gauges: List[str]) -> CurveGauges:
-        m = self.context.multicall
+        batch = self.context.web3_batch
         n_gauges = len(gauges)
         gauges_contract_raw = [CurveGauge.fix_gauge_abi(
             Contract(address=gauge)) for gauge in gauges]
-        lp_tokens = m.try_aggregate_unwrap(
+        lp_tokens = batch.call(
             [gauge.functions.lp_token() for gauge in gauges_contract_raw],
-            replace_with=Address.null())
-        is_killeds = m.try_aggregate_unwrap(
+            unwrap=True,
+            unwrap_default=Address.null())
+        is_killeds = batch.call(
             [gauge.functions.is_killed() for gauge in gauges_contract_raw],
-            replace_with=Address.null())
+            unwrap=True,
+            unwrap_default=Address.null())
         gauges_contract_comb = [CurveGauge(address=Address(gauge), lp_token=Token(address=lp_token))
                                 for gauge, lp_token, is_killed in zip(gauges, lp_tokens, is_killeds) if not Address(lp_token).is_null() and not is_killed]
         # When one LP token is used in multiple gauges, the later assigned gauge is used.
@@ -58,19 +60,21 @@ class CurveFinanceAllGauges(Model, CurveMeta):
         return CurveGauges(contracts=gauges_contract_reduced)
 
     def mainnet(self):
-        m = self.context.multicall
+        batch = self.context.web3_batch
         gauge_controller = self.get_gauge_controller()
         n_gauges = gauge_controller.functions.n_gauges().call()
-        gauges = m.try_aggregate_unwrap(
-            [gauge_controller.functions.gauges(i) for i in range(n_gauges)])
+        gauges = batch.call(
+            [gauge_controller.functions.gauges(i) for i in range(n_gauges)],
+            unwrap=True)
         return self.add_lp_tokens(gauges)
 
     def other(self):
-        m = self.context.multicall
+        batch = self.context.web3_batch
         x_chain_gauge_factory = self.get_x_chain_gauge_factory(self.context.network)
         n_gauges = x_chain_gauge_factory.functions.get_gauge_count().call()
-        gauges = m.try_aggregate_unwrap(
-            [x_chain_gauge_factory.functions.get_gauge(i) for i in range(n_gauges)])
+        gauges = batch.call(
+            [x_chain_gauge_factory.functions.get_gauge(i) for i in range(n_gauges)],
+            unwrap=True)
         return self.add_lp_tokens(gauges)
 
     def run(self, _) -> CurveGauges:
