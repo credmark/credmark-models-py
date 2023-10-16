@@ -1,8 +1,9 @@
 from typing import cast
+
 from credmark.cmf.model import CachePolicy, Model
-from credmark.cmf.types import Account, NetworkDict, Network
-from credmark.cmf.types.compose import MapInputsOutput
 from credmark.cmf.model.errors import ModelDataError, ModelEngineError
+from credmark.cmf.types import Account, Network, NetworkDict
+from credmark.cmf.types.compose import MapInputsOutput
 
 
 class CredoraBalancesInput(Account):

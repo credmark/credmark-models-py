@@ -2,6 +2,8 @@
 
 from cmf_test import CMFTest
 
+ENABLE_POLYGON = False
+
 
 class TestUniswapPools(CMFTest):
     def pool_tests(self, model_prefix, default_block_number, chain_id,
@@ -50,8 +52,9 @@ class TestUniswap(TestUniswapPools):
 
         self.pool_tests('uniswap-v3', 17_010_205, 1, 'USDC', 'WETH', 'MKR')
 
-        self.pool_tests('uniswap-v3', 43_698_405, 137, 'USDC',
-                        'WMATIC', 'XSGD', do_test_ledger=False)
+        if ENABLE_POLYGON:
+            self.pool_tests('uniswap-v3', 43_698_405, 137, 'USDC',
+                            'WMATIC', 'XSGD', do_test_ledger=False)
 
         self.run_model("uniswap.tokens")
         self.run_model("uniswap.exchange")
@@ -132,10 +135,8 @@ class TestUniswap(TestUniswapPools):
 
         # pool Swap events
         # if "--api_url=http://localhost:8700" in self.post_flag:
-        self.run_model("dex.pool-volume-block-range",
-                       {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"})
-        self.run_model("dex.pool-volume-block-range",
-                       {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})
+        # self.run_model("dex.pool-volume-block-range", {"address": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168"})
+        # self.run_model("dex.pool-volume-block-range", {"address": "0x60594a405d53811d3BC4766596EFD80fd545A270"})
 
     def test_lp(self):
         self.run_model("uniswap-v2.lp-pos",

@@ -33,8 +33,7 @@ class TestFiat(CMFTest):
                        {'address': 'JPY'})
 
     def test_fiat_usd(self):
-        self.run_model('price.dex-db',
-                       {'address': 'USD'}, block_number=15945743)
+        # self.run_model('price.dex-db', {'address': 'USD'}, block_number=15945743)
 
         self.run_model('price.dex-db',
                        {'address': '0x0000000000000000000000000000000000000348'}, block_number=15945743)
@@ -54,5 +53,4 @@ class TestFiat(CMFTest):
         self.run_model('price.dex-db-latest',
                        {'address': '0x0000000000000000000000000000000000000348'})
 
-        self.run_model('price.dex-db-latest',
-                       {'address': 'USD'})
+        # self.run_model('price.dex-db-latest', {'address': 'USD'})

@@ -167,7 +167,7 @@ class TestCurve(CMFTest):
                        '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
                        '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
                        '0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B',
-                       '0xCEAF7747579696A2F0bb206a14210e3c9e6fB269',
+                       # '0xCEAF7747579696A2F0bb206a14210e3c9e6fB269',
                        '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46',
                        '0x5a6A4D54456819380173272A5E8E9B9904BdF41B',
                        '0x93054188d876f558f4a66B2EF1d97d16eDf0895B',

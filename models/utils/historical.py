@@ -5,6 +5,7 @@ from credmark.cmf.types.compose import (
     MapBlockTimeSeriesOutput,
 )
 from credmark.cmf.types.series import BlockSeries, BlockSeriesErrorRow, BlockSeriesRow
+
 from models.dtos.historical import HistoricalRunModelInput
 
 

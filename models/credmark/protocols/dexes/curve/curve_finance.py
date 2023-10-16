@@ -103,7 +103,7 @@ class CurveFinanceGetGauge(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.all-pools",
-                version="1.15",
+                version="1.16",
                 display_name="Curve Finance - Get all pools",
                 description="Query the registry for all pools",
                 category='protocol',
@@ -203,11 +203,11 @@ class CurveFinanceAllPools(Model, CurveMeta):
             else:
                 # Factory: Use Pool / LP token to get gauge
                 res_lp_token = batch.call(
-                    [factory.functions.get_token(addr) for addr in res_addr])
+                    [factory.functions.get_token(addr) for addr in res_addr], unwrap=True)
         else:
             # Registry: Use LP token to get gauge
             res_lp_token = batch.call(
-                [factory.functions.get_lp_token(addr) for addr in res_addr])
+                [factory.functions.get_lp_token(addr) for addr in res_addr], unwrap=True)
 
         for (pool_address, lp_token,
              balances,
@@ -344,7 +344,7 @@ class CurveFinanceAllPools(Model, CurveMeta):
 
 
 @Model.describe(slug="curve-fi.account",
-                version="0.3",
+                version="0.4",
                 display_name="Curve Finance Pool - Account",
                 description="The amount of user's liquidity in a Curve Pool / Gauge",
                 category='protocol',
@@ -448,7 +448,7 @@ class CurveFinanceAccount(Model, CurveMeta):
                 positions.append(PoolPosition(pool.dict(), lp_balance, gauge_balance, lp_scale))
                 pool_calls.append(lp_token.functions.totalSupply())
 
-        res_pool_call = batch.call(pool_calls)
+        res_pool_call = batch.call(pool_calls, unwrap=True)
 
         curve_positions = []
         for pos, lp_total_supply in zip(positions, res_pool_call):
