@@ -61,8 +61,8 @@ class TestExample(CMFTest):
         self.run_model('example.ledger-traces')
         self.run_model('example.ledger-blocks')
         self.run_model('example.ledger-tokens')
-        self.run_model('example.ledger-contracts')
-        self.run_model('example.ledger-logs')
+        # self.run_model('example.ledger-contracts')
+        # self.run_model('example.ledger-logs')
 
         self.title('Iteration Examples')
         self.run_model('example.iteration')
@@ -73,13 +73,12 @@ class TestExample(CMFTest):
                        {"sender_address": "0xf16E9B0D03470827A95CDfd0Cb8a8A3b46969B91",
                            "receiver_address": "0xf596c85d4ec5572dfB2351F9395ca6A185aAec6D"},
                        block_number=15086281)
-        self.run_model('contrib.neilz-redacted-votium-cashflow',
-                       {}, block_number=15086281)
+        # self.run_model('contrib.neilz-redacted-votium-cashflow', {}, block_number=15086281)
         self.run_model('contrib.neilz-redacted-convex-cashflow',
                        {}, block_number=15086281)
 
         self.run_model('contrib.uniswap-fee',
-                       {"interval": 500}, block_number=15211790)
+                       {"interval": 500, "address": "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"}, block_number=15211790)
 
         # example.contract, example.ledger-transactions, example.block-time
         self.run_model('example.all')

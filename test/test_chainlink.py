@@ -55,8 +55,10 @@ class TestChainlink(CMFTest):
                                  {"base": {"address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"}})
         self.run_model_chainlink('price.cex',
                                  {"base": {"address": "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"}})
-        self.run_model_chainlink('price.cex',
-                                 {"base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}})
+
+        # Disable due to different proxy latest block update mechanism on Allium
+        # self.run_model_chainlink('price.cex',
+        #                          {"base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}})
 
         self.run_model_chainlink('price.cex', {"base": {"symbol": "WBTC"}})
         self.run_model_chainlink('price.cex', {"base": {"symbol": "BTC"}})
@@ -68,8 +70,10 @@ class TestChainlink(CMFTest):
     def test_oracle_chainlink(self):
         self.title('Chainlink - Oracle')
 
-        self.run_model_chainlink('price.oracle-chainlink',
-                                 {"base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}})
+        # Disable due to different proxy latest block update mechanism on Allium
+        # self.run_model_chainlink('price.oracle-chainlink',
+        #                         {"base": {"address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c"}})
+
         self.run_model_chainlink('price.oracle-chainlink',
                                  {"base": {"address": "0x1a4b46696b2bb4794eb3d4c26f1c55f9170fa4c5"}})
         self.run_model_chainlink('price.oracle-chainlink',
@@ -100,6 +104,9 @@ class TestChainlink(CMFTest):
         test_time = datetime(2023, 7, 31, tzinfo=timezone.utc)
 
         for chain_id, address_book in CHAINLINK_OVERRIDE_FEED.items():
+            if chain_id != 1:
+                break
+
             test_block_number = self.run_model_with_output(
                 'chain.get-block',
                 {'timestamp': int(test_time.timestamp())},

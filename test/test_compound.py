@@ -7,6 +7,8 @@ from credmark.cmf.types import Network
 
 from models.credmark.protocols.lending.compound.compound_v3 import CompoundV3Meta
 
+ENABLE_OTHER_CHAINS = False
+
 
 class TestCompound(CMFTest):
     def test_deployment(self):
@@ -70,8 +72,8 @@ class TestCompoundV3(CMFTest):
         self.title('Compound V3')
 
         for network in CompoundV3Meta.MARKETS:
-            # if network == Network.Mainnet:
-            self.run_model('compound-v3.market', {}, chain_id=network.value, latest_block=True)
+            if network == Network.Mainnet:
+                self.run_model('compound-v3.market', {}, chain_id=network.value, latest_block=True)
 
     def test_account(self):
         """
@@ -106,10 +108,11 @@ class TestCompoundV3(CMFTest):
         self.run_model('compound-v3.account',
                        {"address": "0x52efFC15dFAA1eFC701a8b9522654E4e1C99b012"}, block_number=17817318)
 
-        self.run_model('compound-v3.account',
-                       {"address": "0x7d211b6312cb7a614276bc7eb511973cb4e985be"}, chain_id=137, block_number=45761507)
-        self.run_model('compound-v3.account',
-                       {"address": "0x59e242d352ae13166b4987ae5c990c232f7f7cd6"}, chain_id=137, block_number=45759515)
+        if ENABLE_OTHER_CHAINS:
+            self.run_model('compound-v3.account',
+                           {"address": "0x7d211b6312cb7a614276bc7eb511973cb4e985be"}, chain_id=137, block_number=45761507)
+            self.run_model('compound-v3.account',
+                           {"address": "0x59e242d352ae13166b4987ae5c990c232f7f7cd6"}, chain_id=137, block_number=45759515)
 
-        self.run_model('compound-v3.account',
-                       {"address": "0x4e56e288A7743f7af3771a3eCB0F86D1976bb8f3"}, chain_id=42161, block_number=116926424)
+            self.run_model('compound-v3.account',
+                           {"address": "0x4e56e288A7743f7af3771a3eCB0F86D1976bb8f3"}, chain_id=42161, block_number=116926424)

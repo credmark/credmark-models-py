@@ -4,7 +4,7 @@ import functools
 import math
 from collections import defaultdict
 from enum import Enum
-from typing import List, Set, cast
+from typing import List, Set
 
 import numpy as np
 import pandas as pd

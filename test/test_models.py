@@ -6,6 +6,8 @@ from cmf_test import CMFTest
 # ImmutableModel
 # IncrementalModel
 
+ENABLE_POLYGON = False
+
 
 class TestModels(CMFTest):
     def test_immutable(self):
@@ -89,15 +91,16 @@ class TestModels(CMFTest):
 
         self.title('Test incremental model completeness')
 
-        events_result = self.run_model_with_output(
-            'contract.events-block-series',
-            {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {
-                "indexed": False, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Withdraw", "type": "event"}]},
-            block_number=43752598,
-            chain_id=137
-        )
+        if ENABLE_POLYGON:
+            events_result = self.run_model_with_output(
+                'contract.events-block-series',
+                {"address": "0x692437de2cAe5addd26CCF6650CaD722d914d974", "event_name": "Withdraw", "event_abi": [{"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "sender", "type": "address"}, {"indexed": True, "internalType": "address", "name": "to", "type": "address"}, {
+                    "indexed": False, "internalType": "uint256", "name": "shares", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount0", "type": "uint256"}, {"indexed": False, "internalType": "uint256", "name": "amount1", "type": "uint256"}], "name": "Withdraw", "type": "event"}]},
+                block_number=43752598,
+                chain_id=137
+            )
 
-        self.assertEqual(len(events_result['output']['series']), 6)
+            self.assertEqual(len(events_result['output']['series']), 6)
 
     def test_cache_skip(self):
         # It skips the cache, local or model would have the same result

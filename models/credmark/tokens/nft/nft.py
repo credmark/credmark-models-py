@@ -75,10 +75,12 @@ class NFTMint(Model):
                                     (tx.TO_ADDRESS, 'to_address'),
                                     (tx.TRANSACTION_INDEX, 'transaction_index'),
                                     (ts.TXN_HASH, 'hash')],
-                        where=ts.EVT_FROM.eq(Address.null()).and_(tx.TO_ADDRESS.eq(contract.address)),
+                        where=ts.EVT_FROM.eq(Address.null()).and_(
+                            tx.TO_ADDRESS.eq(contract.address)),
                         joins=[(JoinType.LEFT_OUTER, tx, tx.HASH.eq(ts.TXN_HASH))],
                         # When use limit/offset, the order_by must be unique
-                        order_by=tx.BLOCK_NUMBER.comma_(tx.TRANSACTION_INDEX).comma_(ts.EVT_TOKENID),
+                        order_by=tx.BLOCK_NUMBER.comma_(
+                            tx.TRANSACTION_INDEX).comma_(ts.EVT_TOKENID),
                         limit=5000,
                         offset=pg * 5000).to_dataframe()
 
@@ -128,7 +130,8 @@ class NFTMint(Model):
         df_price_series = (pd.DataFrame(price_series['results'])
                            .loc[:, ['sampleTimestamp', 'price']]
                            .assign(sampleTimestamp=lambda df: df.sampleTimestamp.astype(int)))
-        df_all = df_mint.merge(df_price_series, left_on='block_timestamp_day', right_on='sampleTimestamp', how='left')
+        df_all = df_mint.merge(df_price_series, left_on='block_timestamp_day',
+                               right_on='sampleTimestamp', how='left')
         df_all['cost'] = df_all.value * df_all.price
 
         df_all['cost_cumu'] = df_all['cost'].cumsum()
@@ -162,6 +165,9 @@ class NFTGetInput(NFTContract):
                 input=NFTGetInput,
                 output=dict)
 class NFTGet(Model):
+    # disable due to outdated ifps library to Python 3.11
+    ENABLE_IPFS = False
+
     def run(self, input: NFTGetInput) -> dict:
         owner = Address(input.functions.ownerOf(input.id).call()).checksum
         balance_of = input.functions.balanceOf(owner).call()
@@ -178,7 +184,7 @@ class NFTGet(Model):
         key = os.environ.get('INFURA_IPFS_KEY')
         secret = os.environ.get('INFURA_IPFS_SECRET')
 
-        if key is not None and secret is not None:
+        if self.ENABLE_IPFS and key is not None and secret is not None:
             warnings.filterwarnings('ignore', category=ipfshttpclient.exceptions.VersionMismatch)
             with ipfshttpclient.connect('/dns/ipfs.infura.io/tcp/5001/https', auth=(key, secret)) as client:
                 path = tokenURI.replace('ipfs://', '')
