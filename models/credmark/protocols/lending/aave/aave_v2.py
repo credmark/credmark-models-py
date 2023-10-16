@@ -22,6 +22,7 @@ from models.credmark.tokens.token import get_eip1967_proxy, get_eip1967_proxy_er
 from models.dtos.tvl import LendingPoolPortfolios
 from models.tmp_abi_lookup import (
     AAVE_ATOKEN,
+    AAVE_LENDING_POOL,
     AAVE_STABLEDEBT_ABI,
 )
 
@@ -295,9 +296,9 @@ class AaveV2GetTokenAsset(Model):
                                                   self.logger,
                                                   aave_lending_pool.address,
                                                   True)
-
-        reservesData = aave_lending_pool.functions.getReserveData(
-            input.address).call()
+        if aave_lending_pool.proxy_for is not None:
+            aave_lending_pool.proxy_for.set_abi(AAVE_LENDING_POOL, set_loaded=True)
+        reservesData = aave_lending_pool.functions.getReserveData(input.address).call()
 
         # reservesData
         # | Name | Type | Description |
