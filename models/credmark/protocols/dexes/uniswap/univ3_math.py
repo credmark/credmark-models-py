@@ -4,7 +4,7 @@ UniV3 Math
 
 # pylint:disable=invalid-name, missing-function-docstring
 
-from math import log
+from math import floor, log, sqrt
 
 import numpy as np
 
@@ -42,6 +42,41 @@ def price_to_tick(price):
     price to tick
     """
     return log(price) / log(UNISWAP_TICK)
+
+
+def sqrt_price_x_96_to_price(sqrtPrice96, token0_decimals, token1_decimals):
+    """
+    token0 price in token1: from token0_decimals - token1_decimals
+    """
+    num = sqrtPrice96 * sqrtPrice96
+    denom = 2 ** 192
+    _price0 = num / denom * 10 ** (token0_decimals - token1_decimals)
+    try:
+        _price1 = 1 / _price0
+    except (FloatingPointError, ZeroDivisionError):
+        _price1 = 0
+        _price0 = 0
+    return _price0
+
+
+Q96 = 2 ** 96
+
+
+def tick_to_sqrt_price_x_96(tick):
+    return int(1.0001 ** (tick / 2) * Q96)
+
+
+base_1_0001 = sqrt(1.0001)
+
+
+def sqrt_price_x_96_to_tick(sqrt_price_x_96):
+    p = sqrt_price_x_96 / Q96
+    return floor(log(p, base_1_0001))
+
+
+def test_sqrt_price_x_96_to_tick():
+    assert tick_to_sqrt_price_x_96(204632) == 2198795518956857915306525730013184
+    assert sqrt_price_x_96_to_tick(2198795518956857915306525730013184) == 204632
 
 
 def calculate_onetick_liquidity(
