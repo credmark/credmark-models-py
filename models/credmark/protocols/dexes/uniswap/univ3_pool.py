@@ -6,6 +6,7 @@ Uni V3 Pool
 
 import math
 import sys
+from functools import partial
 from typing import Optional, cast
 
 import pandas as pd
@@ -16,7 +17,13 @@ from credmark.dto import DTO
 
 from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase, fetch_events_with_cols
 from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
-from models.credmark.protocols.dexes.uniswap.univ3_math import calculate_onetick_liquidity, in_range, out_of_range
+from models.credmark.protocols.dexes.uniswap.univ3_lvr import calc_fee, calc_swap_price, lvr
+from models.credmark.protocols.dexes.uniswap.univ3_math import (
+    calculate_onetick_liquidity,
+    in_range,
+    out_of_range,
+    sqrt_price_x_96_to_price,
+)
 from models.dtos.pool import PoolPriceInfoWithVolume
 
 
@@ -40,7 +47,8 @@ class UniV3Pool(UniswapPoolBase):
     Uniswap V3 Pool
     """
 
-    EVENT_LIST = ['Initialize', 'Collect', 'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']
+    EVENT_LIST = ['Initialize', 'Collect',
+                  'CollectProtocol', 'Flash', 'Swap', 'Mint', 'Burn']
 
     def __init__(self, pool_addr: Address, _protocol: str, _pool_data: Optional[dict] = None):
         self._balance = {}
@@ -62,8 +70,10 @@ class UniV3Pool(UniswapPoolBase):
 
         self.tick_spacing = cast(int, self.pool.functions.tickSpacing().call())
 
-        self.token0_addr = cast(str, self.pool.functions.token0().call()).lower()
-        self.token1_addr = cast(str, self.pool.functions.token1().call()).lower()
+        self.token0_addr = cast(
+            str, self.pool.functions.token0().call()).lower()
+        self.token1_addr = cast(
+            str, self.pool.functions.token1().call()).lower()
 
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
@@ -128,7 +138,8 @@ class UniV3Pool(UniswapPoolBase):
 
                 def _one_time_collect_refresh():
                     if self.pool.abi is None:
-                        raise ValueError(f'Pool abi missing for {self.pool.address}')
+                        raise ValueError(
+                            f'Pool abi missing for {self.pool.address}')
 
                     self.df_evt['Collect'] = fetch_events_with_cols(
                         self.pool, self.pool.events.Collect,
@@ -140,8 +151,10 @@ class UniV3Pool(UniswapPoolBase):
                         self.token0_collect = int(0)
                         self.token1_collect = int(0)
                     else:
-                        self.token0_collect = sum(self.df_evt['Collect'].amount0.to_list())
-                        self.token1_collect = sum(self.df_evt['Collect'].amount1.to_list())
+                        self.token0_collect = sum(
+                            self.df_evt['Collect'].amount0.to_list())
+                        self.token1_collect = sum(
+                            self.df_evt['Collect'].amount1.to_list())
 
                 # _one_time_collect_refresh()
 
@@ -154,7 +167,8 @@ class UniV3Pool(UniswapPoolBase):
                             .drop(columns=[0, 1])
                             .sort_values('index'))
 
-                df_ticks.loc[:, 'liquidityCumsum'] = df_ticks.liquidityNet.cumsum()
+                df_ticks.loc[:,
+                             'liquidityCumsum'] = df_ticks.liquidityNet.cumsum()
                 df_ticks.loc[:, 'upperTick'] = df_ticks['index'].shift(-1)
 
                 t0 = 0
@@ -166,7 +180,8 @@ class UniV3Pool(UniswapPoolBase):
                         t0_t, t1_t = in_range(row.liquidityCumsum,
                                               row.upperTick, row.index, self.pool_tick)
                     else:
-                        t0_t, t1_t = out_of_range(row.liquidityCumsum, row.upperTick, row.index)
+                        t0_t, t1_t = out_of_range(
+                            row.liquidityCumsum, row.upperTick, row.index)
                     t0 += t0_t
                     t1 += t1_t
                     print((t0, t1, t0_t, t1_t))
@@ -254,8 +269,10 @@ class UniV3Pool(UniswapPoolBase):
         if not df_comb_evt.empty:
             context = ModelContext.current_context()
             with context.fork(block_number=int(df_comb_evt.blockNumber.max())):
-                token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-                token1_reserve = self.token1.balance_of(self.pool.address.checksum)
+                token0_reserve = self.token0.balance_of(
+                    self.pool.address.checksum)
+                token1_reserve = self.token1.balance_of(
+                    self.pool.address.checksum)
 
             try:
                 assert token0_balance <= token0_reserve
@@ -266,7 +283,8 @@ class UniV3Pool(UniswapPoolBase):
     def sqrtPriceX96toTokenPrices(self, sqrtPrice96):
         num = sqrtPrice96 * sqrtPrice96
         denom = 2 ** 192
-        price0 = num / denom * 10 ** (self.token0_decimals - self.token1_decimals)
+        price0 = num / denom * \
+            10 ** (self.token0_decimals - self.token1_decimals)
         try:
             price1 = 1 / price0
         except (FloatingPointError, ZeroDivisionError):
@@ -311,9 +329,12 @@ class UniV3Pool(UniswapPoolBase):
         else:
             context = ModelContext.current_context()
             with context.fork(block_number=int(self.block_number)):
-                self.token0_reserve = self.token0.balance_of(self.pool.address.checksum)
-                self.token1_reserve = self.token1.balance_of(self.pool.address.checksum)
-                self._balance[int(self.block_number)] = self.token0_reserve, self.token1_reserve
+                self.token0_reserve = self.token0.balance_of(
+                    self.pool.address.checksum)
+                self.token1_reserve = self.token1.balance_of(
+                    self.pool.address.checksum)
+                self._balance[int(self.block_number)
+                              ] = self.token0_reserve, self.token1_reserve
 
         reserve0_scaled = self.token0.scaled(self.token0_reserve)
         reserve1_scaled = self.token1.scaled(self.token1_reserve)
@@ -516,3 +537,40 @@ class UniV3Pool(UniswapPoolBase):
 
         # The amount is to be collected later.
         return (event_row['blockNumber'], event_row['logIndex'], self.get_pool_price_info())
+
+    def enrich_univ3_swap(self):
+        pool_fee = self.pool.functions.fee().call() / 1e6
+        if self.df_evt['Swap'].empty:
+            return
+
+        self.df_evt['Swap'] = (
+            self.df_evt['Swap']
+            .assign(token0_price=lambda df: df.sqrtPriceX96.apply(partial(sqrt_price_x_96_to_price,
+                                                                          token0_decimals=self.token0.decimals,
+                                                                          token1_decimals=self.token1.decimals)),
+                    token1_price=lambda df: 1 / df.token0_price,
+
+                    amount0_scaled=lambda df: df.amount0.apply(
+                        self.token0.scaled),
+                    amount1_scaled=lambda df: df.amount1.apply(
+                        self.token1.scaled),
+
+                    # When a token is swapped in, only ((1 - fee) * amount) was used, (fee * amount) is the fee.
+                    # We use positive for swap-in token, negative for swap-out token.
+                    fee0=lambda df: df.amount0_scaled.apply(
+                        partial(calc_fee, fee=pool_fee)),
+                    fee1=lambda df: df.amount1_scaled.apply(
+                        partial(calc_fee, fee=pool_fee)),
+
+                    # We calculate the swap price
+                    swap0_price=lambda df, pool_fee=pool_fee: df.apply(
+                        partial(calc_swap_price, fee=pool_fee, which_token=0), axis=1),
+                    swap1_price=lambda df, pool_fee=pool_fee: df.apply(
+                        partial(calc_swap_price, fee=pool_fee, which_token=1), axis=1),
+
+                    # lvr0 is lvr in token0
+                    # lvr1 is lvr in token1
+                    lvr0=lambda df: df.apply(
+                        partial(lvr, which_token=0), axis=1),
+                    lvr1=lambda df: df.apply(partial(lvr, which_token=1), axis=1))
+        )

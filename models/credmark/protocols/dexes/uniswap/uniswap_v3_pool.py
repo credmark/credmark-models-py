@@ -138,7 +138,8 @@ class UniswapV3GetPoolInfo(Model):
         elif 'globalState' in pool.abi.functions:
             slot0 = pool.functions.globalState().call()
         else:
-            raise ModelRunError('Unable to query V3 pool state, neither Uniswap/PancakeSwap nor QuickSwap')
+            raise ModelRunError(
+                'Unable to query V3 pool state, neither Uniswap/PancakeSwap nor QuickSwap')
 
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
@@ -445,7 +446,6 @@ class DexPrimaryTokensUniV3(Model):
             pool_infos = self.context.run_model('uniswap-v3.get-pool-info-token-price',
                                                 input={'address': tok_addr},
                                                 return_type=Some[PoolPriceInfo])
-
             df = (pool_infos
                   .to_dataframe()
                   .assign(
