@@ -27,17 +27,21 @@ def calc_fee(amount, fee):
 
 
 def calc_swap_price(row, fee, which_token):
+    if row.amount0_scaled == 0 or row.amount1_scaled == 0:
+        return None
+
     if which_token == 0:
         if row.amount1_scaled > 0:
             return row.amount1_scaled * (1 - fee) / - row.amount0_scaled
-        else:
-            return - row.amount1_scaled / row.amount0_scaled / (1 - fee)
+        # elif row.amount0_scaled > 0
+        return - row.amount1_scaled / row.amount0_scaled / (1 - fee)
 
-    elif which_token == 1:
+    if which_token == 1:
         if row.amount0_scaled > 0:
             return row.amount0_scaled * (1 - fee) / - row.amount1_scaled
-        else:
-            return - row.amount0_scaled / row.amount1_scaled / (1 - fee)
+        # elif row.amount1_scaled > 0
+        return - row.amount0_scaled / row.amount1_scaled / (1 - fee)
+
     raise ValueError("which_token must be 0 or 1")
 
 
@@ -47,13 +51,17 @@ def lvr(row, which_token):
     LVR is the difference in value between the re-balancing portfolio (Rt) and the CFMM pool (Vt)
     LVR = (Rt - Vt)
     """
+
+    if row.amount0_scaled == 0 or row.amount1_scaled == 0:
+        return None
+
     if row.amount0_scaled <= 0:
-        if which_token == 1:
-            # sell token0 for token1
-            return - row.amount0_scaled * (row.token0_price - row.swap0_price)
         if which_token == 0:
             # sell token0 for token1 * token1's price in token0
             return - row.amount0_scaled * (row.token0_price - row.swap0_price) * row.token1_price
+        if which_token == 1:
+            # sell token0 for token1
+            return - row.amount0_scaled * (row.token0_price - row.swap0_price)
         raise ValueError("which_token must be 0 or 1")
 
     if row.amount1_scaled < 0:
