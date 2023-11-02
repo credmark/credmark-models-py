@@ -11,7 +11,7 @@ from ens import ENS
 from web3.exceptions import ContractLogicError
 
 from models.dtos.price import PriceInput
-from models.tmp_abi_lookup import CHAINLINK_AGG
+from models.tmp_abi_lookup import CHAINLINK_AGG, FEED_REGISTRY
 
 
 @Model.describe(slug='chainlink.get-feed-registry',
@@ -30,7 +30,10 @@ class ChainLinkFeedRegistry(Model):
     def run(self, _) -> Contract:
         registry = Contract(
             address=self.CHAINLINK_REGISTRY[self.context.network])
-        _ = registry.abi
+        try:
+            _ = registry.abi
+        except ModelDataError:
+            registry = registry.set_abi(FEED_REGISTRY, set_loaded=True)
         return registry
 
 
