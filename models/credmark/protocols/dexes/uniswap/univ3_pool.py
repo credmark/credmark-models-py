@@ -79,7 +79,7 @@ class UniV3Pool(UniswapPoolBase):
             self.token0 = Token(Address(self.token0_addr).checksum)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
-        except ModelDataError:
+        except (ModelDataError, OverflowError):
             self.token0 = Token(Address(
                 self.token0_addr).checksum).as_erc20(set_loaded=True)
             self.token0_decimals = self.token0.decimals
@@ -89,7 +89,7 @@ class UniV3Pool(UniswapPoolBase):
             self.token1 = Token(Address(self.token1_addr).checksum)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
-        except ModelDataError:
+        except (ModelDataError, OverflowError):
             self.token1 = Token(address=Address(
                 self.token1_addr).checksum).as_erc20(set_loaded=True)
             self.token1_decimals = self.token1.decimals
