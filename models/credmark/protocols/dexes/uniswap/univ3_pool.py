@@ -82,16 +82,15 @@ class UniV3Pool(UniswapPoolBase):
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except (ModelDataError, OverflowError):
-            self.token0 = Token(Address(
-                self.token0_addr).checksum).as_erc20(set_loaded=True)
-
             deployment = context.run_model(
-                'token.deployment-maybe', {'address': self.token0.address}, return_type=Maybe[dict])
+                'token.deployment-maybe', {'address': self.token0_addr}, return_type=Maybe[dict])
             if not deployment.just:
                 raise ValueError(f"Unable to find token deployment for {self.token0}") from None
 
             deployment_block_number = deployment.just["deployed_block_number"]
             with context.fork(block_number=deployment_block_number) as _past_context:
+                self.token0 = Token(Address(
+                    self.token0_addr).checksum).as_erc20(set_loaded=True)
                 self.token0_decimals = self.token0.decimals
                 self.token0_symbol = self.token0.symbol
 
@@ -100,16 +99,15 @@ class UniV3Pool(UniswapPoolBase):
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except (ModelDataError, OverflowError):
-            self.token1 = Token(address=Address(
-                self.token1_addr).checksum).as_erc20(set_loaded=True)
-
             deployment = context.run_model(
-                'token.deployment-maybe', {'address': self.token1.address}, return_type=Maybe[dict])
+                'token.deployment-maybe', {'address': self.token1_addr}, return_type=Maybe[dict])
             if not deployment.just:
                 raise ValueError(f"Unable to find token deployment for {self.token1}") from None
 
             deployment_block_number = deployment.just["deployed_block_number"]
             with context.fork(block_number=deployment_block_number) as _past_context:
+                self.token1 = Token(address=Address(
+                    self.token1_addr).checksum).as_erc20(set_loaded=True)
                 self.token1_decimals = self.token1.decimals
                 self.token1_symbol = self.token1.symbol
 
