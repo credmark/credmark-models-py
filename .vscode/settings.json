@@ -3,7 +3,12 @@
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticMode": "workspace",
     "autopep8.args": ["--max-line-length", "100"],
-    "ruff.args": ["--ignore", "E501", "--ignore", "F841", "--ignore", "F401"],
+    "ruff.lint.args": [
+        "--ignore",
+        "E501",
+        "--ignore",
+        "F841",
+      ],
     "editor.formatOnSave": true,
     "cSpell.words": [
         "aave",
