@@ -7,8 +7,9 @@ Uni V2 Pool
 from typing import Optional
 
 import numpy as np
+from credmark.cmf.model import ModelContext
 from credmark.cmf.model.errors import ModelDataError
-from credmark.cmf.types import Address, Contract, Token
+from credmark.cmf.types import Address, Contract, Maybe, Token
 
 from models.credmark.protocols.dexes.uniswap.uni_pool_base import UniswapPoolBase
 from models.dtos.pool import PoolPriceInfoWithVolume
@@ -44,25 +45,41 @@ class UniV2Pool(UniswapPoolBase):
 
         self.df_evt = {}
 
+        context = ModelContext.current_context()
+
         try:
             self.token0 = Token(Address(self.token0_addr).checksum)
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
-        except ModelDataError:
-            self.token0 = Token(
-                Address(self.token0_addr).checksum).as_erc20(set_loaded=True)
-            self.token0_decimals = self.token0.decimals
-            self.token0_symbol = self.token0.symbol
+        except (ModelDataError, OverflowError):
+            deployment = context.run_model(
+                'token.deployment-maybe', {'address': self.token0_addr}, return_type=Maybe[dict])
+            if not deployment.just:
+                raise ValueError(f"Unable to find token deployment for {self.token0}") from None
+
+            deployment_block_number = deployment.just["deployed_block_number"]
+            with context.fork(block_number=deployment_block_number) as _past_context:
+                self.token0 = Token(Address(
+                    self.token0_addr).checksum).as_erc20(set_loaded=True)
+                self.token0_decimals = self.token0.decimals
+                self.token0_symbol = self.token0.symbol
 
         try:
             self.token1 = Token(Address(self.token1_addr).checksum)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
-        except ModelDataError:
-            self.token1 = Token(address=Address(
-                self.token1_addr).checksum).as_erc20(set_loaded=True)
-            self.token1_decimals = self.token1.decimals
-            self.token1_symbol = self.token1.symbol
+        except (ModelDataError, OverflowError):
+            deployment = context.run_model(
+                'token.deployment-maybe', {'address': self.token1_addr}, return_type=Maybe[dict])
+            if not deployment.just:
+                raise ValueError(f"Unable to find token deployment for {self.token1}") from None
+
+            deployment_block_number = deployment.just["deployed_block_number"]
+            with context.fork(block_number=deployment_block_number) as _past_context:
+                self.token1 = Token(address=Address(
+                    self.token1_addr).checksum).as_erc20(set_loaded=True)
+                self.token1_decimals = self.token1.decimals
+                self.token1_symbol = self.token1.symbol
 
         if _pool_data is None:
             self.reserve0 = 0
