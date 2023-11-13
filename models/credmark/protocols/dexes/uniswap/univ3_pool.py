@@ -1,4 +1,4 @@
-# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long
+# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, too-many-statement
 
 """
 Uni V3 Pool
@@ -82,34 +82,46 @@ class UniV3Pool(UniswapPoolBase):
             self.token0_decimals = self.token0.decimals
             self.token0_symbol = self.token0.symbol
         except (ModelDataError, OverflowError):
-            deployment = context.run_model(
-                'token.deployment-maybe', {'address': self.token0_addr}, return_type=Maybe[dict])
-            if not deployment.just:
-                raise ValueError(f"Unable to find token deployment for {self.token0}") from None
-
-            deployment_block_number = deployment.just["deployed_block_number"]
-            with context.fork(block_number=deployment_block_number) as _past_context:
+            try:
                 self.token0 = Token(Address(
                     self.token0_addr).checksum).as_erc20(set_loaded=True)
                 self.token0_decimals = self.token0.decimals
                 self.token0_symbol = self.token0.symbol
+            except (ModelDataError, OverflowError):
+                deployment = context.run_model(
+                    'token.deployment-maybe', {'address': self.token0_addr}, return_type=Maybe[dict])
+                if not deployment.just:
+                    raise ValueError(f"Unable to find token deployment for {self.token0}") from None
+
+                deployment_block_number = deployment.just["deployed_block_number"]
+                with context.fork(block_number=deployment_block_number) as _past_context:
+                    self.token0 = Token(Address(
+                        self.token0_addr).checksum).as_erc20(set_loaded=True)
+                    self.token0_decimals = self.token0.decimals
+                    self.token0_symbol = self.token0.symbol
 
         try:
             self.token1 = Token(Address(self.token1_addr).checksum)
             self.token1_decimals = self.token1.decimals
             self.token1_symbol = self.token1.symbol
         except (ModelDataError, OverflowError):
-            deployment = context.run_model(
-                'token.deployment-maybe', {'address': self.token1_addr}, return_type=Maybe[dict])
-            if not deployment.just:
-                raise ValueError(f"Unable to find token deployment for {self.token1}") from None
-
-            deployment_block_number = deployment.just["deployed_block_number"]
-            with context.fork(block_number=deployment_block_number) as _past_context:
+            try:
                 self.token1 = Token(address=Address(
                     self.token1_addr).checksum).as_erc20(set_loaded=True)
                 self.token1_decimals = self.token1.decimals
                 self.token1_symbol = self.token1.symbol
+            except (ModelDataError, OverflowError):
+                deployment = context.run_model(
+                    'token.deployment-maybe', {'address': self.token1_addr}, return_type=Maybe[dict])
+                if not deployment.just:
+                    raise ValueError(f"Unable to find token deployment for {self.token1}") from None
+
+                deployment_block_number = deployment.just["deployed_block_number"]
+                with context.fork(block_number=deployment_block_number) as _past_context:
+                    self.token1 = Token(address=Address(
+                        self.token1_addr).checksum).as_erc20(set_loaded=True)
+                    self.token1_decimals = self.token1.decimals
+                    self.token1_symbol = self.token1.symbol
 
         if _pool_data is None:
             self.pool_tick = None
