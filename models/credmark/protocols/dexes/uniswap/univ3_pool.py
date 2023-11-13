@@ -1,4 +1,4 @@
-# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, too-many-statement
+# pylint:disable=invalid-name, missing-function-docstring, too-many-instance-attributes, line-too-long, too-many-statements
 
 """
 Uni V3 Pool
