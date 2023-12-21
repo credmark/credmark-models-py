@@ -31,8 +31,11 @@ class TestUniswapPools(CMFTest):
                                **default_args)
 
         self.run_model(f'{model_prefix}.get-pools-tokens',
-                       {"tokens": [{"symbol": ring0_token}, {
-                           "symbol": ring1_token}, {"symbol": ring2_token}]},
+                       {"tokens": [
+                           {"symbol": ring0_token},
+                           {"symbol": ring1_token},
+                           {"symbol": ring2_token}
+                       ]},
                        **default_args)
 
         self.run_model(f'{model_prefix}.get-ring0-ref-price', {}, **default_args)
