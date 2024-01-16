@@ -4,7 +4,8 @@ from credmark.cmf.types import Address, BlockNumber, Token, Contract
 from models.tmp_abi_lookup import ESCROW, RAIN_LOC
 from credmark.dto import DTO
 import datetime
-# credmark-dev run <model-name> -i {"contract_address":"address"} -j -c 1 -b latest
+
+# credmark-dev run contrib.credit-coop-line-of-credit -i '{"lineOfCreditAddress": "<LoC address here>"}' -j -c 1
 
 class LocInput(DTO):
     lineOfCreditAddress: Address
