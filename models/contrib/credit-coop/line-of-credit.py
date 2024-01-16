@@ -36,7 +36,7 @@ class LineOfCredit(Model):
         ], unwrap=True)
 
         normalDeadline = datetime.datetime.fromtimestamp(deadline, datetime.UTC)
-        token = Token(credit[5]).set_abi(ERC20_BASE_ABI, set_loaded=True)
+        token = Token(credit[5])
         symbol = token.symbol
 
         token_price = self.context.run_model(
@@ -44,11 +44,11 @@ class LineOfCredit(Model):
                     input={'base': token})['price']
 
         return {
-            'Interest Accrued ({symbol}): ': (interstAccrued / 10**credit[4]) * token_price,
-            'Outstanding Principal ({symbol}): ': (credit[1] / 10**credit[4]) * token_price,
-            'Total Outsanding Debt ({symbol}): ': ((credit[1] + interstAccrued) / 10**credit[4]) * token_price,
-            'Funds Available to Drawdown ({symbol}): ': (avaialbleCredit[0] / 10**credit[4]) * token_price,
-            'Interest Available to Withdraw ({symbol}): ': (avaialbleCredit[1]/(10**credit[4])) * token_price,
+            f'Interest Accrued ({symbol}): ': (interstAccrued / 10**credit[4]) * token_price,
+            f'Outstanding Principal ({symbol}): ': (credit[1] / 10**credit[4]) * token_price,
+            f'Total Outsanding Debt ({symbol}): ': ((credit[1] + interstAccrued) / 10**credit[4]) * token_price,
+            f'Funds Available to Drawdown ({symbol}): ': (avaialbleCredit[0] / 10**credit[4]) * token_price,
+            f'Interest Available to Withdraw ({symbol}): ': (avaialbleCredit[1]/(10**credit[4])) * token_price,
             'Deadline: ': normalDeadline,
             'Collateral Value (USD): ': collateral,
         }
