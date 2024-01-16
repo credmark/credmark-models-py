@@ -1,10 +1,10 @@
 from credmark.cmf.model import Model
 from credmark.cmf.ipython import create_cmf
 from credmark.cmf.types import Address, BlockNumber, Token, Contract 
+from credmark.cmf.types.data.erc_standard_data import ERC20_BASE_ABI
 from credmark.dto import DTO
 import datetime
 # credmark-dev run <model-name> -i {"contract_address":"address"} -j -c 1 -b latest
-
 
 class LocInput(DTO):
     lineOfCreditAddress: Address
@@ -22,13 +22,11 @@ class LocInput(DTO):
 class LineOfCredit(Model):
     def run(self, input: LocInput) -> dict:
         
-     
         LineOfCredit = Contract(input.lineOfCreditAddress)
         escrow = LineOfCredit.functions.escrow().call()
         escrowContract = Contract(escrow)
         id = LineOfCredit.functions.ids(0)
         
-
         [interstAccrued, avaialbleCredit, deadline, collateral, credit, token_price] = self.context.web3_batch.call([
             LineOfCredit.functions.interestAccrued(id),
             LineOfCredit.functions.available(id),
@@ -38,21 +36,19 @@ class LineOfCredit(Model):
         ], unwrap=True)
 
         normalDeadline = datetime.datetime.fromtimestamp(deadline, datetime.UTC)
-        token = Token(credit[5])
+        token = Token(credit[5]).set_abi(ERC20_BASE_ABI, set_loaded=True)
+        symbol = token.symbol
 
         token_price = self.context.run_model(
                     slug='price.quote',
                     input={'base': token})['price']
 
-
         return {
-            'interestAccrued': (interstAccrued / 10**credit[4]) * token_price,
-            'princeipal outstanding': (credit[1] / 10**credit[4]) * token_price,
-            'outsanding debt total': ((credit[1] + interstAccrued) / 10**credit[4]) * token_price,
-            'available to drawdown': (avaialbleCredit[0] / 10**credit[4]) * token_price,
-            'interest to withdraw': (avaialbleCredit[1]/(10**credit[4])) * token_price,
-            'deadline': normalDeadline,
-            'collateral': collateral,
+            'Interest Accrued ({symbol}): ': (interstAccrued / 10**credit[4]) * token_price,
+            'Outstanding Principal ({symbol}): ': (credit[1] / 10**credit[4]) * token_price,
+            'Total Outsanding Debt ({symbol}): ': ((credit[1] + interstAccrued) / 10**credit[4]) * token_price,
+            'Funds Available to Drawdown ({symbol}): ': (avaialbleCredit[0] / 10**credit[4]) * token_price,
+            'Interest Available to Withdraw ({symbol}): ': (avaialbleCredit[1]/(10**credit[4])) * token_price,
+            'Deadline: ': normalDeadline,
+            'Collateral Value (USD): ': collateral,
         }
-    
-
