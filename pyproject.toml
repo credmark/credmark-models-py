@@ -8,7 +8,7 @@ packages = [{ include = "models" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11"
-credmark-model-framework = { git = "https://github.com/credmark/credmark-model-framework-py.git", tag = "0.8.138" }
+credmark-model-framework = { git = "https://github.com/credmark/credmark-model-framework-py.git", tag = "0.8.139" }
 ipfshttpclient = ">=0.8.0a2"
 matplotlib = ">=3.7.1"
 networkx = ">=3.1"
