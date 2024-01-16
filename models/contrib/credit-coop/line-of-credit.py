@@ -1,7 +1,7 @@
 from credmark.cmf.model import Model
 from credmark.cmf.ipython import create_cmf
 from credmark.cmf.types import Address, BlockNumber, Token, Contract 
-from credmark.cmf.types.data.erc_standard_data import ERC20_BASE_ABI
+from models.tmp_abi_lookup import ESCROW, RAIN_LOC
 from credmark.dto import DTO
 import datetime
 # credmark-dev run <model-name> -i {"contract_address":"address"} -j -c 1 -b latest
@@ -22,16 +22,16 @@ class LocInput(DTO):
 class LineOfCredit(Model):
     def run(self, input: LocInput) -> dict:
         
-        LineOfCredit = Contract(input.lineOfCreditAddress)
+        LineOfCredit = Contract(input.lineOfCreditAddress).set_abi(RAIN_LOC, set_loaded=True)
         escrow = LineOfCredit.functions.escrow().call()
-        escrowContract = Contract(escrow)
-        id = LineOfCredit.functions.ids(0)
+        escrowContract = Contract(escrow).set_abi(ESCROW, set_loaded=True)
+        id = LineOfCredit.functions.ids(0).call()
         
-        [interstAccrued, avaialbleCredit, deadline, collateral, credit, token_price] = self.context.web3_batch.call([
+        [interstAccrued, avaialbleCredit, deadline, collateral, credit] = self.context.web3_batch.call([
             LineOfCredit.functions.interestAccrued(id),
             LineOfCredit.functions.available(id),
             LineOfCredit.functions.deadline(),
-            escrowContract.functions.collateral(),
+            escrowContract.functions.getCollateralValue(),
             LineOfCredit.functions.credits(id)
         ], unwrap=True)
 
