@@ -5,7 +5,14 @@ from typing import Any, cast
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelDataError, ModelEngineError, ModelRunError
-from credmark.cmf.types import BlockNumberOutOfRangeError, Contract, Maybe, Network, Price, PriceWithQuote
+from credmark.cmf.types import (
+    BlockNumberOutOfRangeError,
+    Contract,
+    Maybe,
+    Network,
+    Price,
+    PriceWithQuote,
+)
 from credmark.dto import DTO, DTOField
 from ens import ENS
 from web3.exceptions import ContractLogicError
@@ -169,20 +176,27 @@ class ChainLinkPriceByRegistry(Model):
             sys.tracebacklimit = 0
             feed = registry.functions.getFeed(
                 base_address, quote_address).call()
+            [round_data, decimals, description, version, is_feed_enabled] = self.context.web3_batch.call([
+                registry.functions.latestRoundData(base_address, quote_address),
+                registry.functions.decimals(base_address, quote_address),
+                registry.functions.description(base_address, quote_address),
+                registry.functions.version(base_address, quote_address),
+                registry.functions.isFeedEnabled(feed)
+            ], unwrap=True, require_success=True)
+
             (_roundId, answer, _startedAt, _updatedAt, _answeredInRound) = cast(
                 tuple[int, int, int, int, int],
-                registry.functions.latestRoundData(base_address, quote_address).call())
-            decimals = cast(int, registry.functions.decimals(base_address, quote_address).call())
-            description = cast(str, registry.functions.description(
-                base_address, quote_address).call())
-            version = cast(int, registry.functions.version(base_address, quote_address).call())
-            isFeedEnabled = cast(bool, registry.functions.isFeedEnabled(feed).call())
+                round_data)
+            decimals = cast(int, decimals)
+            description = cast(str, description)
+            version = cast(int, version)
+            is_feed_enabled = cast(bool, is_feed_enabled)
 
             time_diff = self.context.block_number.timestamp - _updatedAt
             round_diff = _answeredInRound - _roundId
             return PriceWithQuote(price=answer / (10 ** decimals),
                                   src=(f'{self.slug}|{description}|{feed}|v{version}|'
-                                       f'{isFeedEnabled}|t:{time_diff}s|r:{round_diff}'),
+                                       f'{is_feed_enabled}|t:{time_diff}s|r:{round_diff}'),
                                   quoteAddress=quote_address)
         except ContractLogicError as err:
             if 'Feed not found' in str(err):
