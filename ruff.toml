@@ -1,4 +1,4 @@
-line-length = 120
+line-length = 100
 select = ["E", "F", "B",  "W", "I001"]
 ignore = ["E501", "B905", "F401"]
 unfixable = ["B"]
