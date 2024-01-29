@@ -4,10 +4,19 @@ from typing import List
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import Address, Contract, Token
+from credmark.cmf.types import (
+    Address,
+    Contract,
+    Currency,
+    FiatCurrency,
+    Maybe,
+    PriceWithQuote,
+    Some,
+    Token,
+)
 from credmark.cmf.types.compose import MapInputsOutput
 from credmark.dto import DTO, DTOField
-from web3.exceptions import BadFunctionCallOutput, ContractLogicError
+from web3.exceptions import ContractLogicError
 
 from models.credmark.protocols.dexes.uniswap.constant import (
     V3_FACTORY_ADDRESS,
@@ -17,19 +26,16 @@ from models.credmark.protocols.dexes.uniswap.constant import (
 )
 from models.credmark.protocols.dexes.uniswap.types import PositionWithFee
 from models.credmark.protocols.dexes.uniswap.uniswap_v3_pool import fix_univ3_pool
-from models.credmark.protocols.dexes.uniswap.univ3_math import (
-    in_range,
-    out_of_range,
-    tick_to_price,
-)
-from models.tmp_abi_lookup import (
-    UNISWAP_V3_FACTORY_ABI,
-    UNISWAP_V3_NFT_MANAGER_ABI,
-)
+from models.credmark.protocols.dexes.uniswap.univ3_math import in_range, out_of_range, tick_to_price
+from models.tmp_abi_lookup import UNISWAP_V3_FACTORY_ABI, UNISWAP_V3_NFT_MANAGER_ABI
 
 
 class UniswapV3LPInput(DTO):
     lp: Address = DTOField(description='Account')
+    include_price: bool = DTOField(
+        default=False, description='Include price quote of underlying tokens in positions')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
     class Config:
         schema_extra = {
@@ -92,20 +98,21 @@ class UniswapV2LP(Model):
 
         lp = input.lp
         nft_total = int(nft_manager.functions.balanceOf(lp.checksum).call())
-        nft_ids = []
-        for nft_n in range(nft_total):
-            try:
-                nft_ids.append(nft_manager.functions.tokenOfOwnerByIndex(
-                    lp.checksum, nft_n).call())
-            except BadFunctionCallOutput:
-                continue
+        nft_ids = self.context.web3_batch.call(
+            [nft_manager.functions.tokenOfOwnerByIndex(
+                lp.checksum, nft_n) for nft_n in range(nft_total)],
+            unwrap=True,
+            require_success=False
+        )
+
+        nft_ids = [nft_id for nft_id in nft_ids if nft_id is not None]
 
         def _use_for():
             lp_poses = []
             for nft_id in nft_ids:
                 lp_pos = self.context.run_model(
                     'uniswap-v3.id',
-                    {'id': nft_id},
+                    {'id': nft_id, 'include_price': input.include_price, 'quote': input.quote},
                     return_type=UniswapV3LPPosition,
                     local=True)
                 lp_poses.append(lp_pos)
@@ -114,7 +121,7 @@ class UniswapV2LP(Model):
         def _use_compose():
             slug = 'uniswap-v3.id'
             model_inputs = {"modelSlug": slug,
-                            "modelInputs": [{'id': nft_id}
+                            "modelInputs": [{'id': nft_id, 'include_price': input.include_price, 'quote': input.quote}
                                             for nft_id in nft_ids]}
 
             all_results = self.context.run_model(
@@ -129,14 +136,16 @@ class UniswapV2LP(Model):
         if len(nft_ids) > 0:
             return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_for())
             # return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_compose())
-        elif len(nft_ids) > 0:
-            return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=_use_for())
         else:
             return UniswapV3LPOutput(lp=lp, count=len(nft_ids), positions=[])
 
 
 class UniswapV3IDInput(DTO):
     id: int = DTOField(gt=0, description='V3 NFT ID')
+    include_price: bool = DTOField(
+        default=False, description='Include price quote of underlying tokens')
+    quote: Currency = DTOField(FiatCurrency(symbol='USD'),
+                               description='Currency of the returned price if included.')
 
     class Config:
         schema_extra = {
@@ -158,6 +167,25 @@ class UniswapV3IDInput(DTO):
                 input=UniswapV3IDInput,
                 output=UniswapV3LPPosition)
 class UniswapV2LPId(Model):
+    def include_price(self, positions: List[PositionWithFee], quote: Currency) -> List[PositionWithFee]:
+        pqs_maybe = self.context.run_model(
+            slug='price.quote-multiple-maybe',
+            input=Some(some=[
+                {'base': p.asset.address, 'quote': quote} for p in positions
+            ]),
+            return_type=Some[Maybe[PriceWithQuote]],
+        )
+
+        price_positions = []
+        for price_maybe, position in zip(pqs_maybe.some, positions):
+            price_quote = price_maybe.get_just(PriceWithQuote(price=0.0, src="none",
+                                                              quoteAddress=quote.address))
+            price_positions.append(PositionWithFee(amount=position.amount,
+                                                   fee=position.fee,
+                                                   asset=position.asset,
+                                                   price_quote=price_quote))
+        return price_positions
+
     # pylint:disable=line-too-long
     def run(self, input: UniswapV3IDInput) -> UniswapV3LPPosition:
         nft_manager = V3NFTManager(self.context.network)
@@ -194,13 +222,24 @@ class UniswapV2LPId(Model):
         if pool.abi is None:
             raise ModelRunError('ABI is not set')
 
+        pool_functions = []
+
         if 'slot0' in pool.abi.functions:
-            slot0 = pool.functions.slot0().call()
+            pool_functions.append(pool.functions.slot0())
         elif 'globalState' in pool.abi.functions:  # QuickSwap
-            slot0 = pool.functions.globalState().call()
+            pool_functions.append(pool.functions.globalState())
         else:
             raise ModelRunError('Unable to query V3 pool state, '
                                 'neither Uniswap/PancakeSwap nor QuickSwap')
+
+        pool_functions.append(pool.functions.ticks(position.tickLower))
+        pool_functions.append(pool.functions.ticks(position.tickUpper))
+        pool_functions.append(pool.functions.feeGrowthGlobal0X128())
+        pool_functions.append(pool.functions.feeGrowthGlobal1X128())
+
+        [slot0, ticks_lower, ticks_upper, feeGrowthGlobal0X128,
+            feeGrowthGlobal1X128] = self.context.web3_batch.call(pool_functions, unwrap=True, require_success=True)
+
         sqrtPriceX96 = slot0[0]
         current_tick = slot0[1]
         scale_multiplier = 10 ** (token0.decimals - token1.decimals)
@@ -231,15 +270,13 @@ class UniswapV2LPId(Model):
             raise ModelRunError(
                 '{position.tickUpper=} ?= {current_tick=} ?= {position.tickLower=}')
 
-        ticks_lower = V3_TICK(*pool.functions.ticks(position.tickLower).call())
-        ticks_upper = V3_TICK(*pool.functions.ticks(position.tickUpper).call())
+        ticks_lower = V3_TICK(*ticks_lower)
+        ticks_upper = V3_TICK(*ticks_upper)
 
-        feeGrowthGlobal0X128 = pool.functions.feeGrowthGlobal0X128().call()
         feeGrowthOutside0X128_lower = ticks_lower.feeGrowthOutside0X128
         feeGrowthOutside0X128_upper = ticks_upper.feeGrowthOutside0X128
         feeGrowthInside0LastX128 = position.feeGrowthInside0LastX128
 
-        feeGrowthGlobal1X128 = pool.functions.feeGrowthGlobal1X128().call()
         feeGrowthOutside1X128_lower = ticks_lower.feeGrowthOutside1X128
         feeGrowthOutside1X128_upper = ticks_upper.feeGrowthOutside1X128
         feeGrowthInside1LastX128 = position.feeGrowthInside1LastX128
@@ -267,8 +304,13 @@ class UniswapV2LPId(Model):
         fee_token0 = token0.scaled(fee_token0)
         fee_token1 = token1.scaled(fee_token1)
 
+        positions = [PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
+                     PositionWithFee(amount=a1, fee=fee_token1, asset=token1)]
+
+        if input.include_price:
+            positions = self.include_price(positions, input.quote)
+
         return UniswapV3LPPosition(lp=lp_addr, id=nft_id, pool=pool_addr,
-                                   tokens=[PositionWithFee(amount=a0, fee=fee_token0, asset=token0),
-                                           PositionWithFee(amount=a1, fee=fee_token1, asset=token1)],
+                                   tokens=positions,
                                    in_range=in_range_str,
                                    detail=UniswapV3LPPosition.LPPositionDetail(**position._asdict()))
