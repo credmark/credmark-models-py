@@ -1,4 +1,4 @@
-# pylint: disable=too-many-function-args, line-too-long
+# pylint: disable=too-many-function-args,line-too-long,too-many-lines
 
 import functools
 import math
@@ -674,16 +674,66 @@ class AccountPortfolio(Model):
                 output=Portfolio)
 class AccountsPortfolio(Model):
     def get_token_decimals(self, tokens: Set[ChecksumAddress]):
-        fn = Token('WETH').as_erc20(True).functions.decimals()
-        fn_fallback = Token('WETH').as_erc20(True).functions.DECIMALS()
+        token = Token('WETH').as_erc20(True)
         decimals = self.context.web3_batch.call_same_function(
-            fn,
+            token.functions.decimals(),
             list(tokens),
-            fallback_contract_function=fn_fallback,
-            unwrap=True
+            fallback_functions=[token.functions.DECIMALS()],
+            unwrap=True,
+            unwrap_default=0
         )
 
         return dict(zip(tokens, decimals))
+
+    def get_token_symbol(self, tokens: Set[ChecksumAddress]):
+        token = Token('WETH').as_erc20(True)
+        alt_token = Token('WETH').as_erc20(True, True)
+        return_type: type[str | bytes] = type(str)
+        symbols = self.context.web3_batch.call_same_function(
+            token.functions.symbol(),
+            list(tokens),
+            fallback_functions=[
+                token.functions.SYMBOL(),
+                alt_token.functions.symbol(),
+                alt_token.functions.SYMBOL(),
+            ],
+            unwrap=True,
+            return_type=return_type
+        )
+
+        symbols = [
+            symbol.decode('utf-8', errors='strict').replace('\x00', '')
+            if isinstance(symbol, bytes)
+            else symbol
+            for symbol in symbols
+        ]
+
+        return dict(zip(tokens, symbols))
+
+    def get_token_name(self, tokens: Set[ChecksumAddress]):
+        token = Token('WETH').as_erc20(True)
+        alt_token = Token('WETH').as_erc20(True, True)
+        return_type: type[str | bytes] = type(str)
+        names = self.context.web3_batch.call_same_function(
+            token.functions.name(),
+            list(tokens),
+            fallback_functions=[
+                token.functions.NAME(),
+                alt_token.functions.name(),
+                alt_token.functions.NAME(),
+            ],
+            unwrap=True,
+            return_type=return_type
+        )
+
+        names = [
+            name.decode('utf-8', errors='strict').replace('\x00', '')
+            if isinstance(name, bytes)
+            else name
+            for name in names
+        ]
+
+        return dict(zip(tokens, names))
 
     def run(self, input: AccountsWithPrice) -> Portfolio:
         native_positions = []
@@ -716,6 +766,8 @@ class AccountsPortfolio(Model):
             tokens.add(token_address)
 
         token_decimals = self.get_token_decimals(tokens)
+        # token_name = self.get_token_name(tokens)
+        # token_symbol = self.get_token_symbol(tokens)
 
         overall_portfolio = Portfolio(positions=native_positions)
         for address, token_addresses in tokens_by_wallet.items():
@@ -723,16 +775,17 @@ class AccountsPortfolio(Model):
             balances = self.context.web3_batch.call_same_function(
                 fn,
                 token_addresses,
+                unwrap=True,
+                unwrap_default=0
             )
 
             positions = []
 
-            for token_address, result in zip(token_addresses, balances):
+            for token_address, raw_balance in zip(token_addresses, balances):
                 decimals = token_decimals[token_address]
-                if result.success and decimals is not None:
-                    balance = result.return_data_decoded / 10 ** decimals
-                    if not math.isclose(balance, 0):
-                        positions.append(Position(asset=Token(token_address), amount=balance))
+                balance = raw_balance / 10 ** decimals
+                if not math.isclose(balance, 0):
+                    positions.append(Position(asset=Token(token_address), amount=balance))
             overall_portfolio = Portfolio.merge(overall_portfolio, Portfolio(positions=positions))
 
         positions = overall_portfolio.positions
@@ -887,8 +940,9 @@ class AccountsBalances(Model):
         decimals = self.context.web3_batch.call_same_function(
             fn,
             list(tokens),
-            fallback_contract_function=fn_fallback,
-            unwrap=True
+            fallback_functions=[fn_fallback],
+            unwrap=True,
+            unwrap_default=0
         )
 
         return dict(zip(tokens, decimals))
@@ -936,17 +990,16 @@ class AccountsBalances(Model):
             balances = self.context.web3_batch.call_same_function(
                 fn,
                 tokens,
+                unwrap=True,
+                unwrap_default=0
             )
 
             positions = []
 
-            for token_address, result in zip(tokens, balances):
+            for token_address, raw_balance in zip(tokens, balances):
                 decimals = token_decimals[token_address]
-                if result.success and decimals is not None:
-                    balance = result.return_data_decoded / 10 ** decimals
-                    positions.append(Position(asset=Token(token_address), amount=balance))
-                else:
-                    positions.append(Position(asset=Token(token_address), amount=0))
+                balance = raw_balance / 10 ** decimals
+                positions.append(Position(asset=Token(token_address), amount=balance))
             overall_portfolio = Portfolio.merge(overall_portfolio, Portfolio(positions=positions))
 
         positions = overall_portfolio.positions
