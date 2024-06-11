@@ -1,4 +1,4 @@
-git+https://github.com/credmark/credmark-model-framework-py.git@0.8.143
+git+https://github.com/credmark/credmark-model-framework-py.git@0.8.144
 ipfshttpclient>=0.8.0a2
 matplotlib>=3.7.1
 networkx>=3.1

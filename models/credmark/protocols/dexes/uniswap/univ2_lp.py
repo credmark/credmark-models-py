@@ -236,44 +236,12 @@ class UniswapV2LPFeeHistory(Model):
         token0 = token0.as_erc20(set_loaded=True)
         token1 = token1.as_erc20(set_loaded=True)
 
-        with self.context.ledger.TokenBalance as q:
-            q_cols = [q.TRANSACTION_HASH,
-                      q.BLOCK_NUMBER,
-                      q.LOG_INDEX,
-                      q.FROM_ADDRESS,
-                      q.TO_ADDRESS,
-                      q.TRANSACTION_VALUE]
-
-        def _use_ledger():
-            with self.context.ledger.TokenBalance as q:
-                df_ts = []
-                offset = 0
-
-                q_cols = [q.BLOCK_NUMBER,
-                          q.LOG_INDEX,
-                          q.FROM_ADDRESS,
-                          q.TO_ADDRESS,
-                          q.TRANSACTION_VALUE]
-                while True:
-                    df_tt = q.select(
-                        columns=q_cols,
-                        order_by=q.BLOCK_NUMBER,
-                        where=(q.ADDRESS.eq(lp)
-                               .and_(q.TOKEN_ADDRESS.eq(pool.address))
-                               )
-                    ).to_dataframe()
-
-                    if df_tt.shape[0] > 0:
-                        df_ts.append(df_tt)
-                    if df_tt.shape[0] < 5000:
-                        break
-                    offset += 5000
-
-            _df = pd.DataFrame()
-            if len(df_ts) == 0:
-                return _df
-
-            return pd.concat(df_ts).drop_duplicates()
+        q_cols = ["transaction_hash",
+                  "block_number",
+                  "log_index",
+                  "from_address",
+                  "to_address",
+                  "transaction_value"]
 
         def _use_model():
             return self.context.run_model('account.token-transfer',
