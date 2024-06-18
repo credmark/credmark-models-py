@@ -48,7 +48,7 @@ class UniswapFeeOutput(UniswapFeeInput):
 
 
 @Model.describe(slug='contrib.uniswap-fee',
-                version='1.2',
+                version='1.3',
                 display_name='Calculate fee from swaps in Uniswap V3 pool',
                 description="Ledger",
                 input=UniswapFeeInput,
@@ -83,7 +83,7 @@ class UniswapFee(Model):
                 df_tt = q.select(
                     columns=q_cols,
                     aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(uni_pool_addr)} '
-                                  f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'),
+                                  f'THEN {q.RAW_AMOUNT} ELSE {q.RAW_AMOUNT.neg_()} END'),
                                  'transaction_value')],
                     where=(q.BLOCK_NUMBER.gt(block_start).and_(q.BLOCK_NUMBER.le(block_end))
                            .and_(q.FROM_ADDRESS.eq(uni_pool_addr)
@@ -183,7 +183,8 @@ class UniswapFee(Model):
 
         df_new_cols = df_tx_swap_one_line.apply(
             lambda r, self=self, t0=t0, t1=t1, fee=fee:
-            calculate_fee(r, self.context.models, t0, t1, fee), axis=1, result_type='expand')  # type: ignore
+            # type: ignore
+            calculate_fee(r, self.context.models, t0, t1, fee), axis=1, result_type='expand')
 
         df_new_cols.columns = pd.Index(['in_value', 'out_value', 'fee'])
 

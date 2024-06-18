@@ -54,7 +54,7 @@ class TokenBalanceOf(Model):
                 description=("return net token outflow from an address on a given time range"
                              "net inflow is total token inflow - total token outflow"
                              ),
-                version='1.1',
+                version='1.2',
                 developer='exa256',
                 input=TokenNetInflowInput,
                 output=dict
@@ -72,7 +72,7 @@ class TokenNetInflow(Model):
                 columns=[
                     q.TO_ADDRESS,
                     q.FROM_ADDRESS,
-                    q.VALUE,
+                    q.RAW_AMOUNT,
                 ],
                 where=q.BLOCK_NUMBER.gt(past_block).and_(
                     q.TOKEN_ADDRESS.eq(token.address).and_(
@@ -85,9 +85,9 @@ class TokenNetInflow(Model):
             ).to_dataframe()
 
         inflow = transfers.query(
-            'to_address == @from_addr')['value'].astype(float).sum()
+            'to_address == @from_addr')['raw_amount'].astype(float).sum()
         outflow = transfers.query(
-            'from_address == @from_addr')['value'].astype(float).sum()
+            'from_address == @from_addr')['raw_amount'].astype(float).sum()
 
         return {
             'inflow': token.scaled(inflow),

@@ -172,7 +172,7 @@ def plot_dig(dig: nx.DiGraph, figsize=(7, 7)):
 # credmark-dev run token.transaction -i '{"hash": "0x319552805d5f3d0c97e7b6c1e40d0c42817c49406fbff41af0f3ac88b590aa34", "block_number": 15125867}'
 
 @Model.describe(slug='token.transaction',
-                version='0.2',
+                version='0.3',
                 display_name='Token Transaction',
                 description='Tagged transactions for token transfer',
                 developer='Credmark',
@@ -198,9 +198,11 @@ class TokenTransferTransactionTag(Model):
             return self.context.run_model(self.slug, input=input, block_number=input_block_number)
 
         with self.context.ledger.TokenTransfer as q:
-            df_txn = q.select(columns=q.columns,
-                              where=q.TRANSACTION_HASH.eq(input.hash).and_(
-                                  q.BLOCK_NUMBER.eq(input_block_number))).to_dataframe()
+            df_txn = q.select(
+                aggregates=[(q.RAW_AMOUNT, 'value')],
+                columns=q.columns,
+                where=q.TRANSACTION_HASH.eq(input.hash).and_(
+                    q.BLOCK_NUMBER.eq(input_block_number))).to_dataframe()
 
         return self.context.run_model('token.txn-classify', input=Records.from_dataframe(df_txn))
 

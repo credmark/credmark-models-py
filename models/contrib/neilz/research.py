@@ -1,19 +1,12 @@
 # pylint: disable=line-too-long
 
 from credmark.cmf.model import Model
-from credmark.cmf.types import (
-    Address,
-    BlockNumber,
-    MapBlocksOutput,
-    Maybe,
-    PriceWithQuote,
-    Token,
-)
+from credmark.cmf.types import Address, BlockNumber, MapBlocksOutput, Maybe, PriceWithQuote, Token
 from credmark.dto import EmptyInputSkipTest
 
 
 @Model.describe(slug='contrib.neilz-redacted-votium-cashflow',
-                version='1.2',
+                version='1.3',
                 display_name='Redacted Cartel Votium Cashflow',
                 description='Redacted Cartel Votium Cashflow',
                 category='protocol',
@@ -28,13 +21,15 @@ class RedactedVotiumCashflow(Model):
         redacted_multisig_address = Address(
             "0xA52Fd396891E7A74b641a2Cb1A6999Fcf56B077e")
         with self.context.ledger.TokenTransfer as q:
-            transfers = q.select(columns=[
-                q.BLOCK_NUMBER,
-                q.VALUE,
-                q.TOKEN_ADDRESS,
-                q.TRANSACTION_HASH
-            ], where=q.TO_ADDRESS.eq(redacted_multisig_address).and_(
-                q.FROM_ADDRESS.eq(votium_claim_address)))
+            transfers = q.select(
+                aggregates=[(q.RAW_AMOUNT, 'value')],
+                columns=[
+                    q.BLOCK_NUMBER,
+                    q.RAW_AMOUNT,
+                    q.TOKEN_ADDRESS,
+                    q.TRANSACTION_HASH
+                ], where=q.TO_ADDRESS.eq(redacted_multisig_address).and_(
+                    q.FROM_ADDRESS.eq(votium_claim_address)))
 
         for transfer in transfers:
             transfer['block_number'] = int(transfer['block_number'])
@@ -48,7 +43,8 @@ class RedactedVotiumCashflow(Model):
                 transfer['price'] = 0
             if transfer['price'] is None:
                 transfer['price'] = 0
-            transfer['value_usd'] = transfer['price'] * float(transfer['value']) / (10 ** token.decimals)
+            transfer['value_usd'] = transfer['price'] * \
+                float(transfer['value']) / (10 ** token.decimals)
             transfer['block_time'] = str(BlockNumber(transfer['block_number'])
                                          .timestamp_datetime)
             transfer['token_symbol'] = token.symbol
@@ -56,7 +52,7 @@ class RedactedVotiumCashflow(Model):
 
 
 @Model.describe(slug='contrib.neilz-redacted-convex-cashflow',
-                version='1.4',
+                version='1.5',
                 display_name='Redacted Cartel Convex Cashflow',
                 description='Redacted Cartel Convex Cashflow',
                 category='protocol',
@@ -73,12 +69,14 @@ class RedactedConvexCashflow(Model):
 
     def run(self, _) -> dict:
         with self.context.ledger.TokenTransfer as q:
-            transfers = q.select(columns=[
-                q.BLOCK_NUMBER,
-                q.VALUE,
-                q.TOKEN_ADDRESS
-            ], where=q.TO_ADDRESS.eq(self.REDACTED_MULTISIG_ADDRESS).and_(
-                q.FROM_ADDRESS.in_(self.CONVEX_ADDRESSES))
+            transfers = q.select(
+                aggregates=[(q.RAW_AMOUNT, 'value')],
+                columns=[
+                    q.BLOCK_NUMBER,
+                    q.RAW_AMOUNT,
+                    q.TOKEN_ADDRESS
+                ], where=q.TO_ADDRESS.eq(self.REDACTED_MULTISIG_ADDRESS).and_(
+                    q.FROM_ADDRESS.in_(self.CONVEX_ADDRESSES))
             )
 
         token_prices = {}

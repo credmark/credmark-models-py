@@ -18,7 +18,7 @@ class GCInput(DTO):
 
 @Model.describe(
     slug='contrib.debt-dao-generalized-cashflow',
-    version='1.2',
+    version='1.3',
     display_name='Generalized Cashflow',
     description='Tracks cashflow from sender address to receiver address.',
     category='protocol',
@@ -30,8 +30,8 @@ class GeneralizedCashflow(Model):
     def run(self, input: GCInput) -> dict:
         with self.context.ledger.TokenTransfer as q:
             transfers = q.select(
+                aggregates=[(q.RAW_AMOUNT, 'value')],
                 columns=[q.BLOCK_NUMBER,
-                         q.VALUE,
                          q.TOKEN_ADDRESS,
                          q.TRANSACTION_HASH],
                 where=q.TO_ADDRESS.eq(input.receiver_address).and_(
@@ -48,7 +48,9 @@ class GeneralizedCashflow(Model):
                 transfer['price'] = 0
             if transfer['price'] is None:
                 transfer['price'] = 0
-            transfer['value_usd'] = transfer['price'] * float(transfer['value']) / (10 ** token.decimals)
-            transfer['block_time'] = str(BlockNumber(int(transfer['block_number'])).timestamp_datetime)
+            transfer['value_usd'] = transfer['price'] * \
+                float(transfer['value']) / (10 ** token.decimals)
+            transfer['block_time'] = str(BlockNumber(
+                int(transfer['block_number'])).timestamp_datetime)
             transfer['token_symbol'] = token.symbol
         return transfers.dict()

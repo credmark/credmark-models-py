@@ -3,14 +3,7 @@ from typing import List, Union
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (
-    Address,
-    BlockNumber,
-    JoinType,
-    NativeToken,
-    PriceWithQuote,
-    Token,
-)
+from credmark.cmf.types import Address, BlockNumber, JoinType, NativeToken, PriceWithQuote, Token
 from credmark.dto import DTO, DTOField
 
 
@@ -54,7 +47,7 @@ class TokenVolumeOutput(TokenVolumeBlockRange):
 
 
 @Model.describe(slug='token.overall-volume-block',
-                version='1.3',
+                version='1.4',
                 display_name='Token Volume',
                 description='The Current Credmark Supported trading volume algorithm',
                 category='protocol',
@@ -86,7 +79,7 @@ class TokenVolumeBlock(Model):
         else:
             input_token = input.token
             with self.context.ledger.TokenTransfer as q:
-                df = q.select(aggregates=[(q.VALUE.sum_(), 'sum_value')],
+                df = q.select(aggregates=[(q.RAW_AMOUNT.sum_(), 'sum_value')],
                               where=(q.TOKEN_ADDRESS.eq(token_address)
                                      .and_(q.BLOCK_NUMBER.gt(old_block))),
                               bigint_cols=['sum_value'],
@@ -205,8 +198,8 @@ class TokenVolumeSegmentBlock(Model):
         native_token = NativeToken()
         if token_address == native_token.address:
             input_token = native_token
-            with self.context.ledger.Transaction.as_('t') as t,\
-                    self.context.ledger.Block.as_('s') as s,\
+            with self.context.ledger.Transaction.as_('t') as t, \
+                    self.context.ledger.Block.as_('s') as s, \
                     self.context.ledger.Block.as_('e') as e:
                 df = s.select(
                     aggregates=[
@@ -219,7 +212,8 @@ class TokenVolumeSegmentBlock(Model):
                     where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(block_end)),
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),
-                        (JoinType.LEFT_OUTER, t, t.field(f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
+                        (JoinType.LEFT_OUTER, t, t.field(
+                            f'{t.BLOCK_NUMBER} between {s.NUMBER} and {e.NUMBER}'))
                     ],
                     group_by=[s.NUMBER, s.TIMESTAMP, e.NUMBER, e.TIMESTAMP],
                     having=f'MOD({e.NUMBER} - {block_start}, {block_seg}) = 0',
@@ -230,8 +224,8 @@ class TokenVolumeSegmentBlock(Model):
                 from_iso8601_str = t.field('').from_iso8601_str
         else:
             input_token = input.token
-            with self.context.ledger.TokenTransfer.as_('t') as t,\
-                    self.context.ledger.Block.as_('s') as s,\
+            with self.context.ledger.TokenTransfer.as_('t') as t, \
+                    self.context.ledger.Block.as_('s') as s, \
                     self.context.ledger.Block.as_('e') as e:
                 df = s.select(
                     aggregates=[
@@ -239,7 +233,7 @@ class TokenVolumeSegmentBlock(Model):
                         (s.TIMESTAMP, 'from_timestamp'),
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
-                        (t.VALUE.as_numeric().sum_(), 'sum_value')
+                        (t.RAW_AMOUNT.as_numeric().sum_(), 'sum_value')
                     ],
                     where=s.NUMBER.ge(block_start).and_(s.NUMBER.lt(block_end)),
                     joins=[

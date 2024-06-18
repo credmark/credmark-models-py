@@ -3,14 +3,7 @@ from typing import List, Union
 
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelRunError
-from credmark.cmf.types import (
-    Address,
-    BlockNumber,
-    JoinType,
-    NativeToken,
-    PriceWithQuote,
-    Token,
-)
+from credmark.cmf.types import Address, BlockNumber, JoinType, NativeToken, PriceWithQuote, Token
 from credmark.dto import DTO, DTOField
 
 
@@ -64,7 +57,7 @@ class TokenNetflowOutput(TokenNetflowBlockRange):
 
 
 @Model.describe(slug='token.netflow-block',
-                version='1.4',
+                version='1.5',
                 display_name='Token netflow',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -108,11 +101,11 @@ class TokenNetflowBlock(Model):
                 df = q.select(
                     aggregates=[
                         ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                          f'THEN {q.RAW_AMOUNT} ELSE 0::INTEGER END)'), 'inflow'),
                         ((f'SUM(CASE WHEN {q.FROM_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {q.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                          f'THEN {q.RAW_AMOUNT} ELSE 0::INTEGER END)'), 'outflow'),
                         ((f'SUM(CASE WHEN {q.TO_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END)'), 'netflow')],
+                          f'THEN {q.RAW_AMOUNT} ELSE {q.RAW_AMOUNT.neg_()} END)'), 'netflow')],
                     where=q.BLOCK_NUMBER.gt(old_block)
                     .and_(q.TOKEN_ADDRESS.eq(token_address))
                     .and_(q.TO_ADDRESS.eq(input.netflow_address)
@@ -224,7 +217,7 @@ class TokenNetflowSegmentOutput(DTO):
 
 
 @Model.describe(slug='token.netflow-segment-block',
-                version='1.4',
+                version='1.5',
                 display_name='Token netflow by segment by block',
                 description='The Current Credmark Supported netflow algorithm',
                 category='protocol',
@@ -270,8 +263,8 @@ class TokenVolumeSegmentBlock(Model):
         native_token = NativeToken()
         if token_address == native_token.address:
             input_token = native_token
-            with self.context.ledger.Transaction.as_('t') as t,\
-                    self.context.ledger.Block.as_('s') as s,\
+            with self.context.ledger.Transaction.as_('t') as t, \
+                    self.context.ledger.Block.as_('s') as s, \
                     self.context.ledger.Block.as_('e') as e:
 
                 df = s.select(
@@ -304,8 +297,8 @@ class TokenVolumeSegmentBlock(Model):
                 from_iso8601_str = t.field('').from_iso8601_str
         else:
             input_token = input.token
-            with self.context.ledger.TokenTransfer.as_('t') as t,\
-                    self.context.ledger.Block.as_('s') as s,\
+            with self.context.ledger.TokenTransfer.as_('t') as t, \
+                    self.context.ledger.Block.as_('s') as s, \
                     self.context.ledger.Block.as_('e') as e:
 
                 df = s.select(
@@ -315,11 +308,11 @@ class TokenVolumeSegmentBlock(Model):
                         (e.NUMBER, 'to_block'),
                         (e.TIMESTAMP, 'to_timestamp'),
                         ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'inflow'),
+                          f'THEN {t.RAW_AMOUNT} ELSE 0::INTEGER END)'), 'inflow'),
                         ((f'SUM(CASE WHEN {t.FROM_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {t.VALUE} ELSE 0::INTEGER END)'), 'outflow'),
+                          f'THEN {t.RAW_AMOUNT} ELSE 0::INTEGER END)'), 'outflow'),
                         ((f'SUM(CASE WHEN {t.TO_ADDRESS.eq(input.netflow_address)} '
-                          f'THEN {t.VALUE} ELSE {t.VALUE.neg_()} END)'), 'netflow')
+                          f'THEN {t.RAW_AMOUNT} ELSE {t.RAW_AMOUNT.neg_()} END)'), 'netflow')
                     ],
                     joins=[
                         (e, e.NUMBER.eq(s.NUMBER.plus_(str(block_seg)).minus_(str(1)))),

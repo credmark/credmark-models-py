@@ -93,42 +93,6 @@ def get_token_transfer(_context,
                        start_block: int,
                        fix_int: bool = True,
                        limit: Optional[int] = None) -> pd.DataFrame:
-    def _use_ledger():
-        with _context.ledger.TokenTransfer as q:
-            transfer_cols = [q.BLOCK_NUMBER, q.TO_ADDRESS, q.FROM_ADDRESS, q.TOKEN_ADDRESS,
-                             q.TRANSACTION_HASH, q.LOG_INDEX]
-            df_ts = [pd.DataFrame(columns=transfer_cols+['value'], data=[])]
-
-        with _context.ledger.TokenTransfer as q:
-            for _address in _accounts:
-                where_cond = (q.TO_ADDRESS.eq(_address).or_(
-                    q.FROM_ADDRESS.eq(_address))).parentheses_()
-                if len(_tokens) > 0:
-                    where_cond = where_cond.and_(q.TOKEN_ADDRESS.in_(_tokens))
-                if start_block > 0:
-                    where_cond = where_cond.and_(
-                        q.BLOCK_NUMBER.le(start_block))
-                offset = 0
-                while True:
-                    df_tt = (q.select(
-                        columns=transfer_cols,
-                        aggregates=[((f'CASE WHEN {q.TO_ADDRESS.eq(_address)} '
-                                      f'THEN {q.VALUE} ELSE {q.VALUE.neg_()} END'), 'value')],
-                        where=where_cond,
-                        order_by=q.BLOCK_NUMBER.comma_(q.LOG_INDEX),
-                        offset=offset).to_dataframe())
-
-                    if df_tt.shape[0] > 0:
-                        df_ts.append(df_tt)
-                    if df_tt.shape[0] < 5000:
-                        break
-                    offset += 5000
-
-        return (pd.concat(df_ts)
-                .assign(block_number=lambda x: x.block_number.apply(int))
-                .drop_duplicates()
-                .sort_values('block_number')
-                .reset_index(drop=True))
 
     def _use_model():
         req = {'accounts': _accounts, 'startBlock': start_block}
