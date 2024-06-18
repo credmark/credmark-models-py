@@ -546,7 +546,7 @@ class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
 
 
 @Model.describe(slug='token.transfers',
-                version='1.1',
+                version='1.2',
                 display_name='Token Transfers',
                 description='Transfers of a Token',
                 category='protocol',
@@ -568,6 +568,7 @@ class TokenTransfers(Model):
                 order_by=q.BLOCK_NUMBER.desc(),
                 limit=input.limit,
                 offset=input.offset,
+                analytics_mode=True,
             )
 
             total_transfers = 0
@@ -594,16 +595,23 @@ class TokenHolderInput(Token):
     offset: int = DTOField(0,
                            ge=0,
                            description="Omit a specified number of holders from beginning of result set")
+    order_by: str = DTOField("balance", description="Sort by balance or newest")
     quote: Currency = DTOField(FiatCurrency(symbol='USD'),
                                description='Quote token address to count the value')
 
 
 class TokenHolder(DTO):
+    class Block(DTO):
+        block_number: int
+        timestamp: str
+
     address: Address = DTOField(description="Address of holder")
     balance: int = DTOField(description="Balance of account")
     balance_scaled: float = DTOField(
         description="Balance scaled to token decimals for account")
     value: float = DTOField(description="Balance in terms of quoted currency")
+    first_transfer_block: Block
+    last_transfer_block: Block
 
 
 class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
@@ -616,7 +624,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 
 @Model.describe(slug='token.holders',
-                version='1.4',
+                version='1.5',
                 display_name='Token Holders',
                 description='Holders of a Token',
                 category='protocol',
@@ -626,13 +634,22 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 class TokenHolders(Model):
     def run(self, input: TokenHolderInput) -> TokenHoldersOutput:
         with self.context.ledger.TokenBalance as q:
+            if input.order_by == 'newest':
+                order_by = q.field('first_block_number').dquote().desc()
+            else:
+                order_by = q.field('balance').dquote().desc()
+
             df = q.select(
                 aggregates=[(q.AMOUNT.as_numeric().sum_(), 'balance'),
+                            (q.BLOCK_NUMBER.min_(), 'first_block_number'),
+                            (q.BLOCK_TIMESTAMP.min_(), 'first_block_timestamp'),
+                            (q.BLOCK_NUMBER.max_(), 'last_block_number'),
+                            (q.BLOCK_TIMESTAMP.max_(), 'last_block_timestamp'),
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
                 having=q.AMOUNT.as_numeric().sum_().gt(0),
-                order_by=q.field('balance').dquote().desc().comma_(q.ADDRESS),
+                order_by=order_by.comma_(q.ADDRESS),
                 limit=input.limit,
                 offset=input.offset,
                 bigint_cols=['balance', 'total_holders'],
@@ -655,8 +672,12 @@ class TokenHolders(Model):
                     address=Address(row['address']),
                     balance=row['balance'],
                     balance_scaled=input.scaled(row['balance']),
-                    value=token_price.price * input.scaled(row['balance']))
-                    for _, row in df.iterrows()],
+                    value=token_price.price * input.scaled(row['balance']),
+                    first_transfer_block=TokenHolder.Block(
+                        block_number=row['first_block_number'], timestamp=row['first_block_timestamp']),
+                    last_transfer_block=TokenHolder.Block(
+                        block_number=row['last_block_number'], timestamp=row['last_block_timestamp']),
+                )for _, row in df.iterrows()],
                 total_holders=total_holders)
 
 
