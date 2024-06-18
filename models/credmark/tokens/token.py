@@ -516,6 +516,74 @@ class TokenBalanceModel(Model):
         )
 
 
+class TokenTransferInput(Token):
+    limit: int = DTOField(100,
+                          gt=0, description="Limit the number of transfers that are returned")
+    offset: int = DTOField(0,
+                           ge=0,
+                           description="Omit a specified number of transfers from beginning of result set")
+
+
+class TokenTransfer(DTO):
+    from_address: Address
+    to_address: Address
+    block_number: int
+    block_timestamp: str
+    amount: int
+    amount_scaled: float
+    usd_amount: float
+
+
+class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
+    transfers: List[TokenTransfer] = DTOField(
+        default=[], description='List of transfers')
+    total_transfers: int = DTOField(description='Total number of transfers')
+
+    _iterator: str = PrivateAttr('transfers')
+
+
+@Model.describe(slug='token.transfers',
+                version='1.0',
+                display_name='Token Transfers',
+                description='Transfers of a Token',
+                category='protocol',
+                tags=['token'],
+                input=TokenTransferInput,
+                output=TokenTransferOutput)
+class TokenTransfers(Model):
+    def run(self, input: TokenTransferInput) -> TokenTransferOutput:
+        with self.context.ledger.TokenTransfer as q:
+            rows = q.select(
+                aggregates=[('COUNT(*) OVER()', 'total_transfers')],
+                columns=[q.BLOCK_NUMBER,
+                         q.BLOCK_TIMESTAMP,
+                         q.FROM_ADDRESS,
+                         q.TO_ADDRESS,
+                         q.RAW_AMOUNT,
+                         q.USD_AMOUNT],
+                where=q.TOKEN_ADDRESS.eq(input.address),
+                order_by=q.BLOCK_NUMBER.desc(),
+                limit=input.limit,
+                offset=input.offset,
+            )
+
+            total_transfers = 0
+            if len(rows.data) > 0:
+                total_transfers = rows[0]['total_transfers']
+
+            return TokenTransferOutput(
+                transfers=[TokenTransfer(
+                    from_address=Address(row['from_address']),
+                    to_address=Address(row['to_address']),
+                    block_number=int(row['block_number']),
+                    block_timestamp=row['block_timestamp'],
+                    amount=int(row['raw_amount']),
+                    amount_scaled=input.scaled(int(row['raw_amount'])),
+                    usd_amount=float(row['usd_amount']),
+                ) for row in rows],
+                total_transfers=total_transfers)
+
+
 class TokenHolderInput(Token):
     limit: int = DTOField(100,
                           gt=0, description="Limit the number of holders that are returned")
