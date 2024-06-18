@@ -1,5 +1,7 @@
 # pylint: disable=locally-disabled, no-member, line-too-long, invalid-name
 
+import math
+from decimal import Decimal
 from typing import List, Optional
 
 import requests
@@ -530,6 +532,7 @@ class TokenTransfer(DTO):
     block_number: int
     block_timestamp: str
     amount: int
+    amount_str: str
     amount_scaled: float
     usd_amount: float
 
@@ -543,7 +546,7 @@ class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
 
 
 @Model.describe(slug='token.transfers',
-                version='1.0',
+                version='1.1',
                 display_name='Token Transfers',
                 description='Transfers of a Token',
                 category='protocol',
@@ -577,8 +580,9 @@ class TokenTransfers(Model):
                     to_address=Address(row['to_address']),
                     block_number=int(row['block_number']),
                     block_timestamp=row['block_timestamp'],
-                    amount=int(row['raw_amount']),
-                    amount_scaled=input.scaled(int(row['raw_amount'])),
+                    amount=math.floor(Decimal(row['raw_amount'])),
+                    amount_str=str(math.floor(Decimal(row['raw_amount']))),
+                    amount_scaled=input.scaled(math.floor(Decimal(row['raw_amount']))),
                     usd_amount=float(row['usd_amount']),
                 ) for row in rows],
                 total_transfers=total_transfers)
