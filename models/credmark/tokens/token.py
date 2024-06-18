@@ -762,12 +762,14 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
         valueUsd: float = 0.0
     categories: List[CategorizedSupplyCategory]
     _iterator: str = 'categories'
+    totalSupplyScaled: float = 0.0
+    totalSupplyUsd: float = 0.0
     circulatingSupplyScaled: float = 0.0
     circulatingSupplyUsd: float = 0.0
 
 
 @Model.describe(slug='token.categorized-supply',
-                version='1.2',
+                version='1.3',
                 display_name='Token Categorized Supply',
                 description='The categorized supply for a token',
                 category='protocol',
@@ -777,7 +779,7 @@ class CategorizedSupplyResponse(CategorizedSupplyRequest):
 class TokenCirculatingSupply(Model):
     def run(self, input: CategorizedSupplyRequest) -> CategorizedSupplyResponse:
         response = CategorizedSupplyResponse(**input.dict())
-        total_supply_scaled = input.token.scaled(input.token.total_supply)
+        response.totalSupplyScaled = input.token.scaled(input.token.total_supply)
         token_price = PriceWithQuote(
             **self.context.models.price.quote({'base': input.token}))
         if token_price is None:
@@ -794,12 +796,15 @@ class TokenCirculatingSupply(Model):
             categoryName='uncategorized',
             categoryType='uncategorized',
             circulating=True,
-            amountScaled=total_supply_scaled -
+            amountScaled=response.totalSupplyScaled -
             sum(c.amountScaled for c in response.categories)
         ))
         response.circulatingSupplyScaled = sum(
             c.amountScaled for c in response.categories if c.circulating)
+
         if isinstance(token_price.price, float):
+            if isinstance(response.totalSupplyScaled, float):
+                response.totalSupplyUsd = response.totalSupplyScaled * token_price.price
             if isinstance(response.circulatingSupplyScaled, float):
                 response.circulatingSupplyUsd = response.circulatingSupplyScaled * token_price.price
         return response
