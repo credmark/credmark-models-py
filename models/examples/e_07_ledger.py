@@ -234,8 +234,8 @@ with self.context.ledger.TokenTransfer as ttf:
         with self.context.ledger.TokenBalance as tb:
             ledger_output = tb.select(
                 columns=tb.columns,
-                where=tb.FROM_ADDRESS.eq(CMK_ADDRESS).or_(
-                    tb.TO_ADDRESS.eq(CMK_ADDRESS)
+                where=tb.ADDRESS.eq(CMK_ADDRESS).or_(
+                    tb.COUNTERPARTY_ADDRESS.eq(CMK_ADDRESS)
                 ),
                 order_by=tb.BLOCK_NUMBER.desc())
 

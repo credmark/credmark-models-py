@@ -688,7 +688,7 @@ class AccountsPortfolio(Model):
     def get_token_symbol(self, tokens: Set[ChecksumAddress]):
         token = Token('WETH').as_erc20(True)
         alt_token = Token('WETH').as_erc20(True, True)
-        return_type: type[str | bytes] = type(str)
+        return_type: type[str | bytes] = type(str)  # type: ignore
         symbols = self.context.web3_batch.call_same_function(
             token.functions.symbol(),
             list(tokens),
@@ -713,7 +713,7 @@ class AccountsPortfolio(Model):
     def get_token_name(self, tokens: Set[ChecksumAddress]):
         token = Token('WETH').as_erc20(True)
         alt_token = Token('WETH').as_erc20(True, True)
-        return_type: type[str | bytes] = type(str)
+        return_type: type[str | bytes] = type(str)  # type: ignore
         names = self.context.web3_batch.call_same_function(
             token.functions.name(),
             list(tokens),

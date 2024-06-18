@@ -383,7 +383,7 @@ class UniswapV2LPFee(Model):
         with self.context.ledger.TokenBalance as q:
             _df = q.select(
                 aggregates=[
-                    (q.TRANSACTION_VALUE.as_numeric().sum_(), 'sum_transaction_value')],
+                    (q.AMOUNT.as_numeric().sum_(), 'sum_transaction_value')],
                 order_by=q.BLOCK_NUMBER.desc(),
                 where=(q.ADDRESS.eq(lp)
                         .and_(q.TOKEN_ADDRESS.eq(pool.address))
