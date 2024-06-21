@@ -527,6 +527,8 @@ class TokenTransferInput(Token):
 
 
 class TokenTransfer(DTO):
+    transaction_hash: str
+    log_index: int
     from_address: Address
     to_address: Address
     block_number: int
@@ -546,7 +548,7 @@ class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
 
 
 @Model.describe(slug='token.transfers',
-                version='1.2',
+                version='1.3',
                 display_name='Token Transfers',
                 description='Transfers of a Token',
                 category='protocol',
@@ -563,7 +565,9 @@ class TokenTransfers(Model):
                          q.FROM_ADDRESS,
                          q.TO_ADDRESS,
                          q.RAW_AMOUNT,
-                         q.USD_AMOUNT],
+                         q.USD_AMOUNT,
+                         q.TRANSACTION_HASH,
+                         q.LOG_INDEX],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 order_by=q.BLOCK_NUMBER.desc(),
                 limit=input.limit,
@@ -577,6 +581,8 @@ class TokenTransfers(Model):
 
             return TokenTransferOutput(
                 transfers=[TokenTransfer(
+                    transaction_hash=row['transaction_hash'],
+                    log_index=row['log_index'],
                     from_address=Address(row['from_address']),
                     to_address=Address(row['to_address']),
                     block_number=int(row['block_number']),
