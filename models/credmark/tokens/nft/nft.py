@@ -9,7 +9,11 @@ from datetime import datetime
 import ipfshttpclient
 import pandas as pd
 from credmark.cmf.model import Model
+from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Address, Contract, JoinType, Token
+from credmark.dto import DTO, DTOField
+
+from models.tmp_abi_lookup import NFT_ABI
 
 AZUKI_NFT = '0xED5AF388653567Af2F388E6224dC7C4b3241C544'
 RTFKT_MNLTH_NFT = '0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1'
@@ -212,3 +216,65 @@ class NFTGet(Model):
             'current_owner_duration': self.context.block_number.timestamp - startTimestamp if startTimestamp is not None else None,
             'current_owner_duration_days': (self.context.block_number.timestamp - startTimestamp) / 86400 if startTimestamp is not None else None
         }
+
+
+class NFTHolderInput(NFTContract):
+    limit: int = DTOField(1000,
+                          gt=0, description="Limit the number of holders that are returned")
+    offset: int = DTOField(0,
+                           ge=0,
+                           description="Omit a specified number of holders from beginning of result set")
+    start_from_one: bool = DTOField(False)
+
+
+class NFTHolder(DTO):
+    token_id: int
+    address: Address | None
+
+
+class NFTHoldersOutput(DTO):
+    holders: list[NFTHolder]
+    total_supply: int | None
+
+
+@Model.describe(slug='nft.holders',
+                version='0.1',
+                display_name='NFT holders',
+                description="nft",
+                input=NFTHolderInput,
+                output=NFTHoldersOutput)
+class GetNFTHolders(Model):
+    def run(self, input: NFTHolderInput) -> NFTHoldersOutput:
+        input.set_abi(abi=NFT_ABI, set_loaded=True)
+        try:
+            total_supply = input.functions.totalSupply().call()
+        except:  # noqa: E722
+            total_supply = None
+
+        _local_offset = 1 if input.start_from_one else 0
+        first = _local_offset + input.offset
+        last = first + input.limit - 1
+
+        if total_supply and last > total_supply - (0 if input.start_from_one else 1):
+            last = total_supply - (0 if input.start_from_one else 1)
+
+        if first >= last:
+            raise ModelInputError(f"Invalid limit/offset. Total supply is {total_supply}.")
+
+        owners = self.context.web3_batch.call([
+            input.functions.ownerOf(token_id)
+            for token_id in range(first, last + 1)
+        ], unwrap=True)
+
+        holders = [
+            NFTHolder(
+                address=Address(owner) if owner else None,
+                token_id=first + idx
+            )
+            for (idx, owner) in enumerate(owners)
+        ]
+
+        return NFTHoldersOutput(
+            holders=holders,
+            total_supply=total_supply,
+        )
