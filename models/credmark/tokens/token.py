@@ -604,6 +604,11 @@ class TokenHolderInput(Token):
     order_by: str = DTOField("balance", description="Sort by balance or newest")
     quote: Currency = DTOField(FiatCurrency(symbol='USD'),
                                description='Quote token address to count the value')
+    min_amount: int = DTOField(
+        -1, description='Minimum balance for a holder to be included. Default is -1, a minimum \
+            balance greater than 0')
+    max_amount: int = DTOField(
+        -1, description='Maximum balance for a holder to be included. Default is -1, no maximum')
 
 
 class TokenHolder(DTO):
@@ -645,6 +650,12 @@ class TokenHolders(Model):
             else:
                 order_by = q.field('balance').dquote().desc()
 
+            having = q.AMOUNT.as_numeric().sum_().gt(0) if input.min_amount == - \
+                1 else q.AMOUNT.as_numeric().sum_().ge(input.min_amount)
+
+            if input.max_amount != -1:
+                having = having.and_(q.AMOUNT.as_numeric().sum_().le(input.max_amount))
+
             df = q.select(
                 aggregates=[(q.AMOUNT.as_numeric().sum_(), 'balance'),
                             (q.BLOCK_NUMBER.min_(), 'first_block_number'),
@@ -654,7 +665,7 @@ class TokenHolders(Model):
                             ('COUNT(*) OVER()', 'total_holders')],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                having=q.AMOUNT.as_numeric().sum_().gt(0),
+                having=having,
                 order_by=order_by.comma_(q.ADDRESS),
                 limit=input.limit,
                 offset=input.offset,
