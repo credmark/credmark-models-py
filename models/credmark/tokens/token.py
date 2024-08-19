@@ -631,7 +631,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
         default=[], description='List of holders')
     total_holders: int = DTOField(description='Total number of holders')
 
-    _iterator: str = PrivateAttr('positions')
+    _iterator: str = PrivateAttr('holders')
 
 
 @Model.describe(slug='token.holders',
