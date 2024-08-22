@@ -524,6 +524,8 @@ class TokenTransferInput(Token):
     offset: int = DTOField(0,
                            ge=0,
                            description="Omit a specified number of transfers from beginning of result set")
+    from_address: str | None = DTOField(
+        None, description='Optionally filter transactions to only those from a specific address')
 
 
 class TokenTransfer(DTO):
@@ -558,6 +560,10 @@ class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
 class TokenTransfers(Model):
     def run(self, input: TokenTransferInput) -> TokenTransferOutput:
         with self.context.ledger.TokenTransfer as q:
+            where = q.TOKEN_ADDRESS.eq(input.address)
+            if input.from_address:
+                where = where.and_(q.FROM_ADDRESS.eq(input.from_address))
+
             rows = q.select(
                 aggregates=[('COUNT(*) OVER()', 'total_transfers')],
                 columns=[q.BLOCK_NUMBER,
@@ -568,7 +574,7 @@ class TokenTransfers(Model):
                          q.USD_AMOUNT,
                          q.TRANSACTION_HASH,
                          q.LOG_INDEX],
-                where=q.TOKEN_ADDRESS.eq(input.address),
+                where=where,
                 order_by=q.BLOCK_NUMBER.desc(),
                 limit=input.limit,
                 offset=input.offset,
@@ -590,7 +596,7 @@ class TokenTransfers(Model):
                     amount=math.floor(Decimal(row['raw_amount'])),
                     amount_str=str(math.floor(Decimal(row['raw_amount']))),
                     amount_scaled=input.scaled(math.floor(Decimal(row['raw_amount']))),
-                    usd_amount=float(row['usd_amount']),
+                    usd_amount=float(row['usd_amount']) if row['usd_amount'] is not None else -1,
                 ) for row in rows],
                 total_transfers=total_transfers)
 
