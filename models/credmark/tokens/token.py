@@ -718,17 +718,19 @@ class TokenHolders(Model):
                 order_by = q.field("balance").dquote().desc()
 
             having = (
-                q.AMOUNT.as_numeric().sum_().gt(0)
+                q.RAW_AMOUNT.as_numeric().sum_().gt(0)
                 if input.min_amount == -1
-                else q.AMOUNT.as_numeric().sum_().ge(input.min_amount)
+                else q.RAW_AMOUNT.as_numeric().sum_().ge(input.unscaled(input.min_amount))
             )
 
             if input.max_amount != -1:
-                having = having.and_(q.AMOUNT.as_numeric().sum_().le(input.max_amount))
+                having = having.and_(
+                    q.RAW_AMOUNT.as_numeric().sum_().le(input.unscaled(input.max_amount))
+                )
 
             df = q.select(
                 aggregates=[
-                    (q.AMOUNT.as_numeric().sum_(), "balance"),
+                    (q.RAW_AMOUNT.as_numeric().sum_(), "balance"),
                     (q.BLOCK_NUMBER.min_(), "first_block_number"),
                     (q.BLOCK_TIMESTAMP.min_(), "first_block_timestamp"),
                     (q.BLOCK_NUMBER.max_(), "last_block_number"),
@@ -752,9 +754,12 @@ class TokenHolders(Model):
                 PriceWithQuote(price=0, src="", quoteAddress=input.quote.address)
             )
 
-            total_holders = df["total_holders"].values[0]
-            if total_holders is None:
+            if df.empty:
                 total_holders = 0
+            else:
+                total_holders = df["total_holders"].values[0]
+                if total_holders is None:
+                    total_holders = 0
 
             return TokenHoldersOutput(
                 price=token_price,
@@ -798,13 +803,13 @@ class TokenHoldersCount(Model):
         with self.context.ledger.TokenBalance as q:
             df = q.select(
                 aggregates=[
-                    (q.AMOUNT.as_numeric().sum_(), "balance"),
+                    (q.RAW_AMOUNT.as_numeric().sum_(), "balance"),
                     ("COUNT(*) OVER()", "total_holders"),
                 ],
                 where=q.TOKEN_ADDRESS.eq(input.address),
                 group_by=[q.ADDRESS],
-                order_by=q.AMOUNT.as_numeric().sum_().desc(),
-                having=q.AMOUNT.as_numeric().sum_().gt(0),
+                order_by=q.RAW_AMOUNT.as_numeric().sum_().desc(),
+                having=q.RAW_AMOUNT.as_numeric().sum_().gt(0),
             ).to_dataframe()
 
             if df.empty:
@@ -834,7 +839,7 @@ class TokenNumberHolders(Model):
                 aggregates=[],
                 group_by=[q.ADDRESS],
                 where=q.TOKEN_ADDRESS.eq(input.address),
-                having=q.AMOUNT.as_numeric().sum_().gt(0),
+                having=q.RAW_AMOUNT.as_numeric().sum_().gt(0),
             ).to_dataframe()
         return df.to_dict()
 
