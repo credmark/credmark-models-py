@@ -2,13 +2,16 @@
     "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticMode": "workspace",
-    "autopep8.args": ["--max-line-length", "100"],
+    "autopep8.args": [
+        "--max-line-length",
+        "100"
+    ],
     "ruff.lint.args": [
         "--ignore",
         "E501",
         "--ignore",
         "F841",
-      ],
+    ],
     "editor.formatOnSave": true,
     "cSpell.words": [
         "aave",
@@ -207,9 +210,10 @@
         "yvst"
     ],
     "[python]": {
-        "editor.defaultFormatter": "ms-python.autopep8"
+        "editor.defaultFormatter": "charliermarsh.ruff"
     },
-    "python.formatting.provider": "autopep8",
-    "githubPullRequests.ignoredPullRequestBranches": ["main"],
+    "githubPullRequests.ignoredPullRequestBranches": [
+        "main"
+    ],
     "jupyter.notebookFileRoot": "${workspaceFolder}"
 }
