@@ -206,37 +206,66 @@ class LiquidityProvidersOutput(IterableListGenericDTO[LiquidityProvider]):
     _iterator: str = PrivateAttr("holders")
 
 
-class GetLiquidityProvidersForPoolInput(Contract):
-    token: Token
+class GetLiquidityProvidersInput(Token):
+    pool: Contract | None = DTOField(
+        None,
+        description="Filter for this pool only. If not provided, get for all pools of the token.",
+    )
     limit: int = DTOField(100, gt=0, description="Limit the number of holders that are returned")
     offset: int = DTOField(
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
+    min_amount: int = DTOField(
+        -1,
+        description="Minimum liquidity for a provider to be included. Default is -1, a minimum \
+            balance greater than 0",
+    )
+    max_amount: int = DTOField(
+        -1, description="Maximum liquidity for a provider to be included. Default is -1, no maximum"
+    )
 
 
 @Model.describe(
-    slug="tealswap-v3.get-liquidity-providers-for-pool",
+    slug="tealswap-v3.get-liquidity-providers",
     version=TEALSWAPV3_VERSION,
     display_name="Tealswap v3 Token Pools",
     description="The Tealswap v3 pools that support a token contract",
     category="protocol",
     subcategory="tealswap-v3",
-    input=GetLiquidityProvidersForPoolInput,
+    input=GetLiquidityProvidersInput,
     output=LiquidityProvidersOutput,
 )
 class TealswapV3GetLiquidityProviders(Model):
-    def run(self, input: GetLiquidityProvidersForPoolInput) -> LiquidityProvidersOutput:
-        input.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
+    def run(self, input: GetLiquidityProvidersInput) -> LiquidityProvidersOutput:
         with self.context.ledger.TokenBalance as q:
             order_by = q.field("liquidity").dquote().desc()
-            having = q.RAW_AMOUNT.as_numeric().sum_().gt(0)
+            having = (
+                q.RAW_AMOUNT.as_numeric().sum_().gt(0)
+                if input.min_amount == -1
+                else q.RAW_AMOUNT.as_numeric().sum_().ge(input.unscaled(input.min_amount))
+            )
 
-            token0 = Address(input.functions.token0().call())
-            token1 = Address(input.functions.token1().call())
+            if input.max_amount != -1:
+                having = having.and_(
+                    q.RAW_AMOUNT.as_numeric().sum_().le(input.unscaled(input.max_amount))
+                )
 
-            if input.token.address != token0 and input.token.address != token1:
-                raise ModelInputError(
-                    "Input token does not match token0 or token1 of the provided pool"
+            if input.pool is not None:
+                input.pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
+                token0 = Address(input.pool.functions.token0().call())
+                token1 = Address(input.pool.functions.token1().call())
+                if input.address != token0 and input.address != token1:
+                    raise ModelInputError(
+                        "Input token does not match token0 or token1 of the provided pool"
+                    )
+                counterparty_cond = q.COUNTERPARTY_ADDRESS.eq(input.pool.address)
+            else:
+                pools = self.context.run_model(
+                    "tealswap-v3.get-pools-by-token", input=input, return_type=Pools
+                )
+
+                counterparty_cond = q.COUNTERPARTY_ADDRESS.in_(
+                    [pool.pool_address for pool in pools]
                 )
 
             df = q.select(
@@ -248,9 +277,7 @@ class TealswapV3GetLiquidityProviders(Model):
                     (q.BLOCK_TIMESTAMP.max_(), "last_block_timestamp"),
                     ("COUNT(*) OVER()", "total_providers"),
                 ],
-                where=q.TOKEN_ADDRESS.eq(input.token.address).and_(
-                    q.COUNTERPARTY_ADDRESS.eq(input.address)
-                ),
+                where=q.TOKEN_ADDRESS.eq(input.address).and_(counterparty_cond),
                 group_by=[q.ADDRESS],
                 having=having,
                 order_by=order_by.comma_(q.ADDRESS),
@@ -272,7 +299,7 @@ class TealswapV3GetLiquidityProviders(Model):
                     LiquidityProvider(
                         address=Address(row["address"]),
                         liquidity=row["liquidity"],
-                        liquidity_scaled=input.token.scaled(row["liquidity"]),
+                        liquidity_scaled=input.scaled(row["liquidity"]),
                         first_transfer_block=LiquidityProvider.Block(
                             block_number=row["first_block_number"],
                             timestamp=row["first_block_timestamp"],

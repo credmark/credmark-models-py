@@ -55,6 +55,7 @@
         "concurrencytest",
         "conds",
         "connectionstyle",
+        "COUNTERPARTY",
         "Credmark",
         "crvusd",
         "cryptoswap",
