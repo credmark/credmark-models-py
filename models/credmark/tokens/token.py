@@ -668,13 +668,14 @@ class TokenHolderInput(Token):
     quote: Currency = DTOField(
         FiatCurrency(symbol="USD"), description="Quote token address to count the value"
     )
-    min_amount: int = DTOField(
+    min_amount: float = DTOField(
         -1,
-        description="Minimum balance for a holder to be included. Default is -1, a minimum \
+        description="Minimum unscaled balance for a holder to be included. Default is -1, a minimum \
             balance greater than 0",
     )
-    max_amount: int = DTOField(
-        -1, description="Maximum balance for a holder to be included. Default is -1, no maximum"
+    max_amount: float = DTOField(
+        -1,
+        description="Maximum unscaled balance for a holder to be included. Default is -1, no maximum",
     )
 
 
@@ -701,7 +702,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 @Model.describe(
     slug="token.holders",
-    version="1.5",
+    version="1.6",
     display_name="Token Holders",
     description="Holders of a Token",
     category="protocol",
