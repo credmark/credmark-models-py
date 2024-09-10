@@ -1,4 +1,4 @@
-# pylint: disable=locally-disabled, no-member, line-too-long, invalid-name
+# pylint: disable=locally-disabled, no-member, line-too-long, invalid-name. too-many-lines
 
 import math
 from decimal import Decimal
@@ -16,6 +16,7 @@ from credmark.cmf.types import (
     Contracts,
     Currency,
     FiatCurrency,
+    JoinType,
     Maybe,
     NativeToken,
     Network,
@@ -575,6 +576,9 @@ class TokenTransferInput(Token):
     from_address: str | None = DTOField(
         None, description="Optionally filter transactions to only those from a specific address"
     )
+    tx_contract_address: str | None = DTOField(
+        None, description="Optionally filter transactions to only those from a specific address"
+    )
 
 
 class TokenTransfer(DTO):
@@ -609,54 +613,60 @@ class TokenTransferOutput(IterableListGenericDTO[TokenTransfer]):
 )
 class TokenTransfers(Model):
     def run(self, input: TokenTransferInput) -> TokenTransferOutput:
-        with self.context.ledger.TokenTransfer as q:
-            where = q.TOKEN_ADDRESS.eq(input.address)
-            if input.from_address:
-                where = where.and_(q.FROM_ADDRESS.eq(input.from_address))
+        with self.context.ledger.TokenTransfer.as_("tt") as q:
+            with self.context.ledger.Transaction.as_("tx") as tx:
+                joins = []
+                where = q.TOKEN_ADDRESS.eq(input.address)
+                if input.from_address:
+                    where = where.and_(q.FROM_ADDRESS.eq(input.from_address))
+                if input.tx_contract_address:
+                    joins.append((JoinType.INNER, tx, tx.HASH.eq(q.TRANSACTION_HASH)))
+                    where = where.and_(tx.TO_ADDRESS.eq(input.tx_contract_address))
 
-            rows = q.select(
-                aggregates=[("COUNT(*) OVER()", "total_transfers")],
-                columns=[
-                    q.BLOCK_NUMBER,
-                    q.BLOCK_TIMESTAMP,
-                    q.FROM_ADDRESS,
-                    q.TO_ADDRESS,
-                    q.RAW_AMOUNT,
-                    q.USD_AMOUNT,
-                    q.TRANSACTION_HASH,
-                    q.LOG_INDEX,
-                ],
-                where=where,
-                order_by=q.BLOCK_NUMBER.desc(),
-                limit=input.limit,
-                offset=input.offset,
-                analytics_mode=True,
-            )
+                rows = q.select(
+                    aggregates=[
+                        (q.BLOCK_NUMBER, "block_number"),
+                        (q.BLOCK_TIMESTAMP, "block_timestamp"),
+                        (q.FROM_ADDRESS, "from_address"),
+                        (q.TO_ADDRESS, "to_address"),
+                        (q.RAW_AMOUNT, "raw_amount"),
+                        (q.USD_AMOUNT, "usd_amount"),
+                        (q.TRANSACTION_HASH, "transaction_hash"),
+                        (q.LOG_INDEX, "log_index"),
+                        ("COUNT(*) OVER()", "total_transfers"),
+                    ],
+                    joins=joins,
+                    where=where,
+                    order_by=q.BLOCK_NUMBER.desc(),
+                    limit=input.limit,
+                    offset=input.offset,
+                    analytics_mode=True,
+                )
 
-            total_transfers = 0
-            if len(rows.data) > 0:
-                total_transfers = rows[0]["total_transfers"]
+                total_transfers = 0
+                if len(rows.data) > 0:
+                    total_transfers = rows[0]["total_transfers"]
 
-            return TokenTransferOutput(
-                transfers=[
-                    TokenTransfer(
-                        transaction_hash=row["transaction_hash"],
-                        log_index=row["log_index"],
-                        from_address=Address(row["from_address"]),
-                        to_address=Address(row["to_address"]),
-                        block_number=int(row["block_number"]),
-                        block_timestamp=row["block_timestamp"],
-                        amount=math.floor(Decimal(row["raw_amount"])),
-                        amount_str=str(math.floor(Decimal(row["raw_amount"]))),
-                        amount_scaled=input.scaled(math.floor(Decimal(row["raw_amount"]))),
-                        usd_amount=float(row["usd_amount"])
-                        if row["usd_amount"] is not None
-                        else -1,
-                    )
-                    for row in rows
-                ],
-                total_transfers=total_transfers,
-            )
+                return TokenTransferOutput(
+                    transfers=[
+                        TokenTransfer(
+                            transaction_hash=row["transaction_hash"],
+                            log_index=row["log_index"],
+                            from_address=Address(row["from_address"]),
+                            to_address=Address(row["to_address"]),
+                            block_number=int(row["block_number"]),
+                            block_timestamp=row["block_timestamp"],
+                            amount=math.floor(Decimal(row["raw_amount"])),
+                            amount_str=str(math.floor(Decimal(row["raw_amount"]))),
+                            amount_scaled=input.scaled(math.floor(Decimal(row["raw_amount"]))),
+                            usd_amount=float(row["usd_amount"])
+                            if row["usd_amount"] is not None
+                            else -1,
+                        )
+                        for row in rows
+                    ],
+                    total_transfers=total_transfers,
+                )
 
 
 class TokenHolderInput(Token):
