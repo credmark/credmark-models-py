@@ -254,7 +254,7 @@ class TealswapV3GetLiquidityProviders(Model):
                 input.pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
                 token0 = Address(input.pool.functions.token0().call())
                 token1 = Address(input.pool.functions.token1().call())
-                if input.address != token0 and input.address != token1:
+                if input.address not in (token0, token1):
                     raise ModelInputError(
                         "Input token does not match token0 or token1 of the provided pool"
                     )
