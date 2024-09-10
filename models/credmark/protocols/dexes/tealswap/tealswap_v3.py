@@ -17,9 +17,25 @@ V3_FACTORY_ADDRESS = {
     ]
 }
 
+SWAP_ROUTER_V2_ADDRESS = {
+    k: Address("0xEE3A0F4598A641dDD855374c40736cABfB9a0A4d")
+    for k in [
+        Network.Oasys,
+    ]
+}
+
+NFT_MANAGER_ADDRESS = {
+    k: Address("0x49B903b526dB8fee49a479E1087603b4ccE2119F")
+    for k in [
+        Network.Oasys,
+    ]
+}
+
 
 class TealswapV3FactoryMeta:
     FACTORY_ADDRESS = V3_FACTORY_ADDRESS
+    SWAP_ROUTER_V2_ADDRESS = SWAP_ROUTER_V2_ADDRESS
+    NFT_MANAGER_ADDRESS = NFT_MANAGER_ADDRESS
     PROTOCOL = DexProtocol.TealswapV3
     POOL_FEES = V3_POOL_FEES
     FACTORY_ABI = UNISWAP_V3_FACTORY_ABI
@@ -178,112 +194,98 @@ class TealswapV3GetPoolsByToken(Model):
                 tickSpacing=row["tickSpacing"],
             )
             for _, row in df.iterrows()
-            if (Address(row["token0"]) == input.address)
-            or (Address(row["token1"]) == input.address)
+            if (Address(row["token0"]) == input.address or Address(row["token1"]) == input.address)
         ]
 
         return Pools(pools=token_pools)
 
 
-class LiquidityProvider(DTO):
+class LP(DTO):
     class Block(DTO):
         block_number: int
         timestamp: str
 
-    address: Address = DTOField(description="Address of holder")
-    liquidity: int = DTOField(description="Liquidity provided by account")
-    liquidity_scaled: float = DTOField(description="Liquidity scaled to token decimals for account")
+    address: Address = DTOField(description="Address of LP")
+    amount: int = DTOField(description="Amount provided by LP")
+    amount_scaled: float = DTOField(description="Amount scaled to token decimals for account")
     first_transfer_block: Block
     last_transfer_block: Block
 
 
-class LiquidityProvidersOutput(IterableListGenericDTO[LiquidityProvider]):
-    providers: list[LiquidityProvider] = DTOField(
-        default=[], description="List of liquidity prviders"
-    )
+class LPOutput(IterableListGenericDTO[LP]):
+    providers: list[LP] = DTOField(default=[], description="List of liquidity providers")
     total_providers: int = DTOField(description="Total number of liquidity providers")
 
-    _iterator: str = PrivateAttr("holders")
+    _iterator: str = PrivateAttr("providers")
 
 
-class GetLiquidityProvidersInput(Token):
-    pool: Contract | None = DTOField(
-        None,
-        description="Filter for this pool only. If not provided, get for all pools of the token.",
-    )
-    limit: int = DTOField(100, gt=0, description="Limit the number of holders that are returned")
+class GetLPInput(Token):
+    limit: int = DTOField(100, gt=0, description="Limit the number of LPs that are returned")
     offset: int = DTOField(
-        0, ge=0, description="Omit a specified number of holders from beginning of result set"
+        0, ge=0, description="Omit a specified number of providers from beginning of result set"
     )
     min_amount: int = DTOField(
         -1,
-        description="Minimum liquidity for a provider to be included. Default is -1, a minimum \
+        description="Minimum amount for a provider to be included. Default is -1, a minimum \
             balance greater than 0",
     )
     max_amount: int = DTOField(
-        -1, description="Maximum liquidity for a provider to be included. Default is -1, no maximum"
+        -1, description="Maximum amount for a provider to be included. Default is -1, no maximum"
     )
 
 
 @Model.describe(
     slug="tealswap-v3.get-liquidity-providers",
-    version=TEALSWAPV3_VERSION,
-    display_name="Tealswap v3 Token Pools",
-    description="The Tealswap v3 pools that support a token contract",
+    version="0.2",
+    display_name="Tealswap v3 liquidity providers",
+    description="Accounts that have provided liquidity on Tealswap v3 by swapping, minting nft",
     category="protocol",
     subcategory="tealswap-v3",
-    input=GetLiquidityProvidersInput,
-    output=LiquidityProvidersOutput,
+    input=GetLPInput,
+    output=LPOutput,
 )
-class TealswapV3GetLiquidityProviders(Model):
-    def run(self, input: GetLiquidityProvidersInput) -> LiquidityProvidersOutput:
-        with self.context.ledger.TokenBalance as q:
-            order_by = q.field("liquidity").dquote().desc()
+class TealswapV3GetLiquidityProviders(Model, TealswapV3FactoryMeta):
+    def run(self, input: GetLPInput) -> LPOutput:
+        is_native = input.address == Address("0x5200000000000000000000000000000000000001")
+        if not is_native:
+            raise ModelInputError("This model only supports native tokens")
+
+        with self.context.ledger.Transaction as q:
+            order_by = q.field("amount").dquote().desc()
             having = (
-                q.RAW_AMOUNT.as_numeric().sum_().gt(0)
+                q.VALUE.as_numeric().sum_().gt(0)
                 if input.min_amount == -1
-                else q.RAW_AMOUNT.as_numeric().sum_().ge(input.unscaled(input.min_amount))
+                else q.VALUE.as_numeric().sum_().ge(input.unscaled(input.min_amount))
             )
 
             if input.max_amount != -1:
                 having = having.and_(
-                    q.RAW_AMOUNT.as_numeric().sum_().le(input.unscaled(input.max_amount))
+                    q.VALUE.as_numeric().sum_().le(input.unscaled(input.max_amount))
                 )
 
-            if input.pool is not None:
-                input.pool.set_abi(UNISWAP_V3_POOL_ABI, set_loaded=True)
-                token0 = Address(input.pool.functions.token0().call())
-                token1 = Address(input.pool.functions.token1().call())
-                if input.address not in (token0, token1):
-                    raise ModelInputError(
-                        "Input token does not match token0 or token1 of the provided pool"
-                    )
-                counterparty_cond = q.COUNTERPARTY_ADDRESS.eq(input.pool.address)
-            else:
-                pools = self.context.run_model(
-                    "tealswap-v3.get-pools-by-token", input=input, return_type=Pools
-                )
-
-                counterparty_cond = q.COUNTERPARTY_ADDRESS.in_(
-                    [pool.pool_address for pool in pools]
-                )
+            where = q.TO_ADDRESS.in_(
+                [
+                    self.SWAP_ROUTER_V2_ADDRESS[self.context.network],
+                    self.NFT_MANAGER_ADDRESS[self.context.network],
+                ]
+            )
 
             df = q.select(
                 aggregates=[
-                    (q.RAW_AMOUNT.as_numeric().sum_(), "liquidity"),
+                    (q.VALUE.as_numeric().sum_(), "amount"),
                     (q.BLOCK_NUMBER.min_(), "first_block_number"),
                     (q.BLOCK_TIMESTAMP.min_(), "first_block_timestamp"),
                     (q.BLOCK_NUMBER.max_(), "last_block_number"),
                     (q.BLOCK_TIMESTAMP.max_(), "last_block_timestamp"),
                     ("COUNT(*) OVER()", "total_providers"),
                 ],
-                where=q.TOKEN_ADDRESS.eq(input.address).and_(counterparty_cond),
-                group_by=[q.ADDRESS],
+                where=where,
+                group_by=[q.FROM_ADDRESS],
                 having=having,
-                order_by=order_by.comma_(q.ADDRESS),
+                order_by=order_by.comma_(q.FROM_ADDRESS),
                 limit=input.limit,
                 offset=input.offset,
-                bigint_cols=["liquidity"],
+                bigint_cols=["amount"],
                 analytics_mode=True,
             ).to_dataframe()
 
@@ -294,17 +296,17 @@ class TealswapV3GetLiquidityProviders(Model):
                 if total_providers is None:
                     total_providers = 0
 
-            return LiquidityProvidersOutput(
+            return LPOutput(
                 providers=[
-                    LiquidityProvider(
-                        address=Address(row["address"]),
-                        liquidity=row["liquidity"],
-                        liquidity_scaled=input.scaled(row["liquidity"]),
-                        first_transfer_block=LiquidityProvider.Block(
+                    LP(
+                        address=Address(row["from_address"]),
+                        amount=row["amount"],
+                        amount_scaled=input.scaled(row["amount"]),
+                        first_transfer_block=LP.Block(
                             block_number=row["first_block_number"],
                             timestamp=row["first_block_timestamp"],
                         ),
-                        last_transfer_block=LiquidityProvider.Block(
+                        last_transfer_block=LP.Block(
                             block_number=row["last_block_number"],
                             timestamp=row["last_block_timestamp"],
                         ),
