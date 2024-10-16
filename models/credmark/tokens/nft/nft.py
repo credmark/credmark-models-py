@@ -15,6 +15,7 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Address, Contract, JoinType, Token
+from credmark.cmf.types.ledger import ColumnField
 from credmark.dto import DTO, DTOField
 from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
 
@@ -258,24 +259,30 @@ class NFTHolderInput(NFTContract):
     offset: int = DTOField(
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
-    start_from_one: bool = DTOField(False)
-    include_attributes: bool = DTOField(False)
+    order_by: str = DTOField(
+        "most_tokens", description="Sort by most_tokens, least_tokens, oldest or newest"
+    )
 
 
 class NFTHolder(DTO):
-    token_id: int
+    class Block(DTO):
+        block_number: int
+        timestamp: str
+
     address: Address | None
-    token_attributes: dict | None
+    balance: int = DTOField(description="No of NFTs owned by address")
+    first_transfer_block: Block
+    last_transfer_block: Block
 
 
 class NFTHoldersOutput(DTO):
     holders: list[NFTHolder]
-    total_supply: int | None
+    total_holders: int | None
 
 
 @Model.describe(
     slug="nft.holders",
-    version="0.1",
+    version="0.2",
     display_name="NFT holders",
     description="nft",
     input=NFTHolderInput,
@@ -330,40 +337,112 @@ class GetNFTHolders(Model):
             )
         return self.get_attributes_bulk(uris)
 
+    # def run(self, input: NFTHolderInput) -> NFTHoldersOutput:
+    #     input.set_abi(abi=NFT_ABI, set_loaded=True)
+    #     try:
+    #         total_supply = input.functions.totalSupply().call()
+    #     except:  # noqa: E722
+    #         total_supply = None
+
+    #     _local_offset = 1 if input.start_from_one else 0
+    #     first = _local_offset + input.offset
+    #     last = first + input.limit - 1
+
+    #     if total_supply and last > total_supply - (0 if input.start_from_one else 1):
+    #         last = total_supply - (0 if input.start_from_one else 1)
+
+    #     if first >= last:
+    #         raise ModelInputError(f"Invalid limit/offset. Total supply is {total_supply}.")
+
+    #     token_ids = range(first, last + 1)
+
+    #     owners = self.get_owners(input, token_ids)
+
+    #     if input.include_attributes:
+    #         attributes = self.get_attributes(input, token_ids)
+
+    #     holders = [
+    #         NFTHolder(
+    #             address=Address(owner) if owner else None,
+    #             token_id=first + idx,
+    #             token_attributes=attributes[idx] if input.include_attributes else None,
+    #         )
+    #         for (idx, owner) in enumerate(owners)
+    #     ]
+
+    #     return NFTHoldersOutput(
+    #         holders=holders,
+    #         total_supply=total_supply,
+    #     )
+
     def run(self, input: NFTHolderInput) -> NFTHoldersOutput:
-        input.set_abi(abi=NFT_ABI, set_loaded=True)
-        try:
-            total_supply = input.functions.totalSupply().call()
-        except:  # noqa: E722
-            total_supply = None
+        with self.context.ledger.NFTBalance as q:
+            if input.order_by == "newest":
+                order_by = q.field("first_block_number").dquote().desc()
+            elif input.order_by == "oldest":
+                order_by = q.field("first_block_number").dquote().asc()
+            elif input.order_by == "most_tokens":
+                order_by = q.field("balance").dquote().asc()
+            elif input.order_by == "least_tokens":
+                order_by = q.field("balance").dquote().asc()
+            else:
+                raise ModelInputError("Invalid order by")
 
-        _local_offset = 1 if input.start_from_one else 0
-        first = _local_offset + input.offset
-        last = first + input.limit - 1
+            df = q.select(
+                aggregates=[
+                    (q.ADDRESS.distinct(), "address"),
+                    (f"COUNT(*) OVER(PARTITION BY {q.ADDRESS})", "balance"),
+                    (
+                        f"{q.BLOCK_NUMBER.min_().min_()} OVER(PARTITION BY {q.ADDRESS})",
+                        "first_block_number",
+                    ),
+                    (
+                        f"{q.BLOCK_TIMESTAMP.min_().min_()} OVER(PARTITION BY {q.ADDRESS})",
+                        "first_block_timestamp",
+                    ),
+                    (
+                        f"{q.BLOCK_NUMBER.max_().max_()} OVER(PARTITION BY {q.ADDRESS})",
+                        "last_block_number",
+                    ),
+                    (
+                        f"{q.BLOCK_TIMESTAMP.max_().max_()} OVER(PARTITION BY {q.ADDRESS})",
+                        "last_block_timestamp",
+                    ),
+                    (f"{q.ADDRESS.count_distinct_()} OVER ()", "total_holders"),
+                ],
+                where=q.TOKEN_ADDRESS.eq(input.address),
+                group_by=[q.ADDRESS, q.TOKEN_ID],
+                having=q.RAW_AMOUNT.as_numeric().sum_().gt(0),
+                order_by=order_by,
+                limit=input.limit,
+                offset=input.offset,
+                bigint_cols=["balance", "total_holders"],
+                analytics_mode=True,
+                omit_group_by_columns=True,
+            ).to_dataframe()
 
-        if total_supply and last > total_supply - (0 if input.start_from_one else 1):
-            last = total_supply - (0 if input.start_from_one else 1)
+            if df.empty:
+                total_holders = 0
+            else:
+                total_holders = df["total_holders"].values[0]
+                if total_holders is None:
+                    total_holders = 0
 
-        if first >= last:
-            raise ModelInputError(f"Invalid limit/offset. Total supply is {total_supply}.")
-
-        token_ids = range(first, last + 1)
-
-        owners = self.get_owners(input, token_ids)
-
-        if input.include_attributes:
-            attributes = self.get_attributes(input, token_ids)
-
-        holders = [
-            NFTHolder(
-                address=Address(owner) if owner else None,
-                token_id=first + idx,
-                token_attributes=attributes[idx] if input.include_attributes else None,
+            return NFTHoldersOutput(
+                holders=[
+                    NFTHolder(
+                        address=Address(row["address"]),
+                        balance=row["balance"],
+                        first_transfer_block=NFTHolder.Block(
+                            block_number=row["first_block_number"],
+                            timestamp=row["first_block_timestamp"],
+                        ),
+                        last_transfer_block=NFTHolder.Block(
+                            block_number=row["last_block_number"],
+                            timestamp=row["last_block_timestamp"],
+                        ),
+                    )
+                    for _, row in df.iterrows()
+                ],
+                total_holders=total_holders,
             )
-            for (idx, owner) in enumerate(owners)
-        ]
-
-        return NFTHoldersOutput(
-            holders=holders,
-            total_supply=total_supply,
-        )
