@@ -15,11 +15,8 @@ import pandas as pd
 from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Address, Contract, JoinType, Token
-from credmark.cmf.types.ledger import ColumnField
 from credmark.dto import DTO, DTOField
 from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
-
-from models.tmp_abi_lookup import NFT_ABI
 
 AZUKI_NFT = "0xED5AF388653567Af2F388E6224dC7C4b3241C544"
 RTFKT_MNLTH_NFT = "0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1"
@@ -296,9 +293,9 @@ class GetNFTHolders(Model):
         try:
             async with session.get(url) as response:
                 response.raise_for_status()
-                json = await response.json()
+                resp_json = await response.json()
                 response.close()
-            return json
+            return resp_json
         except Exception as e:
             print(e)
             print("Request failed.")
@@ -330,7 +327,7 @@ class GetNFTHolders(Model):
         try:
             baseURI = input.functions.baseURI().call()
             uris = [urljoin(baseURI, str(token_id)) for token_id in token_ids]
-        except (BadFunctionCallOutput, ABIFunctionNotFound, ContractLogicError) as err:
+        except (BadFunctionCallOutput, ABIFunctionNotFound, ContractLogicError):
             uris = self.context.web3_batch.call(
                 [input.functions.tokenURI(token_id) for token_id in token_ids],
                 unwrap=True,

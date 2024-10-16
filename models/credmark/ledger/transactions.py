@@ -12,8 +12,8 @@ class TxAccountsInput(Contract):
     order_by: str = DTOField("most_transactions", description="Sort by count or newest")
     start_block_number: float = DTOField(
         -1,
-        description="Minimum unscaled balance for a holder to be included. Default is -1, a minimum \
-            balance greater than 0",
+        description="Minimum unscaled balance for a holder to be included. Default is -1, \
+            a minimum balance greater than 0",
     )
 
 
