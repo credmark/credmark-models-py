@@ -52,9 +52,9 @@ class TokenHolders(Model):
                 order_by = q.field("first_block_number").dquote().desc()
             elif input.order_by == "oldest":
                 order_by = q.field("first_block_number").dquote().asc()
-            elif input.order_by == "least_transactions":
-                order_by = q.field("count").dquote().desc()
             elif input.order_by == "most_transactions":
+                order_by = q.field("count").dquote().desc()
+            elif input.order_by == "least_transactions":
                 order_by = q.field("count").dquote().asc()
             else:
                 raise ModelInputError("Invalid order by")
