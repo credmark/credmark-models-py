@@ -674,7 +674,9 @@ class TokenHolderInput(Token):
     offset: int = DTOField(
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
-    order_by: str = DTOField("balance", description="Sort by balance or newest")
+    order_by: str = DTOField(
+        "most_tokens", description="Sort by most_tokens, least_tokens, oldest or newest"
+    )
     quote: Currency = DTOField(
         FiatCurrency(symbol="USD"), description="Quote token address to count the value"
     )
@@ -712,7 +714,7 @@ class TokenHoldersOutput(IterableListGenericDTO[TokenHolder]):
 
 @Model.describe(
     slug="token.holders",
-    version="1.6",
+    version="1.7",
     display_name="Token Holders",
     description="Holders of a Token",
     category="protocol",
@@ -725,8 +727,14 @@ class TokenHolders(Model):
         with self.context.ledger.TokenBalance as q:
             if input.order_by == "newest":
                 order_by = q.field("first_block_number").dquote().desc()
-            else:
+            elif input.order_by == "oldest":
+                order_by = q.field("first_block_number").dquote().asc()
+            elif input.order_by == "most_tokens":
                 order_by = q.field("balance").dquote().desc()
+            elif input.order_by == "least_tokens":
+                order_by = q.field("balance").dquote().desc()
+            else:
+                raise ModelInputError("Invalid order by")
 
             having = (
                 q.RAW_AMOUNT.as_numeric().sum_().gt(0)
