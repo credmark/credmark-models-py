@@ -16,7 +16,8 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Address, Contract, JoinType, Token
 from credmark.dto import DTO, DTOField
-from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
+from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
+                             ContractLogicError)
 
 AZUKI_NFT = "0xED5AF388653567Af2F388E6224dC7C4b3241C544"
 RTFKT_MNLTH_NFT = "0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1"
@@ -379,7 +380,7 @@ class GetNFTHolders(Model):
             elif input.order_by == "oldest":
                 order_by = q.field("first_block_number").dquote().asc()
             elif input.order_by == "most_tokens":
-                order_by = q.field("balance").dquote().asc()
+                order_by = q.field("balance").dquote().desc()
             elif input.order_by == "least_tokens":
                 order_by = q.field("balance").dquote().asc()
             else:

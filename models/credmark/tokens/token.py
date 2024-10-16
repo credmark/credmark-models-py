@@ -732,7 +732,7 @@ class TokenHolders(Model):
             elif input.order_by == "most_tokens":
                 order_by = q.field("balance").dquote().desc()
             elif input.order_by == "least_tokens":
-                order_by = q.field("balance").dquote().desc()
+                order_by = q.field("balance").dquote().asc()
             else:
                 raise ModelInputError("Invalid order by")
 
