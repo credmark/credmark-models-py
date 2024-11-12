@@ -8,6 +8,7 @@ import requests
 from credmark.cmf.model import CachePolicy, ImmutableModel, ImmutableOutput, Model
 from credmark.cmf.model.errors import ModelDataError, ModelInputError, ModelRunError
 from credmark.cmf.types import (
+    Account,
     Accounts,
     Address,
     BlockNumber,
@@ -566,6 +567,78 @@ class TokenBalanceModel(Model):
             value=token_price.price * input.scaled(balance),
             price=token_price,
         )
+
+
+class TokenBalancesInput(Token):
+    accounts: List[Account] = DTOField(default=[], description="A list of Accounts")
+    include_price: bool = DTOField(default=False, description="Include price in the output")
+    quote: Currency = DTOField(
+        FiatCurrency(symbol="USD"), description="Quote token address to count the value"
+    )
+
+
+class TokenBalancesOutput(DTO):
+    class TokenBalance(DTO):
+        address: Address = DTOField(description="Account Address")
+        balance: int = DTOField(description="Balance of account")
+        balance_scaled: float = DTOField(description="Balance scaled to token decimals for account")
+        value: float | None = DTOField(description="Balance in terms of quoted currency")
+
+    balances: list[TokenBalance]
+    price: Price | None = DTOField(description="Token price")
+
+
+@Model.describe(
+    slug="token.balances",
+    version="1.0",
+    display_name="Token Balances",
+    developer="Credmark",
+    category="protocol",
+    tags=["token"],
+    input=TokenBalancesInput,
+    output=TokenBalancesOutput,
+)
+class TokenBalancesModel(Model):
+    """
+    Return token's balance for a list of accounts
+    """
+
+    def run(self, input: TokenBalancesInput) -> TokenBalancesOutput:
+        token = input.as_erc20(True)
+        balances = self.context.web3_batch.call(
+            [token.functions.balanceOf(account.address) for account in input.accounts],
+            require_success=False,
+            unwrap=True,
+            unwrap_default=0,
+        )
+
+        balances = [
+            TokenBalancesOutput.TokenBalance(
+                address=input.accounts[index].address,
+                balance=balance,
+                balance_scaled=input.scaled(balance),
+                value=None,
+            )
+            for index, balance in enumerate(balances)
+        ]
+
+        token_price = None
+        if input.include_price:
+            token_price = PriceWithQuote(
+                **self.context.models.price.quote({"base": input, "quote": input.quote})
+            )
+
+            balances = [
+                TokenBalancesOutput.TokenBalance(
+                    address=tb.address,
+                    balance=tb.balance,
+                    balance_scaled=tb.balance_scaled,
+                    value=token_price.price * tb.balance_scaled,
+                )
+                for tb in balances
+            ]
+
+        return TokenBalancesOutput(balances=balances, price=token_price)
 
 
 class TokenTransferInput(Token):
