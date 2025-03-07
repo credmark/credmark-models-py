@@ -9,7 +9,10 @@ class TxAccountsInput(Contract):
     offset: int = DTOField(
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
-    order_by: str = DTOField("most_transactions", description="Sort by count or newest")
+    order_by: str = DTOField(
+        "most_transactions",
+        description="Sort by most_transactions, least_transactions, oldest, newest, most_recent or least_recent",
+    )
     start_block_number: float = DTOField(
         -1,
         description="Minimum unscaled balance for a holder to be included. Default is -1, \
@@ -52,6 +55,10 @@ class TokenHolders(Model):
                 order_by = q.field("first_block_number").dquote().desc()
             elif input.order_by == "oldest":
                 order_by = q.field("first_block_number").dquote().asc()
+            elif input.order_by == "most_recent":
+                order_by = q.field("last_block_number").dquote().desc()
+            elif input.order_by == "least_recent":
+                order_by = q.field("last_block_number").dquote().asc()
             elif input.order_by == "most_transactions":
                 order_by = q.field("count").dquote().desc()
             elif input.order_by == "least_transactions":

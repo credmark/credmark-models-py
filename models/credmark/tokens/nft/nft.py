@@ -16,8 +16,7 @@ from credmark.cmf.model import Model
 from credmark.cmf.model.errors import ModelInputError
 from credmark.cmf.types import Address, Contract, JoinType, Token
 from credmark.dto import DTO, DTOField
-from web3.exceptions import (ABIFunctionNotFound, BadFunctionCallOutput,
-                             ContractLogicError)
+from web3.exceptions import ABIFunctionNotFound, BadFunctionCallOutput, ContractLogicError
 
 AZUKI_NFT = "0xED5AF388653567Af2F388E6224dC7C4b3241C544"
 RTFKT_MNLTH_NFT = "0x86825dFCa7A6224cfBd2DA48e85DF2fc3Aa7C4B1"
@@ -123,7 +122,7 @@ class NFTMint(Model):
         minted_ids_count = minted_ids.shape[0]
 
         self.logger.info(
-            f'{minted_ids_count=} {set(range(0, minted_ids_count)) - set(df_mint.evt_tokenid.astype("int"))}'
+            f"{minted_ids_count=} {set(range(0, minted_ids_count)) - set(df_mint.evt_tokenid.astype('int'))}"
         )
 
         df_mint["value"] = df_mint["value"].astype("float64") / 1e18
@@ -258,7 +257,8 @@ class NFTHolderInput(NFTContract):
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
     order_by: str = DTOField(
-        "most_tokens", description="Sort by most_tokens, least_tokens, oldest or newest"
+        "most_tokens",
+        description="Sort by most_tokens, least_tokens, oldest, newest, most_recent or least_recent",
     )
 
 
@@ -307,9 +307,10 @@ class GetNFTHolders(Model):
         tcp_connection = aiohttp.TCPConnector(
             limit=max_workers, force_close=True, enable_cleanup_closed=True
         )
-        async with aiohttp.ClientSession(
-            connector=tcp_connection
-        ) as session, asyncio.TaskGroup() as tg:
+        async with (
+            aiohttp.ClientSession(connector=tcp_connection) as session,
+            asyncio.TaskGroup() as tg,
+        ):
             responses = [tg.create_task(self.get_nft_attributes(session, url)) for url in urls]
         responses = await asyncio.gather(*responses)
         # await asyncio.sleep(0.250)
@@ -379,6 +380,10 @@ class GetNFTHolders(Model):
                 order_by = q.field("first_block_number").dquote().desc()
             elif input.order_by == "oldest":
                 order_by = q.field("first_block_number").dquote().asc()
+            elif input.order_by == "most_recent":
+                order_by = q.field("last_block_number").dquote().desc()
+            elif input.order_by == "least_recent":
+                order_by = q.field("last_block_number").dquote().asc()
             elif input.order_by == "most_tokens":
                 order_by = q.field("balance").dquote().desc()
             elif input.order_by == "least_tokens":

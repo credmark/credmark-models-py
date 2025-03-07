@@ -748,7 +748,8 @@ class TokenHolderInput(Token):
         0, ge=0, description="Omit a specified number of holders from beginning of result set"
     )
     order_by: str = DTOField(
-        "most_tokens", description="Sort by most_tokens, least_tokens, oldest or newest"
+        "most_tokens",
+        description="Sort by most_tokens, least_tokens, oldest, newest, most_recent or least_recent",
     )
     quote: Currency = DTOField(
         FiatCurrency(symbol="USD"), description="Quote token address to count the value"
@@ -802,6 +803,10 @@ class TokenHolders(Model):
                 order_by = q.field("first_block_number").dquote().desc()
             elif input.order_by == "oldest":
                 order_by = q.field("first_block_number").dquote().asc()
+            elif input.order_by == "most_recent":
+                order_by = q.field("last_block_number").dquote().desc()
+            elif input.order_by == "least_recent":
+                order_by = q.field("last_block_number").dquote().asc()
             elif input.order_by == "most_tokens":
                 order_by = q.field("balance").dquote().desc()
             elif input.order_by == "least_tokens":
